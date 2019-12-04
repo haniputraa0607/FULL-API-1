@@ -447,7 +447,7 @@ class ApiCategoryController extends Controller
                 $result[$product->id_product_category]['category']=ProductCategory::select('id_product_category','product_category_name')->find($product->id_product_category);
             }
         }
-        return MyHelper::checkGet(array_values($result, 'Product not found'));
+        return MyHelper::checkGet(array_values($result), 'Product not found');
     }
 
     function getData($post=[]) {
