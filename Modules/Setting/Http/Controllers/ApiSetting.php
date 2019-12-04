@@ -1238,11 +1238,17 @@ class ApiSetting extends Controller
             }
 
             if(!isset($post['webview'])){
+                $count = count($menuOther);
+                $firstRow = 5;
+                $arr1 = array_slice($menuOther,0,$firstRow);
+                $arr2 = array_slice($menuOther,$firstRow,$count);
+
+                $arr = [array_values($arr1), array_values($arr2)];
                 $result = [
                     'status' => 'success',
                     'result' => [
                         'main_menu' => array_values($menuMain),
-                        'other_menu' => array_values($menuOther)
+                        'other_menu' => $arr
                     ]
                 ];
             }else{
