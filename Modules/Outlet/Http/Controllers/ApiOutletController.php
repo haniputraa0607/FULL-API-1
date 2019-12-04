@@ -545,9 +545,6 @@ class ApiOutletController extends Controller
             $loopdata=&$outlet;
         }
 
-        if(isset($post['type']) && $post['type'] == 'transaction'){
-            $outlet = $this->setAvailableOutlet($outlet);
-        }
         $loopdata = array_map(function($var) use ($post){
             $var['url']=env('API_URL').'api/outlet/webview/'.$var['id_outlet'];
             if(($post['latitude']??false)&&($post['longitude']??false)){
@@ -635,20 +632,24 @@ class ApiOutletController extends Controller
         $outlet = $outlet->get()->toArray();
 
         if (!empty($outlet)) {
+            $processing = '0';
+            $settingTime = Setting::where('key', 'processing_time')->first();
+            if($settingTime && $settingTime->value){
+                $processing = $settingTime->value;
+            }
             foreach ($outlet as $key => $value) {
                 $jaraknya =   number_format((float)$this->distance($latitude, $longitude, $value['outlet_latitude'], $value['outlet_longitude'], "K"), 2, '.', '');
                 settype($jaraknya, "float");
 
                 $outlet[$key]['distance'] = number_format($jaraknya, 2, '.', ',')." km";
                 $outlet[$key]['dist']     = (float) $jaraknya;
+
+                $outlet[$key] = $this->setAvailableOutlet($outlet[$key], $processing);
             }
             usort($outlet, function($a, $b) {
                 return $a['dist'] <=> $b['dist'];
             });
 
-            if($request->json('type') && $request->json('type') == 'transaction'){
-                $outlet = $this->setAvailableOutlet($outlet);
-            }
         }else{
             return response()->json(['status' => 'fail', 'messages' => ['There is no open store','at this moment']]);
         }
@@ -699,20 +700,25 @@ class ApiOutletController extends Controller
         $outlet = $outlet->get()->toArray();
 
         if (!empty($outlet)) {
+            $processing = '0';
+            $settingTime = Setting::where('key', 'processing_time')->first();
+            if($settingTime && $settingTime->value){
+                $processing = $settingTime->value;
+            }
+
             foreach ($outlet as $key => $value) {
                 $jaraknya =   number_format((float)$this->distance($latitude, $longitude, $value['outlet_latitude'], $value['outlet_longitude'], "K"), 2, '.', '');
                 settype($jaraknya, "float");
 
                 $outlet[$key]['distance'] = number_format($jaraknya, 2, '.', ',')." km";
                 $outlet[$key]['dist']     = (float) $jaraknya;
+
+                $outlet[$key] = $this->setAvailableOutlet($outlet[$key], $processing);
             }
             usort($outlet, function($a, $b) {
                 return $a['dist'] <=> $b['dist'];
             });
 
-            if($request->json('type') && $request->json('type') == 'transaction'){
-                $outlet = $this->setAvailableOutlet($outlet);
-            }
         }
 
         if(isset($request['page']) && $request['page'] > 0){
@@ -866,6 +872,12 @@ class ApiOutletController extends Controller
 
 
         if (!empty($outlet)) {
+            $processing = '0';
+            $settingTime = Setting::where('key', 'processing_time')->first();
+            if($settingTime && $settingTime->value){
+                $processing = $settingTime->value;
+            }
+
             foreach ($outlet as $key => $value) {
                 $jaraknya =   number_format((float)$this->distance($latitude, $longitude, $value['outlet_latitude'], $value['outlet_longitude'], "K"), 2, '.', '');
                 settype($jaraknya, "float");
@@ -894,7 +906,9 @@ class ApiOutletController extends Controller
 				if($id_city != "" && $id_city != $value['id_city']){
                     unset($outlet[$key]);
                     continue;
-				}
+                }
+
+                $outlet[$key] = $this->setAvailableOutlet($outlet[$key], $processing);;
             }
 			if($sort != 'Alphabetical'){
 				usort($outlet, function($a, $b) {
@@ -906,10 +920,6 @@ class ApiOutletController extends Controller
 				foreach($outlet as $o){
 					array_push($urutan, $o);
 				}
-            }
-
-            if($request->json('type') && $request->json('type') == 'transaction'){
-                $urutan = $this->setAvailableOutlet($urutan);
             }
         } else {
             if($countAll){
@@ -985,6 +995,12 @@ class ApiOutletController extends Controller
         $outlet = $outlet->get()->toArray();
 
         if (!empty($outlet)) {
+            $processing = '0';
+            $settingTime = Setting::where('key', 'processing_time')->first();
+            if($settingTime && $settingTime->value){
+                $processing = $settingTime->value;
+            }
+
             foreach ($outlet as $key => $value) {
                 $jaraknya =   number_format((float)$this->distance($latitude, $longitude, $value['outlet_latitude'], $value['outlet_longitude'], "K"), 2, '.', '');
                 settype($jaraknya, "float");
@@ -1010,6 +1026,8 @@ class ApiOutletController extends Controller
                 if($id_city != "" && $id_city != $value['id_city']){
                     unset($outlet[$key]);
                 }
+
+                $outlet[$key] = $this->setAvailableOutlet($outlet[$key], $processing);
             }
             if($sort != 'Alphabetical'){
                 usort($outlet, function($a, $b) {
@@ -1023,9 +1041,6 @@ class ApiOutletController extends Controller
                 }
             }
 
-            if($request->json('type') && $request->json('type') == 'transaction'){
-                $urutan = $this->setAvailableOutlet($urutan);
-            }
         } else {
             return response()->json(MyHelper::checkGet($outlet));
         }
@@ -1072,53 +1087,41 @@ class ApiOutletController extends Controller
     }
 
     // unset outlet yang tutup dan libur
-    function setAvailableOutlet($listOutlet){
-        $processing = '0';
-        $settingTime = Setting::where('key', 'processing_time')->first();
-        if($settingTime && $settingTime->value){
-            $processing = $settingTime->value;
-        }
+    function setAvailableOutlet($outlet, $processing){
+        $outlet['today']['status'] = 'open';
 
-        $outlet = $listOutlet;
-        foreach($listOutlet as $index => $dataOutlet){
-            if($dataOutlet['today']['open'] == null || $dataOutlet['today']['close'] == null){
-                unset($outlet[$index]);
+        if($outlet['today']['open'] == null || $outlet['today']['close'] == null){
+            $outlet['today']['status'] = 'closed';
+        }else{
+            if($outlet['today']['is_closed'] == '1'){
+                $outlet['today']['status'] = 'closed';
             }else{
-                if($dataOutlet['today']['is_closed'] == '1'){
-                    unset($outlet[$index]);
-                }else{
-                    if($dataOutlet['today']['open'] != "00:00" && $dataOutlet['today']['close'] != "00:00"){
-                        if($dataOutlet['today']['open'] && date('H:i:01') < date('H:i', strtotime($dataOutlet['today']['open']))){
-                            unset($outlet[$index]);
-                        }elseif($dataOutlet['today']['close'] && date('H:i') > date('H:i', strtotime('-'.$processing.' minutes', strtotime($dataOutlet['today']['close'])))){
-                            unset($outlet[$index]);
-                        }else{
-                            $holiday = Holiday::join('outlet_holidays', 'holidays.id_holiday', 'outlet_holidays.id_holiday')->join('date_holidays', 'holidays.id_holiday', 'date_holidays.id_holiday')
-                            ->where('id_outlet', $dataOutlet['id_outlet'])->whereDay('date_holidays.date', date('d'))->whereMonth('date_holidays.date', date('m'))->get();
-                            if(count($holiday) > 0){
-                                foreach($holiday as $i => $holi){
-                                    if($holi['yearly'] == '0'){
-                                        if($holi['date'] == date('Y-m-d')){
-                                            unset($outlet[$index]);
-                                            break;
-                                        }
-                                    }else{
-                                        unset($outlet[$index]);
-                                        break;
+                if($outlet['today']['open'] != "00:00" && $outlet['today']['close'] != "00:00"){
+                    if($outlet['today']['open'] && date('H:i:01') < date('H:i', strtotime($outlet['today']['open']))){
+                        $outlet['today']['status'] = 'closed';
+                    }elseif($outlet['today']['close'] && date('H:i') > date('H:i', strtotime('-'.$processing.' minutes', strtotime($outlet['today']['close'])))){
+                        $outlet['today']['status'] = 'closed';
+                    }else{
+                        $holiday = Holiday::join('outlet_holidays', 'holidays.id_holiday', 'outlet_holidays.id_holiday')->join('date_holidays', 'holidays.id_holiday', 'date_holidays.id_holiday')
+                        ->where('id_outlet', $outlet['id_outlet'])->whereDay('date_holidays.date', date('d'))->whereMonth('date_holidays.date', date('m'))->get();
+                        if(count($holiday) > 0){
+                            foreach($holiday as $i => $holi){
+                                if($holi['yearly'] == '0'){
+                                    if($holi['date'] == date('Y-m-d')){
+                                        $outlet['today']['status'] = 'closed';
                                     }
+                                }else{
+                                    $outlet['today']['status'] = 'closed';
                                 }
-
                             }
+
                         }
                     }
                 }
             }
-            unset($outlet[$index]['product_prices']);
-            unset($outlet[$index]['outlet_schedules']);
-            unset($outlet[$index]['outlet_photos']);
-            unset($outlet[$index]['outlet_pin']);
         }
-        return array_values($outlet);
+
+        return $outlet;
     }
 
     /**
