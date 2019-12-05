@@ -10,86 +10,86 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css?family=Open+Sans|Questrial" rel="stylesheet">
 	<style type="text/css">
-		@font-face {
-                font-family: "WorkSans-Black";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Black.ttf') }}');
+	@font-face {
+            font-family: "Ubuntu-Bold";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bold.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Bold";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Bold.ttf') }}');
+            font-family: "Ubuntu-BoldItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bolditalic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-ExtraBold";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-ExtraBold.ttf') }}');
+            font-family: "Ubuntu-Italic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_italic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-ExtraLight";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-ExtraLight.ttf') }}');
+            font-family: "Ubuntu-Light";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_light.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Light";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Light.ttf') }}');
+            font-family: "Ubuntu-LightItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_lightitalic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Medium";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Medium.ttf') }}');
+            font-family: "Ubuntu-Medium";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_medium.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Regular";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Regular.ttf') }}');
+            font-family: "Ubuntu-MediumItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_mediumitalic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-SemiBold";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-SemiBold.ttf') }}');
+            font-family: "Ubuntu";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Thin";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Thin.ttf') }}');
+            font-family: "Ubuntu-Regular";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
         }
-        .WorkSans-Black{
-            font-family: "WorkSans-Black";
+        .Ubuntu-Bold{
+            font-family: "Ubuntu-Bold";
         }
-        .WorkSans-Bold{
-            font-family: "WorkSans-Bold";
+        .Ubuntu-BoldItalic{
+            font-family: "Ubuntu-BoldItalic";
         }
-        .WorkSans-ExtraBold{
-            font-family: "WorkSans-ExtraBold";
+        .Ubuntu-Italic{
+            font-family: "Ubuntu-Italic";
         }
-        .WorkSans-ExtraLight{
-            font-family: "WorkSans-ExtraLight";
+        .Ubuntu-Light{
+            font-family: "Ubuntu-Light";
         }
-        .WorkSans-Medium{
-            font-family: "WorkSans-Medium";
+        .Ubuntu-LightItalic{
+            font-family: "Ubuntu-LightItalic";
         }
-        .WorkSans-Regular{
-            font-family: "WorkSans-Regular";
+        .Ubuntu-Medium{
+            font-family: "Ubuntu-Medium";
         }
-        .WorkSans{
-            font-family: "WorkSans-Regular";
+        .Ubuntu-MediumItalic{
+            font-family: "Ubuntu-MediumItalic";
         }
-        .WorkSans-SemiBold{
-            font-family: "WorkSans-SemiBold";
+        .Ubuntu{
+            font-family: "Ubuntu";
         }
-        .WorkSans-Thin{
-            font-family: "WorkSans-Thin";
+        .Ubuntu-Regular{
+            font-family: "Ubuntu-Regular";
         }
         body {
             cursor: pointer;
@@ -308,7 +308,6 @@
 		transform: rotate(180deg);
 		transition: transform 0.25s linear;
 	}
-	p { margin: 0 0 0.0001pt; }
 
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css">
@@ -316,12 +315,33 @@
   </head>
   <body>
 
-    <div class="kotak1" style='margin-bottom: 20px;'>
+	<div class="kotak1">
   		<div class="container">
+			<div class="Ubuntu-Medium space-text" style="color: #3d3935; font-size: 15px; padding-bottom: 0;"><i style="font-size: 17px;" class="fa fa-phone"></i> {{$data[0]['outlet_phone']}}</div>
+	   	</div>
+  	</div>
+
+	<div class="kotak1" style="padding-top: 10px;">
+  		<div class="container">
+  		    <div class="Ubuntu-Medium space-text" style="color: #3d3935; font-size: 13.3px; padding-bottom: 5px;">Location</div>
+			<div class="Ubuntu space-text" style="color: #979797; font-size: 12.7px; padding-bottom: 0;">
+				<?php
+					echo nl2br ($data[0]['outlet_address']);
+				?>
+			</div>
+			<hr style="margin-bottom: 5px;border-top: dashed 1px #979797;">
+	   	</div>
+	</div>
+    <div class="kotak1" @if($data[0]['big_order'] == 0) style='margin-bottom: 20px;' @endif>
+  		<div class="container">
+  		    <div class="Ubuntu-Medium space-text" id="testClick" style="color: #3d3935; font-size: 13.3px; padding-bottom: 5px;">Open Hours</div>
   			@php
   				$hari = date ("D");
 
 			switch($hari){
+				case 'Sun':
+					$hari_ini = "Minggu";
+				break;
 
 				case 'Mon':
 					$hari_ini = "Senin";
@@ -346,34 +366,42 @@
 				default:
 					$hari_ini = "Sabtu";
 				break;
-				
-				case 'Sun':
-					$hari_ini = "Minggu";
-				break;
 			}
 
 			@endphp
-			<div class="row WorkSans">
-				<div class="col-12">
+			<div class="row Ubuntu">
+				<div class="col-8">
 				    @if (!empty($data[0]['outlet_schedules']))
 						@foreach ($data[0]['outlet_schedules'] as $key => $val)
-						<div style="@if ($val['day'] == $hari_ini) color: `#383b67; @else color: #707070; @endif font-size: 13.3px; padding-bottom: 3px;" class="WorkSans-Bold">{{ strtoupper($val['day']) }}</div>
-						<div style="@if ($val['day'] == $hari_ini) color: `#383b67; @else color: #707070; @endif font-size: 13.3px; padding-bottom: 0;">
-							@if($val['is_closed'] == '1')
-								TUTUP
-							@else
-								{{date('H.i', strtotime($val['open']))}} - {{date('H.i', strtotime($val['close']))}}
-							@endif
+						<div class="pull-left row space-sch">
+							<div style="@if ($val['day'] == $hari_ini) color: #3d3935; @else color: #979797; @endif font-size: 12.7px; padding-bottom: 0;" class="@if ($val['day'] == $hari_ini) Ubuntu-Medium @endif col-3 min-left">{{ $val['day'] }}</div>
+							<div style="@if ($val['day'] == $hari_ini) color: #3d3935; @else color: #979797; @endif font-size: 12.7px; padding-bottom: 0;" class="@if ($val['day'] == $hari_ini) Ubuntu-Medium @endif col-9">
+								@if($val['is_closed'] == '1')
+									TUTUP
+								@else
+									{{date('H.i', strtotime($val['open']))}} - {{date('H.i', strtotime($val['close']))}}
+								@endif
+							</div>
+							@if ($val['day'] == "Minggu")
+						@endif
 						</div>
-						<hr style="margin-bottom: 5px;margin-top: 5px; @if(end($data[0]['outlet_schedules']) == $val) display: none; @endif">
 						@endforeach
 					@else
-						<div class="WorkSans space-text" style="color: #707070; font-size: 11.7px; padding-bottom: 0;">Belum Tersedia</div>
+						<div class="Ubuntu space-text" style="color: rgb(0, 0, 0); font-size: 12.7px; padding-bottom: 0;">Belum Tersedia</div>
 					@endif
 				</div>
 			</div>
 	   	</div>
   	</div>
+
+	@if($data[0]['big_order'] == 1)
+	<div class="kotak1" style='margin-bottom: 20px'>
+  		<div class="container">
+  		    <div class="Ubuntu text-center space-text" style="color: rgb(0, 0, 0); font-size: 15px; padding-bottom: 5px;">Big Order Delivery Service</div>
+		  <div class="Ubuntu space-text" style="color: rgb(102, 102, 102); font-size: 12.7px; padding-bottom: 0;">Khusus pemesanan diatas 50 pax, silahkan menghubungi <a style="color: rgb(128, 0, 0); text-decoration: underline;" href="#delivery_service">Call Center</a> kami untuk mendapatkan penawaran special</div>
+	   	</div>
+	</div>
+	@endif
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
@@ -381,6 +409,19 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCOHBNv3Td9_zb_7uW-AJDU6DHFYk-8e9Y&v=3.exp&signed_in=true&libraries=places"></script>
 	<script>
+	$(document).ready(function() {
+    	$("#testClick").click(function() {
+    		if($("#today").is(':visible')){
+    			$(".icon").addClass('open');
+    			$("#today").hide()
+    			$(".anotherDay").show(500)
+    		} else{
+    			$(".icon").removeClass('open');
+    			$("#today").show()
+    			$(".anotherDay").hide(500)
+    		}
+    	});
+	});
 	</script>
   </body>
 </html>

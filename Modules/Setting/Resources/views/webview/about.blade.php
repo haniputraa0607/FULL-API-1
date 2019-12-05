@@ -12,85 +12,85 @@
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">
     <style type="text/css">
         @font-face {
-                font-family: "WorkSans-Black";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Black.ttf') }}');
+            font-family: "Ubuntu-Bold";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bold.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Bold";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Bold.ttf') }}');
+            font-family: "Ubuntu-BoldItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bolditalic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-ExtraBold";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-ExtraBold.ttf') }}');
+            font-family: "Ubuntu-Italic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_italic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-ExtraLight";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-ExtraLight.ttf') }}');
+            font-family: "Ubuntu-Light";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_light.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Light";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Light.ttf') }}');
+            font-family: "Ubuntu-LightItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_lightitalic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Medium";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Medium.ttf') }}');
+            font-family: "Ubuntu-Medium";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_medium.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Regular";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Regular.ttf') }}');
+            font-family: "Ubuntu-MediumItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_mediumitalic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-SemiBold";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-SemiBold.ttf') }}');
+            font-family: "Ubuntu";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Thin";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Thin.ttf') }}');
+            font-family: "Ubuntu-Regular";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
         }
-        .WorkSans-Black{
-            font-family: "WorkSans-Black";
+        .Ubuntu-Bold{
+            font-family: "Ubuntu-Bold";
         }
-        .WorkSans-Bold{
-            font-family: "WorkSans-Bold";
+        .Ubuntu-BoldItalic{
+            font-family: "Ubuntu-BoldItalic";
         }
-        .WorkSans-ExtraBold{
-            font-family: "WorkSans-ExtraBold";
+        .Ubuntu-Italic{
+            font-family: "Ubuntu-Italic";
         }
-        .WorkSans-ExtraLight{
-            font-family: "WorkSans-ExtraLight";
+        .Ubuntu-Light{
+            font-family: "Ubuntu-Light";
         }
-        .WorkSans-Medium{
-            font-family: "WorkSans-Medium";
+        .Ubuntu-LightItalic{
+            font-family: "Ubuntu-LightItalic";
         }
-        .WorkSans-Regular{
-            font-family: "WorkSans-Regular";
+        .Ubuntu-Medium{
+            font-family: "Ubuntu-Medium";
         }
-        .WorkSans{
-            font-family: "WorkSans-Regular";
+        .Ubuntu-MediumItalic{
+            font-family: "Ubuntu-MediumItalic";
         }
-        .WorkSans-SemiBold{
-            font-family: "WorkSans-SemiBold";
+        .Ubuntu{
+            font-family: "Ubuntu";
         }
-        .WorkSans-Thin{
-            font-family: "WorkSans-Thin";
+        .Ubuntu-Regular{
+            font-family: "Ubuntu-Regular";
         }
         .kotak {
             margin : 10px;
@@ -132,7 +132,7 @@
     <div class="kotak-full">
         <div class="container">
             <div class="row">
-                <div class="col-12 WorkSans" style="color: #707070;font-size: 11.7px; line-height: 26px">{!! $value !!}</div>
+                <div class="col-12 Ubuntu" style="color: #666666;font-size: 13.3px; line-height: 26px">{!! $value !!}</div>
             </div>
         </div>
     </div>
