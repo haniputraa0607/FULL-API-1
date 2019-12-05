@@ -62,6 +62,12 @@
         .bg-grey{
             background-color: #cccccc;
         }
+        .bg-yellow-light{
+            background-color: #eed484;
+        }
+		.brown-dark{
+			color: #b29333;
+		}
     	.fee{
 			margin-top: 30px;
 			font-size: 18px;
@@ -115,25 +121,39 @@
 			border: 1px solid #fff !important;
 		}
 		.nav-item a{
-			color: #707070 !important;
+			color: #d7d2cb !important;
 			font-weight: 600;
 			padding-left: 28px;
 			padding-right: 28px;
 		}
 		.nav-item .active{
-			color: #383b67 !important;
+			color: #ff9d6e !important;
 			border:none !important;
-			border-bottom: 3px solid #383b67 !important;
+			border-bottom: 3px solid #ff9d6e !important;
 			font-weight: 600;
 			padding: 10px;
-			padding-bottom: 5px;
+			border-radius: 3px;
 		}
 		.nav-item .active:hover{
 			border:none !important;
-			border-bottom: 3px solid #383b67 !important;
+			border-bottom: 3px solid #ff9d6e !important;
 		}
 		.nav-tabs{
-			border-bottom: none !important; 
+			border-bottom: none;
+			overflow-x: auto;
+			overflow-y: hidden;
+			display: -webkit-box;
+			display: -moz-box;
+		}
+		.nav-tabs>li {
+			float:none;
+		}
+		.nav>li>a:focus, .nav>li>a:hover {
+			background-color: transparent;
+		}
+		::-webkit-scrollbar {
+			width: 0px;
+			background: transparent; /* make scrollbar transparent */
 		}
     </style>
 @stop
@@ -157,51 +177,53 @@
 				<img class="deals-img center-block" src="{{ $deals['url_deals_image'] }}" alt="">
 
 				<div class="title-wrapper clearfix">
-					<div class="col-left voucher font-red WorkSans-Medium" style="color: #707070;">
+					<div class="col-left voucher font-red Ubuntu" style="color: #3d3935;">
 					    @if($deals['deals_voucher_type'] != 'Unlimited')
-						    {{ $deals['deals_total_voucher'] }}/{{ $deals['deals_total_claimed'] }}
+							<span class="Ubuntu-Medium" style="font-size: 13.3px;">{{ $deals['deals_total_claimed'] }}/{{ $deals['deals_total_voucher'] }}</span>
+							<span style="font-size: 12.7px;">vouchers available</span>
+						@else
+							<span class="Ubuntu-Medium" style="font-size: 13.3px;">{{$deals['deals_voucher_type']}}</span>
 						@endif
-						kupon tersedia
 					</div>
 					<div class="col-right">
-					    <div id="timer" style="color: #ffffff;" class="text-center WorkSans-Reguler">
-					        <span id="timerchild">Akan berakhir dalam</span>
+					    <div id="timer" class="brown-dark text-center Ubuntu-Reguler">
+					        <span id="timerchild">End in</span>
 					    </div>
-						<div class="fee text-right font-red WorkSans-Bold" style="color: #333333;">{{ $deals_fee }}</div>
+						<div class="fee text-right font-red Ubuntu-Bold" style="color: #3d3935;">{{ $deals_fee }}</div>
 					</div>
 				</div>
-				<div class="title-wrapper clearfix WorkSans-Bold">
-					<div class="title" style="color: #333333;font-size: 20px;">
+				<div class="title-wrapper clearfix Ubuntu-Bold">
+					<div class="title" style="color: #3d3935;font-size: 20px;">
 						{{ $deals['deals_title'] }}
 						@if($deals['deals_second_title'] != null)
 						<br>
-						<p style="color: #333333;font-size: 15px;" class="WorkSans-Regular">{{ $deals['deals_second_title'] }}</p>
+						<p style="color: #3d3935;font-size: 15px;" class="Ubuntu-Regular">{{ $deals['deals_second_title'] }}</p>
 						@endif
 					</div>
 				</div>
 
                 @if($deals['deals_description'] != "")
-				<div class="title-wrapper WorkSans-Regular">
-					<div class="description" style="font-size: 11.7px;">{!! $deals['deals_description'] !!}</div>
+				<div class="title-wrapper Ubuntu-Regular">
+					<div class="description" style="font-size: 12.7px;color: #3d3935;">{!! $deals['deals_description'] !!}</div>
 				</div>
                 @endif
 			</div>
 			
 			<div class="container" style="margin-top: 10px;box-shadow: 0 0.7px 3.3px #0f000000;background-color: #ffffff;">
-				<div class="col-12" style="padding: 10px 15px;">
-					<ul class="nav nav-tabs WorkSans-Bold" id="myTab" role="tablist" style="font-size: 14px;">
+				<div class="col-12" style="padding: 10px 15px;padding-bottom: 0px;">
+					<ul class="nav nav-tabs Ubuntu-Bold" id="myTab" role="tablist" style="font-size: 14px;">
 						<li class="nav-item">
-							<a class="nav-link active" id="ketentuan-tab" data-toggle="tab" href="#ketentuan" role="tab" aria-controls="ketentuan" aria-selected="true">Ketentuan</a>
+							<a class="nav-link active" id="ketentuan-tab" data-toggle="tab" href="#ketentuan" role="tab" aria-controls="ketentuan" aria-selected="true">Terms</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" id="howuse-tab" data-toggle="tab" href="#howuse" role="tab" aria-controls="howuse" aria-selected="false">Cara Pakai</a>
+							<a class="nav-link" id="howuse-tab" data-toggle="tab" href="#howuse" role="tab" aria-controls="howuse" aria-selected="false">How to Use</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" id="outlet-tab" data-toggle="tab" href="#outlet" role="tab" aria-controls="outlet" aria-selected="false"> Berlaku di</a>
+							<a class="nav-link" id="outlet-tab" data-toggle="tab" href="#outlet" role="tab" aria-controls="outlet" aria-selected="false">Available at</a>
 						</li>
 					</ul>
 				</div>
-				<div class="tab-content mt-4 WorkSans-Regular" id="myTabContent" style="padding: 0 15px;padding-bottom: 5px;font-size: 11.7px;color: #707070;">
+				<div class="tab-content mt-4 Ubuntu-Regular" id="myTabContent" style="padding: 0 15px;padding-bottom: 5px;font-size: 12.7px;color: #707070;">
 					<div class="tab-pane fade show active" id="ketentuan" role="tabpanel" aria-labelledby="ketentuan-tab">
 						@if($deals['deals_tos'] != "")
 						{!! $deals['deals_tos'] !!}
@@ -250,12 +272,14 @@
             if (server_time >= deals_start && server_time <= deals_end) {
                 // deals date is valid and count the timer
                 difference = deals_end - server_time;
-                document.getElementById('timer').classList.add("bg-dark-blue");
+                document.getElementById('timer').classList.add("bg-yellow-light");
+                document.getElementById('timer').classList.add("brown-dark");
             }
             else {
                 // deals is not yet start
                 difference = deals_start - server_time;
-                document.getElementById('timer').classList.add("bg-grey");
+                document.getElementById('timer').classList.add("bg-yellow-light");
+                document.getElementById('timer').classList.add("brown-dark");
             }
 
             var display_flag = 0;
@@ -264,16 +288,14 @@
                     timer_text = timer(difference);
 					@if($deals['deals_status'] == 'available')
 					if(timer_text.includes('lagi')){
-						document.getElementById("timer").innerHTML = "Akan berakhir dalam";
+						document.getElementById("timer").innerHTML = "<p class='brown-dark Ubuntu-Medium'>End in</p>";
 					}else{
-						document.getElementById("timer").innerHTML = "Akan berakhir pada";
+						document.getElementById("timer").innerHTML = "<p class='brown-dark Ubuntu-Medium'>End at</p>";
 					}
-                    document.getElementById("timer").innerHTML += "<br>";
                     document.getElementById('timer').innerHTML += timer_text;
                     @elseif($deals['deals_status'] == 'soon')
-                    document.getElementById("timer").innerHTML = "Akan dimulai pada";
-                    document.getElementById("timer").innerHTML += "<br>";
-                    document.getElementById('timer').innerHTML += "<p class='WorkSans-Medium'>{{ date('d', strtotime($deals['deals_start'])) }} {{$month[date('m', strtotime($deals['deals_start']))-1]}} {{ date('Y', strtotime($deals['deals_start'])) }} jam {{ date('H:i', strtotime($deals['deals_start'])) }}</p>";
+                    document.getElementById("timer").innerHTML = "<p class='brown-dark Ubuntu-Medium'>Start at</p>";
+                    document.getElementById('timer').innerHTML += "<p class='brown-dark Ubuntu-Bold'>{{ date('d', strtotime($deals['deals_start'])) }} {{$month[date('m', strtotime($deals['deals_start']))-1]}} {{ date('Y', strtotime($deals['deals_start'])) }} jam {{ date('H:i', strtotime($deals['deals_start'])) }}</p>";
                     @endif
 
                     difference--;
@@ -304,7 +326,7 @@
                 // countdown
                 daysDifference = Math.floor(difference/60/60/24);
                 if (daysDifference > 0) {
-					timer = "<p class='WorkSans-Medium'>{{ date('d', strtotime($deals['deals_end'])) }} {{$month[ date('m', strtotime($deals['deals_end']))-1]}} {{ date('Y', strtotime($deals['deals_end'])) }}</p>";
+					timer = "<p class='brown-dark Ubuntu-Bold'>{{ date('d', strtotime($deals['deals_end'])) }} {{$month[ date('m', strtotime($deals['deals_end']))-1]}} {{ date('Y', strtotime($deals['deals_end'])) }}</p>";
                   //  timer = daysDifference + " hari";
                     console.log('timer d', timer);
                 }
