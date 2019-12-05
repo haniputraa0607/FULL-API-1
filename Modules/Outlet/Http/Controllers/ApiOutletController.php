@@ -1773,6 +1773,8 @@ class ApiOutletController extends Controller
 
             $outlet['distance'] = number_format($jaraknya, 2, '.', ',')." km";
             $outlet['dist']     = (float) $jaraknya;
+        }else{
+            $outlet['distance'] = '';
         }
         $outlet = $this->setAvailableOutlet($outlet, $processing);
         return MyHelper::checkGet($outlet);
