@@ -1474,7 +1474,71 @@ class FeaturesTableSeeder extends Seeder
                     'feature_module' => 'Welcome Voucher',
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
-                )
+                ),
+            183=>
+            array(
+                'id_feature' => 184,
+                'feature_type' => 'List',
+                'feature_module' => 'User Feedback',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            184 =>
+            array(
+                'id_feature' => 185,
+                'feature_type' => 'List',
+                'feature_module' => 'Product Modifier',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            185 =>
+            array(
+                'id_feature' => 186,
+                'feature_type' => 'Create',
+                'feature_module' => 'Product Modifier',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            186 =>
+            array(
+                'id_feature' => 187,
+                'feature_type' => 'Detail',
+                'feature_module' => 'Product Modifier',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            187 =>
+            array(
+                'id_feature' => 188,
+                'feature_type' => 'Update',
+                'feature_module' => 'Product Modifier',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            188 =>
+            array(
+                'id_feature' => 189,
+                'feature_type' => 'Delete',
+                'feature_module' => 'Product Modifier',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            189 =>
+            array(
+                'id_feature' => 190,
+                'feature_type' => 'List',
+                'feature_module' => 'Product Modifier Price',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            190 =>
+            array(
+                'id_feature' => 191,
+                'feature_type' => 'Update',
+                'feature_module' => 'Product Modifier Price',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
         ));
     }
 }
