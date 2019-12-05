@@ -357,7 +357,7 @@ class SettingsTableSeeder extends Seeder
                     'id_setting' => 39,
                     'key' => 'text_menu_other',
                     'value' => NULL,
-                    'value_text' => '{"menu1":{"text_menu":"Profile","text_header":"Profile","icon":""},"menu2":{"text_menu":"Membership","text_header":"Membership","icon":""},"menu3":{"text_menu":"Outlet","text_header":"Outlet","icon":""},"menu4":{"text_menu":"Kabar","text_header":"Kabar","icon":""},"menu5":{"text_menu":"Tentang","text_header":"Tentang","icon":""},"menu6":{"text_menu":"FAQ","text_header":"FAQ","icon":""},"menu7":{"text_menu":"Ketentuan","text_header":"Ketentuan","icon":""},"menu8":{"text_menu":"Kontak","text_header":"Kontak","icon":""}}',
+                    'value_text' => '{"menu1":{"text_menu":"Profile","text_header":"Profile","icon":""},"menu2":{"text_menu":"Membership","text_header":"Membership","icon":""},"menu3":{"text_menu":"News","text_header":"News","icon":""},"menu4":{"text_menu":"Outlet","text_header":"Outlet","icon":""},"menu5":{"text_menu":"Referral","text_header":"Referral","icon":""},"menu6":{"text_menu":"About","text_header":"About","icon":""},"menu7":{"text_menu":"FAQ","text_header":"FAQ","icon":""},"menu8":{"text_menu":"TOS","text_header":"TOS","icon":""},"menu9":{"text_menu":"Contact Us","text_header":"Contact Us","icon":""}}',
                     'created_at' => '2019-10-08 09:04:01',
                     'updated_at' => '2019-10-08 09:04:02',
             ),
@@ -397,6 +397,33 @@ class SettingsTableSeeder extends Seeder
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ),
+            45 =>
+                array(
+                    'id_setting' => 46,
+                    'key' => 'order_now_title',
+                    'value' => 'Pesan Sekarang',
+                    'value_text' => NULL,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            47 =>
+                array(
+                    'id_setting' => 48,
+                    'key' => 'order_now_sub_title_success',
+                    'value' => 'Cek outlet terdekatmu',
+                    'value_text' => NULL,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            48 =>
+                array(
+                    'id_setting' => 49,
+                    'key' => 'order_now_sub_title_fail',
+                    'value' => 'Tidak ada outlet yang tersedia',
+                    'value_text' => NULL,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
         ));
     }
 }

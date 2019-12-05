@@ -25,6 +25,7 @@ use App\Imports\ExcelImport;
 use App\Imports\FirstSheetOnlyImport;
 
 use App\Lib\MyHelper;
+use Modules\Outlet\Http\Requests\Outlet\OutletListOrderNow;
 use Validator;
 use Hash;
 use DB;
@@ -1762,5 +1763,93 @@ class ApiOutletController extends Controller
         }
         $outlet['status'] = $this->checkOutletStatus($outlet);
         return MyHelper::checkGet($outlet);
+    }
+
+    public function listOutletOrderNow(OutletListOrderNow $request){
+        $post = $request->json()->all();
+        $user = $request->user();
+
+        try{
+//            $outlet = Outlet::join('transactions','outlets.id_outlet', '=', 'transactions.id_outlet')
+//                ->join('users', 'users.id', '=', 'transactions.id_user')
+//                ->selectRaw('outlets.*,
+//                        (111.111 * DEGREES(ACOS(LEAST(1.0, COS(RADIANS(outlet_latitude))
+//                             * COS(RADIANS('.$post['latitude'].'))
+//                             * COS(RADIANS(outlet_longitude - '.$post['longitude'].'))
+//                             + SIN(RADIANS(outlet_latitude))
+//                             * SIN(RADIANS('.$post['latitude'].')))))) AS distance_in_km' )
+//                ->with(['user_outlets','city','today', 'outlet_schedules', 'brands'])
+//                ->where('users.phone',$user['phone'])
+//                ->where('outlets.outlet_status', 'Active')
+//                ->whereHas('brands',function($query){
+//                    $query->where('brand_active','1');
+//                })
+//                ->orderBy('distance_in_km')
+//                ->get()->toArray();
+//
+//            if(empty($outlet)){
+            $title = Setting::where('key', 'order_now_title')->first()->value;
+            $subTitleSuccess = Setting::where('key', 'order_now_sub_title_success')->first()->value;
+            $subTitleFail = Setting::where('key', 'order_now_sub_title_fail')->first()->value;
+
+            $outlet = Outlet::selectRaw('outlets.id_outlet, outlets.outlet_name, outlets.outlet_code,outlets.outlet_status,outlets.outlet_address,outlets.id_city, outlets.outlet_latitude, outlets.outlet_longitude,
+                        (111.111 * DEGREES(ACOS(LEAST(1.0, COS(RADIANS(outlets.outlet_latitude))
+                             * COS(RADIANS('.$post['latitude'].'))
+                             * COS(RADIANS(outlets.outlet_longitude - '.$post['longitude'].'))
+                             + SIN(RADIANS(outlets.outlet_latitude))
+                             * SIN(RADIANS('.$post['latitude'].')))))) AS distance_in_km' )
+                ->with(['user_outlets','city','today', 'outlet_schedules', 'brands'])
+                ->where('outlets.outlet_status', 'Active')
+                ->whereNotNull('outlets.outlet_latitude')
+                ->whereNotNull('outlets.outlet_longitude')
+                ->whereHas('brands',function($query){
+                    $query->where('brand_active','1');
+                })
+                ->orderBy('distance_in_km', 'asc')
+                ->limit(5)
+                ->get()->toArray();
+//            }
+
+            if(count($outlet) > 0){
+                $loopdata=&$outlet;
+                $loopdata = array_map(function($var) use ($post){
+                    $var['url']=env('API_URL').'api/outlet/webview/'.$var['id_outlet'];
+                    if(($post['latitude']??false)&&($post['longitude']??false)){
+                        $var['distance']=number_format((float)$this->distance($post['latitude'], $post['longitude'], $var['outlet_latitude'], $var['outlet_longitude'], "K"), 2, '.', '').' km';
+                    }
+                    return $var;
+                }, $loopdata);
+
+                $result = [
+                    'status' => 'success',
+                    'messages' => [],
+                    'result' => [
+                        'title' => $title,
+                        'sub_title' => $subTitleSuccess,
+                        'data' => $outlet
+                    ]
+                ];
+            }else{
+                $result = [
+                    'status' => 'fail',
+                    'messages' => [$subTitleFail],
+                    'result' => [
+                        'title' => $title,
+                        'sub_title' => $subTitleFail,
+                        'data' => null
+                    ]
+                ];
+            }
+
+        }catch (Exception $e) {
+            $result = [
+                'status' => 'fail',
+                'messages' => ['something went wrong'],
+                'result' => [
+                    'data' => null
+                ]
+            ];
+        }
+        return response()->json($result);
     }
 }
