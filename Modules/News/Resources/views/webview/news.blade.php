@@ -9,85 +9,85 @@
         <link href="{{ env('S3_URL_VIEW') }}{{('css/slide.css') }}" rel="stylesheet">
         <style type="text/css">
         @font-face {
-                font-family: "WorkSans-Black";
+                font-family: "Ubuntu-Bold";
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Black.ttf') }}');
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bold.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Bold";
+                font-family: "Ubuntu-BoldItalic";
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Bold.ttf') }}');
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bolditalic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-ExtraBold";
+                font-family: "Ubuntu-Italic";
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-ExtraBold.ttf') }}');
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_italic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-ExtraLight";
+                font-family: "Ubuntu-Light";
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-ExtraLight.ttf') }}');
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_light.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Light";
+                font-family: "Ubuntu-LightItalic";
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Light.ttf') }}');
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_lightitalic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Medium";
+                font-family: "Ubuntu-Medium";
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Medium.ttf') }}');
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_medium.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Regular";
+                font-family: "Ubuntu-MediumItalic";
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Regular.ttf') }}');
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_mediumitalic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-SemiBold";
+                font-family: "Ubuntu";
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-SemiBold.ttf') }}');
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Thin";
+                font-family: "Ubuntu-Regular";
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Thin.ttf') }}');
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
         }
-        .WorkSans-Black{
-            font-family: "WorkSans-Black";
+        .Ubuntu-Bold{
+            font-family: "Ubuntu-Bold";
         }
-        .WorkSans-Bold{
-            font-family: "WorkSans-Bold";
+        .Ubuntu-BoldItalic{
+            font-family: "Ubuntu-BoldItalic";
         }
-        .WorkSans-ExtraBold{
-            font-family: "WorkSans-ExtraBold";
+        .Ubuntu-Italic{
+            font-family: "Ubuntu-Italic";
         }
-        .WorkSans-ExtraLight{
-            font-family: "WorkSans-ExtraLight";
+        .Ubuntu-Light{
+            font-family: "Ubuntu-Light";
         }
-        .WorkSans-Medium{
-            font-family: "WorkSans-Medium";
+        .Ubuntu-LightItalic{
+            font-family: "Ubuntu-LightItalic";
         }
-        .WorkSans-Regular{
-            font-family: "WorkSans-Regular";
+        .Ubuntu-Medium{
+            font-family: "Ubuntu-Medium";
         }
-        .WorkSans{
-            font-family: "WorkSans-Regular";
+        .Ubuntu-MediumItalic{
+            font-family: "Ubuntu-MediumItalic";
         }
-        .WorkSans-SemiBold{
-            font-family: "WorkSans-SemiBold";
+        .Ubuntu{
+            font-family: "Ubuntu";
         }
-        .WorkSans-Thin{
-            font-family: "WorkSans-Thin";
+        .Ubuntu-Regular{
+            font-family: "Ubuntu-Regular";
         }
         .kotak1 {
             padding-top: 10px;
@@ -161,7 +161,7 @@
         }
 
         .line-bottom {
-                border-bottom: 1px dashed #eee;
+                border-bottom: 1px solid #eee;
                 margin-bottom: -10px;
                 margin-top: 8px;
         }
@@ -337,12 +337,10 @@
             <div class="container">
                 <div class="row space-bottom">
                     <div class="row container kotak-title">
-                        @php $hari=['','Senin','Selasa','Rabu','Kamis',"Jum'at",'Sabtu','Minggu']; @endphp
-                        <div class="col-12 text-bot text-custom-px WorkSans space-text"> <span> {{ $hari[date('N', strtotime($news[0]['news_post_date']))] }}, {{ date('d F Y', strtotime($news[0]['news_post_date'])) }} &nbsp;&nbsp;&nbsp; {{ date('H:i', strtotime($news[0]['news_post_date'])) }}  </span></div>
-                        <div class="col-12 text-bot text-black WorkSans-Medium" style=" line-height: 21px;padding-bottom: 10px;padding-top: 4px;"> <strong> @if($news[0]['news_second_title'] == null){{ strtoupper($news[0]['news_title']) }} @else {{ strtoupper($news[0]['news_second_title']) }} @endif</strong></div>
+                        <div class="col-12 text-bot text-custom-px Ubuntu space-text"> <span> {{ date('l', strtotime($news[0]['news_post_date'])) }}, {{ date('d F Y', strtotime($news[0]['news_post_date'])) }} &nbsp;&nbsp;&nbsp; {{ date('H:i', strtotime($news[0]['news_post_date'])) }}  </span></div>
+                        <div class="col-12 text-bot text-black Ubuntu-Medium" style=" line-height: 21px;padding-bottom: 10px;padding-top: 4px;"> <strong> @if($news[0]['news_second_title'] == null){{ strtoupper($news[0]['news_title']) }} @else {{ strtoupper($news[0]['news_second_title']) }} @endif</strong></div>
                     </div>
                     <img src="{{ $news[0]['url_news_image_dalam'] }}" style="height: 50vw;">
-                    <div id="grad1" style="margin-bottom: -20px;"></div>
                 </div>
             </div>
         </div>
@@ -353,47 +351,47 @@
             @if (isset($news[0]['news_event_date_start']))
                 @if ($news[0]['news_event_date_start'] == $news[0]['news_event_date_end'])
                     <div class="row space-bottom">
-                        <div class="col-12 text-dark text13-3px WorkSans-Bold">PERIODE</div>
-                         <div class="col-12 text-grey-black text13-3px WorkSans-Medium"> {{ date('d F Y', strtotime($news[0]['news_event_date_start'])) }}</div>
+                        <div class="col-12 text-dark text13-3px Ubuntu-Bold">PERIODE</div>
+                         <div class="col-12 text-grey-black text13-3px Ubuntu-Medium"> {{ date('d F Y', strtotime($news[0]['news_event_date_start'])) }}</div>
                     </div>
                 @else
                     <div class="row space-bottom">
-                         <div class="col-12 text-dark text13-3px WorkSans-Bold">PERIODE</div>
-                         <div class="col-12 text-grey-black text-13-3px WorkSans"> {{ date('d F', strtotime($news[0]['news_event_date_start'])) }} - {{ date('d F Y', strtotime($news[0]['news_event_date_end'])) }}</div>
+                         <div class="col-12 text-dark text13-3px Ubuntu-Bold">PERIODE</div>
+                         <div class="col-12 text-grey-black text-13-3px Ubuntu"> {{ date('d F', strtotime($news[0]['news_event_date_start'])) }} - {{ date('d F Y', strtotime($news[0]['news_event_date_end'])) }}</div>
                     </div>
                 @endif
             @endif
             @if (isset($news[0]['news_event_time_start']))
                 @if ($news[0]['news_event_time_start'] == $news[0]['news_event_time_end'])
                     <div class="row space-bottom">
-                        <div class="col-12 text-dark text13-3px WorkSans-Bold">JAM</div>
-                        <div class="col-12 text-grey-black text-13-3px WorkSans"> {{ date('H:i', strtotime($news[0]['news_event_time_start'])) }}</div>
+                        <div class="col-12 text-dark text13-3px Ubuntu-Bold">JAM</div>
+                        <div class="col-12 text-grey-black text-13-3px Ubuntu"> {{ date('H:i', strtotime($news[0]['news_event_time_start'])) }}</div>
                     </div>
                 @else
                     <div class="row space-bottom">
-                        <div class="col-12 text-dark text13-3px WorkSans-Bold">JAM</div>
-                        <div class="col-12 text-grey-black text-13-3px WorkSans">{{ date('H:i', strtotime($news[0]['news_event_time_start'])) }} - {{ date('H:i', strtotime($news[0]['news_event_time_end'])) }}</div>
+                        <div class="col-12 text-dark text13-3px Ubuntu-Bold">JAM</div>
+                        <div class="col-12 text-grey-black text-13-3px Ubuntu">{{ date('H:i', strtotime($news[0]['news_event_time_start'])) }} - {{ date('H:i', strtotime($news[0]['news_event_time_end'])) }}</div>
                     </div>
                 @endif
             @endif
             @if (isset($news[0]['news_event_location_name']))
                 <div class="row space-bottom">
-                    <div class="col-12 text-dark text13-3px WorkSans-Bold">LOKASI</div>
-                    <div class="col-12 text-grey-black text-13-3px WorkSans"> {{ $news[0]['news_event_location_name'] }} </div>
+                    <div class="col-12 text-dark text13-3px Ubuntu-Bold">LOKASI</div>
+                    <div class="col-12 text-grey-black text-13-3px Ubuntu"> {{ $news[0]['news_event_location_name'] }} </div>
                 </div>
             @endif
 
             @if (isset($news[0]['news_event_location_address']))
                 <div class="row space-bottom">
-                     <div class="col-12 text-dark text13-3px WorkSans-Bold">ALAMAT</div>
-                     <div class="col-12 text-grey-black text-13-3px WorkSans">{{ $news[0]['news_event_location_address'] }} </div>
+                     <div class="col-12 text-dark text13-3px Ubuntu-Bold">ALAMAT</div>
+                     <div class="col-12 text-grey-black text-13-3px Ubuntu">{{ $news[0]['news_event_location_address'] }} </div>
                 </div>
             @endif
 
             @if (isset($news[0]['news_event_location_phone']))
                 <div class="row space-bottom">
-                    <div class="col-12 text-dark text13-3px WorkSans-Bold">TELEPON</div>
-                    <div class="col-12 text-grey-black text-13-3px WorkSans"> {{ $news[0]['news_event_location_phone'] }} </div>
+                    <div class="col-12 text-dark text13-3px Ubuntu-Bold">TELEPON</div>
+                    <div class="col-12 text-grey-black text-13-3px Ubuntu"> {{ $news[0]['news_event_location_phone'] }} </div>
                 </div>
             @endif
 
@@ -410,7 +408,7 @@
 
         <div class="kotak2">
             <div class="container" style="padding: 0px;">
-                <div class="space-bottom text-13-3px WorkSans">{!! $news[0]['news_content_long'] !!}
+                <div class="space-bottom text-13-3px Ubuntu">{!! $news[0]['news_content_long'] !!}
                 </div>
             </div>
         </div>
@@ -420,7 +418,7 @@
                 <div class="container">
                     @if (isset($news[0]['news_video_text']))
                         <div class="row space-bottom">
-                            <div class="col-12 text-bot text-black text-15px WorkSans"> <span> {{ $news[0]['news_video_text'] }} :  </span></div>
+                            <div class="col-12 text-bot text-black text-15px Ubuntu"> <span> {{ $news[0]['news_video_text'] }} :  </span></div>
                         </div>
                     @endif
 
@@ -445,7 +443,7 @@
                 <div class="container">
                 @if (isset($news[0]['news_outlet_text']))
                     <div class="row space-bottom">
-                        <div class="col-12 text-bot text-black text-15px WorkSans"> <span> {{ $news[0]['news_outlet_text'] }} :  </span></div>
+                        <div class="col-12 text-bot text-black text-15px Ubuntu"> <span> {{ $news[0]['news_outlet_text'] }} :  </span></div>
                     </div>
                 @endif
 
@@ -477,7 +475,7 @@
                 <div class="container">
                     @if (isset($news[0]['news_product_text']))
                         <div class="row space-bottom">
-                            <div class="col-12 text-bot text-black text-15px WorkSans"> <span> {{ $news[0]['news_product_text'] }} :  </span></div>
+                            <div class="col-12 text-bot text-black text-15px Ubuntu"> <span> {{ $news[0]['news_product_text'] }} :  </span></div>
                         </div>
                     @endif
                     @if (isset($news[0]['news_product']))
