@@ -12,85 +12,85 @@
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">
     <style type="text/css">
         @font-face {
-                font-family: "WorkSans-Black";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Black.ttf') }}');
+            font-family: "Ubuntu-Bold";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bold.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Bold";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Bold.ttf') }}');
+            font-family: "Ubuntu-BoldItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bolditalic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-ExtraBold";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-ExtraBold.ttf') }}');
+            font-family: "Ubuntu-Italic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_italic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-ExtraLight";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-ExtraLight.ttf') }}');
+            font-family: "Ubuntu-Light";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_light.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Light";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Light.ttf') }}');
+            font-family: "Ubuntu-LightItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_lightitalic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Medium";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Medium.ttf') }}');
+            font-family: "Ubuntu-Medium";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_medium.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Regular";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Regular.ttf') }}');
+            font-family: "Ubuntu-MediumItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_mediumitalic.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-SemiBold";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-SemiBold.ttf') }}');
+            font-family: "Ubuntu";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
         }
         @font-face {
-                font-family: "WorkSans-Thin";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/Work_Sans/WorkSans-Thin.ttf') }}');
+            font-family: "Ubuntu-Regular";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
         }
-        .WorkSans-Black{
-            font-family: "WorkSans-Black";
+        .Ubuntu-Bold{
+            font-family: "Ubuntu-Bold";
         }
-        .WorkSans-Bold{
-            font-family: "WorkSans-Bold";
+        .Ubuntu-BoldItalic{
+            font-family: "Ubuntu-BoldItalic";
         }
-        .WorkSans-ExtraBold{
-            font-family: "WorkSans-ExtraBold";
+        .Ubuntu-Italic{
+            font-family: "Ubuntu-Italic";
         }
-        .WorkSans-ExtraLight{
-            font-family: "WorkSans-ExtraLight";
+        .Ubuntu-Light{
+            font-family: "Ubuntu-Light";
         }
-        .WorkSans-Medium{
-            font-family: "WorkSans-Medium";
+        .Ubuntu-LightItalic{
+            font-family: "Ubuntu-LightItalic";
         }
-        .WorkSans-Regular{
-            font-family: "WorkSans-Regular";
+        .Ubuntu-Medium{
+            font-family: "Ubuntu-Medium";
         }
-        .WorkSans{
-            font-family: "WorkSans-Regular";
+        .Ubuntu-MediumItalic{
+            font-family: "Ubuntu-MediumItalic";
         }
-        .WorkSans-SemiBold{
-            font-family: "WorkSans-SemiBold";
+        .Ubuntu{
+            font-family: "Ubuntu";
         }
-        .WorkSans-Thin{
-            font-family: "WorkSans-Thin";
+        .Ubuntu-Regular{
+            font-family: "Ubuntu-Regular";
         }
         .kotak {
             margin : 10px;
@@ -147,7 +147,7 @@
         }
 
         body {
-            background: #f8f9fb;
+            background: #fff;
         }
 
         .completed {
@@ -272,68 +272,24 @@
         .brownishGrey {
             color: rgb(102,102,102);
         }
-        
-        .sb3 {
-            background: #ffffff;
-            width: 90%;
-            margin-bottom: 35px;
-            padding: 25px;
-            text-align: center;
-            position: relative;
-            box-shadow: #eeeeee 1.3px 2px 3.3px;
-            border-radius: 5px;
-        }
-
-        .sb3:after {
-            content: "";
-            position: absolute;
-            box-shadow: #eeeeee 1.3px 2px 3.3px;
-            -moz-transform: rotate(45deg);
-            -webkit-transform: rotate(45deg);
-            bottom: -10px;
-            left: 40px;
-            border-width: 10px;
-            border-style: solid;
-            border-color: transparent #FFF #FFF transparent;
-        }
-
-        .sb4 {
-            background: #ffffff;
-            width: 90%;
-            margin-bottom: 35px;
-            padding: 25px;
-            text-align: center;
-            position: relative;
-            box-shadow: #eeeeee 1.3px 2px 3.3px;
-            border-radius: 5px;
-        }
-
-        .sb4:after {
-            content: "";
-            position: absolute;
-            box-shadow: #eeeeee 1.3px 2px 3.3px;
-            -moz-transform: rotate(45deg);
-            -webkit-transform: rotate(45deg);
-            bottom: -10px;
-            right: 40px;
-            border-width: 10px;
-            border-style: solid;
-            border-color: transparent #FFF #FFF transparent;
-        }
     </style>
   </head>
   <body>
+    @php
+        // print_r($data);die();
+    @endphp
+
     @foreach ($faq as $key => $value)
-	    <div class="@if ($key % 2 == 0) sb3 @else sb4 @endif kotak-full text-left">
+	    <div class="kotak-full" >
 	        <div class="div-panah brownishGrey">
                 <a href="#" data-toggle="collapse" data-target="#multi-collapse{{ $key }}" aria-expanded="false">
     	            <div class="row">
-    	                <div class="col-12 WorkSans-Medium" style="color: #333333;">{{ $value['question'] }}</div>
+    	                <div class="col-10 Ubuntu text-grey-white" style="font-size: 13.3px;color: #666666;">{{ $value['question'] }}</div>
+    	                <div class="col-2 Ubuntu panah text-right" style="color: #000"> <i style="font-size: 20px;" class="fa fa-angle-down kelas-panah add"></i></div>
     	            </div>
                 </a>
             </div>
-            <div class="collapse WorkSans-SemiBold" id="multi-collapse{{ $key }}" style="color: #383b67;padding-top: 16px">
-            <hr style="margin-top: 0px;">
+            <div class="collapse Ubuntu" id="multi-collapse{{ $key }}" style="color: #aaaaaa;padding-top: 16px">
                 <div class="row">
                     <div class="col-12">{{ $value['answer'] }}</div>
                 </div>
@@ -358,10 +314,10 @@
     		console.log(text);
     		if ($(this).find('.kelas-panah').hasClass('add')) {
     			$(this).find('.add').remove();
-    			$(this).find('.panah').html('<i class="fa fa-angle-up kelas-panah remove"></i>');
+    			$(this).find('.panah').html('<i style="font-size: 20px;" class="fa fa-angle-up kelas-panah remove"></i>');
     		} else {
     			$(this).find('.remove').remove();
-    			$(this).find('.panah').html('<i class="fa fa-angle-down kelas-panah add"></i>');
+    			$(this).find('.panah').html('<i style="font-size: 20px;" class="fa fa-angle-down kelas-panah add"></i>');
     		}
     	});
     </script>
