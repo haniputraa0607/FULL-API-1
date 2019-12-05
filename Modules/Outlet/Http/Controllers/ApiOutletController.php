@@ -1757,11 +1757,26 @@ class ApiOutletController extends Controller
         $outlet = Outlet::with(['today','brands'=>function($query){
                     $query->where([['brand_active',1],['brand_visibility',1]]);
                     $query->select('brands.id_brand','name_brand');
-                }])->select('id_outlet','outlet_code','outlet_name','outlet_address','outlet_latitude','outlet_longitude','outlet_phone','outlet_status')->find($request->json('id_outlet'))->toArray();
+                }])->select('id_outlet','outlet_code','outlet_name','outlet_address','outlet_latitude','outlet_longitude','outlet_phone','outlet_status')->find($request->json('id_outlet'));
         if(!$outlet){
             return MyHelper::checkGet([]);
         }
-        $outlet['status'] = $this->checkOutletStatus($outlet);
+        $outlet = $outlet->toArray();
+        $processing = '0';
+        $settingTime = Setting::where('key', 'processing_time')->first();
+        if($settingTime && $settingTime->value){
+            $processing = $settingTime->value;
+        }
+        if(($latitude = $request->json('latitude'))&&($longitude = $request->json('longitude'))){
+            $jaraknya =   number_format((float)$this->distance($latitude, $longitude, $outlet['outlet_latitude'], $outlet['outlet_longitude'], "K"), 2, '.', '');
+            settype($jaraknya, "float");
+
+            $outlet['distance'] = number_format($jaraknya, 2, '.', ',')." km";
+            $outlet['dist']     = (float) $jaraknya;
+        }else{
+            $outlet['distance'] = '';
+        }
+        $outlet = $this->setAvailableOutlet($outlet, $processing);
         return MyHelper::checkGet($outlet);
     }
 
