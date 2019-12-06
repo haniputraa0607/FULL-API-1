@@ -60,7 +60,6 @@ class ApiUser extends Controller
         $this->membership  = "Modules\Membership\Http\Controllers\ApiMembership";
         $this->inbox  = "Modules\InboxGlobal\Http\Controllers\ApiInbox";
         $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiSettingFraud";
-        $this->deals = "Modules\Deals\Http\Controllers\ApiDeals";
     }
 
     function LogActivityFilter($rule='and', $conditions = null, $order_field='id', $order_method='asc', $skip=0, $take=999999999999){
@@ -1662,13 +1661,6 @@ class ApiUser extends Controller
                         $update = User::where('id','=',$data[0]['id'])->update(['complete_profile' => '1']);
 
                         $checkMembership = app($this->membership)->calculateMembership($datauser[0]['phone']);
-                    }
-                }
-
-                if($data[0]['complete_profile'] == 0){
-                    $setting = Setting::where('key','welcome_voucher_setting')->first()->value;
-                    if($setting == 1){
-                        $injectVoucher = app($this->deals)->injectWelcomeVoucher(['id' => $data[0]['id']], $request->json('phone'));
                     }
                 }
 
