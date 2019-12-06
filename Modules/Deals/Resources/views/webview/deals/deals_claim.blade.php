@@ -117,78 +117,75 @@
 		 .image-4 {
          clip-path: polygon(30% 0, 100% 0, 100% 100%, 0 100%);
 		}
+        body {
+            background-color: #ffffff;
+        }
     </style>
 @stop
 
 @section('content')
 	<div class="deals-detail">
 		@if(!empty($deals))
-			<div class="col-md-4 col-md-offset-4">
-				<div style="background-color: rgb(255, 255, 255); padding: 10px;" class="text-center col-md-12 clearfix ProductSans">
-					<div class="title">
-						YEAY!
+			<div class="col-md-4 col-md-offset-4" style="background-color: #ffffff;">
+				<div style="background-color: #ffffff;padding: 10px;box-shadow: 0 0.7px 3.3px #eeeeee;" class="col-md-12 clearfix Ubuntu">
+					<div class="text-center title Ubuntu-Medium" style="color: #ff9d6e;font-size: 16.7px;">
+						Horayy!
 					</div>
-					<div style="color: rgba(0, 0, 0, 0.7)">
-						Selamat kamu berhasil mendapatkan voucher
+					<div class="text-center Ubuntu" style="color: #3d3935;margin-top: 14.3px;">
+						Thankyou for buying
 					</div>
-				</div>
-
-				<div style="background-color: rgb(255, 255, 255);" class="col-md-12 clearfix ProductSans">
-					<div class="card">
-
-						<div class="container" style="padding-right: 0px;">
-							<div class="pull-left" style="margin-top: 10px;width: 60%;">
-								@php $bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', "Jul", 'Agu', 'Sep', 'Okt', 'Nov', 'Des']; @endphp
-								<p style="font-size:13.5px; color:rgba(32, 32, 32)">{{$deals['deals_voucher']['deal']['deals_title']}}</p>
-								<br>
-								<p style="font-size:10px; color:rgba(170, 170, 170)">Masa berlaku hingga</p>
-								<p style="font-size:10px; color:rgba(170, 170, 170)">{{date('d', strtotime($deals['deals_voucher']['deal']['deals_end']))}} {{$bulan[date('m', strtotime($deals['deals_voucher']['deal']['deals_end']))-1]}} {{ date('Y', strtotime($deals['deals_voucher']['deal']['deals_end'])) }}</p>
-								<br>
-							</div>
-							<div class="pull-right" style="width: 40%;">
-							    <svg height="100px" width="150px" class="pull-right" style="border-bottom-right-radius: 10px; border-top-right-radius: 10px;">
-                                    <pattern id="pattern" height="100%" width="100%" patternUnits="userSpaceOnUse" viewBox="0 0 1 1" preserveAspectRatio="xMidYMid slice">
-                                      <image height="1" width="1" xlink:href="{{ env('S3_URL_API').$deals['deals_voucher']['deal']['deals_image'] }}"  preserveAspectRatio="xMidYMid meet"></image>
-                                    </pattern>
-                                  <polygon points="30 0, 200 0, 200 100, 0 100" fill="url(#pattern)"></polygon>
-                                </svg>
+					<div style="position: relative;margin-top: 26.7px;">
+						<div style="width: 56%;height: 100px;position: absolute;top: 10%;left: 40%;">
+							<div class="cotainer">
+								<div class="pull-left" style="margin-top: 10px;">
+									<p class="Ubuntu-Medium" style="font-size: 14px;color: #333333;">{{$deals['deals_voucher']['deal']['deals_title']}}</p>
+									{{-- <p style="font-size: 13.3px;color: #333333;">{{$deals['deals_voucher']['deal']['deals_second_title']}}</p> --}}
+									<div style="margin-top: 23px;"></div>
+									<p class="Ubuntu" style="font-size: 10.7px;color: #3d3935;padding: 5px 10px;background-color: #f0f3f7;border-radius: 100px;">Valid until {{date('d F Y', strtotime($deals['deals_voucher']['deal']['deals_end']))}}</p>
+								</div>
 							</div>
 						</div>
+						<img src="{{ env('S3_URL_API').$deals['deals_voucher']['deal']['deals_image'] }}" alt="" style="width: 85px;position: absolute;border-radius: 50%;top: 14.5%;left: 6.5%;">
+						<img style="width:100%" height="130px" src="{{ env('S3_URL_API')}}img/asset/bg_item_kupon_saya.png" alt="">
 					</div>
 				</div>
 
-				<br>
-
-				<div style="background-color: rgb(248, 249, 251);" class="title-wrapper col-md-12 clearfix ProductSans-Bold">
-					<div class="title" style="font-size: 15px; color: rgb(102, 102, 102);">Transaksi</div>
+				<div style="background-color: #f8f9fb;" class="title-wrapper col-md-12 clearfix Ubuntu-Bold">
+					<div class="title" style="font-size: 13.3px; color: #333333;">Transaction</div>
 				</div>
 
-				<div style="padding-top: 0px; color: rgb(0, 0, 0); height: 50px;" class="description-wrapper ProductSans">
-					<div class="description pull-left">Tanggal</div>
-					<div class="description pull-right">{{date('d', strtotime($deals['claimed_at']))}} {{$bulan[date('m', strtotime($deals['claimed_at']))-1]}} {{ date('Y', strtotime($deals['claimed_at'])) }} {{date('H:i', strtotime($deals['claimed_at']))}}</div>
+				<div style="background-color: #ffffff;padding-top: 0px; color: #aaaaaa; height: 40px;font-size: 12.7px;" class="description-wrapper Ubuntu">
+					<div class="description pull-left Ubuntu-SemiBold">Date</div>
+					<div style="color: #3d3935;" class="description pull-right">{{date('d M Y H:i', strtotime($deals['claimed_at']))}}</div>
 				</div>
 
-				<div style="padding-top: 0px; color: rgb(0, 0, 0); height: 50px;" class="description-wrapper ProductSans">
-					<div class="description pull-left">ID Transaksi</div>
-					<div class="description pull-right">{{strtotime($deals['claimed_at'])}}</div>
+				<div style="background-color: #ffffff;padding-top: 0px; color: #aaaaaa; height: 40px;font-size: 12.7px;" class="description-wrapper Ubuntu">
+					<div class="description pull-left Ubuntu-SemiBold">Transaction ID</div>
+					<div style="color: #3d3935;" class="description pull-right">{{strtotime($deals['claimed_at'])}}</div>
 				</div>
 
 				@php
 					if ($deals['voucher_price_point'] != null) {
-						$payment = number_format($deals['voucher_price_point']).' points';
+						$payment = number_format($deals['voucher_price_point'],0,",",".").' points';
 					} elseif ($deals['voucher_price_cash'] != null) {
-						$payment = number_format($deals['voucher_price_cash']).' points';
+						$payment = number_format($deals['voucher_price_cash'],0,",",".");
 					} else {
-						$payment = 'Gratis';
+						$payment = 'Free';
 					}
 				@endphp
-				<div style="padding-top: 0px; color: rgb(0, 0, 0); height: 50px;" class="description-wrapper ProductSans">
-					<div class="description pull-left">Total Pembayaran</div>
-					<div class="description pull-right">{{$payment}}</div>
+				<div style="background-color: #ffffff;padding-top: 0px; color: #aaaaaa; height: 60px;font-size: 12.7px;" class="description-wrapper Ubuntu">
+					<div class="description pull-left Ubuntu-SemiBold">Maxx Points</div>
+					<div style="color: #b72126;" class="description pull-right">{{$payment}}</div>
+				</div>
+				<div style="background-color: #ffffff;font-size: 13.3px;">
+					<div style="background-color: #eed484;padding-top: 0px;color: #3d3935;height: 45px;border-radius: 10px;margin: 0px 15px;" class="description-wrapper Ubuntu-Medium">
+						<div class="description pull-left Ubuntu-SemiBold">Total Pembayaran</div>
+						<div class="description pull-right Ubuntu-SemiBold">{{$payment}}</div>
+					</div>
 				</div>
 
-				<div style="padding-top: 0px; color: rgb(0, 0, 0); height: 70px; position: fixed; bottom: 10px; width: 100%;" class="description-wrapper ProductSans">
-					<a style="width:100%; background-color:rgb(74, 0, 0); color: rgb(241, 228, 178);" class="btn btn-lg ProductSans" href="#yes">Lihat Voucher</a>
+				<div style="background-color: #ffffff;padding-top: 0px;color: rgb(0, 0, 0);height: 70px;position: fixed;bottom: 10px;width: 100%;" class="description-wrapper Ubuntu">
+					<a style="width:100%;background-color: #8fd6bd;color: #10704e;font-size: 15px;" class="btn btn-lg Ubuntu-Bold" href="#yes">Lihat Voucher</a>
 				</div>
 			</div>
 		@else
