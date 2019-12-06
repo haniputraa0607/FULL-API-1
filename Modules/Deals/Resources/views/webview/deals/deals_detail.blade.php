@@ -179,7 +179,7 @@
 				<div class="title-wrapper clearfix">
 					<div class="col-left voucher font-red Ubuntu" style="color: #3d3935;">
 					    @if($deals['deals_voucher_type'] != 'Unlimited')
-							<span class="Ubuntu-Medium" style="font-size: 13.3px;">{{ $deals['deals_total_claimed'] }}/{{ $deals['deals_total_voucher'] }}</span>
+							<span class="Ubuntu-Medium" style="font-size: 13.3px;">{{ $deals['deals_total_voucher']-$deals['deals_total_claimed'] }}/{{ $deals['deals_total_voucher'] }}</span>
 							<span style="font-size: 12.7px;">vouchers available</span>
 						@else
 							<span class="Ubuntu-Medium" style="font-size: 13.3px;">{{$deals['deals_voucher_type']}}</span>
