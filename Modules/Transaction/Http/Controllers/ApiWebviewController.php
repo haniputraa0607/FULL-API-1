@@ -529,7 +529,7 @@ class ApiWebviewController extends Controller
 
         $data   = LogBalance::where('id_log_balance', $id)->first();
         if ($data['source'] == 'Transaction' || $data['source'] == 'Rejected Order'  || $data['source'] == 'Rejected Order Point' || $data['source'] == 'Rejected Order Midtrans' || $data['source'] == 'Reversal') {
-            $select = Transaction::with(['outlet', 'productTransaction'])->where('id_transaction', $data['id_reference'])->first();
+            $select = Transaction::with(['outlet', 'productTransaction.product'])->where('id_transaction', $data['id_reference'])->first();
 
             $data['date'] = $select['transaction_date'];
             $data['type'] = 'trx';
@@ -629,6 +629,7 @@ class ApiWebviewController extends Controller
             $data['order_label_v2'] = explode(',', $data['order_label_v2']);
             $data['order_v2'] = explode(',', $data['order_v2']);
         }
+        // dd($data);
         return view('transaction::webview.' . $view . '')->with(compact('data'));
     }
 
@@ -725,7 +726,7 @@ class ApiWebviewController extends Controller
         if ($data['type'] == 'voucher') {
             $view = 'detail_balance_voucher';
         }
-
+        // dd($data);
         return view('transaction::webview.' . $view . '')->with(compact('data'));
     }
 
