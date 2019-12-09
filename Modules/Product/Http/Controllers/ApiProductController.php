@@ -768,7 +768,7 @@ class ApiProductController extends Controller
     public function detail(Request $request) {
         $post = $request->json()->all();
         //get product
-        $product = Product::select('id_product','product_name','product_code','product_visibility')
+        $product = Product::select('id_product','product_name','product_description','product_code','product_visibility')
         ->where('id_product',$post['id_product'])
         ->whereHas('brand_category')
         ->whereHas('product_prices',function($query) use ($post){
