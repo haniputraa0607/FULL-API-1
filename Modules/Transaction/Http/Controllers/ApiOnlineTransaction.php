@@ -1474,6 +1474,7 @@ class ApiOnlineTransaction extends Controller
                     ];
                 }
                 $mod = $mod->toArray();
+                $mod['product_modifier_price'] = (float) $mod['product_modifier_price'];
                 $mod['qty'] = $qty_product_modifier;
                 $product['modifiers'][]=$mod;
                 $mod_price+=$mod['qty']*$mod['product_modifier_price'];
