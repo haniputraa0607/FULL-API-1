@@ -1479,7 +1479,7 @@ class ApiOnlineTransaction extends Controller
                 $product['modifiers'][]=$mod;
                 $mod_price+=$mod['qty']*$mod['product_modifier_price'];
             }
-            if(!isset($tree[$product['id_brand']]['brand'])){
+            if(!isset($tree[$product['id_brand']]['name_brand'])){
                 $tree[$product['id_brand']] = Brand::select('name_brand','id_brand')->find($product['id_brand'])->toArray();
             }
             $tree[$product['id_brand']]['products'][]=$product;
