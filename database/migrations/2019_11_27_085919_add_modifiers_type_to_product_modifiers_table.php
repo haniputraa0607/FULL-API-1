@@ -15,6 +15,7 @@ class AddModifiersTypeToProductModifiersTable extends Migration
     {
         Schema::table('product_modifiers', function (Blueprint $table) {
             $table->enum('modifier_type',['Global','Specific'])->after('id_product_modifier');
+            $table->dropForeign('fk_product_modifiers_products');
             $table->dropColumn('id_product');
         });
     }
