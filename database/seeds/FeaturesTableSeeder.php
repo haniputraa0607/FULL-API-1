@@ -1539,6 +1539,46 @@ class FeaturesTableSeeder extends Seeder
                 'created_at' => date('Y-m-d H:00:00'),
                 'updated_at' => date('Y-m-d H:00:00'),
             ),
+            191 =>
+                array(
+                    'id_feature' => 192,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Fraud Detection Settings',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            192 =>
+                array(
+                    'id_feature' => 193,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud Device',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            193 =>
+                array(
+                    'id_feature' => 194,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud Transaction Day',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            194 =>
+                array(
+                    'id_feature' => 195,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud Transaction Week',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            195 =>
+                array(
+                    'id_feature' => 196,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'List User Fraud',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                )
         ));
     }
 }
