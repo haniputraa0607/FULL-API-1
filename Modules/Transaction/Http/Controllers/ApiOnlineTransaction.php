@@ -1477,6 +1477,7 @@ class ApiOnlineTransaction extends Controller
             $product['note'] = $item['note'];
             // get modifier
             $mod_price = 0;
+            $product['modifiers']=[];
             foreach ($item['modifiers'] as $modifier) {
                 $id_product_modifier = is_numeric($modifier)?$modifier:$modifier['id_product_modifier'];
                 $qty_product_modifier = is_numeric($modifier)?1:$modifier['qty'];
@@ -1605,6 +1606,11 @@ class ApiOnlineTransaction extends Controller
             }
         }
 
+        $result['outlet'] = [
+            'id_outlet' => $outlet['id_outlet'],
+            'outlet_name' => $outlet['outlet_name'],
+            'outlet_address' => $outlet['outlet_address']
+        ];
         $result['item'] = array_values($tree);
         $result['subtotal'] = $subtotal;
         $result['shipping'] = $post['shipping'];
