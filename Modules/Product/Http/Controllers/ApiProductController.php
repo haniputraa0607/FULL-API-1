@@ -789,7 +789,7 @@ class ApiProductController extends Controller
             ->whereNotNull('product_price')
             ->where('product_status','=','Active');
         })
-        ->with(['brand_category'=>function($query) use ($post){
+        ->with(['photos','brand_category'=>function($query) use ($post){
             $query->where('id_product',$post['id_product']);
             $query->where('id_brand',$post['id_brand']);
         },'product_prices'=>function($query) use ($post){
@@ -800,7 +800,8 @@ class ApiProductController extends Controller
             return MyHelper::checkGet([]);
         }else{
             // toArray error jika $product Null,
-            $product = $product->toArray();
+            $product = $product->append('photo')->toArray();
+            unset($product['photos']);
         }
         $product['product_price'] = $product['product_prices'][0]['product_price'];
         if(!(empty($product['product_prices']['product_visibility'])&&$product['product_visibility']=='Visible') && ($product['product_prices'][0]['product_visibility']??false)!='Visible'){
