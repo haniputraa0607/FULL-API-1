@@ -442,6 +442,15 @@ class SettingsTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
+            51 =>
+                array(
+                    'id_setting' => 52,
+                    'key' => 'processing_time_text',
+                    'value' => null,
+                    'value_text' => 'Set pickup time minimum %processing_time% minutes from now',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
         ));
     }
 }
