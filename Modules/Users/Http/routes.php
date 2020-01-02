@@ -46,6 +46,7 @@ Route::group(['prefix' => 'api', 'middleware' => 'log_activities'], function(){
 		Route::post('log', 'ApiUser@log');
 	    Route::get('log/detail/{id}/{log_type}', 'ApiUser@detailLog');
 	    Route::post('delete', 'ApiUser@delete');
+		Route::post('delete/log', ['middleware' => 'feature_control:6', 'uses' => 'ApiUser@deleteLog']);
 		Route::post('update', 'ApiUser@updateProfileByAdmin');
 		Route::post('update/photo', 'ApiUser@updateProfilePhotoByAdmin');
 		Route::post('update/password', 'ApiUser@updateProfilePasswordByAdmin');
