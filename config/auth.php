@@ -45,6 +45,10 @@ return [
             'driver' => 'passport',
             'provider' => 'users',
         ],
+		'api-be' => [
+            'driver' => 'passport',
+            'provider' => 'users-be',
+        ],
         'outlet-app' => [
             'driver' => 'passport',
             'provider' => 'outlet-app'
@@ -77,7 +81,10 @@ return [
             'driver' => 'eloquent',
             'model' => App\Http\Models\User::class,
         ],
-
+        'users-be' => [
+            'driver' => 'eloquent',
+            'model' => App\Http\Models\UserBE::class,
+        ],		
         // 'users' => [
         //     'driver' => 'database',
         //     'table' => 'users',
