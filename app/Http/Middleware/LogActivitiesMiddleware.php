@@ -70,9 +70,12 @@ class LogActivitiesMiddleware
                 if(stristr($url, 'gofood')) $module = 'Banner Go-Food';
                 if(stristr($url, 'users')) $module = 'User';
                 if(stristr($url, 'v1/pos')) $module = 'POS';
+				if(stristr($url, 'subscription')) $module = 'Subscription';														   
 
                 $subject = "Unknown";
 
+				//subscription
+                if(stristr($url, 'subscription')) $subject = 'Subscription';
 
                 //autocrm 
                 if(stristr($url, 'autocrm')) $subject = 'Autocrm';
@@ -251,13 +254,13 @@ class LogActivitiesMiddleware
                     'url' 			=> $url,
                     'subject' 			=> $subject,
                     'phone' 			=> $phone,
-                    // 'user' 			=> MyHelper::encrypt2019(json_encode($ruser)),
-                    'user' 			=> json_encode($ruser),
-                    // 'request' 		=> MyHelper::encrypt2019($requestnya),
-                    'request' 			=> $requestnya,
+                    'user' 			=> MyHelper::encrypt2019(json_encode($ruser)),
+                    // 'user' 			=> json_encode($ruser),
+                    'request' 		=> MyHelper::encrypt2019($requestnya),
+                    // 'request' 			=> $requestnya,
                     'response_status'           => $status,
-                    // 'response'               => MyHelper::encrypt2019(json_encode($response)),
-                    'response'                  => json_encode($response),
+                    'response'               => MyHelper::encrypt2019(json_encode($response)),
+                    // 'response'                  => json_encode($response),
                     'ip'                        => $ip,
                     'useragent'                 => $userAgent
                 ];} else {
@@ -267,11 +270,11 @@ class LogActivitiesMiddleware
                         'subject' 		=> $subject,
                         'phone' 		=> $phone,
                         'user' 			=> null,
-                        'request' 		=> $requestnya,
-                        // 'request' 		=> MyHelper::encrypt2019($requestnya),
+                        // 'request' 		=> $requestnya,
+                        'request' 		=> MyHelper::encrypt2019($requestnya),
                         'response_status'       => $status,
-                        // 'response' 		=> MyHelper::encrypt2019(json_encode($response)),
-                        'response' 		=> json_encode($response),
+                        'response' 		=> MyHelper::encrypt2019(json_encode($response)),
+                        // 'response' 		=> json_encode($response),
                         'ip' 			=> $ip,
                         'useragent' 		=> $userAgent
                       ];
