@@ -42,6 +42,7 @@ Route::group(['prefix' => 'api/product','middleware' => 'log_activities', 'names
          */
         Route::group(['prefix' => 'photo'], function() {
             Route::post('create', 'ApiProductController@uploadPhotoProduct');
+            Route::post('createAjax', 'ApiProductController@uploadPhotoProductAjax');
             Route::post('update', 'ApiProductController@updatePhotoProduct');
             Route::post('delete', 'ApiProductController@deletePhotoProduct');
             Route::post('default', 'ApiProductController@photoDefault');
