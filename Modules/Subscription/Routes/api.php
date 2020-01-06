@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-Route::group(['middleware' => ['auth:api', 'log_activities'], 'prefix' => 'subscription'], function () {
+Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent'], 'prefix' => 'subscription'], function () {
 
     /* MASTER SUBSCRIPTION */
     Route::any('list', 'ApiSubscription@listSubscription');
@@ -26,9 +26,8 @@ Route::group(['middleware' => ['auth:api', 'log_activities'], 'prefix' => 'subsc
         Route::post('pay-now', 'ApiSubscriptionClaimPay@bayarSekarang');
     });
 });
-
 /* Webview */
-Route::group(['middleware' => ['web'], 'prefix' => 'webview'], function () {
+Route::group(['middleware' => ['web', 'user_agent'], 'prefix' => 'webview'], function () {
     Route::any('subscription/{id_subscription}', 'ApiSubscriptionWebview@webviewSubscriptionDetail');
     Route::any('mysubscription/{id_subscription_user}', 'ApiSubscriptionWebview@mySubscription');
     Route::any('subscription/success/{id_subscription_user}', 'ApiSubscriptionWebview@subscriptionSuccess');

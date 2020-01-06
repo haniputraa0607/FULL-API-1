@@ -596,20 +596,11 @@ class NewTopupController extends Controller
             ];
         }
         
-        // $encodeCheck = utf8_encode(json_encode($dataHash));
+        $encodeCheck = json_encode($dataHash);
         
-        // if (MyHelper::decryptkhususnew($check['enc']) == $encodeCheck) {
-        //     return true;
-        // }
-
-        $encodeCheck = base64_encode((json_encode($dataHash)));
-
-        if ($check['enc'] == $encodeCheck) {
+        if (MyHelper::decrypt2019($check['enc']) == $encodeCheck) {
             return true;
         }
-        // if (Hash::check($encodeCheck, $check['enc'])) {
-        //     return true;
-        // }
 
         return false;
     }
