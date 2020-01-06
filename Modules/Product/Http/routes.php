@@ -11,7 +11,7 @@ Route::group(['prefix' => 'api/product','middleware' => ['log_activities','auth:
     Route::get('next/{id}', 'ApiProductController@getNextID');
 
     /* category */
-    Route::group(['prefix' => 'category'], function() {
+   Route::group(['prefix' => 'category'], function() {
     	Route::any('list', 'ApiCategoryController@listCategory');
     	Route::any('list/tree', 'ApiCategoryController@listCategoryTree');
     });
@@ -40,6 +40,7 @@ Route::group(['prefix' => 'api/product','middleware' => ['log_activities','auth:
     /* photo */
     Route::group(['prefix' => 'photo'], function() {
         Route::post('create', 'ApiProductController@uploadPhotoProduct');
+        Route::post('createAjax', 'ApiProductController@uploadPhotoProductAjax');
         Route::post('update', 'ApiProductController@updatePhotoProduct');
         Route::post('delete', 'ApiProductController@deletePhotoProduct');
         Route::post('default', 'ApiProductController@photoDefault');
