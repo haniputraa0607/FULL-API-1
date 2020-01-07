@@ -425,6 +425,7 @@ class ApiPOS extends Controller
         if ($api['status'] != 'success') {
             return response()->json($api);
         }
+        dd();
         $getBrand = Brand::pluck('code_brand')->toArray();
         $getBrandList = Brand::select('id_brand', 'code_brand')->get()->toArray();
         $successOutlet = [];
@@ -434,7 +435,8 @@ class ApiPOS extends Controller
             DB::beginTransaction();
             // search different brand
             if (empty($value['brand_code'])) {
-                $value['brand_code'] = ["001"];
+                $brand = Brand::first();
+                $value['brand_code'] = [$brand->code_brand];
             }
             $diffBrand = array_diff($value['brand_code'], $getBrand);
             if (!empty($diffBrand)) {
@@ -578,6 +580,10 @@ class ApiPOS extends Controller
             $insertedProduct = [];
             $failedProduct = [];
             foreach ($data['menu'] as $key => $menu) {
+                if (empty($menu['brand_code'])) {
+                    $brand = Brand::first();
+                    $value['brand_code'] = [$brand->code_brand];
+                }
                 if (!isset($menu['brand_code'])) {
                     $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because brand_code not set';
                     continue;
