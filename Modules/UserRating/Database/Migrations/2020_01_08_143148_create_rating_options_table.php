@@ -15,10 +15,11 @@ class CreateRatingOptionsTable extends Migration
     {
         Schema::create('rating_options', function (Blueprint $table) {
             $table->increments('id_rating_option');
-            $table->string('rule_operator');
+            $table->enum('rule_operator',['<','<=','>','>=','=']);
             $table->unsignedInteger('value');
             $table->string('question');
             $table->string('options');
+            $table->unsignedInteger('order')->default(0);
             $table->timestamps();
         });
     }

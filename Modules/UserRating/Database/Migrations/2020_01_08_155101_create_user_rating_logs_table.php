@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateUserRatingsTable extends Migration
+class CreateUserRatingLogsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,15 +13,14 @@ class CreateUserRatingsTable extends Migration
      */
     public function up()
     {
-        Schema::create('user_ratings', function (Blueprint $table) {
-            $table->increments('id_user_rating');
+        Schema::create('user_rating_logs', function (Blueprint $table) {
+            $table->increments('id_user_rating_log');
             $table->unsignedInteger('id_user');
-            $table->unsignedInteger('id_transaction');
-            $table->unsignedInteger('rating_value');
-            $table->string('sugestion');
-            $table->string('option_question');
-            $table->string('option_value');
+            $table->unsignedInteger('refuse_count');
+            $table->datetime('last_popup');
             $table->timestamps();
+
+            $table->foreign('id_user')->on('users')->references('id')->onDelete('cascade');
         });
     }
 
@@ -32,6 +31,6 @@ class CreateUserRatingsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('user_ratings');
+        Schema::dropIfExists('user_rating_logs');
     }
 }

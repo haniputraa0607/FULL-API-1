@@ -135,5 +135,6 @@ Route::group(['prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction
     Route::any('/web/view/detail/point', 'ApiWebviewController@detailPoint');
     Route::any('/web/view/detail/balance', 'ApiWebviewController@detailBalance');
     Route::any('/web/view/trx', 'ApiWebviewController@success');
+    Route::any('/web/view/trx/{receipt}', 'ApiWebviewController@detailTrx');
     Route::any('/web/view/outletapp', 'ApiWebviewController@receiptOutletapp');
 });
