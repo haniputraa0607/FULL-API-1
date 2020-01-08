@@ -425,7 +425,6 @@ class ApiPOS extends Controller
         if ($api['status'] != 'success') {
             return response()->json($api);
         }
-        dd();
         $getBrand = Brand::pluck('code_brand')->toArray();
         $getBrandList = Brand::select('id_brand', 'code_brand')->get()->toArray();
         $successOutlet = [];
