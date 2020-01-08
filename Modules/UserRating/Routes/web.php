@@ -11,6 +11,3 @@
 |
 */
 
-Route::prefix('userrating')->group(function() {
-    Route::get('/', 'UserRatingController@index');
-});
