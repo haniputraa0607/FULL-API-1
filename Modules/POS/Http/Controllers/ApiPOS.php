@@ -39,6 +39,7 @@ use App\Http\Models\DealsVoucher;
 use App\Http\Models\Configs;
 use App\Http\Models\FraudSetting;
 use App\Http\Models\LogBackendError;
+use App\Http\Models\OutletSchedule;
 use App\Http\Models\SyncTransactionFaileds;
 use App\Http\Models\SyncTransactionQueues;
 use App\Lib\MyHelper;
@@ -432,6 +433,10 @@ class ApiPOS extends Controller
         foreach ($post['store'] as $key => $value) {
             DB::beginTransaction();
             // search different brand
+            if (empty($value['brand_code'])) {
+                $brand = Brand::first();
+                $value['brand_code'] = [$brand->code_brand];
+            }
             $diffBrand = array_diff($value['brand_code'], $getBrand);
             if (!empty($diffBrand)) {
                 $failedBrand[] = 'fail to sync outlet ' . $value['store_name'] . ', because code brand ' . implode(', ', $diffBrand) . ' not found';
@@ -482,6 +487,18 @@ class ApiPOS extends Controller
                         continue;
                     }
                 }
+                if (!empty($value['store_schedule'])) {
+                    foreach ($value['store_schedule'] as $valueSchedule) {
+                        try {
+                            OutletSchedule::updateOrCreate(['id_outlet' => $cekOutlet->id_outlet, 'day' => $valueSchedule['day']], $valueSchedule);
+                        } catch (Exception $e) {
+                            DB::rollback();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
+                            $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'] . '. Error at store schedule '.$valueSchedule['day'];
+                            continue;
+                        }
+                    }
+                }
             } else {
                 try {
                     $save = Outlet::create([
@@ -509,8 +526,21 @@ class ApiPOS extends Controller
                 } catch (Exception $e) {
                     DB::rollback();
                     LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
-                    $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'];
+                    $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'] . '. Error at brand code';
                     continue;
+                }
+                if (!empty($value['store_schedule'])) {
+                    foreach ($value['store_schedule'] as $valueSchedule) {
+                        $valueSchedule['id_outlet'] = $save->id_outlet;
+                        try {
+                            OutletSchedule::create($valueSchedule);
+                        } catch (Exception $e) {
+                            DB::rollback();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
+                            $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'] . '. Error at store schedule '.$valueSchedule['day'];
+                            continue;
+                        }
+                    }
                 }
             }
             $successOutlet[] = $value['store_name'];
@@ -549,6 +579,10 @@ class ApiPOS extends Controller
             $insertedProduct = [];
             $failedProduct = [];
             foreach ($data['menu'] as $key => $menu) {
+                if (empty($menu['brand_code'])) {
+                    $brand = Brand::first();
+                    $value['brand_code'] = [$brand->code_brand];
+                }
                 if (!isset($menu['brand_code'])) {
                     $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because brand_code not set';
                     continue;

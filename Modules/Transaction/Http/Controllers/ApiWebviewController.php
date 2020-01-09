@@ -633,6 +633,76 @@ class ApiWebviewController extends Controller
         return view('transaction::webview.' . $view . '')->with(compact('data'));
     }
 
+    public function detailTrx(Request $request,$receipt)
+    {
+        $bearer = $request->header('Authorization');
+        if ($bearer == "") {
+            return view('error', ['msg' => 'Unauthenticated']);
+        }
+
+        // if ($request->isMethod('get')) {
+        //     return view('error', ['msg' => 'Url method is POST']);
+        // }
+
+        $data['transaction_receipt_number'] = $receipt;
+        $data['type'] = 'trx';
+        $data['check'] = 1;
+        $check = MyHelper::postCURLWithBearer('api/transaction/detail/webview?log_save=0', $data, $bearer);
+        if (isset($check['status']) && $check['status'] == 'success') {
+            $data = $check['result'];
+        } elseif (isset($check['status']) && $check['status'] == 'fail') {
+            return view('error', ['msg' => 'Data failed']);
+        } else {
+            return view('error', ['msg' => 'Something went wrong, try again']);
+        }
+
+        if ($data['kind'] == 'Delivery') {
+            $view = 'detail_transaction_deliv';
+        }
+
+        if ($data['kind'] == 'Pickup Order' || $data['kind'] == 'Offline') {
+            $view = 'detail_transaction_pickup';
+        }
+
+        //  if ($data['kind'] == 'Offline') {
+        //      $view = 'detail_transaction_off';
+        //  }
+
+        if ($data['kind'] == 'Voucher') {
+            $view = 'detail_transaction_voucher';
+        }
+
+        if (isset($data['success'])) {
+            $view = 'transaction_success';
+        }
+
+        if (isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Pending') {
+            $view = 'transaction_proccess';
+            // if (isset($data['data_payment'])) {
+            //     foreach ($data['data_payment'] as $key => $value) {
+            //         if ($value['type'] != 'Midtrans') {
+            //             continue;
+            //         } else {
+            //             if (!isset($value['signature_key'])) {
+            //                 $view = 'transaction_pending';
+            //             }
+            //         }
+            //     }
+            // }
+        }
+
+        if (isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Cancelled') {
+            $view = 'transaction_failed';
+        }
+
+        if (isset($data['order_label_v2'])) {
+            $data['order_label_v2'] = explode(',', $data['order_label_v2']);
+            $data['order_v2'] = explode(',', $data['order_v2']);
+        }
+        // dd($data);
+        return view('transaction::webview.' . $view . '')->with(compact('data'));
+    }
+
     public function outletSuccess(Request $request)
     {
         $bearer = $request->header('Authorization');

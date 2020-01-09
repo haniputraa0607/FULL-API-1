@@ -14,6 +14,7 @@ class OutletSchedule extends Model
 		'open',
 		'close',
 		'is_closed',
+		'time_zone',
 		'created_at',
 		'updated_at',
 	];
