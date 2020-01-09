@@ -136,10 +136,10 @@ class ApiUserRatingController extends Controller
         $result['id_transaction'] = $transaction->id_transaction;
         $result['id'] = $transaction->transaction_receipt_number.','.$transaction->id_transaction;
         $result['transaction_receipt_number'] = $transaction->transaction_receipt_number;
-        $result['question_text'] = Setting::where('key','rating_question_text')->pluck('value')->first()?:'How about our Service';
+        $result['question_text'] = Setting::where('key','rating_question_text')->pluck('value_text')->first()?:'How about our Service';
         $defaultOptions = [
-            'question'=>Setting::where('key','default_rating_options')->pluck('value')->first()?:'What\'s best from us?',
-            'options' =>explode(',',Setting::where('key','default_rating_options')->pluck('value')->first()?:'Cleanness,Accuracy,Employee Hospitality,Process Time')];
+            'question'=>Setting::where('key','default_rating_question')->pluck('value_text')->first()?:'What\'s best from us?',
+            'options' =>explode(',',Setting::where('key','default_rating_options')->pluck('value_text')->first()?:'Cleanness,Accuracy,Employee Hospitality,Process Time')];
         $options = ['1'=>$defaultOptions,'2'=>$defaultOptions,'3'=>$defaultOptions,'4'=>$defaultOptions,'5'=>$defaultOptions];
         $ratings = RatingOption::select('rule_operator','value','question','options')->orderBy('order','desc')->get();
         foreach ($ratings as $rating) {
