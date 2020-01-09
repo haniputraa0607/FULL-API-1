@@ -469,6 +469,51 @@ class SettingsTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
+            65 =>
+                array(
+                    'id_setting' => 65,
+                    'key' => 'popup_min_interval',
+                    'value' => 3,
+                    'value_text' => null,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            66 =>
+                array(
+                    'id_setting' => 66,
+                    'key' => 'popup_max_refuse',
+                    'value' => 5,
+                    'value_text' => null,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            67 =>
+                array(
+                    'id_setting' => 67,
+                    'key' => 'rating_question_text',
+                    'value' => null,
+                    'value_text' => 'How about our Service',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            68 =>
+                array(
+                    'id_setting' => 68,
+                    'key' => 'default_rating_question',
+                    'value' => null,
+                    'value_text' => 'What\'s best from us?',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            69 =>
+                array(
+                    'id_setting' => 69,
+                    'key' => 'default_rating_options',
+                    'value' => null,
+                    'value_text' => 'Cleanness,Accuracy,Employee Hospitality,Process Time',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
         ));
     }
 }

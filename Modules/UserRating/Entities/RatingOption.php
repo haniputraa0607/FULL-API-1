@@ -7,5 +7,5 @@ use Illuminate\Database\Eloquent\Model;
 class RatingOption extends Model
 {
     protected $primaryKey = 'id_rating_option';
-    protected $fillable = ['rule_operator','value','question','options'];
+    protected $fillable = ['rule_operator','value','question','options','order'];
 }
