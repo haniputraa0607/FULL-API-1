@@ -1578,6 +1578,54 @@ class FeaturesTableSeeder extends Seeder
                     'feature_module' => 'List User Fraud',
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            196 =>
+                array(
+                    'id_feature' => 197,
+                    'feature_type' => 'List',
+                    'feature_module' => 'User Rating',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            197 =>
+                array(
+                    'id_feature' => 198,
+                    'feature_type' => 'Delete',
+                    'feature_module' => 'User Rating',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            198 =>
+                array(
+                    'id_feature' => 199,
+                    'feature_type' => 'List',
+                    'feature_module' => 'Rating Option',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            199 =>
+                array(
+                    'id_feature' => 200,
+                    'feature_type' => 'Create',
+                    'feature_module' => 'Rating Option',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            200 =>
+                array(
+                    'id_feature' => 201,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Rating Option',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            201 =>
+                array(
+                    'id_feature' => 202,
+                    'feature_type' => 'Delete',
+                    'feature_module' => 'Rating Option',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
                 )
         ));
     }
