@@ -18,8 +18,14 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent'], 'pre
     Route::post('get-detail', 'ApiUserRatingController@getDetail');
 });
 
-Route::group(['middleware' => ['auth:api-be', 'log_activities', 'user_agent'], 'prefix' => 'user-rating'], function () {
-    Route::post('/', ['middleware' => 'feature_control:179', 'uses' => 'ApiUserRatingController@index']);
+Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent'], 'prefix' => 'user-rating'], function () {
+    Route::post('/', ['middleware' => 'feature_control:1', 'uses' => 'ApiUserRatingController@index']);
     Route::post('detail', 'ApiUserRatingController@show');
     Route::post('delete', 'ApiUserRatingController@destroy');
+    Route::group(['prefix'=>'option'],function(){
+    	Route::get('/','ApiRatingOptionController@index');
+    	Route::post('create','ApiRatingOptionController@store');
+    	Route::post('update','ApiRatingOptionController@update');
+    	Route::post('delete','ApiRatingOptionController@destroy');
+    });
 });
