@@ -194,4 +194,9 @@ class User extends Authenticatable
     public function favorites() {
     	return $this->hasMany(\Modules\Favorite\Entities\Favorite::class, 'id_user');
     }
+
+    public function log_popup()
+    {
+    	return $this->hasOne(\Modules\UserRating\Entities\UserRatingLog::class,'id_user');
+    }
 }
