@@ -136,54 +136,46 @@ class ApiUserRatingController extends Controller
         $result['id_transaction'] = $transaction->id_transaction;
         $result['id'] = $transaction->transaction_receipt_number.','.$transaction->id_transaction;
         $result['transaction_receipt_number'] = $transaction->transaction_receipt_number;
-        $result['question_text'] = Setting::where('key','rating_question_text')->pluck('value')->first()?:'How about our Service';
-        $defaultOptions = explode(',',Setting::where('key','default_rating_options')->pluck('value')->first()?:'Cleanness,Accuracy,Employee Hospitality,Process Time');
+        $result['question_text'] = Setting::where('key','rating_question_text')->pluck('value_text')->first()?:'How about our Service';
+        $defaultOptions = [
+            'question'=>Setting::where('key','default_rating_question')->pluck('value_text')->first()?:'What\'s best from us?',
+            'options' =>explode(',',Setting::where('key','default_rating_options')->pluck('value_text')->first()?:'Cleanness,Accuracy,Employee Hospitality,Process Time')];
         $options = ['1'=>$defaultOptions,'2'=>$defaultOptions,'3'=>$defaultOptions,'4'=>$defaultOptions,'5'=>$defaultOptions];
-        $ratings = RatingOption::select('rule_operator','value','question','options')->orderBy('order')->get();
+        $ratings = RatingOption::select('rule_operator','value','question','options')->orderBy('order','desc')->get();
         foreach ($ratings as $rating) {
             if($rating->rule_operator == '<'){
                 for ($i=$rating->value-1; $i > 0; $i--) { 
-                    if(!$options[(string)$i]){
-                        $options[(string)$i] = [
-                            'question' => $rating->question,
-                            'options' => explode(',',$rating->options)
-                        ];
-                    }
-                }
-            }elseif($rating->rule_operator == '>'){
-                for ($i=$rating->value+1; $i <= 5; $i++) { 
-                    if(!$options[(string)$i]){
-                        $options[(string)$i] = [
-                            'question' => $rating->question,
-                            'options' => explode(',',$rating->options)
-                        ];
-                    }
-                }
-            }elseif($rating->rule_operator == '<='){
-                for ($i=$rating->value; $i > 0; $i--) { 
-                    if(!$options[(string)$i]){
-                        $options[(string)$i] = [
-                            'question' => $rating->question,
-                            'options' => explode(',',$rating->options)
-                        ];
-                    }
-                }
-            }elseif($rating->rule_operator == '>='){
-                for ($i=$rating->value; $i <= 5; $i++) { 
-                    if(!$options[(string)$i]){
-                        $options[(string)$i] = [
-                            'question' => $rating->question,
-                            'options' => explode(',',$rating->options)
-                        ];
-                    }
-                }
-            }else{
-                if(!$options[(string)$rating->value]){
-                    $options[(string)$rating->value] = [
+                    $options[(string)$i] = [
                         'question' => $rating->question,
                         'options' => explode(',',$rating->options)
                     ];
                 }
+            }elseif($rating->rule_operator == '>'){
+                for ($i=$rating->value+1; $i <= 5; $i++) { 
+                    $options[(string)$i] = [
+                        'question' => $rating->question,
+                        'options' => explode(',',$rating->options)
+                    ];
+                }
+            }elseif($rating->rule_operator == '<='){
+                for ($i=$rating->value; $i > 0; $i--) { 
+                    $options[(string)$i] = [
+                        'question' => $rating->question,
+                        'options' => explode(',',$rating->options)
+                    ];
+                }
+            }elseif($rating->rule_operator == '>='){
+                for ($i=$rating->value; $i <= 5; $i++) { 
+                    $options[(string)$i] = [
+                        'question' => $rating->question,
+                        'options' => explode(',',$rating->options)
+                    ];
+                }
+            }else{
+                $options[(string)$rating->value] = [
+                    'question' => $rating->question,
+                    'options' => explode(',',$rating->options)
+                ];
             }
         }
         $result['options'] = $options;
