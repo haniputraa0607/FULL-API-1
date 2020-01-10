@@ -446,7 +446,7 @@ class ApiDeals extends Controller
             //url webview
             $deals[0]['webview_url'] = env('APP_URL') . "webview/deals/" . $deals[0]['id_deals'] . "/" . $deals[0]['deals_type'];
             // text tombol beli
-            $deals[0]['button_text'] = $deals[0]['deals_voucher_price_type']=='free'?'Ambil':'Tukar';
+            $deals[0]['button_text'] = $deals[0]['deals_voucher_price_type']=='free'?'Get':'Buy';
             $deals[0]['button_status'] = 0;
             //text konfirmasi pembelian
             if($deals[0]['deals_voucher_price_type']=='free'){
@@ -476,7 +476,6 @@ class ApiDeals extends Controller
                         $deals[0]['payment_fail_message'] = Setting::where('key', 'payment_fail_messages')->pluck('value_text')->first()??'Mohon maaf, point anda tidak cukup';
                     }
                 }else{
-                    $deals[0]['button_text'] = 'Beli';
                     if($deals[0]['deals_status']=='available'){
                         $deals[0]['button_status'] = 1;
                     }
