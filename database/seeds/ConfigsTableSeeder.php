@@ -836,6 +836,15 @@ class ConfigsTableSeeder extends Seeder
                     'is_active' => 1,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            92 =>
+                array (
+                    'id_config' => 93,
+                    'config_name' => 'phone format setting',
+                    'description' => '',
+                    'is_active' => 0,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 )
         ));
     }
