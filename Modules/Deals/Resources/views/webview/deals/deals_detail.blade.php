@@ -167,10 +167,10 @@
                     $deals_fee = number_format($deals['deals_voucher_price_cash'] , 0, ',', '.');
                 }
                 elseif ($deals['deals_voucher_price_point']) {
-                    $deals_fee = $deals['deals_voucher_price_point'] . " poin";
+                    $deals_fee = $deals['deals_voucher_price_point'] . " points";
                 }
                 else {
-                    $deals_fee = "GRATIS";
+                    $deals_fee = "Free";
                 }
 			@endphp
 			<div class="col-md-4 col-md-offset-4" style="box-shadow: 0 0.7px 3.3px #0f000000;">
@@ -208,7 +208,7 @@
 				</div>
                 @endif
 			</div>
-			
+
 			<div class="container" style="margin-top: 10px;box-shadow: 0 0.7px 3.3px #0f000000;background-color: #ffffff;">
 				<div class="col-12" style="padding: 10px 15px;padding-bottom: 0px;">
 					<ul class="nav nav-tabs Ubuntu-Bold" id="myTab" role="tablist" style="font-size: 14px;">
@@ -254,7 +254,7 @@
 @stop
 
 @section('page-script')
-	
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
