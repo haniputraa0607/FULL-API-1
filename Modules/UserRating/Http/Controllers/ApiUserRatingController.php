@@ -146,7 +146,7 @@ class ApiUserRatingController extends Controller
             'id_transaction' => $trx->id_transaction,
             'id_user' => $request->user()->id,
             'rating_value' => $post['rating_value'],
-            'sugestion' => $post['sugestion']??'',
+            'suggestion' => $post['suggestion']??'',
             'option_question' => $post['option_question'],
             'option_value' => implode(',',$post['option_value']??[])
         ];
