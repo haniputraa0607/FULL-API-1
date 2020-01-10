@@ -71,7 +71,7 @@ class ApiMembership extends Controller
 						if($cur['membership_image']){
 							$deletephoto = MyHelper::deletePhoto($cur['membership_image']);
 						}
-						$upload = MyHelper::uploadPhotoStrict($membership['membership_image'], $path = 'img/membership/', 500, 500);
+						$upload = MyHelper::uploadPhoto($membership['membership_image'], $path = 'img/membership/');
 
 						if ($upload['status'] == "success") {
 							$data['membership_image'] = $upload['path'];
@@ -94,7 +94,7 @@ class ApiMembership extends Controller
 						if($cur['membership_next_image']){
 							$deletenextphoto = MyHelper::deletePhoto($cur['membership_next_image']);
 						}
-						$upload = MyHelper::uploadPhotoStrict($membership['membership_next_image'], $path = 'img/membership/', 500, 500);
+						$upload = MyHelper::uploadPhoto($membership['membership_next_image'], $path = 'img/membership/');
 
 						if ($upload['status'] == "success") {
 							$data['membership_next_image'] = $upload['path'];

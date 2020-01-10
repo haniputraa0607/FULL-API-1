@@ -6,67 +6,129 @@
         <meta http-equiv="X-UA-Compatible" content="ie=edge" />
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
         <link rel="stylesheet" href="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css">
         <title>Champ Membership</title>
+        @php
+            $result['user_membership']['user']['progress_now'] = 1000000;
+        @endphp
         <style>
         @font-face {
-                font-family: "ProductSans-Bold";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Bold.ttf') }}');
+            font-family: "Ubuntu-Bold";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bold.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-BoldItalic";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-BoldItalic.ttf') }}');
+            font-family: "Ubuntu-BoldItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bolditalic.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-Italic";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Italic.ttf') }}');
+            font-family: "Ubuntu-Italic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_italic.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-Regular";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Regular.ttf') }}');
+            font-family: "Ubuntu-Light";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_light.ttf') }}');
+        }
+        @font-face {
+            font-family: "Ubuntu-LightItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_lightitalic.ttf') }}');
+        }
+        @font-face {
+            font-family: "Ubuntu-Medium";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_medium.ttf') }}');
+        }
+        @font-face {
+            font-family: "Ubuntu-MediumItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_mediumitalic.ttf') }}');
+        }
+        @font-face {
+            font-family: "Ubuntu";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
+        }
+        @font-face {
+            font-family: "Ubuntu-Regular";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
+        }
+        .Ubuntu-Bold{
+            font-family: "Ubuntu-Bold";
+        }
+        .Ubuntu-BoldItalic{
+            font-family: "Ubuntu-BoldItalic";
+        }
+        .Ubuntu-Italic{
+            font-family: "Ubuntu-Italic";
+        }
+        .Ubuntu-Light{
+            font-family: "Ubuntu-Light";
+        }
+        .Ubuntu-LightItalic{
+            font-family: "Ubuntu-LightItalic";
+        }
+        .Ubuntu-Medium{
+            font-family: "Ubuntu-Medium";
+        }
+        .Ubuntu-MediumItalic{
+            font-family: "Ubuntu-MediumItalic";
+        }
+        .Ubuntu{
+            font-family: "Ubuntu";
+        }
+        .Ubuntu-Regular{
+            font-family: "Ubuntu-Regular";
         }
         body {
             background-color: rgba(0, 0, 0, 0.1);
-            font-family: 'ProductSans-Regular';
+            font-family: 'Ubuntu-Regular';
             font-size: 14px;
         }
         a:hover{
             text-decoration: none
         }
         .font-header {
-            font-family: 'ProductSans-Regular';
+            font-family: 'Ubuntu-Regular';
             font-size: 20px;
             color: #202020;
         }
         .font-title {
-            font-family: 'ProductSans-Regular';
+            font-family: 'Ubuntu-Regular';
             font-size: 14px;
             color: #000000;
         }
         .font-nav {
-            font-family: 'ProductSans-Regular';
+            font-family: 'Ubuntu-Regular';
             font-size: 14px;
             color: #545454;
         }
         .font-regular-gray{
-            font-family: 'ProductSans-Regular';
+            font-family: 'Ubuntu-Regular';
             font-size: 12px;
             color: #545454;
         }
         .font-regular-black {
-            font-family: 'ProductSans-Regular';
+            font-family: 'Ubuntu-Regular';
             font-size: 12px;
             color: #000000;
         }
         .font-regular-brown {
-            font-family: 'ProductSans-Regular';
+            font-family: 'Ubuntu-Regular';
             font-size: 12px;
             color: #837046;
         }
@@ -151,6 +213,7 @@
             height: 15px;
             width: 15px;
         }
+        
         /* member level */
         .level-container {
             display: flex;
@@ -171,22 +234,25 @@
             height: 18px;
             width: 18px;
         }
+
         .current-level-info{
             position: relative;
             display: flex;
-            flex-direction: row
+            flex-direction: row;
+            left: -15px;
         }
         .level-info{
             display: flex;
             flex-direction: row;
             justify-content: space-between;
+
         }
         .level-progress-container {
             position: relative;
             height: 8px;
             border-radius: 8px;
             margin: 8px 0px;
-            background-color: #ebebeb;
+            background-color: #d7d2cb;
         }
         .level-progress {
             position: absolute;
@@ -194,183 +260,203 @@
             top:0;
             z-index: 9;
             height: 8px;
-            background-color: #800000;
+            background-color: #8fd6bd;
             border-radius: 8px
         }
         .level-progress-blank {
             width: 50%;
         }
-        .myprogress {
-            position: relative;
-        }
-        .myprogress .pro-bar {
-            width: 50%;
-            height: 100%;
-            background-color: #49a3df;
-        }
-        .myprogress:before {
-            position: absolute;
-            content: "{{number_format($result['user_membership']['user']['balance'] , 0, ',', '.')}}";
-            text-align: center;
-            padding: 10px;
-            background: #ffffff;
-            top: -45px;
-            left: <?php echo (($result['user_membership']['user']['progress_now'] / $max_value) * 100) - 2 ?>%;
-            border-radius: 1px;
-            color: #333333;
-            box-shadow: 0 1px 2px 0 #cccccc;
-            font-size: 13.3px;
-        }
-        .myprogress:after {
-            position: absolute;
+        .dotted {
             content: "";
-            height: 10px;
-            background: rgba(255, 0, 0, 0);
-            top: -8px;
-            left: <?php echo (($result['user_membership']['user']['progress_now'] / $max_value) * 100) - 2 ?>%;
-            border-left: 6px solid rgba(255, 0, 0, 0);
-            border-right: 6px solid rgba(255, 0, 0, 0);
-            border-top: 6px solid #cccccc;
+            width: 15px;
+            height: 15px;
+            top: 23px;
+            z-index: 10;
+            border-radius: 50%;
+            position: absolute;
+            background: #10704e;
+            box-shadow: 0px 1.7px 5px 0 #8fd6bd;
+        }
+        .medium {
+            height: 105px;
+            top: 10px;
+            width: 230px;
+            -webkit-transition-property: top height;
+            -webkit-transition-duration: 0.4s;
+            -webkit-transition-timing-function: linear;
+            transition-property: top height;
+            transition-duration: 0.4s;
+            transition-timing-function: linear;
+        }
+        .big {
+            height: 125px;
+            top: 0px;
+            width: 230px;
+            -webkit-transition-property: top height;
+            -webkit-transition-duration: 0.4s;
+            -webkit-transition-timing-function: linear;
+            transition-property: top height;
+            transition-duration: 0.4s;
+            transition-timing-function: linear;
         }
         </style>
 	</head>
 	<body>
-        <div id="carouselExampleFade" class="carousel slide carousel-fade" data-ride="carousel" data-interval="false">
-            <div class="carousel-inner" style="text-shadow: none;">
-
-                @foreach ($result['all_membership'] as $member)
-                    @if($member['membership_name'] == $result['user_membership']['membership_name']) 
-                    <div class="carousel-item active">
-                        <div style="padding: 20px 0px 20px 0px;background: #ffffff;box-shadow: 0px 0.7px 3.3px 0 #d0d4dd;">
-                            <div class="card" style="height: 149px;width: 80%;margin: auto;background: linear-gradient(#f2f5fc 0%, #d0d4dd 16%, #d2d4d8 48%, #797b7e 100%);border: #aaaaaa;border-radius: 20px;box-shadow: 2.7px 6.7px 5px 0 #d0d4dd;">
-                                <div class="card-body" style="display: flex;flex-wrap: wrap;padding: 10px;">
-                                    <div class="col-9 text-left" style="margin-top: 7px;margin-bottom: 27px;">
-                                        <p style="margin-bottom: 4px;font-size: 15px;">{{$result['user_membership']['user']['name']}}</p>
-                                        <p style="font-size: 10.7px;">@if ($result['user_membership']['user']['is_suspended'] == 0) Active @else Suspended @endif</p>
-                                    </div>
-                                    <div class="col-3">
-                                        <img src="{{$member['membership_image']}}" style="width: 30px;float: right;"/>
-                                    </div>
-                                    <div class="col-6 text-left">
-                                        <p style="font-size: 10.7px;margin-bottom: 4px;">Poin saat ini</p>
-                                        <p style="font-size: 13.3px;color: #383b67;font-weight: bold;">{{number_format($result['user_membership']['user']['progress_now'] , 0, ',', '.')}} poin</p>
-                                    </div>
-                                    <div class="col-6 text-right">
-                                        <p style="font-size: 10.7px;margin-bottom: 4px;">Status member</p>
-                                        <p style="font-size: 13.3px;color: #383b67;font-weight: bold;">{{strtoupper($member['membership_name'])}}</p>
-                                    </div>
+        <div id="carouselExampleFade" style="background: #f8f9fb;" class="loop owl-carousel slide carousel-fade" data-ride="carousel" data-interval="false">
+            @foreach ($result['all_membership'] as $key => $member)
+                <div data-id="desc{{$key}}" class="item @if($member['membership_name'] == $result['user_membership']['membership_name']) active @endif">
+                    <div style="padding: 20px 0px 20px 0px;">
+                        <div class="card" style="margin: auto;background: #3d3935;border: #aaaaaa;border-radius: 20px;box-shadow: 2.7px 6.7px 5px 0 #d0d4dd;">
+                            <img src="{{ asset('img/membership/maxx_coffee_card_bg.png') }}" style="position: absolute;width: 150px;height: 130px;"/>
+                            <div class="card-body" style="display: flex;flex-wrap: wrap;padding: 10px;">
+                                <div class="col-9 text-left" style="margin-top: 10px;margin-bottom: 20px;">
+                                    <p class="Ubuntu-Bold" style="margin-bottom: 0px;font-size: 15px;color: #ffffff;">{{$result['user_membership']['user']['name']}}</p>
                                 </div>
-                                <a style="left: -25px;" class="carousel-control-prev" href="#carouselExampleFade" role="button" data-slide="prev">
-                                    <img src="{{env('S3_URL_VIEW').'img/membership/previous.png'}}" style="width: 43px;"/>
-                                    <span class="sr-only">Previous</span>
-                                </a>
-                                <a style="right: -25px;" class="carousel-control-next" href="#carouselExampleFade" role="button" data-slide="next">
-                                    <img src="{{env('S3_URL_VIEW').'img/membership/next.png'}}" style="width: 43px;"/>
-                                    <span class="sr-only">Next</span>
-                                </a>
-                            </div>
-                        </div>
-                        <div style="position: relative;left: auto;right: auto;padding: 20px 0px 20px 0px;background: #ffffff;box-shadow: 0px 0.7px 3.3px 0 #d0d4dd; top: 10px;margin-bottom: 10px;" class="carousel-caption">
-                            <div class="level-wrapper">
-                                <div>
-                                    <div class="current-level-info" style="margin: 0 15px;position:absolute; width:{{($result['user_membership']['user']['progress_now'] / $max_value) * 100}}%; z-index:10">
-                                        <div style="width:{{($result['user_membership']['user']['progress_now'] / $max_value) * 100}}%;"></div> 
-                                        <div style="color: #333333;font-size: 13.3px;"></div>
-                                    </div>
-                                    <div style="display:flex;margin: 5px 15px;flex-direction: row;justify-content: space-between;">
-                                        @foreach ($result['all_membership'] as $item)
-                                        <div class="current-level-info" style="width: 20px;">
-                                            <img src="{{$item['membership_image']}}" style="width: 20px;float: right; @if($result['user_membership']['user']['progress_now'] >= $item['min_value']) display: none; @endif"/>
-                                        </div>
-                                        @endforeach
-                                    </div>
+                                <div class="col-3">
+                                    <img src="{{$member['membership_image']}}" style="margin-top: 5px;width: 40px;float: right;"/>
                                 </div>
-                                <div class="level-progress-container" style="margin: 0 15px; height: 6px;">
-                                    <div class="myprogress">
-                                        <div class="level-progress" style="width:{{($result['user_membership']['user']['progress_now'] / $max_value) * 100}}%; height: 6px;background: linear-gradient(#63ba35, #2c7b25);"></div>
-                                    </div>
+                                <div class="col-7 text-left">
+                                    <p class="Ubuntu-Regular" style="font-size: 10.7px;color: #ffffff;margin-bottom: 10px;">Your Points</p>
+                                    <p class="Ubuntu-Medium" style="font-size: 13.3px;color: #ffffff;margin-bottom: 5px;">{{number_format($result['user_membership']['user']['progress_now'] , 0, ',', '.')}}</p>
                                 </div>
-                                <div class="level-info" style="margin: 0 15px;">
-                                    @foreach ($result['all_membership'] as $item)
-                                        <div class="font-regular-black" style="@if ($item != end($result['all_membership']) && $item != reset($result['all_membership'])) margin-left: 50px; @endif">{{number_format($item['min_value'] , 0, ',', '.')}}</div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                        <div style="position: relative;left: auto;right: auto;padding: 20px 0px 20px 0px;background: #ffffff;box-shadow: 0px 0.7px 3.3px 0 #d0d4dd; top: 10px;margin-bottom: 20px;" class="carousel-caption">
-                            <div class="card" style="height: 155px;width: 90%;margin: auto;background: #f8f9fb;border: #aaaaaa;border-radius: 20px;box-shadow: 0 2px 3.3px 0 #d0d4dd;">
-                                <div class="card-body" style="display: flex;flex-wrap: wrap;">
-                                    <div class="font-title">Keuntungan {{$member['membership_name']}} member : </div>
+                                <div class="col-5 text-right">
+                                    <p class="Ubuntu-Bold" style="font-size: 13.3px;color: #ffffff;margin-top: 10px;">{{$member['membership_name']}}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
+            @endforeach
+        </div>
+        @foreach ($result['all_membership'] as $key => $member)
+        <div id="desc{{$key}}" class="eksekusi">
+            <div style="position: relative;left: auto;right: auto;padding: 20px;background: #ffffff;top: 0px;margin-bottom: 0px;" class="carousel-caption row">
+                <div class="col-12">
+                    <p class="Ubuntu-Medium text-left" style="font-size: 14px;color: #3d3935;margin-bottom: 0px;">Transaction Progress</p>
+                    @if (isset($result['all_membership'][$key+1]))
+                        @php
+                            $trx_total = $result['all_membership'][$key+1]['min_value'] - $result['user_membership']['user']['progress_now']
+                        @endphp
+                        <div class="level-container Ubuntu-Regular">
+                            <div class="level-wrapper">
+                                @if ($trx_total <= 0)
+                                    <div class="current-level-info">
+                                        <div style="width:100%"></div>
+                                        <div class="Ubuntu-Medium" style="color: #3d3935;">{{number_format($result['user_membership']['user']['progress_now'] , 0, ',', '.')}}</div>
+                                        <div class="dotted" style="left: 100%;"></div>
+                                    </div>
+                                    <div class="level-progress-container" style="margin-right: 10px; height: 9px;">
+                                        <div class="level-progress" style="width:100%; height: 9px;"></div>
+                                    </div>
+                                @else
+                                    <div class="current-level-info">
+                                            @if ((($result['user_membership']['user']['progress_now'] - $result['all_membership'][$key]['min_value']) / ($result['all_membership'][$key+1]['min_value'] - $result['all_membership'][$key]['min_value']) * 100) <= 0)
+                                                <div style="width:0%;">
+                                                    <div class="dotted" style="left: 3%;"></div>
+                                                </div>
+                                            @else
+                                                <div style="width:{{(($result['user_membership']['user']['progress_now'] - $result['all_membership'][$key]['min_value']) / ($result['all_membership'][$key+1]['min_value'] - $result['all_membership'][$key]['min_value']) * 100)}}%;">
+                                                    <div class="dotted" style="left: {{(($result['user_membership']['user']['progress_now'] - $result['all_membership'][$key]['min_value']) / ($result['all_membership'][$key+1]['min_value'] - $result['all_membership'][$key]['min_value']) * 100)}}%;"></div>
+                                                </div>
+                                            @endif
+                                        <div class="Ubuntu-Medium" style="color: #3d3935;">{{number_format($result['user_membership']['user']['progress_now'] , 0, ',', '.')}}</div>
+                                    </div>
+                                    <div class="level-progress-container" style="margin-right: 10px; height: 9px;">
+                                            @if ((($result['user_membership']['user']['progress_now'] - $result['all_membership'][$key]['min_value']) / ($result['all_membership'][$key+1]['min_value'] - $result['all_membership'][$key]['min_value']) * 100) <= 0)
+                                                <div style="width:0%;"></div>
+                                            @else
+                                                <div class="level-progress" style="width:{{ (($result['user_membership']['user']['progress_now'] - $result['all_membership'][$key]['min_value']) / ($result['all_membership'][$key+1]['min_value'] - $result['all_membership'][$key]['min_value']) * 100) }}%; height: 9px;"></div>
+                                            @endif
+                                    </div>
+                                @endif
+                                <div class="level-info">
+                                    <div class="font-regular-black">{{number_format($result['all_membership'][$key]['min_value'] , 0, ',', '.')}}</div>
+                                    <div class="font-regular-black">{{number_format($result['all_membership'][$key+1]['min_value'] , 0, ',', '.')}}</div>
+                                </div>
+                            </div>
+                            <img style="width: 30px;height: 30px;" src="{{$result['all_membership'][$key]['membership_next_image']?:$result['all_membership'][$key+1]['membership_image']}}"/>
+                        </div>
                     @else
-                    <div class="carousel-item">
-                        <div style="padding: 20px 0px 20px 0px;background: #ffffff;box-shadow: 0px 0.7px 3.3px 0 #d0d4dd;">
-                            <div class="card" style="height: 149px;width: 80%;margin: auto;background: #f8f9fb;border: #aaaaaa;border-radius: 20px;">
-                                <div class="card-body" style="display: flex;flex-wrap: wrap;">
-                                    <div class="col-12 text-center">
-                                            <p style="margin-bottom: 10px;"></p>
-                                        <img src="{{env('S3_URL_VIEW').'img/membership/lock.png'}}" style="width: 40px;"/>
-                                        <p style="margin-bottom: 10px;"></p>
-                                        <p style="font-size: 11.7px;">Naikan terus transaksi Anda untuk menuju <b>{{$member['membership_name']}}</b></p>
-                                    </div>
-                                </div>
-                                <a style="left: -25px;" class="carousel-control-prev" href="#carouselExampleFade" role="button" data-slide="prev">
-                                    <img src="{{env('S3_URL_VIEW').'img/membership/previous.png'}}" style="width: 43px;"/>
-                                    <span class="sr-only">Previous</span>
-                                </a>
-                                <a style="right: -25px;" class="carousel-control-next" href="#carouselExampleFade" role="button" data-slide="next">
-                                    <img src="{{env('S3_URL_VIEW').'img/membership/next.png'}}" style="width: 43px;"/>
-                                    <span class="sr-only">Next</span>
-                                </a>
-                            </div>
-                        </div>
-                        <div style="position: relative;left: auto;right: auto;padding: 20px 0px 20px 0px;background: #ffffff;box-shadow: 0px 0.7px 3.3px 0 #d0d4dd; top: 10px;margin-bottom: 10px;" class="carousel-caption">
+                        @php
+                            $trx_total = 15000000 - $result['user_membership']['user']['progress_now'];
+                            $dataNext = end($result['all_membership'])['min_value'];
+                        @endphp
+                        <div class="level-container Ubuntu-Regular">
                             <div class="level-wrapper">
-                                <div>
-                                    <div class="current-level-info" style="margin: 0 15px;position:absolute; width:{{($result['user_membership']['user']['progress_now'] / $max_value) * 100}}%; z-index:10">
-                                        <div style="width:{{($result['user_membership']['user']['progress_now'] / $max_value) * 100}}%;"></div> 
-                                        <div style="color: #333333;font-size: 13.3px;"></div>
-                                    </div>
-                                    <div style="display:flex;margin: 5px 15px;flex-direction: row;justify-content: space-between;">
-                                        @foreach ($result['all_membership'] as $item)
-                                        <div class="current-level-info" style="width: 20px;">
-                                            <img src="{{$item['membership_image']}}" style="width: 20px;float: right; @if($result['user_membership']['user']['progress_now'] >= $item['min_value']) display: none; @endif"/>
+                            <div class="current-level-info">
+                                    @if (($result['user_membership']['user']['progress_now'] - end($result['all_membership'])['min_value']) <= 0)
+                                        <div style="width:0%;">
+                                            <div class="dotted" style="left: 3%;"></div>
                                         </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                                <div class="level-progress-container" style="margin: 0 15px; height: 6px;">
-                                    <div class="myprogress">
-                                        <div class="level-progress" style="width:{{($result['user_membership']['user']['progress_now'] / $max_value) * 100}}%; height: 6px;background: linear-gradient(#63ba35, #2c7b25);"></div>
-                                    </div>
-                                </div>
-                                <div class="level-info" style="margin: 0 15px;">
-                                    @foreach ($result['all_membership'] as $item)
-                                        <div class="font-regular-black" style="@if ($item != end($result['all_membership']) && $item != reset($result['all_membership'])) margin-left: 50px; @endif">{{number_format($item['min_value'] , 0, ',', '.')}}</div>
-                                    @endforeach
+                                    @else
+                                        <div style="width:{{ ($result['user_membership']['user']['progress_now'] / 15000000) * 100 }}%;">
+                                            <div class="dotted" style="left: {{ ($result['user_membership']['user']['progress_now'] / 15000000) * 100 }}%;"></div>
+                                        </div>
+                                    @endif
+                                <div class="Ubuntu-Medium" style="color: #3d3935;">{{number_format($result['user_membership']['user']['progress_now'] , 0, ',', '.')}}</div>
+                            </div>
+                            <div class="level-progress-container" style="margin-right: 10px; height: 9px;">
+                                    @if (($result['user_membership']['user']['progress_now'] - end($result['all_membership'])['min_value']) <= 0)
+                                        <div class="level-progress" style="width:0%; height: 9px;"></div>
+                                    @else
+                                        <div class="level-progress" style="width:{{ ($result['user_membership']['user']['progress_now'] / 15000000) * 100 }}%; height: 9px;"></div>
+                                    @endif
+                            </div>
+                                <div class="level-info">
+                                    <div class="font-regular-black">{{number_format($result['all_membership'][$key]['min_value'] , 0, ',', '.')}}</div>
+                                    <div class="font-regular-black">{{number_format(15000000 , 0, ',', '.')}}</div>
                                 </div>
                             </div>
+                            <img style="width: 30px;height: 30px;" src="{{$member['membership_image']}}"/>
                         </div>
-                        <div style="position: relative;left: auto;right: auto;padding: 20px 0px 20px 0px;background: #ffffff;box-shadow: 0px 0.7px 3.3px 0 #d0d4dd; top: 10px;margin-bottom: 20px;" class="carousel-caption">
-                            <div class="card" style="height: 155px;width: 90%;margin: auto;background: #f8f9fb;border: #aaaaaa;border-radius: 20px;box-shadow: 0 2px 3.3px 0 #d0d4dd;">
-                                <div class="card-body" style="display: flex;flex-wrap: wrap;">
-                                    <div class="font-title">Keuntungan {{$member['membership_name']}} member : </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     @endif
-                @endforeach
+                </div>
+            </div>
+            <div style="position: relative;left: auto;right: auto;padding: 20px 0px 20px 0px;background: #ffffff;top: 0px;margin-bottom: 0px;" class="carousel-caption">
+                <div class="card" style="height: 155px;width: 90%;margin: auto;background: #f8f9fb;border: #aaaaaa;border-radius: 20px;box-shadow: 0 2px 3.3px 0 #d0d4dd;">
+                    <div class="card-body" style="display: flex;flex-wrap: wrap;">
+                        <div class="font-title">Keuntungan {{$member['membership_name']}} member : </div>
+                    </div>
+                </div>
             </div>
         </div>
+        @endforeach
 
         <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
         <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
         <script src="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
+        <script>
+        $(function(){
+            $('.loop').on('initialized.owl.carousel translate.owl.carousel', function(e){
+                idx = e.item.index;
+                $('.owl-item').eq(idx).children().children().children().addClass('big');
+                $('.owl-item').eq(idx).children().children().children().removeClass('medium');
+
+                $('.owl-item').eq(idx-1).children().children().children().addClass('medium');
+                $('.owl-item').eq(idx-1).children().children().children().removeClass('big');
+
+                $('.owl-item').eq(idx+1).children().children().children().addClass('medium');
+                $('.owl-item').eq(idx+1).children().children().children().removeClass('big');
+
+                var getID = e.relatedTarget.$stage.children()[e.item.index]
+                var iddata = $(getID).children().data('id')
+                $('.eksekusi').hide()
+                $("#"+iddata).show()
+                console.log($(getID).children().data('id'))
+            });
+            $('.loop').owlCarousel({
+                center: true,
+                items:3,
+                autoWidth:true,
+                margin:15,
+            })
+            $(document).ready(function() {
+                $('.ui-page').css('background', 'white')
+            })
+        });  
+        </script>
     </body>
 </html>
