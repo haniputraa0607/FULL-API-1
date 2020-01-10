@@ -613,7 +613,7 @@ class ApiOnlineTransaction extends Controller
                 $trx_product->created_at = strtotime($insertTransaction['transaction_date']);
             }
             // array_push($dataInsertProduct, $dataProduct);
-            
+
             $insert_modifier = [];
             $mod_subtotal = 0;
             $more_mid_text = '';
@@ -675,7 +675,7 @@ class ApiOnlineTransaction extends Controller
                     $more_mid_text .= ','.$mod['text'];
                 }
             }
-            $trx_modifier = TransactionProductModifier::insert($insert_modifier); 
+            $trx_modifier = TransactionProductModifier::insert($insert_modifier);
             if (!$trx_modifier) {
                 DB::rollback();
                 return response()->json([
@@ -800,7 +800,7 @@ class ApiOnlineTransaction extends Controller
 
             $order_id = MyHelper::createrandom(4, 'Besar Angka');
 
-            //cek unique order id uniq today and outlet 
+            //cek unique order id uniq today and outlet
             $cekOrderId = TransactionShipment::join('transactions', 'transactions.id_transaction', 'transaction_shipments.id_transaction')
                                             ->where('id_outlet', $insertTransaction['id_outlet'])
                                             ->where('order_id', $order_id)
@@ -1040,6 +1040,9 @@ class ApiOnlineTransaction extends Controller
         }
 
         if ($post['transaction_payment_status'] == 'Completed') {
+            $updateReview = Transaction::where('id_transaction', $insertTransaction['id_transaction'])->update([
+                'show_rate_popup' => '1'
+            ]);
             //========= This process to check if user have fraud ============//
             $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
                 ->where('transactions.id_user', $insertTransaction['id_user'])
