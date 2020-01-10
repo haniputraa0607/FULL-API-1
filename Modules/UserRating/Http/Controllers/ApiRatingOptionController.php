@@ -38,8 +38,8 @@ class ApiRatingOptionController extends Controller
         RatingOption::truncate();
         foreach ($post['rule'] as $rule) {
             $insert['star'] = implode(',',$rule['value']);
-            $insert['question'] = $rule['question'];
-            $insert['options'] = implode(',',$rule['options']);
+            $insert['question'] = substr($rule['question'],0,40);
+            $insert['options'] = implode(',',array_map(function($var){return substr($var,0,20);},$rule['options']));
             $create = RatingOption::create($insert);
             if(!$create){
                 \DB::rollback();
