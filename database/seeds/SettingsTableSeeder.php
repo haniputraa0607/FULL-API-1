@@ -471,7 +471,7 @@ class SettingsTableSeeder extends Seeder
                 ),
             65 =>
                 array(
-                    'id_setting' => 65,
+                    'id_setting' => 66,
                     'key' => 'popup_min_interval',
                     'value' => 3,
                     'value_text' => null,
@@ -480,7 +480,7 @@ class SettingsTableSeeder extends Seeder
                 ),
             66 =>
                 array(
-                    'id_setting' => 66,
+                    'id_setting' => 67,
                     'key' => 'popup_max_refuse',
                     'value' => 5,
                     'value_text' => null,
@@ -489,7 +489,7 @@ class SettingsTableSeeder extends Seeder
                 ),
             67 =>
                 array(
-                    'id_setting' => 67,
+                    'id_setting' => 68,
                     'key' => 'rating_question_text',
                     'value' => null,
                     'value_text' => 'How about our Service',
@@ -498,7 +498,7 @@ class SettingsTableSeeder extends Seeder
                 ),
             68 =>
                 array(
-                    'id_setting' => 68,
+                    'id_setting' => 69,
                     'key' => 'default_rating_question',
                     'value' => null,
                     'value_text' => 'What\'s best from us?',
@@ -507,10 +507,19 @@ class SettingsTableSeeder extends Seeder
                 ),
             69 =>
                 array(
-                    'id_setting' => 69,
+                    'id_setting' => 70,
                     'key' => 'default_rating_options',
                     'value' => null,
                     'value_text' => 'Cleanness,Accuracy,Employee Hospitality,Process Time',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            70 =>
+                array(
+                    'id_setting' => 71,
+                    'key' => 'phone_setting',
+                    'value' => NULL,
+                    'value_text' => '{"code_number":"62","min_length_number":"9","max_length_number":"14","message_failed":"Invalid number format","message_success":"Valid number format"}',
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),

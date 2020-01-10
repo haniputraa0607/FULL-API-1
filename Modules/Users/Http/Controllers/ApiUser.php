@@ -838,22 +838,15 @@ class ApiUser extends Controller
 
         $phone = preg_replace("/[^0-9]/", "", $phone);
 
-        if(substr($phone, 0, 2) == '62'){
-            $phone = substr($phone,2);
-        }elseif(substr($phone, 0, 3) == '+62'){
-            $phone = substr($phone,3);
-        }
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
 
-        if(substr($phone, 0, 1) != '0'){
-            $phone = '0'.$phone;
-        }
-
-        $charAt2 = substr($phone, 1, 1);
-        if($charAt2 != '8'){
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
             return response()->json([
                 'status' => 'fail',
-                'messages' => ['Hanya dapat digunakan untuk nomor Indonesia dengan format 08xxx atau +628xxx']
+                'messages' => [$checkPhoneFormat['messages']]
             ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
         }
 
         $data = User::with('city')->where('phone', '=', $phone)->get()->toArray();
@@ -862,7 +855,8 @@ class ApiUser extends Controller
             return response()->json([
                 'status' => 'success',
                 'result' => $data,
-                'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@champresto.id']
+                // 'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
+                'messages' => ['Sorry, your Account is suspended']
             ]);
         }
 
@@ -893,15 +887,17 @@ class ApiUser extends Controller
 
         $phone = preg_replace("/[^0-9]/", "", $phone);
 
-        if(substr($phone, 0, 2) == '62'){
-            $phone = substr($phone,2);
-        }elseif(substr($phone, 0, 3) == '+62'){
-            $phone = substr($phone,3);
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
+
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => [$checkPhoneFormat['messages']]
+            ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
         }
 
-        if(substr($phone, 0, 1) != '0'){
-            $phone = '0'.$phone;
-        }
         $data = User::where('phone', '=', $phone)
             ->get()
             ->toArray();
@@ -1055,14 +1051,15 @@ class ApiUser extends Controller
 
         $phone = preg_replace("/[^0-9]/", "", $phone);
 
-        if(substr($phone, 0, 2) == '62'){
-            $phone = substr($phone,2);
-        }elseif(substr($phone, 0, 3) == '+62'){
-            $phone = substr($phone,3);
-        }
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
 
-        if(substr($phone, 0, 1) != '0'){
-            $phone = '0'.$phone;
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => [$checkPhoneFormat['messages']]
+            ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
         }
 
         $datauser = User::where('phone', '=', $phone)
@@ -1162,12 +1159,14 @@ class ApiUser extends Controller
                             if ($data[0]['is_suspended'] == 1) {
                                 return response()->json([
                                     'status' => 'fail',
-                                    'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di suarapelanggan@champ-group.com']
+                                    // 'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
+                                    'messages' => ['Sorry, your Account is suspended']
                                 ]);
                             } else {
                                 return response()->json([
                                     'status' => 'fail',
-                                    'messages' => ['Akun Anda tidak dapat login di device ini karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di suarapelanggan@champ-group.com']
+                                    // 'messages' => ['Akun Anda tidak dapat login di device ini karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
+                                    'messages' => ['Sorry, your Account is suspended']
                                 ]);
                             }
                         }
@@ -1246,20 +1245,21 @@ class ApiUser extends Controller
             $result['messages'] = ['Nomor HP belum terdaftar'];
         }
         return response()->json($result);
-    }												   
+    }
     function resendPin(users_phone $request){
         $phone = $request->json('phone');
 
         $phone = preg_replace("/[^0-9]/", "", $phone);
 
-        if(substr($phone, 0, 2) == '62'){
-            $phone = substr($phone,2);
-        }elseif(substr($phone, 0, 3) == '+62'){
-            $phone = substr($phone,3);
-        }
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
 
-        if(substr($phone, 0, 1) != '0'){
-            $phone = '0'.$phone;
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => [$checkPhoneFormat['messages']]
+            ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
         }
 
         $data = User::where('phone', '=', $phone)
@@ -1311,14 +1311,15 @@ class ApiUser extends Controller
 
         $phone = preg_replace("/[^0-9]/", "", $phone);
 
-        if(substr($phone, 0, 2) == '62'){
-            $phone = substr($phone,2);
-        }elseif(substr($phone, 0, 3) == '+62'){
-            $phone = substr($phone,3);
-        }
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
 
-        if(substr($phone, 0, 1) != '0'){
-            $phone = '0'.$phone;
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => [$checkPhoneFormat['messages']]
+            ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
         }
 
         $user = User::where('phone', '=', $phone)->first();
@@ -1388,14 +1389,15 @@ class ApiUser extends Controller
 
         $phone = preg_replace("/[^0-9]/", "", $phone);
 
-        if(substr($phone, 0, 2) == '62'){
-            $phone = substr($phone,2);
-        }elseif(substr($phone, 0, 3) == '+62'){
-            $phone = substr($phone,3);
-        }
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
 
-        if(substr($phone, 0, 1) != '0'){
-            $phone = '0'.$phone;
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => [$checkPhoneFormat['messages']]
+            ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
         }
 
         $data = User::where('phone', '=', $phone)
@@ -1435,12 +1437,14 @@ class ApiUser extends Controller
                                 if ($data[0]['is_suspended'] == 1) {
                                     return response()->json([
                                         'status' => 'fail',
-                                        'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di suarapelanggan@champ-group.com']
+                                        // 'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
+                                        'messages' => ['Sorry, your Account is suspended']
                                     ]);
                                 } else {
                                     return response()->json([
                                         'status' => 'fail',
-                                        'messages' => ['Akun Anda tidak dapat di daftarkan karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di suarapelanggan@champ-group.com']
+                                        // 'messages' => ['Akun Anda tidak dapat di daftarkan karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee']
+                                        'messages' => ['Sorry, your Account is suspended']
                                     ]);
                                 }
                             }
@@ -1491,14 +1495,15 @@ class ApiUser extends Controller
 
         $phone = preg_replace("/[^0-9]/", "", $phone);
 
-        if(substr($phone, 0, 2) == '62'){
-            $phone = substr($phone,2);
-        }elseif(substr($phone, 0, 3) == '+62'){
-            $phone = substr($phone,3);
-        }
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
 
-        if(substr($phone, 0, 1) != '0'){
-            $phone = '0'.$phone;
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => [$checkPhoneFormat['messages']]
+            ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
         }
 
         $data = User::where('phone', '=', $phone)
@@ -1614,7 +1619,20 @@ class ApiUser extends Controller
     }
 
     function profileUpdate(users_profile $request){
-        $data = User::where('phone', '=', $request->json('phone'))
+        $phone = preg_replace("/[^0-9]/", "", $request->json('phone'));
+
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
+
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => [$checkPhoneFormat['messages']]
+            ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
+        }
+
+        $data = User::where('phone', '=', $phone)
             ->get()
             ->toArray();
 
@@ -1625,7 +1643,7 @@ class ApiUser extends Controller
                     ->get()
                     ->first();
                 if($checkEmail){
-                    if($checkEmail['phone'] != $request->json('phone')){
+                    if($checkEmail['phone'] != $phone){
                         $result = [
                             'status'	=> 'fail',
                             'messages'	=> ['This email has already been registered to another account. Please choose other email.']
@@ -1862,7 +1880,7 @@ class ApiUser extends Controller
         if(isset($post['take'])) $take = $post['take']; else $take = '10';
         if(isset($post['rule'])) $rule = $post['rule']; else $rule = 'and';
         if(isset($post['conditions'])) $conditions = $post['conditions']; else $conditions = null;
-        
+
         $query = $this->LogActivityFilter($rule, $conditions, $order_field, $order_method, $skip, $take);
 
         return response()->json($query);
@@ -2233,7 +2251,7 @@ class ApiUser extends Controller
             $log = LogActivitiesBE::where('id_log_activities_be', $id)->first();
         }
 
-        if($log){			 
+        if($log){
             $log->user      = MyHelper::decrypt2019($log->user);
             $log->request   = MyHelper::decrypt2019($log->request);
             $log->response  = MyHelper::decrypt2019($log->response);
