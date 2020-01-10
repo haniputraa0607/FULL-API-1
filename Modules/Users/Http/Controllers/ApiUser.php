@@ -856,7 +856,7 @@ class ApiUser extends Controller
                 'status' => 'success',
                 'result' => $data,
                 // 'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
-                'messages' => ['Sorry, your Account is suspended']
+                'messages' => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
             ]);
         }
 
@@ -1160,13 +1160,13 @@ class ApiUser extends Controller
                                 return response()->json([
                                     'status' => 'fail',
                                     // 'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
-                                    'messages' => ['Sorry, your Account is suspended']
+                                    'messages' => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
                                 ]);
                             } else {
                                 return response()->json([
                                     'status' => 'fail',
                                     // 'messages' => ['Akun Anda tidak dapat login di device ini karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
-                                    'messages' => ['Sorry, your Account is suspended']
+                                    'messages' => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
                                 ]);
                             }
                         }
@@ -1438,13 +1438,13 @@ class ApiUser extends Controller
                                     return response()->json([
                                         'status' => 'fail',
                                         // 'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
-                                        'messages' => ['Sorry, your Account is suspended']
+                                        'messages' => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
                                     ]);
                                 } else {
                                     return response()->json([
                                         'status' => 'fail',
                                         // 'messages' => ['Akun Anda tidak dapat di daftarkan karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee']
-                                        'messages' => ['Sorry, your Account is suspended']
+                                        'messages' => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
                                     ]);
                                 }
                             }
