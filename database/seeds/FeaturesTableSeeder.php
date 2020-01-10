@@ -1626,7 +1626,15 @@ class FeaturesTableSeeder extends Seeder
                     'feature_module' => 'Rating Option',
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
-                )
+                ),
+            202 =>
+                array(
+                    'id_feature' => 203,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Setting Phone',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
         ));
     }
 }
