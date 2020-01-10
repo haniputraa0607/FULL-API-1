@@ -365,7 +365,7 @@ class ApiDumpController extends Controller
                 } elseif (isset($insertTransaction['status']) && $insertTransaction['status'] == 'fail') {
                     return response()->json([
                         'status'    => 'fail',
-                        'messages' => [$insertTransaction['messages']]
+                        'messages' => $insertTransaction['messages']
                     ]);
                 } else {
                     return response()->json([
@@ -434,7 +434,7 @@ class ApiDumpController extends Controller
                 } elseif (isset($insertTransaction['status']) && $insertTransaction['status'] == 'fail') {
                     return response()->json([
                         'status'    => 'fail',
-                        'messages' => [$insertTransaction['messages']]
+                        'messages' => $insertTransaction['messages']
                     ]);
                 } else {
                     return response()->json([
