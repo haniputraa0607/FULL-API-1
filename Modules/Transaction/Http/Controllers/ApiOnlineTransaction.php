@@ -198,7 +198,7 @@ class ApiOnlineTransaction extends Controller
             return response()->json([
                 'status'    => 'fail',
                 // 'messages'  => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
-                'messages'  => ['Sorry, your Account is suspended']
+                'messages'  => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
             ]);
         }
 
