@@ -43,6 +43,7 @@ Route::group(['middleware' => ['auth:api-be', 'log_activities', 'user_agent'], '
     });
     Route::post('/be/new', 'ApiOnlineTransaction@newTransaction');
     Route::get('be/{key}', 'ApiTransaction@transactionList');
+    Route::post('be/detail/webview/{mode?}', 'ApiWebviewController@webview');
 });
 
 Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent'], 'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {

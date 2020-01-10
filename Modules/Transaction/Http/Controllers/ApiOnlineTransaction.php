@@ -53,6 +53,8 @@ use Modules\Transaction\Http\Requests\Transaction\ConfirmPayment;
 use Modules\Transaction\Http\Requests\CheckTransaction;
 use DateTime;
 
+use Modules\UserRating\Entities\UserRatingLog;
+
 class ApiOnlineTransaction extends Controller
 {
     public $saveImage = "img/payment/manual/";
@@ -483,6 +485,7 @@ class ApiOnlineTransaction extends Controller
         }
 
         DB::beginTransaction();
+        UserRatingLog::where('id_user',$request->user()->id)->delete();
         $transaction = [
             'id_outlet'                   => $post['id_outlet'],
             'id_user'                     => $id,

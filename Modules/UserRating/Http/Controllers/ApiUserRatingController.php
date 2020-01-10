@@ -21,9 +21,28 @@ class ApiUserRatingController extends Controller
      * Display a listing of the resource.
      * @return Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        return MyHelper::checkGet(UserRating::paginate(10));
+        $data = UserRating::with(['transaction'=>function($query){
+            $query->select('id_transaction','transaction_receipt_number','trasaction_type','transaction_grandtotal','id_outlet');
+        },'transaction.outlet'=>function($query){
+            $query->select('id_outlet','outlet_code','outlet_name');
+        },'user'=>function($query){
+            $query->select('id','name','phone');
+        }]);
+
+        if($outlet_code = ($request['outlet_code']??false)){
+            $data->whereHas('transaction.outlet',function($query) use ($outlet_code){
+                $query->where('outlet_code',$outlet_code);
+            });
+        }
+
+        $data= $data->paginate(10)->toArray();
+        $data['data'] = array_map(function($var){
+            $var['id_user_rating'] = MyHelper::createSlug($var['id_user_rating'],$var['created_at']);
+            return $var;
+        },$data['data']);
+        return MyHelper::checkGet($data);
     }
 
     /**
@@ -66,7 +85,19 @@ class ApiUserRatingController extends Controller
      */
     public function show(Request $request)
     {
-        return MyHelper::checkGet(UserRating::find($request->json('id_user_rating')));
+        $post = $request->json()->all();
+        $id = $post['id'];
+        $exploded = MyHelper::explodeSlug($id);
+        return MyHelper::checkGet(UserRating::with(['transaction'=>function($query){
+            $query->select('id_transaction','transaction_receipt_number','trasaction_type','transaction_grandtotal','id_outlet');
+        },'transaction.outlet'=>function($query){
+            $query->select('id_outlet','outlet_code','outlet_name');
+        },'user'=>function($query){
+            $query->select('id','name','phone');
+        }])->where([
+            'id_user_rating'=>$exploded[0],
+            'created_at'=>$exploded[1]
+        ])->first());
     }
 
     /**
@@ -117,7 +148,7 @@ class ApiUserRatingController extends Controller
                 $log_popup->refuse_count++;
                 $log_popup->last_popup = date('Y-m-d H:i:s');
                 $log_popup->save();
-            }elseif(false){
+            }else{
                 UserRatingLog::create([
                     'id_user' => $user->id,
                     'refuse_count' => 1,
