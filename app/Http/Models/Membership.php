@@ -54,6 +54,7 @@ class Membership extends Model
 		'membership_name_color',
 		'membership_image',
 		'membership_next_image',
+		'membership_bg_image',
 		'min_total_value',
 		'min_total_count',
 		'min_total_balance',
