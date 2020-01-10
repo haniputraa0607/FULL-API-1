@@ -23,6 +23,7 @@ class ApiUserRatingController extends Controller
      */
     public function index(Request $request)
     {
+        $post = $request->json()->all();
         $data = UserRating::with(['transaction'=>function($query){
             $query->select('id_transaction','transaction_receipt_number','trasaction_type','transaction_grandtotal','id_outlet');
         },'transaction.outlet'=>function($query){
@@ -31,10 +32,14 @@ class ApiUserRatingController extends Controller
             $query->select('id','name','phone');
         }]);
 
-        if($outlet_code = ($request['outlet_code']??false)){
-            $data->whereHas('transaction.outlet',function($query) use ($outlet_code){
-                $query->where('outlet_code',$outlet_code);
-            });
+        // if($outlet_code = ($request['outlet_code']??false)){
+        //     $data->whereHas('transaction.outlet',function($query) use ($outlet_code){
+        //         $query->where('outlet_code',$outlet_code);
+        //     });
+        // }
+
+        if($post['rule']??false){
+            $this->filterList($data,$post['rule'],$post['operator']??'and');
         }
 
         $data= $data->paginate(10)->toArray();
@@ -43,6 +48,77 @@ class ApiUserRatingController extends Controller
             return $var;
         },$data['data']);
         return MyHelper::checkGet($data);
+    }
+
+    public function filterList($model,$rule,$operator='and'){
+        $newRule=[];
+        $where=$operator=='and'?'where':'orWhere';
+        foreach ($rule as $var) {
+            $var1=['operator'=>$var['operator']??'=','parameter'=>$var['parameter']??null];
+            if($var1['operator']=='like'){
+                $var1['parameter']='%'.$var1['parameter'].'%';
+            }
+            $newRule[$var['subject']][]=$var1;
+        }
+        if($rules=$newRule['review_date']??false){
+            foreach ($rules as $rul) {
+                $model->{$where.'Date'}('created_at',$rul['operator'],$rul['parameter']);
+            }
+        }
+        if($rules=$newRule['star']??false){
+            foreach ($rules as $rul) {
+                $model->$where('star',$rul['operator'],$rul['parameter']);
+            }
+        }
+        if($rules=$newRule['transaction_date']??false){
+            foreach ($rules as $rul) {
+                $model->{$where.'Has'}('transaction',function($query) use ($rul){
+                    $query->whereDate('transaction_date',$rul['operator'],$rul['parameter']);
+                });
+            }
+        }
+        if($rules=$newRule['transaction_type']??false){
+            foreach ($rules as $rul) {
+                $model->{$where.'Has'}('transaction',function($query) use ($rul){
+                    $query->where('transaction_type',$rul['operator'],$rul['parameter']);
+                });
+            }
+        }
+        if($rules=$newRule['transaction_receipt_number']??false){
+            foreach ($rules as $rul) {
+                $model->{$where.'Has'}('transaction',function($query) use ($rul){
+                    $query->where('transaction_receipt_number',$rul['operator'],$rul['parameter']);
+                });
+            }
+        }
+        if($rules=$newRule['user_name']??false){
+            foreach ($rules as $rul) {
+                $model->{$where.'Has'}('user',function($query) use ($rul){
+                    $query->where('name',$rul['operator'],$rul['parameter']);
+                });
+            }
+        }
+        if($rules=$newRule['user_phone']??false){
+            foreach ($rules as $rul) {
+                $model->{$where.'Has'}('user',function($query) use ($rul){
+                    $query->where('phone',$rul['operator'],$rul['parameter']);
+                });
+            }
+        }
+        if($rules=$newRule['user_email']??false){
+            foreach ($rules as $rul) {
+                $model->{$where.'Has'}('user',function($query) use ($rul){
+                    $query->where('email',$rul['operator'],$rul['parameter']);
+                });
+            }
+        }
+        if($rules=$newRule['outlet']??false){
+            foreach ($rules as $rul) {
+                $model->{$where.'Has'}('transaction.outlet',function($query) use ($rul){
+                    $query->where('id_outlet',$rul['operator'],$rul['parameter']);
+                });
+            }
+        }
     }
 
     /**
@@ -172,40 +248,13 @@ class ApiUserRatingController extends Controller
             'question'=>Setting::where('key','default_rating_question')->pluck('value_text')->first()?:'What\'s best from us?',
             'options' =>explode(',',Setting::where('key','default_rating_options')->pluck('value_text')->first()?:'Cleanness,Accuracy,Employee Hospitality,Process Time')];
         $options = ['1'=>$defaultOptions,'2'=>$defaultOptions,'3'=>$defaultOptions,'4'=>$defaultOptions,'5'=>$defaultOptions];
-        $ratings = RatingOption::select('rule_operator','value','question','options')->orderBy('order','desc')->get();
-        foreach ($ratings as $rating) {
-            if($rating->rule_operator == '<'){
-                for ($i=$rating->value-1; $i > 0; $i--) { 
-                    $options[(string)$i] = [
-                        'question' => $rating->question,
-                        'options' => explode(',',$rating->options)
-                    ];
-                }
-            }elseif($rating->rule_operator == '>'){
-                for ($i=$rating->value+1; $i <= 5; $i++) { 
-                    $options[(string)$i] = [
-                        'question' => $rating->question,
-                        'options' => explode(',',$rating->options)
-                    ];
-                }
-            }elseif($rating->rule_operator == '<='){
-                for ($i=$rating->value; $i > 0; $i--) { 
-                    $options[(string)$i] = [
-                        'question' => $rating->question,
-                        'options' => explode(',',$rating->options)
-                    ];
-                }
-            }elseif($rating->rule_operator == '>='){
-                for ($i=$rating->value; $i <= 5; $i++) { 
-                    $options[(string)$i] = [
-                        'question' => $rating->question,
-                        'options' => explode(',',$rating->options)
-                    ];
-                }
-            }else{
-                $options[(string)$rating->value] = [
-                    'question' => $rating->question,
-                    'options' => explode(',',$rating->options)
+        $ratings = RatingOption::select('star','question','options')->get();
+        foreach ($ratings as $rt) {
+            $stars = explode(',',$rt['star']);
+            foreach ($stars as $star) {
+                $options[$star] = [
+                    'question'=>$rt['question'],
+                    'options'=>explode(',',$rt['options'])
                 ];
             }
         }
