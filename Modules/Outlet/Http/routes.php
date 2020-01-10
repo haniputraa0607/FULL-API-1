@@ -32,6 +32,7 @@ Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth
     Route::any('be/list', ['middleware' => 'feature_control:24', 'uses' =>'ApiOutletController@listOutlet']);													 
     Route::any('be/filter', ['middleware' => 'feature_control:24', 'uses' =>'ApiOutletController@filter']);
     Route::any('ajax_handler','ApiOutletController@ajaxHandler');
+    Route::any('list/code', ['middleware' => 'feature_control:24', 'uses' =>'ApiOutletController@getAllCodeOutlet']);
 
     /* photo */
     Route::group(['prefix' => 'photo'], function() {
@@ -56,6 +57,7 @@ Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth
         Route::post('delete', ['middleware' => 'feature_control:42', 'uses' =>'ApiOutletController@deleteAdminOutlet']);
     });
 
+    Route::post('import-brand', 'ApiOutletController@importBrand');
     Route::post('create', ['middleware' => 'feature_control:26', 'uses' =>'ApiOutletController@create']);
     Route::post('update', ['middleware' => 'feature_control:27', 'uses' =>'ApiOutletController@update']);											  
     Route::post('batch-update', 'ApiOutletController@batchUpdate');
