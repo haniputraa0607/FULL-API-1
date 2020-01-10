@@ -71,7 +71,7 @@ class ApiMembership extends Controller
 						if($cur['membership_image']){
 							$deletephoto = MyHelper::deletePhoto($cur['membership_image']);
 						}
-						$upload = MyHelper::uploadPhoto($membership['membership_image'], $path = 'img/membership/');
+						$upload = MyHelper::uploadPhotoStrict($membership['membership_image'], $path = 'img/membership/', 75, 75);
 
 						if ($upload['status'] == "success") {
 							$data['membership_image'] = $upload['path'];
@@ -85,19 +85,19 @@ class ApiMembership extends Controller
 						}
 					}
 
-					if (isset($membership['membership_next_image'])) {
+					if (isset($membership['membership_bg_image'])) {
 						if (!file_exists('img/membership/')) {
 							mkdir('img/membership/', 0777, true);
 						}
 
 						//delete photo
-						if($cur['membership_next_image']){
-							$deletenextphoto = MyHelper::deletePhoto($cur['membership_next_image']);
+						if($cur['membership_bg_image']){
+							$deletebgphoto = MyHelper::deletePhoto($cur['membership_bg_image']);
 						}
-						$upload = MyHelper::uploadPhoto($membership['membership_next_image'], $path = 'img/membership/');
+						$upload = MyHelper::uploadPhotoStrict($membership['membership_bg_image'], $path = 'img/membership/', 245, 140);
 
 						if ($upload['status'] == "success") {
-							$data['membership_next_image'] = $upload['path'];
+							$data['membership_bg_image'] = $upload['path'];
 						} else{
 							DB::rollback();
 							$result = [
@@ -183,8 +183,8 @@ class ApiMembership extends Controller
 				if($cur['membership_image']){
 					$deletephoto = MyHelper::deletePhoto($cur['membership_image']);
 				}
-				if($cur['membership_next_image']){
-					$deletenextphoto = MyHelper::deletePhoto($cur['membership_next_image']);
+				if($cur['membership_bg_image']){
+					$deletebgphoto = MyHelper::deletePhoto($cur['membership_bg_image']);
 				}
 				$query = Membership::where('id_membership', $cur['id_membership'])->delete();
 			}
@@ -218,14 +218,14 @@ class ApiMembership extends Controller
 					}
 				}
 
-				if (isset($post['membership_next_image'])) {
+				if (isset($post['membership_bg_image'])) {
 					if (!file_exists('img/membership/')) {
 						mkdir('img/membership/', 0777, true);
 					}
-					$upload = MyHelper::uploadPhotoStrict($post['membership_next_image'], $path = 'img/membership/', 500, 500);
+					$upload = MyHelper::uploadPhotoStrict($post['membership_bg_image'], $path = 'img/membership/', 500, 500);
 
 					if ($upload['status'] == "success") {
-						$post['membership_next_image'] = $upload['path'];
+						$post['membership_bg_image'] = $upload['path'];
 					} else{
 						DB::rollback();
 						$result = [
@@ -629,7 +629,7 @@ class ApiMembership extends Controller
 				$data['membership_name'] 				= $membership_baru['membership_name'];
 				$data['membership_name_color'] 			= $membership_baru['membership_name_color'];
 				$data['membership_image'] 				= $membership_baru['membership_image'];
-				$data['membership_next_image'] 			= $membership_baru['membership_next_image'];
+				$data['membership_bg_image'] 			= $membership_baru['membership_bg_image'];
 				$data['membership_type'] 				= $membership_baru['membership_type'];
 				$data['min_total_value'] 				= $membership_baru['min_total_value'];
 				$data['min_total_count'] 				= $membership_baru['min_total_count'];
@@ -729,7 +729,7 @@ class ApiMembership extends Controller
 				$data['membership_name'] 				= $membership_baru['membership_name'];
 				$data['membership_name_color'] 			= $membership_baru['membership_name_color'];
 				$data['membership_image'] 				= $membership_baru['membership_image'];
-				$data['membership_next_image'] 			= $membership_baru['membership_next_image'];
+				$data['membership_bg_image'] 			= $membership_baru['membership_bg_image'];
 				$data['membership_type'] 				= $membership_baru['membership_type'];
 				$data['min_total_value'] 				= $membership_baru['min_total_value'];
 				$data['min_total_count'] 				= $membership_baru['min_total_count'];
