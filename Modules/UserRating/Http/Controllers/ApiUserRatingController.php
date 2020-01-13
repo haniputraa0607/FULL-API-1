@@ -198,7 +198,7 @@ class ApiUserRatingController extends Controller
             $id_trx = explode(',',$post['id']);
             $id_transaction = $id_trx[1]??'';
             $rn = $id_trx[0]??'';
-            $transaction = Transaction::select('id_transaction','transaction_receipt_number','id_outlet')->with(['outlet'=>function($query){
+            $transaction = Transaction::select('id_transaction','transaction_receipt_number','transaction_date','id_outlet')->with(['outlet'=>function($query){
                 $query->select('outlet_name','id_outlet');
             }])
             ->where(['transaction_receipt_number'=>$rn,'id_transaction'=>$id_transaction])
@@ -231,7 +231,7 @@ class ApiUserRatingController extends Controller
                     'last_popup' => date('Y-m-d H:i:s')
                 ]);
             }
-            $transaction = Transaction::select('id_transaction','transaction_receipt_number','id_outlet')->with(['outlet'=>function($query){
+            $transaction = Transaction::select('id_transaction','transaction_receipt_number','transaction_date','id_outlet')->with(['outlet'=>function($query){
                 $query->select('outlet_name','id_outlet');
             }])
             ->where('show_rate_popup',1)
@@ -244,6 +244,7 @@ class ApiUserRatingController extends Controller
         $result['id'] = $transaction->transaction_receipt_number.','.$transaction->id_transaction;
         $result['transaction_receipt_number'] = $transaction->transaction_receipt_number;
         $result['question_text'] = Setting::where('key','rating_question_text')->pluck('value_text')->first()?:'How about our Service';
+        $result['transaction_date'] = date('d M Y H:i',strtotime($transaction->transaction_date));
         $defaultOptions = [
             'question'=>Setting::where('key','default_rating_question')->pluck('value_text')->first()?:'What\'s best from us?',
             'options' =>explode(',',Setting::where('key','default_rating_options')->pluck('value_text')->first()?:'Cleanness,Accuracy,Employee Hospitality,Process Time')];
