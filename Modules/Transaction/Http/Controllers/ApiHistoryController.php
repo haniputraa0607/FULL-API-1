@@ -15,6 +15,8 @@ use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionPaymentBalance;
 
+use Modules\UserRating\Entities\UserRating;
+
 use App\Lib\MyHelper;
 
 class ApiHistoryController extends Controller
@@ -616,6 +618,7 @@ class ApiHistoryController extends Controller
                     } else {
                         $dataList['status_point'] = 0;
                     }
+                    $dataList['rate_status'] = UserRating::where('id_transaction',$value['id_transaction'])->exists()?1:0;
 
                     $listTransaction[] = $dataList;
                 }
