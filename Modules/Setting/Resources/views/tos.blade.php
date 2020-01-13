@@ -4,7 +4,7 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Champ Resto | Terms Of Service</title>
+    <title>{{env('APP_NAME', 'Behave')}} | Terms Of Service</title>
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css?family=Open+Sans|Questrial" rel="stylesheet">
@@ -115,7 +115,7 @@
 
     <div class="header">
         <div class="container">
-            <div class="text-24px ProductSans text-white">Champ Resto</div>
+            <div class="text-24px ProductSans text-white">{{env('APP_NAME', 'Behave')}}}</div>
             <div class="text-20px ProductSans text-white">Terms Of Service</div>
         </div>
     </div>
