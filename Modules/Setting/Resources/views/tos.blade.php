@@ -115,7 +115,7 @@
 
     <div class="header">
         <div class="container">
-            <div class="text-24px ProductSans text-white">{{env('APP_NAME', 'Behave')}}}</div>
+            <div class="text-24px ProductSans text-white">{{env('APP_NAME', 'Behave')}}</div>
             <div class="text-20px ProductSans text-white">Terms Of Service</div>
         </div>
     </div>
