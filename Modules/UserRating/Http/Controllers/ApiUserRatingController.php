@@ -131,6 +131,7 @@ class ApiUserRatingController extends Controller
         $post = $request->json()->all();
         $id = $post['id'];
         $exploded = explode(',',$id);
+        $user = $request->user();
         $trx = Transaction::where([
             'id_transaction'=>$exploded[1],
             'transaction_receipt_number'=>$exploded[0],
@@ -151,6 +152,10 @@ class ApiUserRatingController extends Controller
             'option_value' => implode(',',$post['option_value']??[])
         ];
         $create = UserRating::updateOrCreate(['id_transaction'=>$trx->id_transaction],$insert);
+        UserRatingLog::where('id_user',$request->user()->id)->delete();
+        if($create){
+            Transaction::where('id_user',$user->id)->update(['show_rate_popup'=>0]);
+        }
         return MyHelper::checkCreate($create);
     }
 
