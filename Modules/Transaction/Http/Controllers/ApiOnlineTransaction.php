@@ -1458,7 +1458,8 @@ class ApiOnlineTransaction extends Controller
         foreach ($post['item'] as &$item) {
             // get detail product
             $product = Product::select([
-                'products.id_product','products.product_name','products.product_description',
+                'products.id_product',
+                'products.product_code','products.product_name','products.product_description',
                 'product_prices.product_price','product_prices.product_stock_status',
                 'brand_product.id_product_category','brand_product.id_brand'
             ])
