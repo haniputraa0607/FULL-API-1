@@ -615,7 +615,7 @@ class ApiOutletController extends Controller
         $longitude = $request->json('longitude');
 
         if(!$latitude || !$longitude){
-            return response()->json(['status' => 'fail', 'messages' => ['Pastikan pengaturan lokasi pada smartphone terhubung']]);
+            return response()->json(['status' => 'fail', 'messages' => ["Make sure your phone's location settings are connected"]]);
         }
 
         // outlet
@@ -686,7 +686,7 @@ class ApiOutletController extends Controller
         $longitude = $request->json('longitude');
 
         if(!$latitude || !$longitude){
-            return response()->json(['status' => 'success', 'messages' => ['Pastikan pengaturan lokasi pada smartphone terhubung']]);
+            return response()->json(['status' => 'success', 'messages' => ["Make sure your phone's location settings are connected"]]);
         }
 
         // outlet
@@ -824,7 +824,7 @@ class ApiOutletController extends Controller
         if(!isset($latitude) || !isset($longitude)){
             return response()->json([
                 'status' => 'fail',
-                'messages' => ['Pastikan pengaturan lokasi pada smartphone terhubung']
+                'messages' => ["Make sure your phone's location settings are connected"]
             ]);
         }
 
@@ -923,7 +923,7 @@ class ApiOutletController extends Controller
                 if($request->json('search')){
                     return response()->json(['status' => 'fail', 'messages' => ['Outlet not found']]);
                 }
-                return response()->json(['status' => 'fail', 'messages' => ['empty']]);
+                return response()->json(['status' => 'fail', 'messages' => ['Outlet is Empty']]);
             }else{
                 return response()->json(['status' => 'fail', 'messages' => ['There is no open store','at this moment']]);
             }
@@ -952,7 +952,7 @@ class ApiOutletController extends Controller
                 }
             } else {
                 if($countAll){
-                    return response()->json(['status' => 'fail', 'messages' => ['empty']]);
+                    return response()->json(['status' => 'fail', 'messages' => ['Outlet is Empty']]);
                 }else{
                     return response()->json(['status' => 'fail', 'messages' => ['There is no open store','at this moment']]);
                 }
@@ -960,7 +960,7 @@ class ApiOutletController extends Controller
         }
         if(!$urutan){
             if($countAll){
-                return response()->json(['status' => 'fail', 'messages' => ['empty']]);
+                return response()->json(['status' => 'fail', 'messages' => ['Outlet is Empty']]);
             }else{
                 return response()->json(['status' => 'fail', 'messages' => ['There is no open store','at this moment']]);
             }
@@ -976,7 +976,7 @@ class ApiOutletController extends Controller
         if(!isset($latitude) || !isset($longitude)){
             return response()->json([
                 'status' => 'success',
-                'messages' => ['Pastikan pengaturan lokasi pada smartphone terhubung']
+                'messages' => ["Make sure your phone's location settings are connected"]
             ]);
         }
 

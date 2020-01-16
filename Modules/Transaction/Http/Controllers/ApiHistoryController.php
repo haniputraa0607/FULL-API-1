@@ -240,9 +240,9 @@ class ApiHistoryController extends Controller
                 $request->json('outlet') ||
                 $request->json('brand')
             ){
-                $resultMessage = 'Data tidak ditemukan';
+                $resultMessage = 'Data Not Found';
             }else{
-                $resultMessage = 'Belum ada transaksi';
+                $resultMessage = "You Don't Have Transaction History";
             }
 
             $result['status'] = 'fail';
@@ -300,7 +300,7 @@ class ApiHistoryController extends Controller
             $result = MyHelper::checkGet($result);
         } else {
             $result['status'] = 'fail';
-            $result['messages'] = ['empty'];
+            $result['messages'] = ["You Don't Have On Going Transaction History"];
         }
 
         return response()->json($result);
@@ -361,7 +361,7 @@ class ApiHistoryController extends Controller
             }
         } else {
             $result['status'] = 'fail';
-            $result['messages'] = ['empty'];
+            $result['messages'] = ["You Don't Have Point History"];
         }
 
         return response()->json($result);
@@ -444,7 +444,7 @@ class ApiHistoryController extends Controller
             ){
                 $resultMessage = 'Data tidak ditemukan';
             }else{
-                $resultMessage = 'Kamu belum memiliki point saat ini';
+                $resultMessage = "You Don't Have Point History";
             }
 
             $result['status'] = 'fail';
