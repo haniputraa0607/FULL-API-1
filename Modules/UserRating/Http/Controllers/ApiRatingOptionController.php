@@ -34,6 +34,15 @@ class ApiRatingOptionController extends Controller
     public function update(Request $request)
     {
         $post = $request->json()->all();
+        //validation
+        $all = [];
+        foreach(array_column($post['rule'],'value') as $val){
+            $all = array_merge($all,$val);
+        }
+        $all_r = array_flip($all);
+        if(count($all) !== count($all_r)){
+            return back()->withInput()->withErrors('Rating option contain duplicate data. Please try again');
+        }
         \DB::beginTransaction();
         RatingOption::truncate();
         foreach ($post['rule'] as $rule) {

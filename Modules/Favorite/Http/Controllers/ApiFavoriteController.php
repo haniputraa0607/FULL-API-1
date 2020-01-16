@@ -53,7 +53,7 @@ class ApiFavoriteController extends Controller
         $longitude = $request->json('longitude');
         $nf = $request->json('number_format')?:'float';
         $favorite = Favorite::where('id_user',$user->id);
-        $select = ['id_favorite','id_outlet','id_product','id_brand','id_user','product_qty','notes'];
+        $select = ['id_favorite','id_outlet','favorites.id_product','product_code','id_brand','id_user','product_qty','notes'];
         $with = [
             'modifiers'=>function($query){
                 $query->select('product_modifiers.id_product_modifier','type','code','text','favorite_modifiers.qty');
@@ -62,10 +62,10 @@ class ApiFavoriteController extends Controller
         // detail or list
         if(!$id_favorite){
             if($request->page){
-                $data = Favorite::where('id_user',$user->id)->select($select)->with($with)->paginate(10)->toArray();
+                $data = Favorite::where('id_user',$user->id)->select($select)->join('products','products.id_product','=','favorites.id_product')->with($with)->paginate(10)->toArray();
                 $datax = &$data['data'];
             }else{
-                $data = Favorite::where('id_user',$user->id)->select($select)->with($with)->get()->toArray();
+                $data = Favorite::where('id_user',$user->id)->select($select)->join('products','products.id_product','=','favorites.id_product')->with($with)->get()->toArray();
                 $datax = &$data;
             }
             if(count($datax)>=1){
@@ -103,7 +103,7 @@ class ApiFavoriteController extends Controller
                 $data = [];
             }
         }else{
-            $data = $favorite->select($select)->with($with)->where('id_favorite',$id_favorite)->first();
+            $data = $favorite->select($select)->with($with)->join('products','products.id_product','=','favorites.id_product')->where('id_favorite',$id_favorite)->first();
             if(!$data){
                 return MyHelper::checkGet($data);
             }
