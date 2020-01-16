@@ -532,9 +532,9 @@ class ApiDeals extends Controller
                 $request->json('id_city') ||
                 $request->json('key_free')
             ){
-                $resultMessage = 'Maaf, voucher yang kamu cari belum tersedia';
+                $resultMessage = 'The Voucher You Are Looking For Is Not Available';
             }else{
-                $resultMessage = 'Nantikan penawaran menarik dari kami';
+                $resultMessage = 'Deals Not Available Yet';
             }
             return response()->json(MyHelper::checkGet($result, $resultMessage));
 

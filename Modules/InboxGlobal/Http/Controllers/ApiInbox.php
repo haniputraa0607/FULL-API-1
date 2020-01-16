@@ -225,7 +225,7 @@ class ApiInbox extends Controller
 		} else {
 			$result = [
 					'status'  => 'fail',
-					'messages'  => ['Belum ada pesan']
+					'messages'  => ["You Don't Have Any Messages Yet"]
 				];
 		}
 		return response()->json($result);
