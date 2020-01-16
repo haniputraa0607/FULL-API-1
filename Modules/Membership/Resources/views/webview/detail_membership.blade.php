@@ -8,10 +8,7 @@
         <link rel="stylesheet" href="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css">
-        <title>Champ Membership</title>
-        @php
-            $result['user_membership']['user']['progress_now'] = 1000000;
-        @endphp
+        <title>Maxx Membership</title>
         <style>
         @font-face {
             font-family: "Ubuntu-Bold";
@@ -280,7 +277,7 @@
         .medium {
             height: 105px;
             top: 10px;
-            width: 230px;
+            width: 245px;
             -webkit-transition-property: top height;
             -webkit-transition-duration: 0.4s;
             -webkit-transition-timing-function: linear;
@@ -289,9 +286,9 @@
             transition-timing-function: linear;
         }
         .big {
-            height: 125px;
+            height: 130px;
             top: 0px;
-            width: 230px;
+            width: 245px;
             -webkit-transition-property: top height;
             -webkit-transition-duration: 0.4s;
             -webkit-transition-timing-function: linear;
@@ -306,8 +303,7 @@
             @foreach ($result['all_membership'] as $key => $member)
                 <div data-id="desc{{$key}}" class="item @if($member['membership_name'] == $result['user_membership']['membership_name']) active @endif">
                     <div style="padding: 20px 0px 20px 0px;">
-                        <div class="card" style="margin: auto;background: #3d3935;border: #aaaaaa;border-radius: 20px;box-shadow: 2.7px 6.7px 5px 0 #d0d4dd;">
-                            <img src="{{ asset('img/membership/maxx_coffee_card_bg.png') }}" style="position: absolute;width: 150px;height: 130px;"/>
+                        <div class="card" style="margin: auto;background: url('{{$member['membership_bg_image']}}');border: #aaaaaa;border-radius: 15px;background-size: cover;">
                             <div class="card-body" style="display: flex;flex-wrap: wrap;padding: 10px;">
                                 <div class="col-9 text-left" style="margin-top: 10px;margin-bottom: 20px;">
                                     <p class="Ubuntu-Bold" style="margin-bottom: 0px;font-size: 15px;color: #ffffff;">{{$result['user_membership']['user']['name']}}</p>
