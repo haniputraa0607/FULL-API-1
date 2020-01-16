@@ -43,10 +43,6 @@ class ApiUserRatingController extends Controller
         }
 
         $data= $data->paginate(10)->toArray();
-        $data['data'] = array_map(function($var){
-            $var['id_user_rating'] = MyHelper::createSlug($var['id_user_rating'],$var['created_at']);
-            return $var;
-        },$data['data']);
         return MyHelper::checkGet($data);
     }
 
@@ -131,6 +127,7 @@ class ApiUserRatingController extends Controller
         $post = $request->json()->all();
         $id = $post['id'];
         $exploded = explode(',',$id);
+        $user = $request->user();
         $trx = Transaction::where([
             'id_transaction'=>$exploded[1],
             'transaction_receipt_number'=>$exploded[0],
@@ -151,6 +148,10 @@ class ApiUserRatingController extends Controller
             'option_value' => implode(',',$post['option_value']??[])
         ];
         $create = UserRating::updateOrCreate(['id_transaction'=>$trx->id_transaction],$insert);
+        UserRatingLog::where('id_user',$request->user()->id)->delete();
+        if($create){
+            Transaction::where('id_user',$user->id)->update(['show_rate_popup'=>0]);
+        }
         return MyHelper::checkCreate($create);
     }
 
@@ -162,18 +163,16 @@ class ApiUserRatingController extends Controller
     public function show(Request $request)
     {
         $post = $request->json()->all();
-        $id = $post['id'];
-        $exploded = MyHelper::explodeSlug($id);
-        return MyHelper::checkGet(UserRating::with(['transaction'=>function($query){
+        $data = UserRating::with(['transaction'=>function($query){
             $query->select('id_transaction','transaction_receipt_number','trasaction_type','transaction_grandtotal','id_outlet');
         },'transaction.outlet'=>function($query){
             $query->select('id_outlet','outlet_code','outlet_name');
         },'user'=>function($query){
             $query->select('id','name','phone');
         }])->where([
-            'id_user_rating'=>$exploded[0],
-            'created_at'=>$exploded[1]
-        ])->first());
+            'id_user_rating'=>$post['id']
+        ])->first();
+        return MyHelper::checkGet($data);
     }
 
     /**
@@ -214,7 +213,7 @@ class ApiUserRatingController extends Controller
             $user->load('log_popup');
             $log_popup = $user->log_popup;
             if($log_popup){
-                $interval =(Setting::where('key','popup_min_interval')->pluck('value')->first()?:15)*60;
+                $interval =(Setting::where('key','popup_min_interval')->pluck('value')->first()?:900);
                 if(
                     $log_popup->refuse_count>=(Setting::where('key','popup_max_refuse')->pluck('value')->first()?:3) ||
                     strtotime($log_popup->last_popup)+$interval>time()
