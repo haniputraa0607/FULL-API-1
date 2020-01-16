@@ -1401,6 +1401,11 @@ class ApiOutletController extends Controller
         return response()->json(MyHelper::checkUpdate($update));
     }
 
+    function exportCity(Request $request) {
+        $cities = City::select('city_name as City')->groupBy('city_name')->get()->toArray();
+        return response()->json(MyHelper::checkGet($cities));
+    }
+
     function export(Request $request) {
         $brands=$request->json('brands');
         $combo=$request->json('outlet_type')=='combo';
@@ -1454,6 +1459,7 @@ class ApiOutletController extends Controller
                 unset($outlet_array['call']);
                 unset($outlet_array['url']);
                 unset($outlet_array['brands']);
+                unset($outlet_array['id_outlet']);
                 $return[$name][]=$outlet_array;
                 $count++;
             }
@@ -1491,6 +1497,7 @@ class ApiOutletController extends Controller
 
             DB::beginTransaction();
             $countImport = 0;
+            $failedImport = [];
 
             foreach ($dataimport as $key => $value) {
                 if(
@@ -1567,15 +1574,19 @@ class ApiOutletController extends Controller
                                 }
                                 $countImport++;
                             }
+                        }else{
+                            $failedImport[] = $value['code'];
                         }
+                    }else{
+                        $failedImport[] = $value['code'];
                     }
                 }
             }
 
             DB::commit();
 
-            if($save??false) return ['status' => 'success', 'message' => $countImport.' data successfully imported.'];
-            else return ['status' => 'fail','messages' => ['failed to update data']];
+            if($save??false) return ['status' => 'success', 'message' => $countImport.' data successfully imported. Failed save outlet : '.implode(",",$failedImport)];
+            else return ['status' => 'fail','messages' => ['failed to update data' , 'Failed save outlet : '.implode(",",$failedImport)]];
         }else{
             return response()->json([
                 'status'    => 'fail',

@@ -66,6 +66,7 @@ Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth
     Route::post('delete', 'ApiOutletController@delete');
     Route::post('export', 'ApiOutletController@export');
     Route::post('import', 'ApiOutletController@import');
+    Route::post('export-city', 'ApiOutletController@exportCity');
     Route::post('max-order', 'ApiOutletController@listMaxOrder');
     Route::post('max-order/update', 'ApiOutletController@updateMaxOrder');
     Route::any('schedule/save', 'ApiOutletController@scheduleSave');
