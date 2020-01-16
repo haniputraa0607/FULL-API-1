@@ -349,6 +349,14 @@ class MyHelper{
 			return $pin;
 	}
 
+	public static function encPIN ($pin)
+	{
+		$firstRand 	= self::createrandom(env('ENC_FIRST_PIN', 4), null, '123456789');
+		$lastRand 	= self::createrandom(env('ENC_LAST_PIN', 3), null, '123456789');
+
+		return implode('', [$firstRand, $pin, $lastRand]);
+	}
+
 	public static function  getIPAddress() {
 			$ipAddress = $_SERVER['REMOTE_ADDR'];
 			if (array_key_exists('HTTP_X_FORWARDED_FOR', $_SERVER)) {
@@ -362,8 +370,10 @@ class MyHelper{
 			return $_SERVER['HTTP_USER_AGENT'];
 	}
 
-	public static function createrandom($digit, $custom = null) {
-		$chars = "abcdefghjkmnpqrstuvwxyzBCDEFGHJKLMNPQRSTUVWXYZ12356789";
+	public static function createrandom($digit, $custom = null, $chars = null) {
+		if ($chars == null) {
+			$chars = "abcdefghjkmnpqrstuvwxyzBCDEFGHJKLMNPQRSTUVWXYZ12356789";
+		}
 		if($custom != null){
 			if($custom == 'Angka')
 				$chars = "0123456789";
@@ -375,17 +385,19 @@ class MyHelper{
 				$chars = "abcdefghjkmnpqrstuvwxyz";
 			if($custom == 'Besar')
 				$chars = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+			if ($custom == 'PromoCode')
+                $chars = "ABCDEFGHJKLMNPQRTUVWXY23456789";
 		}
 		$i = 0;
 		$generatedstring = '';
+		$tmp = '';
 
 		while ($i < $digit) {
-			$num = rand() % strlen($chars);
-			$tmp = substr($chars, $num, 1);
+			$charsbaru = str_replace($tmp, "", $chars);
+			$num = rand() % strlen($charsbaru);
+			$tmp = substr($charsbaru, $num, 1);
 			$generatedstring = $generatedstring . $tmp;
 			$i++;
-			// supaya char yg sudah tergenerate tidak akan dipakai lagi
-			$chars = str_replace($tmp, "", $chars);
 		}
 
 		return $generatedstring;
