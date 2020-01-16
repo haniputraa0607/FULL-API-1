@@ -498,9 +498,9 @@ class ApiDealsVoucher extends Controller
             $request->json('expired_end') ||
             $request->json('key_free')
         ){
-            $resultMessage = 'Voucher yang kamu cari tidak tersedia';
+            $resultMessage = 'The Voucher You Are Looking For Is Not Available';
         }else{
-            $resultMessage = 'Kamu belum memiliki voucher saat ini';
+            $resultMessage = "You Don't Have A Voucher at This Time";
         }
 
         return response()->json(MyHelper::checkGet($result, $resultMessage));
