@@ -22,7 +22,7 @@ class AccessTokenController extends PassportAccessTokenController
      */
     public function issueToken(ServerRequestInterface $request)
     {
-        // return response()->json($request->getParsedBody());
+        //return response()->json($request->getParsedBody());
         try {
             if(isset($request->getParsedBody()['username']) && isset($request->getParsedBody()['password'])){
 
@@ -30,7 +30,15 @@ class AccessTokenController extends PassportAccessTokenController
                     $user = User::where('phone', $request->getParsedBody()['username'])->first();
                     if($user){
                         if($user->is_suspended == '1'){
-                            return response()->json(['status' => 'fail', 'messages' => 'Sorry your account has been suspended, please contact hello@maxxcoffee.id']);
+                            return response()->json(['status' => 'fail', 'messages' => 'Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di suarapelanggan@champ-group.com']);
+                        }
+
+                        if(isset($request->getParsedBody()['scope'])){
+                            if($request->getParsedBody()['scope'] == 'ap' && strtolower($user->level) == 'customer'){
+                                return response()->json(['status' => 'fail', 'messages' => "You don't have access in this app"]);
+                            }
+                        }else{
+                            return response()->json(['status' => 'fail', 'messages' => 'Incompleted input']);
                         }
                     }
                 }
@@ -47,9 +55,9 @@ class AccessTokenController extends PassportAccessTokenController
                 return response()->json(['status' => 'fail', 'messages' => 'Pin tidak sesuai.']);
             }
 
-             return $this->withErrorHandling(function () use($exception) {
-                 throw $exception;
-             });
+            return $this->withErrorHandling(function () use($exception) {
+                throw $exception;
+            });
         }
     }
 }
