@@ -5,6 +5,7 @@ namespace Modules\ProductVariant\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Modules\ProductVariant\Entities\ProductVariant;
 
 class ApiProductVariantController extends Controller
 {
@@ -12,18 +13,41 @@ class ApiProductVariantController extends Controller
      * Display a listing of the resource.
      * @return Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        return view('productvariant::index');
+        $pg = (new ProductVariant)->newQuery();
+        if($request->post('rule')){
+            $this->filterList($pg,$request->post('rule'),$request->post('operator'));
+        }
+        if($request->page){
+            $pg = $pg->paginate(10);
+        }else{
+            $pg = $pg->get();
+        }
+        return MyHelper::checkGet($pg->toArray());
     }
 
-    /**
-     * Show the form for creating a new resource.
-     * @return Response
-     */
-    public function create()
+    public function filterList($model,$rule,$operator='and')
     {
-        return view('productvariant::create');
+        $where = $operator=='and'?'where':'orWhere';
+        $newRule=[];
+        $where=$operator=='and'?'where':'orWhere';
+        foreach ($rule as $var) {
+            $var1=['operator'=>$var['operator']??'=','parameter'=>$var['parameter']??null];
+            if($var1['operator']=='like'){
+                $var1['parameter']='%'.$var1['parameter'].'%';
+            }
+            $newRule[$var['subject']][]=$var1;
+        }
+
+        $inner=['product_variant_name'];
+        foreach ($inner as $col_name) {
+            if($rules=$newRule[$col_name]??false){
+                foreach ($rules as $rul) {
+                    $model->$where('outlets.'.$col_name,$rul['operator'],$rul['parameter']);
+                }
+            }
+        }
     }
 
     /**
@@ -33,7 +57,12 @@ class ApiProductVariantController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $data = [
+            'product_variant_name' => $request->json('product_variant_name'),
+            'parent' => $request->json('parent')
+        ];
+        $create = ProductVariant::create($data);
+        return MyHelper::checkCreate($create);
     }
 
     /**
@@ -41,19 +70,10 @@ class ApiProductVariantController extends Controller
      * @param int $id
      * @return Response
      */
-    public function show($id)
+    public function show(Request $request)
     {
-        return view('productvariant::show');
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     * @param int $id
-     * @return Response
-     */
-    public function edit($id)
-    {
-        return view('productvariant::edit');
+        $data = ProductVariant::find($request->json('id_product_variant'));
+        return MyHelper::checkGet($data);
     }
 
     /**
@@ -62,9 +82,14 @@ class ApiProductVariantController extends Controller
      * @param int $id
      * @return Response
      */
-    public function update(Request $request, $id)
+    public function update(Request $request)
     {
-        //
+        $data = [
+            'product_variant_name' => $request->json('product_variant_name'),
+            'parent' => $request->json('parent')
+        ];
+        $update = ProductVariant::update($data);
+        return MyHelper::checkUpdate($create);
     }
 
     /**
@@ -72,8 +97,9 @@ class ApiProductVariantController extends Controller
      * @param int $id
      * @return Response
      */
-    public function destroy($id)
+    public function destroy(Request $request)
     {
-        //
+        $delete = ProductVariant::delete($request->json('id_product_variant'));
+        return MyHelper::checkDelete($create);
     }
 }
