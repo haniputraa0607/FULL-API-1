@@ -83,6 +83,7 @@ class ApiMembershipWebview extends Controller
 						}
 					}
 					$allMembership[$index]['membership_image'] = env('S3_URL_API').$allMembership[$index]['membership_image'];
+					$allMembership[$index]['membership_bg_image'] = env('S3_URL_API').$allMembership[$index]['membership_bg_image'];
 					$allMembership[$index]['membership_next_image'] = $allMembership[$index]['membership_next_image']?env('S3_URL_API').$allMembership[$index]['membership_next_image']:null;
 					$allMembership[$index]['benefit_cashback_multiplier'] = $allMembership[$index]['benefit_cashback_multiplier'] * $settingCashback->value;
 				}
