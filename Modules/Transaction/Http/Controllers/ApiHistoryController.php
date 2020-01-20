@@ -708,7 +708,7 @@ class ApiHistoryController extends Controller
             $dataVoucher[$key]['type'] = 'voucher';
             $dataVoucher[$key]['id'] = $value['id_deals_user'];
             $dataVoucher[$key]['date'] = $value['claimed_at'];
-            $dataVoucher[$key]['outlet'] = 'Tukar Voucher';
+            $dataVoucher[$key]['outlet'] = 'Buy a Voucher';
             $dataVoucher[$key]['amount'] = $value['voucher_price_cash'] - $value['balance_nominal'];
         }
 
@@ -975,7 +975,7 @@ class ApiHistoryController extends Controller
                 $dataList['type']   = 'voucher';
                 $dataList['id']      = $value['id_log_balance'];
                 $dataList['date']   = date('Y-m-d H:i:s', strtotime($vou['claimed_at']));
-                $dataList['outlet'] = 'Tukar Voucher';
+                $dataList['outlet'] = 'Buy a Voucher';
                 $dataList['amount'] = '- ' . ltrim(number_format($value['balance'], 0, ',', '.'), '-');
                 // $dataList['amount'] = number_format($value['balance'], 0, ',', '.');
                 // $dataList['online'] = 1;
