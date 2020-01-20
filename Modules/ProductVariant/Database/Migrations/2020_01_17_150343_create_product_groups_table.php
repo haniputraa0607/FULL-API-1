@@ -16,9 +16,12 @@ class CreateProductGroupsTable extends Migration
         Schema::create('product_groups', function (Blueprint $table) {
             $table->increments('id_product_group');
             $table->string('product_group_name');
+            $table->unsignedInteger('id_product_category')->nullable();
             $table->text('product_group_description')->nullable();
             $table->string('product_group_photo',150)->nullable();
             $table->timestamps();
+
+            $table->foreign('id_product_category', 'fk_id_product_category_categories')->references('id_product_category')->on('product_categories');
         });
     }
 

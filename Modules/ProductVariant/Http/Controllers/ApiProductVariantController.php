@@ -7,6 +7,8 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Modules\ProductVariant\Entities\ProductVariant;
 
+use App\Lib\MyHelper;
+
 class ApiProductVariantController extends Controller
 {
     /**

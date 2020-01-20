@@ -16,7 +16,7 @@ class CreateProductProductVariantsTable extends Migration
         Schema::create('product_product_variants', function (Blueprint $table) {
             $table->unsignedInteger('id_product');
             $table->unsignedInteger('id_product_variant');
-            $table->decimal('product_variant_price',8,2);
+            $table->decimal('product_variant_price',8,2)->default(0);
 
             $table->foreign('id_product', 'fk_id_product_products')->references('id_product')->on('products');
             $table->foreign('id_product_variant', 'fk_id_product_variant_product_variants')->references('id_product_variant')->on('product_variants');
