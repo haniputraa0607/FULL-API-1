@@ -67,7 +67,7 @@ class ApiProductGroupController extends Controller
     {
         $post = $request->json()->all();
         if (isset($post['product_group_photo'])) {
-            $upload = MyHelper::uploadPhotoStrict($post['product_group_photo'], $path = 'img/product-group/photo');
+            $upload = MyHelper::uploadPhotoStrict($post['product_group_photo'], $path = 'img/product-group/photo/',200,200);
             if ($upload['status'] == "success") {
                 $post['product_group_photo'] = $upload['path'];
             } else {
@@ -79,7 +79,7 @@ class ApiProductGroupController extends Controller
             }
         }
         if (isset($post['product_group_image_detail'])) {
-            $upload = MyHelper::uploadPhotoStrict($post['product_group_image_detail'], $path = 'img/product-group/image');
+            $upload = MyHelper::uploadPhotoStrict($post['product_group_image_detail'], $path = 'img/product-group/image/',720,360);
             if ($upload['status'] == "success") {
                 $post['product_group_image_detail'] = $upload['path'];
             } else {
@@ -121,9 +121,14 @@ class ApiProductGroupController extends Controller
      */
     public function update(Request $request)
     {
+        $pg = ProductGroup::find($request->json('id_product_group'));
+        if(!$pg){
+            return MyHelper::checkGet($pg);
+        }
         $post = $request->json()->all();
         if (isset($post['product_group_photo'])) {
-            $upload = MyHelper::uploadPhotoStrict($post['product_group_photo'], $path = 'img/product-group/photo');
+            $pg_old['product_group_photo'] = $pg['product_group_photo'];
+            $upload = MyHelper::uploadPhotoStrict($post['product_group_photo'], $path = 'img/product-group/photo/',200,200);
             if ($upload['status'] == "success") {
                 $post['product_group_photo'] = $upload['path'];
             } else {
@@ -135,7 +140,8 @@ class ApiProductGroupController extends Controller
             }
         }
         if (isset($post['product_group_image_detail'])) {
-            $upload = MyHelper::uploadPhotoStrict($post['product_group_image_detail'], $path = 'img/product-group/image');
+            $pg_old['product_group_image_detail'] = $pg['product_group_image_detail'];
+            $upload = MyHelper::uploadPhotoStrict($post['product_group_image_detail'], $path = 'img/product-group/image/',720,360);
             if ($upload['status'] == "success") {
                 $post['product_group_image_detail'] = $upload['path'];
             } else {
@@ -154,8 +160,16 @@ class ApiProductGroupController extends Controller
             'product_group_photo' => $post['product_group_photo'],
             'product_group_image_detail' => $post['product_group_image_detail']
         ];
-        $update = ProductGroup::update($data);
-        return MyHelper::checkUpdate($create);
+        $update = $pg->update($data);
+        if($update){
+            if($pg_old['product_group_photo']??false){
+                MyHelper::deletePhoto($pg_old['product_group_photo']);
+            }
+            if($pg_old['product_group_image_detail']??false){
+                MyHelper::deletePhoto($pg_old['product_group_image_detail']);
+            }
+        }
+        return MyHelper::checkUpdate($update);
     }
 
     /**
@@ -165,8 +179,20 @@ class ApiProductGroupController extends Controller
      */
     public function destroy(Request $request)
     {
-        $delete = ProductGroup::delete($request->json('id_product_group'));
-        return MyHelper::checkDelete($create);
+        $pg = ProductGroup::find($request->json('id_product_group'));
+        if(!$pg){
+            return MyHelper::checkDelete(false);
+        }
+        $delete = $pg->delete();
+        if($delete){
+            if($pg['product_group_photo']){
+                MyHelper::deletePhoto($pg['product_group_photo']);
+            }
+            if($pg['product_group_image_detail']){
+                MyHelper::deletePhoto($pg['product_group_image_detail']);
+            }
+        }
+        return MyHelper::checkDelete($delete);
     }
 
     /**
