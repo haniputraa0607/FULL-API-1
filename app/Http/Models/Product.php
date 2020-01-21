@@ -139,4 +139,7 @@ class Product extends Model
     public function modifiers(){
         return $this->hasMany(ProductModifier::class, 'id_product','id_product');
     }
+    public function product_variants(){
+        return $this->belongsToMany(\Modules\ProductVariant\Entities\ProductVariant::class, 'product_product_variants', 'id_product', 'id_product_variant');
+    }
 }

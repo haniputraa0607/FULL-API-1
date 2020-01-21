@@ -65,12 +65,38 @@ class ApiProductGroupController extends Controller
      */
     public function store(Request $request)
     {
+        $post = $request->json()->all();
+        if (isset($post['product_group_photo'])) {
+            $upload = MyHelper::uploadPhotoStrict($post['product_group_photo'], $path = 'img/product-group/photo');
+            if ($upload['status'] == "success") {
+                $post['product_group_photo'] = $upload['path'];
+            } else {
+                $result = [
+                    'status'    => 'fail',
+                    'messages'    => ['fail upload image']
+                ];
+                return response()->json($result);
+            }
+        }
+        if (isset($post['product_group_image_detail'])) {
+            $upload = MyHelper::uploadPhotoStrict($post['product_group_image_detail'], $path = 'img/product-group/image');
+            if ($upload['status'] == "success") {
+                $post['product_group_image_detail'] = $upload['path'];
+            } else {
+                $result = [
+                    'status'    => 'fail',
+                    'messages'    => ['fail upload image']
+                ];
+                return response()->json($result);
+            }
+        }
         $data = [
             'id_product_category' => $request->json('id_product_category'),
             'product_group_code' => $request->json('product_group_code'),
             'product_group_name' => $request->json('product_group_name'),
             'product_group_description' => $request->json('product_group_description'),
-            'product_group_photo' => $request->json('product_group_photo')
+            'product_group_photo' => $post['product_group_photo'],
+            'product_group_image_detail' => $post['product_group_image_detail']
         ];
         $create = ProductGroup::create($data);
         return MyHelper::checkCreate($create);
@@ -95,12 +121,38 @@ class ApiProductGroupController extends Controller
      */
     public function update(Request $request)
     {
+        $post = $request->json()->all();
+        if (isset($post['product_group_photo'])) {
+            $upload = MyHelper::uploadPhotoStrict($post['product_group_photo'], $path = 'img/product-group/photo');
+            if ($upload['status'] == "success") {
+                $post['product_group_photo'] = $upload['path'];
+            } else {
+                $result = [
+                    'status'    => 'fail',
+                    'messages'    => ['fail upload image']
+                ];
+                return response()->json($result);
+            }
+        }
+        if (isset($post['product_group_image_detail'])) {
+            $upload = MyHelper::uploadPhotoStrict($post['product_group_image_detail'], $path = 'img/product-group/image');
+            if ($upload['status'] == "success") {
+                $post['product_group_image_detail'] = $upload['path'];
+            } else {
+                $result = [
+                    'status'    => 'fail',
+                    'messages'    => ['fail upload image']
+                ];
+                return response()->json($result);
+            }
+        }
         $data = [
             'id_product_category' => $request->json('id_product_category'),
             'product_group_code' => $request->json('product_group_code'),
             'product_group_name' => $request->json('product_group_name'),
             'product_group_description' => $request->json('product_group_description'),
-            'product_group_photo' => $request->json('product_group_photo')
+            'product_group_photo' => $post['product_group_photo'],
+            'product_group_image_detail' => $post['product_group_image_detail']
         ];
         $update = ProductGroup::update($data);
         return MyHelper::checkUpdate($create);
