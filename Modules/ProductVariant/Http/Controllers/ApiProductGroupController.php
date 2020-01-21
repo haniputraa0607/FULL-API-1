@@ -217,7 +217,7 @@ class ApiProductGroupController extends Controller
             ->groupBy('product_price')
             ->first()->toArray();
         // get product group detail
-        $data = ProductGroup::select('product_group_name','product_group_code','product_group_description','product_group_photo')->find($post['id_product_group'])->toArray();
+        $data = ProductGroup::select('id_product_group','product_group_name','product_group_code','product_group_description','product_group_photo')->find($post['id_product_group'])->toArray();
         // get list product variant
         $variants = ProductProductVariant::select(
             'product_variants.id_product_variant',
@@ -265,7 +265,8 @@ class ApiProductGroupController extends Controller
         $posta = [
             'id_product' => $id_products,
             'id_outlet' => $post['id_outlet'],
-            'id_product_category' => $data['id_product_category']??''
+            'id_product_category' => $data['id_product_category']??'',
+            'id_brand' => $data['id_brand']??''
         ];
         $modifiers = ProductModifier::select('product_modifiers.id_product_modifier','code','type','text','product_modifier_stock_status','product_modifier_price as price')
             ->where(function($query) use($posta){
@@ -277,9 +278,9 @@ class ApiProductGroupController extends Controller
                     $query->orWhereHas('product_categories',function($query) use ($posta){
                         $query->where('product_categories.id_product_category',$posta['id_product_category']);
                     });
-                    // $query->orWhereHas('brands',function($query) use ($post){
-                    //     $query->where('brands.id_brand',$post['id_brand']);
-                    // });
+                    $query->orWhereHas('brands',function($query) use ($posta){
+                        $query->where('brands.id_brand',$posta['id_brand']);
+                    });
                 });
             })
             ->join('product_modifier_prices',function($join) use ($posta){
