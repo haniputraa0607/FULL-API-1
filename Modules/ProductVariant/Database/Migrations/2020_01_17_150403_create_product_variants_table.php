@@ -15,6 +15,8 @@ class CreateProductVariantsTable extends Migration
     {
         Schema::create('product_variants', function (Blueprint $table) {
             $table->increments('id_product_variant');
+            $table->string('product_variant_code')->unique();
+            $table->string('product_variant_description');
             $table->string('product_variant_name');
             $table->unsignedInteger('parent')->nullable();
             $table->timestamps();

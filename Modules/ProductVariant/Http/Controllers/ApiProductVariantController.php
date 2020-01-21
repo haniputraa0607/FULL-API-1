@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Modules\ProductVariant\Entities\ProductVariant;
+use Modules\ProductVariant\Entities\ProductProductVariant;
 
 use App\Lib\MyHelper;
 
@@ -60,6 +61,8 @@ class ApiProductVariantController extends Controller
     public function store(Request $request)
     {
         $data = [
+            'product_variant_code' => $request->json('product_variant_code'),
+            'product_variant_description' => $request->json('product_variant_description'),
             'product_variant_name' => $request->json('product_variant_name'),
             'parent' => $request->json('parent')
         ];
@@ -87,6 +90,8 @@ class ApiProductVariantController extends Controller
     public function update(Request $request)
     {
         $data = [
+            'product_variant_code' => $request->json('product_variant_code'),
+            'product_variant_description' => $request->json('product_variant_description'),
             'product_variant_name' => $request->json('product_variant_name'),
             'parent' => $request->json('parent')
         ];
@@ -103,5 +108,24 @@ class ApiProductVariantController extends Controller
     {
         $delete = ProductVariant::delete($request->json('id_product_variant'));
         return MyHelper::checkDelete($create);
+    }
+
+    public function assign(Request $request) {
+        \DB::beginTransaction();
+        $id_product = $request->json('id_product');
+        ProductProductVariant::where('id_product',$id_product)->delete();
+        foreach ($request->json('variants') as $variant) {
+            $create = ProductProductVariant::create([
+                'id_product'=> $id_product,
+                'id_product_variant'=>$variant['id_product_variant'],
+                'product_variant_price'=>$variant['product_variant_price']
+            ]);
+            if(!$create){
+                \DB::rollback();
+                return MyHelper::checkCreate($create);
+            }
+        }
+        \DB::commit();
+        return MyHelper::checkCreate($create);
     }
 }

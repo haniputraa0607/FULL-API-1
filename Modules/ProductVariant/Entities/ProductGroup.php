@@ -10,6 +10,7 @@ class ProductGroup extends Model
 
     protected $fillable   = [
         'id_product_category',
+        'product_group_code',
         'product_group_name',
         'product_group_description',
         'product_group_photo',

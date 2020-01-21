@@ -9,7 +9,10 @@ class ProductVariant extends Model
     protected $primaryKey = 'id_product_variant';
 
     protected $fillable   = [
+        'product_variant_code',
+        'product_variant_description',
         'product_variant_name',
+        'product_variant_position',
         'parent'
     ];
 
