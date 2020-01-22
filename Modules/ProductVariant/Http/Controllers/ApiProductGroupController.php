@@ -209,8 +209,8 @@ class ApiProductGroupController extends Controller
     // list product group yang ada di suatu outlet dengan nama, gambar, harga, order berdasarkan kategori
     public function tree(Request $request) {
         $post = $request->json()->all();
-        $data = Product::select(\DB::raw('product_groups.id_product_group,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,GROUP_CONCAT(product_code) as product_codes,product_groups.id_product_category'))
-                    ->join('product_groups','products.id_product_group','=','product_groups.id_product_group')
+        $data = ProductGroup::select(\DB::raw('product_groups.id_product_group,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,GROUP_CONCAT(product_code) as product_codes,product_groups.id_product_category'))
+                    ->join('products','products.id_product_group','=','product_groups.id_product_group')
                     // join product_price (product_outlet pivot and product price data)
                     ->join('product_prices','product_prices.id_product','=','products.id_product')
                     ->where('product_prices.id_outlet','=',$post['id_outlet']) // filter outlet
@@ -307,8 +307,10 @@ class ApiProductGroupController extends Controller
             $default['defaults'] = explode(';',$default['defaults']);
             $defaults = [];
             foreach ($default['defaults'] as $default) {
-                $exp = explode(',', $default);
-                $defaults[$exp[0]] = $exp[1];
+                if($default){
+                    $exp = explode(',', $default);
+                    $defaults[$exp[0]??''] = $exp[1]??'';
+                }
             }
         }
         $data['variants'] = [];
@@ -371,5 +373,42 @@ class ApiProductGroupController extends Controller
             return $key;
         });
         return MyHelper::checkGet($data);
+    }
+    public function search(Request $request) {
+        $post = $request->json()->all();
+        $data = Product::select(\DB::raw('product_groups.id_product_group,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,product_groups.id_product_category'))
+                    ->join('product_groups','products.id_product_group','=','product_groups.id_product_group')
+                    // join product_price (product_outlet pivot and product price data)
+                    ->join('product_prices','product_prices.id_product','=','products.id_product')
+                    ->where('product_prices.id_outlet','=',$post['id_outlet']) // filter outlet
+                    // where name like key_free
+                    ->where('product_groups.product_group_name','like','%'.$post['key_free'].'%')
+                    // where active
+                    ->where(function($query){
+                        $query->where('product_prices.product_visibility','=','Visible')
+                                ->orWhere(function($q){
+                                    $q->whereNull('product_prices.product_visibility')
+                                    ->where('products.product_visibility', 'Visible');
+                                });
+                    })
+                    ->where('product_prices.product_status','=','Active')
+                    ->whereNotNull('product_prices.product_price')
+                    ->whereNotNull('product_groups.id_product_category')
+                    // order by position
+                    ->orderBy('products.position')
+                    // group by product_groups
+                    ->groupBy('product_groups.id_product_group')
+                    ->get()
+                    ->toArray();
+        if(!$data){
+            return MyHelper::checkGet($data);
+        }
+        $result = [];
+        foreach ($data as $product) {
+            $product['product_group_photo'] = env('S3_URL_API').($product['product_group_photo']?:'img/product/item/default.png');
+            $product['product_price'] = MyHelper::requestNumber($product['product_price'],$request->json('request_number'));
+            $result[] = $product;
+        }
+        return MyHelper::checkGet(array_values($result));
     }
 }
