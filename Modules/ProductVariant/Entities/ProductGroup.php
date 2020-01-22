@@ -21,4 +21,18 @@ class ProductGroup extends Model
     {
     	return $this->hasMany(\App\Http\Models\Product::class,'id_product_group','id_product_group');
     }
+    public function getProductGroupPhotoAttribute($value)
+    {
+        if($value){
+            return env('S3_URL_API').$value;
+        }
+        return env('S3_URL_API').'img/product/item/default.png';
+    }
+    public function getProductGroupImageDetailAttribute($value)
+    {
+        if($value){
+            return env('S3_URL_API').$value;
+        }
+        return env('S3_URL_API').'img/product/item/default.png';
+    }
 }
