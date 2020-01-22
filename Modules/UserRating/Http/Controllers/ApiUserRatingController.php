@@ -126,9 +126,11 @@ class ApiUserRatingController extends Controller
     {
         $post = $request->json()->all();
         $id = $post['id'];
+        $exploded = explode(',',$id);
         $user = $request->user();
         $trx = Transaction::where([
-            'id_transaction'=>$id,
+            'id_transaction'=>$exploded[1],
+            'transaction_receipt_number'=>$exploded[0],
             'id_user'=>$request->user()->id
         ])->first();
         if(!$trx){
@@ -193,12 +195,13 @@ class ApiUserRatingController extends Controller
         // rating item
         $user = $request->user();
         if($post['id']??false){
-            $id_transaction = $post['id'];
+            $id_trx = explode(',',$post['id']);
+            $id_transaction = $id_trx[1]??'';
             $rn = $id_trx[0]??'';
             $transaction = Transaction::select('id_transaction','transaction_receipt_number','transaction_date','id_outlet')->with(['outlet'=>function($query){
                 $query->select('outlet_name','id_outlet');
             }])
-            ->where(['id_transaction'=>$id_transaction,'id_user'=>$user->id])
+            ->where(['transaction_receipt_number'=>$rn,'id_transaction'=>$id_transaction,'id_user'=>$user->id])
             ->find($id_transaction);
             if(!$transaction){
                 return [
@@ -236,7 +239,8 @@ class ApiUserRatingController extends Controller
                 return MyHelper::checkGet([]);
             }
         }
-        $result['id'] = $transaction->id_transaction;
+        $result['id_transaction'] = $transaction->id_transaction;
+        $result['id'] = $transaction->transaction_receipt_number.','.$transaction->id_transaction;
         $result['transaction_receipt_number'] = $transaction->transaction_receipt_number;
         $result['question_text'] = Setting::where('key','rating_question_text')->pluck('value_text')->first()?:'How about our Service';
         $result['transaction_date'] = date('d M Y H:i',strtotime($transaction->transaction_date));
