@@ -279,18 +279,20 @@ class ApiProductGroupController extends Controller
         $query2 = clone $query;
         // get all product on this group
         $products = $query
-            ->join('product_product_variants','products.id_product','=','product_product_variants.id_product')
-            ->join('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
-            ->join('product_variants as parents','product_variants.parent','=','parents.id_product_variant')
+            ->leftJoin('product_product_variants','products.id_product','=','product_product_variants.id_product')
+            ->leftJoin('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
+            ->leftJoin('product_variants as parents','product_variants.parent','=','parents.id_product_variant')
             ->select(\DB::raw('products.id_product,product_prices.product_stock_status,GROUP_CONCAT(product_variants.product_variant_code order by parents.product_variant_position) as product_variant_code'))->groupBy('products.id_product')->get('id_product')->toArray();
         $id_products = array_column($products, 'id_product');
         $variant_stock = [];
         foreach ($products as $product) {
-            $varcode = explode(',',$product['product_variant_code']);
-            $variant_stock[$varcode[0]][] = [
-                'product_variant_code' => $varcode[1],
-                'product_stock_status' => $product['product_stock_status']
-            ];
+            if($product['product_variant_code']){
+                $varcode = explode(',',$product['product_variant_code']);
+                $variant_stock[$varcode[0]][] = [
+                    'product_variant_code' => $varcode[1],
+                    'product_stock_status' => $product['product_stock_status']
+                ];
+            }
         }
         // product exists?
         if(!$id_products){
