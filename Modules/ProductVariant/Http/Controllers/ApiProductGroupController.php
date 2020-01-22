@@ -388,10 +388,15 @@ class ApiProductGroupController extends Controller
                         });
             })
             ->get()->toArray();
-        $data['modifiers'] = MyHelper::groupIt($modifiers,'type',function($key,&$val) use ($request){
+        $data['modifiers'] = array_values(MyHelper::groupIt($modifiers,'type',function($key,&$val) use ($request){
             $val['price'] = MyHelper::requestNumber($val['price'],$request->json('request_number'));
             return $key;
-        });
+        },function($key,&$val){
+            $newval['type'] = $key;
+            $newval['modifiers'] = $val;
+            $val = $newval;
+            return $key;
+        }));
         return MyHelper::checkGet($data);
     }
     public function search(Request $request) {
