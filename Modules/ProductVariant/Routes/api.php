@@ -34,6 +34,7 @@ Route::group(['middleware'=>['log_activities','auth:api'],'prefix'=>'product-var
 	Route::group(['prefix'=>'group'],function(){
 		Route::post('tree',['uses' => 'ApiProductGroupController@tree']);
 		Route::post('product',['uses' => 'ApiProductGroupController@product']);
+		Route::post('search',['uses' => 'ApiProductGroupController@search']);
 	});
 	Route::post('product',['uses' => 'ApiProductVariantController@product']);
 });
