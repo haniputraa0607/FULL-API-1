@@ -18,8 +18,10 @@ class ApiProductVariantController extends Controller
      */
     public function index(Request $request)
     {
-        $pg = (new ProductVariant)->newQuery();
-        if($request->post('rule')){
+        $pg = ProductVariant::with(['parent'=>function($query){
+            $query->select('id_product_variant','product_variant_name');
+        }]);
+        if($request->json('rule')){
             $this->filterList($pg,$request->post('rule'),$request->post('operator'));
         }
         if($request->page){
@@ -48,6 +50,15 @@ class ApiProductVariantController extends Controller
             if($rules=$newRule[$col_name]??false){
                 foreach ($rules as $rul) {
                     $model->$where('outlets.'.$col_name,$rul['operator'],$rul['parameter']);
+                }
+            }
+        }
+        if($rules=$newRule['variant_type']??false){
+            foreach ($rules as $rul) {
+                if($rul['parameter'] == 'parent'){
+                    $model->{$where.'Null'}('parent');
+                }else{
+                    $model->{$where.'NotNull'}('parent');
                 }
             }
         }

@@ -24,7 +24,7 @@ class ApiProductGroupController extends Controller
     public function index(Request $request)
     {
         $pg = (new ProductGroup)->newQuery();
-        if($request->post('rule')){
+        if($request->json('rule')){
             $this->filterList($pg,$request->post('rule'),$request->post('operator'));
         }
         if($request->page){
@@ -65,12 +65,38 @@ class ApiProductGroupController extends Controller
      */
     public function store(Request $request)
     {
+        $post = $request->json()->all();
+        if (isset($post['product_group_photo'])) {
+            $upload = MyHelper::uploadPhotoStrict($post['product_group_photo'], $path = 'img/product-group/photo/',200,200);
+            if ($upload['status'] == "success") {
+                $post['product_group_photo'] = $upload['path'];
+            } else {
+                $result = [
+                    'status'    => 'fail',
+                    'messages'    => ['fail upload image']
+                ];
+                return response()->json($result);
+            }
+        }
+        if (isset($post['product_group_image_detail'])) {
+            $upload = MyHelper::uploadPhotoStrict($post['product_group_image_detail'], $path = 'img/product-group/image/',720,360);
+            if ($upload['status'] == "success") {
+                $post['product_group_image_detail'] = $upload['path'];
+            } else {
+                $result = [
+                    'status'    => 'fail',
+                    'messages'    => ['fail upload image']
+                ];
+                return response()->json($result);
+            }
+        }
         $data = [
             'id_product_category' => $request->json('id_product_category'),
             'product_group_code' => $request->json('product_group_code'),
             'product_group_name' => $request->json('product_group_name'),
             'product_group_description' => $request->json('product_group_description'),
-            'product_group_photo' => $request->json('product_group_photo')
+            'product_group_photo' => $post['product_group_photo'],
+            'product_group_image_detail' => $post['product_group_image_detail']
         ];
         $create = ProductGroup::create($data);
         return MyHelper::checkCreate($create);
@@ -95,15 +121,55 @@ class ApiProductGroupController extends Controller
      */
     public function update(Request $request)
     {
+        $pg = ProductGroup::find($request->json('id_product_group'));
+        if(!$pg){
+            return MyHelper::checkGet($pg);
+        }
+        $post = $request->json()->all();
+        if (isset($post['product_group_photo'])) {
+            $pg_old['product_group_photo'] = $pg['product_group_photo'];
+            $upload = MyHelper::uploadPhotoStrict($post['product_group_photo'], $path = 'img/product-group/photo/',200,200);
+            if ($upload['status'] == "success") {
+                $post['product_group_photo'] = $upload['path'];
+            } else {
+                $result = [
+                    'status'    => 'fail',
+                    'messages'    => ['fail upload image']
+                ];
+                return response()->json($result);
+            }
+        }
+        if (isset($post['product_group_image_detail'])) {
+            $pg_old['product_group_image_detail'] = $pg['product_group_image_detail'];
+            $upload = MyHelper::uploadPhotoStrict($post['product_group_image_detail'], $path = 'img/product-group/image/',720,360);
+            if ($upload['status'] == "success") {
+                $post['product_group_image_detail'] = $upload['path'];
+            } else {
+                $result = [
+                    'status'    => 'fail',
+                    'messages'    => ['fail upload image']
+                ];
+                return response()->json($result);
+            }
+        }
         $data = [
             'id_product_category' => $request->json('id_product_category'),
             'product_group_code' => $request->json('product_group_code'),
             'product_group_name' => $request->json('product_group_name'),
             'product_group_description' => $request->json('product_group_description'),
-            'product_group_photo' => $request->json('product_group_photo')
+            'product_group_photo' => $post['product_group_photo'],
+            'product_group_image_detail' => $post['product_group_image_detail']
         ];
-        $update = ProductGroup::update($data);
-        return MyHelper::checkUpdate($create);
+        $update = $pg->update($data);
+        if($update){
+            if($pg_old['product_group_photo']??false){
+                MyHelper::deletePhoto($pg_old['product_group_photo']);
+            }
+            if($pg_old['product_group_image_detail']??false){
+                MyHelper::deletePhoto($pg_old['product_group_image_detail']);
+            }
+        }
+        return MyHelper::checkUpdate($update);
     }
 
     /**
@@ -113,8 +179,20 @@ class ApiProductGroupController extends Controller
      */
     public function destroy(Request $request)
     {
-        $delete = ProductGroup::delete($request->json('id_product_group'));
-        return MyHelper::checkDelete($create);
+        $pg = ProductGroup::find($request->json('id_product_group'));
+        if(!$pg){
+            return MyHelper::checkDelete(false);
+        }
+        $delete = $pg->delete();
+        if($delete){
+            if($pg['product_group_photo']){
+                MyHelper::deletePhoto($pg['product_group_photo']);
+            }
+            if($pg['product_group_image_detail']){
+                MyHelper::deletePhoto($pg['product_group_image_detail']);
+            }
+        }
+        return MyHelper::checkDelete($delete);
     }
 
     /**
@@ -146,6 +224,7 @@ class ApiProductGroupController extends Controller
                     })
                     ->where('product_prices.product_status','=','Active')
                     ->whereNotNull('product_prices.product_price')
+                    ->whereNotNull('product_groups.id_product_category')
                     // order by position
                     ->orderBy('products.position')
                     // group by product_groups
@@ -155,30 +234,19 @@ class ApiProductGroupController extends Controller
         if(!$data){
             return MyHelper::checkGet($data);
         }
-        $categorized = [];
-        $uncategorized = [];
+        $result = [];
         foreach ($data as $product) {
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],$request->json('request_number'));
-            if(!$product['id_product_category']){
-                unset($product['id_product_category']);
-                $uncategorized[] = $product;
-                continue;
-            }
             $id_product_category = $product['id_product_category'];
             if(!isset($categorized[$id_product_category]['product_category_name'])){
                 $category = ProductCategory::select('product_category_name')->find($id_product_category)->toArray();
                 unset($category['url_product_category_photo']);
-                $categorized[$id_product_category] = $category;
+                $result[$id_product_category] = $category;
             }
             unset($product['id_product_category']);
-            $categorized[$id_product_category]['products'][] = $product;
+            $result[$id_product_category]['products'][] = $product;
         }
-        $result = [
-            'categorized' => array_values($categorized),
-            'uncategorized_name' => Setting::select('value_text')->where('key','uncategorized_name')->pluck('value_text')->first()?:'Product',
-            'uncategorized' => $uncategorized
-        ];
-        return MyHelper::checkGet($result);
+        return MyHelper::checkGet(array_values($result));
     }
     public function product(Request $request) {
         $post = $request->json()->all();

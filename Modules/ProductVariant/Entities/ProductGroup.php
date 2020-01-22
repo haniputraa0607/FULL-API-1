@@ -14,6 +14,7 @@ class ProductGroup extends Model
         'product_group_name',
         'product_group_description',
         'product_group_photo',
+        'product_group_image_detail'
     ];
 
     public function products()
