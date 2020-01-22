@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::group(['middleware'=>['log_activities','auth:api-be'],'prefix'=>'product-variant'],function(){
+Route::group(['middleware'=>['log_activities','auth:api', 'scopes:be'],'prefix'=>'product-variant'],function(){
 	Route::group(['prefix'=>'group'],function(){
 		Route::any('/',['middleware' => 'feature_control:1', 'uses' => 'ApiProductGroupController@index']);
 		Route::post('detail',['middleware' => 'feature_control:1', 'uses' => 'ApiProductGroupController@show']);
@@ -30,7 +30,7 @@ Route::group(['middleware'=>['log_activities','auth:api-be'],'prefix'=>'product-
 	Route::post('assign',['middleware' => 'feature_control:1', 'uses' => 'ApiProductVariantController@assign']);
 });
 
-Route::group(['middleware'=>['log_activities','auth:api'],'prefix'=>'product-variant'],function(){
+Route::group(['middleware'=>['log_activities','auth:api', 'scopes:apps'],'prefix'=>'product-variant'],function(){
 	Route::group(['prefix'=>'group'],function(){
 		Route::post('tree',['uses' => 'ApiProductGroupController@tree']);
 		Route::post('product',['uses' => 'ApiProductGroupController@product']);

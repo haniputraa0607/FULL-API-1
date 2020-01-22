@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scopes:*'], 'prefix' => 'subscription'], function () {
+Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scopes:apps'], 'prefix' => 'subscription'], function () {
 
     /* MASTER SUBSCRIPTION */
     Route::any('list', 'ApiSubscription@listSubscription');
