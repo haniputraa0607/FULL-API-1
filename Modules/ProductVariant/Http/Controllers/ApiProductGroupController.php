@@ -206,10 +206,19 @@ class ApiProductGroupController extends Controller
         $update = Product::whereIn('id_product',$products)->update(['id_product_group'=>$id_product_group]);
         return MyHelper::checkUpdate($update);
     }
+    protected function checkAvailable($availables) {
+        $avarr = explode(',', $availables);
+        foreach ($avarr as $avail) {
+            if($avail == 'Available'){
+                return 'Available';
+            }
+        }
+        return 'Sold Out';
+    }
     // list product group yang ada di suatu outlet dengan nama, gambar, harga, order berdasarkan kategori
     public function tree(Request $request) {
         $post = $request->json()->all();
-        $data = ProductGroup::select(\DB::raw('product_groups.id_product_group,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,GROUP_CONCAT(product_code) as product_codes,product_groups.id_product_category'))
+        $data = ProductGroup::select(\DB::raw('product_groups.id_product_group,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,product_groups.id_product_category,GROUP_CONCAT(product_stock_status) as product_stock_status'))
                     ->join('products','products.id_product_group','=','product_groups.id_product_group')
                     // join product_price (product_outlet pivot and product price data)
                     ->join('product_prices','product_prices.id_product','=','products.id_product')
@@ -236,7 +245,7 @@ class ApiProductGroupController extends Controller
         }
         $result = [];
         foreach ($data as $product) {
-            $product['product_group_photo'] = env('S3_URL_API').($product['product_group_photo']?:'img/product/item/default.png');
+            $product['product_stock_status'] = $this->checkAvailable($product['product_stock_status']);
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],$request->json('request_number'));
             $id_product_category = $product['id_product_category'];
             if(!isset($result[$id_product_category]['product_category_name'])){
@@ -245,6 +254,7 @@ class ApiProductGroupController extends Controller
                 $result[$id_product_category] = $category;
             }
             unset($product['id_product_category']);
+            unset($product['products']);
             $result[$id_product_category]['products'][] = $product;
         }
         return MyHelper::checkGet(array_values($result));
@@ -268,16 +278,25 @@ class ApiProductGroupController extends Controller
                     ->whereNotNull('product_prices.product_price');
         $query2 = clone $query;
         // get all product on this group
-        $id_products = $query
-                    ->select('products.id_product')
-                    // group by product_groups
-                    ->pluck('id_product')
-                    ->toArray();
+        $products = $query
+            ->join('product_product_variants','products.id_product','=','product_product_variants.id_product')
+            ->join('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
+            ->join('product_variants as parents','product_variants.parent','=','parents.id_product_variant')
+            ->select(\DB::raw('products.id_product,product_prices.product_stock_status,GROUP_CONCAT(product_variants.product_variant_code order by parents.product_variant_position) as product_variant_code'))->groupBy('products.id_product')->get('id_product')->toArray();
+        $id_products = array_column($products, 'id_product');
+        $variant_stock = [];
+        foreach ($products as $product) {
+            $varcode = explode(',',$product['product_variant_code']);
+            $variant_stock[$varcode[0]][] = [
+                'product_variant_code' => $varcode[1],
+                'product_stock_status' => $product['product_stock_status']
+            ];
+        }
         // product exists?
         if(!$id_products){
             return MyHelper::checkGet($id_products);
         }
-        // get product price and default variant
+        // get product lowest price and default variant
         $default = $query2
             ->select(\DB::raw('product_price,GROUP_CONCAT(CONCAT_WS(",",product_variants.parent,product_variants.id_product_variant) separator ";") as defaults'))
             ->leftJoin('product_product_variants','product_product_variants.id_product','=','products.id_product')
@@ -313,6 +332,7 @@ class ApiProductGroupController extends Controller
                 }
             }
         }
+        $data['variant_stock'] = $variant_stock;
         $data['variants'] = [];
         foreach ($variants as $variant) {
             if(!isset($data['variants'][$variant['parent_id']]['type_name'])){
@@ -376,8 +396,8 @@ class ApiProductGroupController extends Controller
     }
     public function search(Request $request) {
         $post = $request->json()->all();
-        $data = Product::select(\DB::raw('product_groups.id_product_group,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,product_groups.id_product_category'))
-                    ->join('product_groups','products.id_product_group','=','product_groups.id_product_group')
+        $data = ProductGroup::select(\DB::raw('product_groups.id_product_group,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,product_groups.id_product_category'))
+                    ->join('products','products.id_product_group','=','product_groups.id_product_group')
                     // join product_price (product_outlet pivot and product price data)
                     ->join('product_prices','product_prices.id_product','=','products.id_product')
                     ->where('product_prices.id_outlet','=',$post['id_outlet']) // filter outlet
@@ -405,8 +425,9 @@ class ApiProductGroupController extends Controller
         }
         $result = [];
         foreach ($data as $product) {
-            $product['product_group_photo'] = env('S3_URL_API').($product['product_group_photo']?:'img/product/item/default.png');
+            $product['product_group_photo'] = ($product['product_group_photo']?:'img/product/item/default.png');
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],$request->json('request_number'));
+            unset($product['products']);
             $result[] = $product;
         }
         return MyHelper::checkGet(array_values($result));
