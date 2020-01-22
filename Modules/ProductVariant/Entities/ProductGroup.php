@@ -26,7 +26,14 @@ class ProductGroup extends Model
         if($value){
             return env('S3_URL_API').$value;
         }
-        return env('S3_URL_API').'img/product/item/default.png';
+        $this->load(['products'=>function($query){
+            $query->select('id_product','id_product_group')->whereHas('photos')->with('photos');
+        }]);
+        $prd = $this->products->toArray();
+        if(!$prd){
+            return env('S3_URL_API').'img/product/item/default.png';
+        }
+        return ($prd[0]['photos'][0]['url_product_photo']??env('S3_URL_API').'img/product/item/default.png');
     }
     public function getProductGroupImageDetailAttribute($value)
     {
