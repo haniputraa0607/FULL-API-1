@@ -1394,16 +1394,16 @@ class ApiTransaction extends Controller
     }
 
     public function transactionDetail(TransactionDetail $request){
-        $id = $request->json('id_transaction');
+        $id_trx = explode(',',$request->json('transaction_receipt_number'));
+        $id = @$id_trx[1];
+        $rn = @$id_trx[0];
         $type = $request->json('type');
 
         if ($type == 'trx') {
-            $list = Transaction::where([['id_transaction', $id],
-            ['id_user',$request->user()->id]])->with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->first();
+            $list = Transaction::where([['id_transaction', $id],['transaction_receipt_number',$rn]])->with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->first()->toArray();
             if(!$list){
                 return MyHelper::checkGet([],'empty');
             }
-            $list = $list->toArray();
             $label = [];
             $label2 = [];
             $product_count=0;
@@ -1587,19 +1587,24 @@ class ApiTransaction extends Controller
     }
 
     public function transactionDetailTrx(Request $request) {
-        $trid = $request->json('id_transaction');
+        $trid = explode(',',$request->json('transaction_receipt_number'));
         $rn = $request->json('request_number');
-        $trx = Transaction::select('id_transaction','id_outlet')->where([
-            'id_transaction' => $trid,
-            'id_user' => $request->user()->id
-        ])->first();
-        if(!$trx){
+        if(count($trid)!=2){
+            return [
+                'status' => 'false',
+                'messages' => ['Invalid receipt number']
+            ];
+        }
+        $id_transaction = Transaction::select('id_transaction')->where([
+            'transaction_receipt_number' => $trid[0],
+            'id_transaction' => $trid[1]
+        ])->pluck('id_transaction')->first();
+        if(!$id_transaction){
             return [
                 'status'=>'fail',
                 'messages'=>['Transaction not found']
             ];
         }
-        $id_transaction = $trx['id_transaction'];
         $pt = TransactionProduct::select(DB::raw('
             0 as id_custom,
             transaction_products.id_product,
@@ -1609,13 +1614,12 @@ class ApiTransaction extends Controller
             transaction_product_qty as qty,
             product_prices.product_price,
             products.product_name,
-            products.product_code,
             transaction_products.transaction_product_note as note
             '))
         ->join('products','products.id_product','=','transaction_products.id_product')
         ->join('product_prices','product_prices.id_product','=','products.id_product')
         ->whereRaw('product_prices.id_outlet = transaction_products.id_outlet')
-        ->where(['id_transaction'=>$id_transaction])
+        ->where('id_transaction',$id_transaction)
         ->with(['modifiers'=>function($query){
                     $query->select('id_transaction_product','id_product_modifier','qty','text');
                 }])->first()->toArray();
