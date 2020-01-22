@@ -236,10 +236,11 @@ class ApiProductGroupController extends Controller
         }
         $result = [];
         foreach ($data as $product) {
+            $product['product_group_photo'] = env('S3_URL_API').($product['product_group_photo']?:'img/product/item/default.png');
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],$request->json('request_number'));
             $id_product_category = $product['id_product_category'];
             if(!isset($result[$id_product_category]['product_category_name'])){
-                $category = ProductCategory::select('product_category_name')->find($id_product_category)->toArray();
+                $category = ProductCategory::select('product_category_name','id_product_category')->find($id_product_category)->toArray();
                 unset($category['url_product_category_photo']);
                 $result[$id_product_category] = $category;
             }
@@ -279,22 +280,22 @@ class ApiProductGroupController extends Controller
         // get product price and default variant
         $default = $query2
             ->select(\DB::raw('product_price,GROUP_CONCAT(CONCAT_WS(",",product_variants.parent,product_variants.id_product_variant) separator ";") as defaults'))
-            ->join('product_product_variants','product_product_variants.id_product','=','products.id_product')
-            ->join('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
+            ->leftJoin('product_product_variants','product_product_variants.id_product','=','products.id_product')
+            ->leftJoin('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
             ->orderBy('product_price')
             ->groupBy('product_price')
             ->first();
         // get product group detail
-        $data = ProductGroup::select('id_product_group','product_group_name','product_group_code','product_group_description','product_group_photo')->find($post['id_product_group'])->toArray();
+        $data = ProductGroup::select('id_product_group','product_group_name','product_group_image_detail','product_group_code','product_group_description')->find($post['id_product_group'])->toArray();
         // get list product variant
         $variants = ProductProductVariant::select(
             'product_variants.id_product_variant',
             'product_variants.product_variant_name',
             'product_variants.product_variant_code',
             'product_product_variants.product_variant_price',
-            't2.product_variant_name as type_name',
+            't2.product_variant_title as type_title',
             't2.product_variant_position as type_position',
-            't2.product_variant_description as type_description',
+            't2.product_variant_subtitle as type_subtitle',
             't2.id_product_variant as parent_id')
             ->join('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
             ->join('product_variants as t2','product_variants.parent','=','t2.id_product_variant')
@@ -302,7 +303,7 @@ class ApiProductGroupController extends Controller
         // set price to response
         $data['product_price'] = MyHelper::requestNumber($default['product_price'],$request->json('request_number'));
         // arrange variant
-        if($default){
+        if($default['defaults']??false){
             $default['defaults'] = explode(';',$default['defaults']);
             $defaults = [];
             foreach ($default['defaults'] as $default) {
@@ -313,9 +314,9 @@ class ApiProductGroupController extends Controller
         $data['variants'] = [];
         foreach ($variants as $variant) {
             if(!isset($data['variants'][$variant['parent_id']]['type_name'])){
-                $data['variants'][$variant['parent_id']]['type_name'] = $variant['type_name'];
+                $data['variants'][$variant['parent_id']]['type_title'] = $variant['type_title'];
                 $data['variants'][$variant['parent_id']]['type_position'] = $variant['type_position'];
-                $data['variants'][$variant['parent_id']]['type_description'] = $variant['type_description'];
+                $data['variants'][$variant['parent_id']]['type_subtitle'] = $variant['type_subtitle'];
             }
             $child = [
                 'id_product_variant'=>$variant['id_product_variant'],
