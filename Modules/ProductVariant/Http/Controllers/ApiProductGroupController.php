@@ -209,8 +209,8 @@ class ApiProductGroupController extends Controller
     // list product group yang ada di suatu outlet dengan nama, gambar, harga, order berdasarkan kategori
     public function tree(Request $request) {
         $post = $request->json()->all();
-        $data = Product::select(\DB::raw('product_groups.id_product_group,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,GROUP_CONCAT(product_code) as product_codes,product_groups.id_product_category'))
-                    ->join('product_groups','products.id_product_group','=','product_groups.id_product_group')
+        $data = ProductGroup::select(\DB::raw('product_groups.id_product_group,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,GROUP_CONCAT(product_code) as product_codes,product_groups.id_product_category'))
+                    ->join('products','products.id_product_group','=','product_groups.id_product_group')
                     // join product_price (product_outlet pivot and product price data)
                     ->join('product_prices','product_prices.id_product','=','products.id_product')
                     ->where('product_prices.id_outlet','=',$post['id_outlet']) // filter outlet
@@ -307,8 +307,10 @@ class ApiProductGroupController extends Controller
             $default['defaults'] = explode(';',$default['defaults']);
             $defaults = [];
             foreach ($default['defaults'] as $default) {
-                $exp = explode(',', $default);
-                $defaults[$exp[0]] = $exp[1];
+                if($default){
+                    $exp = explode(',', $default);
+                    $defaults[$exp[0]??''] = $exp[1]??'';
+                }
             }
         }
         $data['variants'] = [];
