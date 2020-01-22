@@ -51,7 +51,7 @@ class ApiWebviewController extends Controller
                 }
 
                 $dataEncode = [
-                    'id_transaction'   => $id,
+                    'transaction_receipt_number'   => $id,
                     'type' => $type,
                 ];
 
