@@ -24,7 +24,7 @@ class ApiProductGroupController extends Controller
     public function index(Request $request)
     {
         $pg = (new ProductGroup)->newQuery();
-        if($request->post('rule')){
+        if($request->json('rule')){
             $this->filterList($pg,$request->post('rule'),$request->post('operator'));
         }
         if($request->page){
@@ -224,6 +224,7 @@ class ApiProductGroupController extends Controller
                     })
                     ->where('product_prices.product_status','=','Active')
                     ->whereNotNull('product_prices.product_price')
+                    ->whereNotNull('product_groups.id_product_category')
                     // order by position
                     ->orderBy('products.position')
                     // group by product_groups
@@ -233,30 +234,19 @@ class ApiProductGroupController extends Controller
         if(!$data){
             return MyHelper::checkGet($data);
         }
-        $categorized = [];
-        $uncategorized = [];
+        $result = [];
         foreach ($data as $product) {
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],$request->json('request_number'));
-            if(!$product['id_product_category']){
-                unset($product['id_product_category']);
-                $uncategorized[] = $product;
-                continue;
-            }
             $id_product_category = $product['id_product_category'];
             if(!isset($categorized[$id_product_category]['product_category_name'])){
                 $category = ProductCategory::select('product_category_name')->find($id_product_category)->toArray();
                 unset($category['url_product_category_photo']);
-                $categorized[$id_product_category] = $category;
+                $result[$id_product_category] = $category;
             }
             unset($product['id_product_category']);
-            $categorized[$id_product_category]['products'][] = $product;
+            $result[$id_product_category]['products'][] = $product;
         }
-        $result = [
-            'categorized' => array_values($categorized),
-            'uncategorized_name' => Setting::select('value_text')->where('key','uncategorized_name')->pluck('value_text')->first()?:'Product',
-            'uncategorized' => $uncategorized
-        ];
-        return MyHelper::checkGet($result);
+        return MyHelper::checkGet(array_values($result));
     }
     public function product(Request $request) {
         $post = $request->json()->all();
