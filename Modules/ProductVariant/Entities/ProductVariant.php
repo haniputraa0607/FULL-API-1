@@ -20,4 +20,9 @@ class ProductVariant extends Model
     {
     	return $this->belongsToMany(\App\Http\Models\ProductProductVariant::class,'id_product_variant','id_product');
     }
+
+    public function parent()
+    {
+        return $this->belongsTo(ProductVariant::class,'parent','id_product_variant');
+    }
 }

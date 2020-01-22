@@ -74,6 +74,24 @@ class ApiOnlineTransaction extends Controller
 
     public function newTransaction(NewTransaction $request) {
         $post = $request->json()->all();
+        if(\App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first()){
+            foreach ($post['item'] as &$prod) {
+                $prd = Product::where(function($query) use ($prod){
+                    foreach($prod['variants'] as $variant){
+                        $query->whereHas('product_variants',function($query) use ($variant){
+                            $query->where('product_variants.id_product_variant',$variant);
+                        });
+                    }
+                })->first();
+                if(!$prd){
+                    return [
+                        'status' => 'fail',
+                        'messages' => ['Product not found']
+                    ];
+                }
+                $prod['id_product'] = $prd['id_product'];
+            }
+        }
         // return $post;
         $totalPrice = 0;
         $totalWeight = 0;
@@ -1329,6 +1347,24 @@ class ApiOnlineTransaction extends Controller
      */
     public function checkTransaction(CheckTransaction $request) {
         $post = $request->json()->all();
+        if(\App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first()){
+            foreach ($post['item'] as &$prod) {
+                $prd = Product::where(function($query) use ($prod){
+                    foreach($prod['variants'] as $variant){
+                        $query->whereHas('product_variants',function($query) use ($variant){
+                            $query->where('product_variants.id_product_variant',$variant);
+                        });
+                    }
+                })->first();
+                if(!$prd){
+                    return [
+                        'status' => 'fail',
+                        'messages' => ['Product not found']
+                    ];
+                }
+                $prod['id_product'] = $prd['id_product'];
+            }
+        }
         $grandTotal = app($this->setting_trx)->grandTotal();
         $user = $request->user();
         //Check Outlet
