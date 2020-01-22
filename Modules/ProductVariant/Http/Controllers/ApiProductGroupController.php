@@ -238,7 +238,7 @@ class ApiProductGroupController extends Controller
         foreach ($data as $product) {
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],$request->json('request_number'));
             $id_product_category = $product['id_product_category'];
-            if(!isset($categorized[$id_product_category]['product_category_name'])){
+            if(!isset($result[$id_product_category]['product_category_name'])){
                 $category = ProductCategory::select('product_category_name')->find($id_product_category)->toArray();
                 unset($category['url_product_category_photo']);
                 $result[$id_product_category] = $category;
@@ -283,7 +283,7 @@ class ApiProductGroupController extends Controller
             ->join('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
             ->orderBy('product_price')
             ->groupBy('product_price')
-            ->first()->toArray();
+            ->first();
         // get product group detail
         $data = ProductGroup::select('id_product_group','product_group_name','product_group_code','product_group_description','product_group_photo')->find($post['id_product_group'])->toArray();
         // get list product variant
@@ -302,11 +302,13 @@ class ApiProductGroupController extends Controller
         // set price to response
         $data['product_price'] = MyHelper::requestNumber($default['product_price'],$request->json('request_number'));
         // arrange variant
-        $default['defaults'] = explode(';',$default['defaults']);
-        $defaults = [];
-        foreach ($default['defaults'] as $default) {
-            $exp = explode(',', $default);
-            $defaults[$exp[0]] = $exp[1];
+        if($default){
+            $default['defaults'] = explode(';',$default['defaults']);
+            $defaults = [];
+            foreach ($default['defaults'] as $default) {
+                $exp = explode(',', $default);
+                $defaults[$exp[0]] = $exp[1];
+            }
         }
         $data['variants'] = [];
         foreach ($variants as $variant) {
