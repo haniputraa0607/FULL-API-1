@@ -677,31 +677,36 @@ class ApiHistoryController extends Controller
             $voucher = $voucher->whereBetween('claimed_at', [$date_start, $date_end]);
         }
 
-        $voucher = $voucher->where(function ($query) use ($post) {
-            if (!is_null($post['pending'])) {
-                $query->orWhere(function ($amp) use ($post) {
-                    $amp->where('paid_status', 'Pending');
-                });
-            }
+        if(is_null($post['pending']) && is_null($post['paid'])
+            && is_null($post['completed']) && is_null($post['cancel'])){
+            $voucher = $voucher->where('paid_status', 'Completed');
+        }else{
+            $voucher = $voucher->where(function ($query) use ($post) {
+                if (!is_null($post['pending'])) {
+                    $query->orWhere(function ($amp) use ($post) {
+                        $amp->where('paid_status', 'Pending');
+                    });
+                }
 
-            if (!is_null($post['paid'])) {
-                $query->orWhere(function ($amp) use ($post) {
-                    $amp->where('paid_status', 'Paid');
-                });
-            }
+                if (!is_null($post['paid'])) {
+                    $query->orWhere(function ($amp) use ($post) {
+                        $amp->where('paid_status', 'Paid');
+                    });
+                }
 
-            if (!is_null($post['completed'])) {
-                $query->orWhere(function ($amp) use ($post) {
-                    $amp->where('paid_status', 'Completed');
-                });
-            }
+                if (!is_null($post['completed'])) {
+                    $query->orWhere(function ($amp) use ($post) {
+                        $amp->where('paid_status', 'Completed');
+                    });
+                }
 
-            if (!is_null($post['cancel'])) {
-                $query->orWhere(function ($amp) use ($post) {
-                    $amp->where('paid_status', 'Cancelled');
-                });
-            }
-        });
+                if (!is_null($post['cancel'])) {
+                    $query->orWhere(function ($amp) use ($post) {
+                        $amp->where('paid_status', 'Cancelled');
+                    });
+                }
+            });
+        }
 
         $voucher = $voucher->whereNotNull('voucher_price_cash')->where('id_user', $id);
 
