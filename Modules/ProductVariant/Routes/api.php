@@ -13,28 +13,27 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::group(['middleware'=>['log_activities','auth:api-be'],'prefix'=>'product-variant'],function(){
+Route::group(['middleware'=>['log_activities','auth:api','scopes:be'],'prefix'=>'product-variant'],function(){
 	Route::group(['prefix'=>'group'],function(){
-		Route::any('/',['middleware' => 'feature_control:1', 'uses' => 'ApiProductGroupController@index']);
-		Route::post('detail',['middleware' => 'feature_control:1', 'uses' => 'ApiProductGroupController@show']);
-		Route::post('create',['middleware' => 'feature_control:1', 'uses' => 'ApiProductGroupController@store']);
-		Route::post('update',['middleware' => 'feature_control:1', 'uses' => 'ApiProductGroupController@update']);
-		Route::post('delete',['middleware' => 'feature_control:1', 'uses' => 'ApiProductGroupController@destroy']);
-		Route::post('assign',['middleware' => 'feature_control:1', 'uses' => 'ApiProductGroupController@assign']);
+		Route::any('/',['middleware' => 'feature_control:217', 'uses' => 'ApiProductGroupController@index']);
+		Route::post('detail',['middleware' => 'feature_control:218', 'uses' => 'ApiProductGroupController@show']);
+		Route::post('create',['middleware' => 'feature_control:219', 'uses' => 'ApiProductGroupController@store']);
+		Route::post('update',['middleware' => 'feature_control:220', 'uses' => 'ApiProductGroupController@update']);
+		Route::post('delete',['middleware' => 'feature_control:221', 'uses' => 'ApiProductGroupController@destroy']);
+		Route::post('assign',['middleware' => 'feature_control:220', 'uses' => 'ApiProductGroupController@assign']);
 	});
-	Route::any('/',['middleware' => 'feature_control:1', 'uses' => 'ApiProductVariantController@index']);
-	Route::post('detail',['middleware' => 'feature_control:1', 'uses' => 'ApiProductVariantController@show']);
-	Route::post('create',['middleware' => 'feature_control:1', 'uses' => 'ApiProductVariantController@store']);
-	Route::post('update',['middleware' => 'feature_control:1', 'uses' => 'ApiProductVariantController@store']);
-	Route::post('delete',['middleware' => 'feature_control:1', 'uses' => 'ApiProductVariantController@store']);
-	Route::post('assign',['middleware' => 'feature_control:1', 'uses' => 'ApiProductVariantController@assign']);
+	Route::any('/',['middleware' => 'feature_control:212', 'uses' => 'ApiProductVariantController@index']);
+	Route::post('detail',['middleware' => 'feature_control:213', 'uses' => 'ApiProductVariantController@show']);
+	Route::post('create',['middleware' => 'feature_control:214', 'uses' => 'ApiProductVariantController@store']);
+	Route::post('update',['middleware' => 'feature_control:215', 'uses' => 'ApiProductVariantController@store']);
+	Route::post('delete',['middleware' => 'feature_control:216', 'uses' => 'ApiProductVariantController@store']);
+	Route::post('assign',['middleware' => 'feature_control:215', 'uses' => 'ApiProductVariantController@assign']);
 });
 
-Route::group(['middleware'=>['log_activities','auth:api'],'prefix'=>'product-variant'],function(){
+Route::group(['middleware'=>['log_activities','auth:api','scopes:apps'],'prefix'=>'product-variant'],function(){
 	Route::group(['prefix'=>'group'],function(){
 		Route::post('tree',['uses' => 'ApiProductGroupController@tree']);
 		Route::post('product',['uses' => 'ApiProductGroupController@product']);
 		Route::post('search',['uses' => 'ApiProductGroupController@search']);
 	});
-	Route::post('product',['uses' => 'ApiProductVariantController@product']);
 });
