@@ -75,7 +75,8 @@ class ApiOnlineTransaction extends Controller
 
     public function newTransaction(NewTransaction $request) {
         $post = $request->json()->all();
-        if(\App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first()){
+        $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
+        if($use_product_variant){
             foreach ($post['item'] as &$prod) {
                 $prd = Product::where(function($query) use ($prod){
                     foreach($prod['variants'] as $variant){
