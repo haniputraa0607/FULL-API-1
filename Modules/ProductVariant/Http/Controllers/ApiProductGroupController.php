@@ -284,11 +284,12 @@ class ApiProductGroupController extends Controller
             ->leftJoin('product_variants as parents','product_variants.parent','=','parents.id_product_variant')
             ->select(\DB::raw('products.id_product,product_prices.product_stock_status,GROUP_CONCAT(product_variants.product_variant_code order by parents.product_variant_position) as product_variant_code'))->groupBy('products.id_product')->get('id_product')->toArray();
         $id_products = array_column($products, 'id_product');
+        //get variant stock
         $variant_stock = [];
         foreach ($products as $product) {
             if($product['product_variant_code']){
                 $varcode = explode(',',$product['product_variant_code']);
-                $variant_stock[$varcode[0]][] = [
+                $variant_stock[$varcode[0]][$varcode[1]] = [
                     'product_variant_code' => $varcode[1],
                     'product_stock_status' => $product['product_stock_status']
                 ];
@@ -323,7 +324,7 @@ class ApiProductGroupController extends Controller
             ->whereIn('product_product_variants.id_product',$id_products)->orderBy('product_variants.product_variant_position')->groupBy('product_variant_code')->get()->toArray();
         // set price to response
         $data['product_price'] = MyHelper::requestNumber($default['product_price'],$request->json('request_number'));
-        // arrange variant
+        // arrange default variant
         if($default['defaults']??false){
             $default['defaults'] = explode(';',$default['defaults']);
             $defaults = [];
@@ -334,13 +335,12 @@ class ApiProductGroupController extends Controller
                 }
             }
         }
-        $data['variant_stock'] = $variant_stock;
-        $data['variants'] = [];
-        foreach ($variants as $variant) {
-            if(!isset($data['variants'][$variant['parent_id']]['type_name'])){
-                $data['variants'][$variant['parent_id']]['type_title'] = $variant['type_title'];
-                $data['variants'][$variant['parent_id']]['type_position'] = $variant['type_position'];
-                $data['variants'][$variant['parent_id']]['type_subtitle'] = $variant['type_subtitle'];
+        $arranged_variant = [];
+        foreach ($variants as $key => $variant) {
+            if(!isset($arranged_variant[$variant['parent_id']]['type_name'])){
+                $arranged_variant[$variant['parent_id']]['type_title'] = $variant['type_title'];
+                $arranged_variant[$variant['parent_id']]['type_position'] = $variant['type_position'];
+                $arranged_variant[$variant['parent_id']]['type_subtitle'] = $variant['type_subtitle'];
             }
             $child = [
                 'id_product_variant'=>$variant['id_product_variant'],
@@ -349,13 +349,27 @@ class ApiProductGroupController extends Controller
                 'product_variant_price'=>MyHelper::requestNumber($variant['product_variant_price'],$request->json('request_number'))
             ];
             $child['default'] = ($defaults[$variant['parent_id']]??false) == $child['id_product_variant']?1:0;
-            $data['variants'][$variant['parent_id']]['childs'][] = $child;
+            $arranged_variant[$variant['parent_id']]['childs'][$variant['product_variant_code']] = $child;
         }
-        $data['variants'] = array_values($data['variants']);
+        $arranged_variant = array_values($arranged_variant);
         // sorting by type position
-        usort($data['variants'], function($a,$b){
+        usort($arranged_variant, function($a,$b){
             return $a['type_position']<=>$b['type_position'];
         });
+        $data['variants'] = $arranged_variant[0];
+        unset($data['variants']['childs']);
+        foreach ($variant_stock as $key => $vstock) {
+            $stock = $arranged_variant[0]['childs'][$key];
+            $child = $arranged_variant[1];
+            unset($child['childs']);
+            foreach ($arranged_variant[1]['childs'] as $vrn) {
+                if($variant_stock[$key][$vrn['product_variant_code']]??false){
+                    $child['childs'][] = array_merge($vrn,$variant_stock[$key][$vrn['product_variant_code']]);
+                }
+            }
+            $stock['childs'] = $child;
+            $data['variants']['childs'][]=$stock;
+        }
         // get available modifiers
         $posta = [
             'id_product' => $id_products,
