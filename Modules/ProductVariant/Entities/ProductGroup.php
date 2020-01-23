@@ -42,4 +42,7 @@ class ProductGroup extends Model
         }
         return env('S3_URL_API').'img/product/item/default.png';
     }
+    public function getVariantsAttribute($value) {
+        return explode(',',$value);
+    }
 }

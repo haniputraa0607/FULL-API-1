@@ -13,6 +13,7 @@ use Modules\Favorite\Http\Requests\CreateRequest;
 use App\Http\Models\Setting;
 use App\Http\Models\Outlet;
 use App\Http\Models\ProductModifierPrice;
+use App\Http\Models\Product;
 
 use App\Lib\MyHelper;
 
@@ -47,11 +48,12 @@ class ApiFavoriteController extends Controller
      * @return Response
      */
     public function list(Request $request){
+        $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
         $user = $request->user();
         $id_favorite = $request->json('id_favorite');
         $latitude = $request->json('latitude');
         $longitude = $request->json('longitude');
-        $nf = $request->json('number_format')?:'float';
+        $nf = $request->json('number_format',$request->json('request_number'))?:'float';
         $favorite = Favorite::where('id_user',$user->id);
         $select = ['id_favorite','id_outlet','favorites.id_product','id_brand','id_user','product_qty','notes'];
         $with = [
@@ -80,7 +82,7 @@ class ApiFavoriteController extends Controller
                         $modifier['product_modifier_price'] = MyHelper::requestNumber($price,$nf);
                         $total_price+=$price*$modifier['qty'];
                     }
-                    $val['product_price_total'] = $total_price;
+                    $val['product_price_total'] = MyHelper::requestNumber($total_price,$nf);
                     return $key;
                 },function($key,&$val) use ($latitude,$longitude){
                     $outlet = Outlet::select('id_outlet','outlet_code','outlet_name','outlet_address','outlet_latitude','outlet_longitude')->with('today')->find($key)->toArray();
@@ -137,16 +139,27 @@ class ApiFavoriteController extends Controller
      * @return Response
      */
     public function store(CreateRequest $request){
+        $post = $request->json()->all();
+        $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
+        if($use_product_variant){
+            $post['id_product'] = Product::where('id_product_group',$post['id_product_group'])->where(function($query) use ($post){
+                    foreach($post['variants'] as $variant){
+                        $query->whereHas('product_variants',function($query) use ($variant){
+                            $query->where('product_variants.id_product_variant',$variant);
+                        });
+                    }
+                })->pluck('id_product')->first();
+        }
         $id_user = $request->user()->id;
-        $modifiers = $request->json('modifiers');
+        $modifiers = $post['modifiers'];
         // check is already exist
         $data = Favorite::where([
-            ['id_outlet',$request->json('id_outlet')],
-            ['id_product',$request->json('id_product')],
-            ['id_brand',$request->json('id_brand')],
+            ['id_outlet',$post['id_outlet']],
+            ['id_product',$post['id_product']],
+            ['id_brand',$post['id_brand']],
             ['id_user',$id_user],
-            ['notes',$request->json('notes')??''],
-            ['product_qty',$request->json('product_qty')]
+            ['notes',$post['notes']??''],
+            ['product_qty',$post['product_qty']]
         ])->where(function($query) use ($modifiers){
             foreach ($modifiers as $modifier) {
                 if(is_array($modifier)){
@@ -170,12 +183,12 @@ class ApiFavoriteController extends Controller
             \DB::beginTransaction();
             // create favorite
             $insert_data = [
-                'id_outlet' => $request->json('id_outlet'),
-                'id_brand' => $request->json('id_brand'),
-                'id_product' => $request->json('id_product'),
-                'product_qty' => $request->json('product_qty'),
+                'id_outlet' => $post['id_outlet'],
+                'id_brand' => $post['id_brand'],
+                'id_product' => $post['id_product'],
+                'product_qty' => $post['product_qty'],
                 'id_user' => $id_user,
-                'notes' => $request->json('notes')?:''];
+                'notes' => $post['notes']?:''];
 
             $data = Favorite::create($insert_data);
             if($data){
