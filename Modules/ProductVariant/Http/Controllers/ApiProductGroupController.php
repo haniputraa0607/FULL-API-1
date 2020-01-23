@@ -362,16 +362,18 @@ class ApiProductGroupController extends Controller
         $data['variants'] = $arranged_variant[0];
         unset($data['variants']['childs']);
         foreach ($variant_stock as $key => $vstock) {
-            $stock = $arranged_variant[0]['childs'][$key];
-            $child = $arranged_variant[1];
-            unset($child['childs']);
-            foreach ($arranged_variant[1]['childs'] as $vrn) {
-                if($variant_stock[$key][$vrn['product_variant_code']]??false){
-                    $child['childs'][] = array_merge($vrn,$variant_stock[$key][$vrn['product_variant_code']]);
+            if($arranged_variant[0]['childs'][$key]??false){
+                $stock = $arranged_variant[0]['childs'][$key];
+                $child = $arranged_variant[1];
+                unset($child['childs']);
+                foreach ($arranged_variant[1]['childs'] as $vrn) {
+                    if($variant_stock[$key][$vrn['product_variant_code']]??false){
+                        $child['childs'][] = array_merge($vrn,$variant_stock[$key][$vrn['product_variant_code']]);
+                    }
                 }
+                $stock['childs'] = $child;
+                $data['variants']['childs'][]=$stock;
             }
-            $stock['childs'] = $child;
-            $data['variants']['childs'][]=$stock;
         }
         // get available modifiers
         $posta = [
