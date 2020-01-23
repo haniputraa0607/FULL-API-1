@@ -1699,6 +1699,86 @@ class FeaturesTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
                 ),
+            211 =>
+                array(
+                    'id_feature' => 212,
+                    'feature_type' => 'List',
+                    'feature_module' => 'Product Variant',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            212 =>
+                array(
+                    'id_feature' => 213,
+                    'feature_type' => 'List',
+                    'feature_module' => 'Product Variant',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            213 =>
+                array(
+                    'id_feature' => 214,
+                    'feature_type' => 'Create',
+                    'feature_module' => 'Product Variant',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            214 =>
+                array(
+                    'id_feature' => 215,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Product Variant',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            215 =>
+                array(
+                    'id_feature' => 216,
+                    'feature_type' => 'Delete',
+                    'feature_module' => 'Product Variant',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            216 =>
+                array(
+                    'id_feature' => 217,
+                    'feature_type' => 'List',
+                    'feature_module' => 'Product Group',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            217 =>
+                array(
+                    'id_feature' => 218,
+                    'feature_type' => 'Detail',
+                    'feature_module' => 'Product Variant',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            218 =>
+                array(
+                    'id_feature' => 219,
+                    'feature_type' => 'Create',
+                    'feature_module' => 'Product Group',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            219 =>
+                array(
+                    'id_feature' => 220,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Product Group',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            220 =>
+                array(
+                    'id_feature' => 221,
+                    'feature_type' => 'Delete',
+                    'feature_module' => 'Product Group',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
         ));
     }
 }
