@@ -33,6 +33,7 @@ use App\Http\Models\Configs;
 use App\Http\Models\Holiday;
 use App\Http\Models\OutletToken;
 use App\Http\Models\UserLocationDetail;
+use Modules\ProductVariant\Entities\ProductVariant;
 
 use Modules\Balance\Http\Controllers\NewTopupController;
 
@@ -1347,7 +1348,8 @@ class ApiOnlineTransaction extends Controller
      */
     public function checkTransaction(CheckTransaction $request) {
         $post = $request->json()->all();
-        if(\App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first()){
+        $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
+        if($use_product_variant){
             foreach ($post['item'] as &$prod) {
                 $prd = Product::where(function($query) use ($prod){
                     foreach($prod['variants'] as $variant){
@@ -1495,6 +1497,7 @@ class ApiOnlineTransaction extends Controller
             // get detail product
             $product = Product::select([
                 'products.id_product',
+                'products.id_product_group',
                 'products.product_code','products.product_name','products.product_description',
                 'product_prices.product_price','product_prices.product_stock_status',
                 'brand_product.id_product_category','brand_product.id_brand'
@@ -1523,14 +1526,27 @@ class ApiOnlineTransaction extends Controller
                 }
             ])
             ->groupBy('products.id_product')
-            ->orderBy('products.position')
-            ->find($item['id_product']);
+            ->orderBy('products.position');
+
+            if($use_product_variant){
+                $product->join('product_product_variants','product_product_variants.id_product','=','products.id_product');
+                $product->addSelect(DB::raw('GROUP_CONCAT(product_product_variants.id_product_variant) as variants'));
+            }
+
+            $product = $product->find($item['id_product']);
             if(!$product){
                 $missing_product++;
                 continue;
             }
             $product->append('photo');
             $product = $product->toArray();
+            if($use_product_variant){
+                $variants = explode(',', $product['variants']);
+                $product['variants'] = [];
+                foreach ($variants as $variant) {
+                    $product['variants'][] = ProductVariant::select('id_product_variant','product_variant_code','product_variant_name')->find($variant);
+                }
+            }
             if($product['product_stock_status']!='Available'){
                 $error_msg[] = MyHelper::simpleReplace(
                     '%product_name% is out of stock',
