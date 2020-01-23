@@ -8,6 +8,7 @@ use App\Http\Models\ProductModifier;
 use App\Http\Models\ProductPrice;
 use App\Http\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Modules\ProductVariant\Entities\ProductGroup;
 
 class Favorite extends Model
 {
@@ -44,9 +45,21 @@ class Favorite extends Model
 	}
 
 	public function getProductAttribute(){
+		$use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
 		$id_outlet = $this->id_outlet;
 		$id_product = $this->id_product;
 		$product_qty = $this->product_qty;
+		if($use_product_variant){
+			$product_group = ProductGroup::select(\DB::raw('product_groups.id_product_group,product_group_name,product_group_code,product_group_description,product_group_photo,GROUP_CONCAT(product_variants.id_product_variant) as variants,product_prices.product_price as price'))
+				->join('products','products.id_product_group','=','product_groups.id_product_group')
+				->join('product_prices','products.id_product','=','product_prices.id_product')
+				->where('product_prices.id_outlet',$id_outlet)
+				->join('product_product_variants','product_product_variants.id_product','=','products.id_product')
+				->join('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
+				->groupBy('products.id_product')->first()->toArray();
+			unset($product_group['products']);
+			return $product_group;
+		}
 		$product = Product::select('id_product','product_name','product_code','product_description')->where([
 			'id_product'=>$id_product
 		])->with([
