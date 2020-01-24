@@ -12,7 +12,7 @@ Route::group(['prefix' => 'api/v1/pos/', 'namespace' => 'Modules\POS\Http\Contro
         Route::post('outlet/sync', 'ApiPOS@syncOutlet');
         Route::any('menu', 'ApiPOS@syncMenuReturn');
         Route::any('outlet/menu', 'ApiPOS@syncOutletMenu');
-        Route::post('menu/sync', 'ApiPOS@syncMenu');
+        Route::post('menu/sync', 'ApiPOS@syncProduct');
         Route::any('transaction/refund', 'ApiPOS@transactionRefund');
         Route::any('transaction/detail', 'ApiPOS@transactionDetail');
     });
