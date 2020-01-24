@@ -1498,7 +1498,6 @@ class ApiOnlineTransaction extends Controller
             // get detail product
             $product = Product::select([
                 'products.id_product',
-                'products.id_product_group',
                 'products.product_code','products.product_name','products.product_description',
                 'product_prices.product_price','product_prices.product_stock_status',
                 'brand_product.id_product_category','brand_product.id_brand'
@@ -1530,8 +1529,9 @@ class ApiOnlineTransaction extends Controller
             ->orderBy('products.position');
 
             if($use_product_variant){
+                $product->join('product_groups','product_groups.id_product_group','=','products.id_product_group');
                 $product->join('product_product_variants','product_product_variants.id_product','=','products.id_product');
-                $product->addSelect(DB::raw('GROUP_CONCAT(product_product_variants.id_product_variant) as variants'));
+                $product->addSelect(DB::raw('products.id_product_group,product_group_code,GROUP_CONCAT(product_product_variants.id_product_variant) as variants'));
             }
 
             $product = $product->find($item['id_product']);
