@@ -49,6 +49,7 @@ class Favorite extends Model
 		$id_outlet = $this->id_outlet;
 		$id_product = $this->id_product;
 		$product_qty = $this->product_qty;
+
 		if($use_product_variant){
 			$product_group = ProductGroup::select(\DB::raw('product_groups.id_product_group,product_group_name,product_group_code,product_group_description,product_group_photo,GROUP_CONCAT(product_variants.id_product_variant) as variants,product_prices.product_price as price'))
 				->join('products','products.id_product_group','=','product_groups.id_product_group')
@@ -60,6 +61,7 @@ class Favorite extends Model
 			unset($product_group['products']);
 			return $product_group;
 		}
+
 		$product = Product::select('id_product','product_name','product_code','product_description')->where([
 			'id_product'=>$id_product
 		])->with([
