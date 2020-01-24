@@ -24,6 +24,7 @@ class ApiProductVariantController extends Controller
         if($request->json('rule')){
             $this->filterList($pg,$request->post('rule'),$request->post('operator'));
         }
+        $pg->orderBy('product_variant_position');
         if($request->page){
             $pg = $pg->paginate(10);
         }else{
@@ -140,5 +141,48 @@ class ApiProductVariantController extends Controller
         }
         \DB::commit();
         return MyHelper::checkCreate($create);
+    }
+    public function reorder(Request $request) {
+        // [
+        //   "parent" => [
+        //     0 => "1"
+        //     1 => "2"
+        //   ],
+        //   "child" => [
+        //     [
+        //       0 => "3"
+        //       1 => "4"
+        //     ],
+        //     [
+        //       0 => "5"
+        //       1 => "6"
+        //       2 => "7"
+        //       3 => "8"
+        //       4 => "9"
+        //     ]
+        //   ]
+        // ]
+        $parent = $request->json('parent',[]);
+        $child = $request->json('child',[]);
+        $inserts = [];
+        \DB::beginTransaction();
+        foreach ($parent as $key => $value) {
+            $update = ProductVariant::where('id_product_variant' , $value)->update(['product_variant_position' => ($key+1)]);
+            if(!$update){
+                \DB::rollback();
+                return MyHelper::checkUpdate($update);
+            }
+        }
+        foreach ($child as $child2) {
+            foreach ($child2 as $key => $value) {
+                $update = ProductVariant::where('id_product_variant' , $value)->update(['product_variant_position' => ($key+1)]);
+                if(!$update){
+                    \DB::rollback();
+                    return MyHelper::checkUpdate($update);
+                }
+            }
+        }        
+        \DB::commit();
+        return MyHelper::checkUpdate($update);
     }
 }
