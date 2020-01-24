@@ -28,6 +28,7 @@ Route::group(['middleware'=>['log_activities','auth:api', 'scopes:be'],'prefix'=
 	Route::post('update',['middleware' => 'feature_control:215', 'uses' => 'ApiProductVariantController@store']);
 	Route::post('delete',['middleware' => 'feature_control:216', 'uses' => 'ApiProductVariantController@store']);
 	Route::post('assign',['middleware' => 'feature_control:215', 'uses' => 'ApiProductVariantController@assign']);
+	Route::post('reorder',['middleware' => 'feature_control:215', 'uses' => 'ApiProductVariantController@reorder']);
 });
 
 Route::group(['middleware'=>['log_activities','auth:api', 'scopes:apps'],'prefix'=>'product-variant'],function(){
