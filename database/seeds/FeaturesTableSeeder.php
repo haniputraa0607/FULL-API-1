@@ -1710,7 +1710,7 @@ class FeaturesTableSeeder extends Seeder
             212 =>
                 array(
                     'id_feature' => 213,
-                    'feature_type' => 'List',
+                    'feature_type' => 'Detail',
                     'feature_module' => 'Product Variant',
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
@@ -1751,7 +1751,7 @@ class FeaturesTableSeeder extends Seeder
                 array(
                     'id_feature' => 218,
                     'feature_type' => 'Detail',
-                    'feature_module' => 'Product Variant',
+                    'feature_module' => 'Product Group',
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
                 ),

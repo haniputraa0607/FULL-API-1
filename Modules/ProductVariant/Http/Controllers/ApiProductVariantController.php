@@ -102,9 +102,10 @@ class ApiProductVariantController extends Controller
     public function update(Request $request)
     {
         $data = [
-            'product_variant_code' => $request->json('product_variant_code'),
-            'product_variant_description' => $request->json('product_variant_description'),
-            'product_variant_name' => $request->json('product_variant_name'),
+            'product_variant_code' => $request->json('product_variant_code',''),
+            'product_variant_subtitle' => $request->json('product_variant_subtitle',''),
+            'product_variant_title' => $request->json('product_variant_title',''),
+            'product_variant_name' => $request->json('product_variant_name',''),
             'parent' => $request->json('parent')
         ];
         $update = ProductVariant::update($data);
