@@ -5,7 +5,7 @@ Route::group(['middleware' => ['api', 'log_activities', 'user_agent'], 'prefix' 
     Route::get('/courier', 'ApiSetting@settingCourier');
 });
 
-Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent'], 'prefix' => 'api/setting', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
+Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scopes:apps'], 'prefix' => 'api/setting', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
 {
     Route::any('/intro/home', 'ApiTutorial@introHomeFrontend');
     Route::any('/faq', 'ApiSetting@faqList');
@@ -63,7 +63,7 @@ Route::group([ 'prefix' => 'api/setting', 'namespace' => 'Modules\Setting\Http\C
     Route::any('/text_menu_list', 'ApiSetting@textMenuList');
 });
 
-Route::group(['middleware' => ['auth:api-be', 'log_activities', 'user_agent'], 'prefix' => 'api/setting', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
+Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scopes:be'], 'prefix' => 'api/setting', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
 {
     Route::any('be/celebrate_list', 'ApiSetting@celebrateList');
     Route::any('be/jobs_list', 'ApiSetting@jobsList');
@@ -116,7 +116,7 @@ Route::group(['middleware' => ['auth:api-be', 'log_activities', 'user_agent'], '
     Route::any('/phone/update', ['middleware' => 'feature_control:211', 'uses' => 'ApiSetting@updatePhoneSetting']);
     Route::get('/phone', ['middleware' => 'feature_control:211', 'uses' => 'ApiSetting@phoneSetting']);
 
-    Route::group(['middleware' => 'auth:api', 'prefix' => 'dashboard'], function()
+    Route::group(['middleware' => ['auth:api', 'scopes:be'], 'prefix' => 'dashboard'], function()
     {
         Route::any('', 'ApiDashboardSetting@getDashboard');
         Route::get('list', 'ApiDashboardSetting@getListDashboard');
@@ -129,7 +129,7 @@ Route::group(['middleware' => ['auth:api-be', 'log_activities', 'user_agent'], '
     });
 
     // banner
-    Route::group(['middleware' => 'auth:api', 'prefix' => 'banner'], function()
+    Route::group(['middleware' => ['auth:api', 'scopes:be'], 'prefix' => 'banner'], function()
     {
         Route::get('list', ['middleware' => 'feature_control:144', 'uses' => 'ApiBanner@index']);
         Route::post('create', ['middleware' => 'feature_control:145', 'uses' => 'ApiBanner@create']);
@@ -139,7 +139,7 @@ Route::group(['middleware' => ['auth:api-be', 'log_activities', 'user_agent'], '
     });
 
     // featured_deal
-    Route::group(['middleware' => 'auth:api', 'prefix' => 'featured_deal'], function()
+    Route::group(['middleware' => ['auth:api', 'scopes:be'], 'prefix' => 'featured_deal'], function()
     {
         Route::get('list', 'ApiFeaturedDeal@index');
         Route::post('create', 'ApiFeaturedDeal@create');
@@ -150,20 +150,20 @@ Route::group(['middleware' => ['auth:api-be', 'log_activities', 'user_agent'], '
 															  
 });
 
-Route::group(['prefix' => 'api/timesetting', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
+Route::group(['middleware' => ['auth:api', 'scopes:be'], 'prefix' => 'api/timesetting', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
 {
     Route::get('/', 'ApiGreetings@listTimeSetting');
     Route::post('/', 'ApiGreetings@updateTimeSetting');
 });
 
-Route::group(['prefix' => 'api/background', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
+Route::group(['middleware' => ['auth:api', 'scopes:be'], 'prefix' => 'api/background', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
 {
     Route::any('/', 'ApiBackground@listBackground');
     Route::post('create', 'ApiBackground@createBackground');
     Route::post('delete', 'ApiBackground@deleteBackground');
 });
 
-Route::group(['prefix' => 'api/greetings', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
+Route::group(['middleware' => ['auth:api', 'scopes:be'], 'prefix' => 'api/greetings', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
 {
     Route::any('/', 'ApiGreetings@listGreetings');
     Route::post('selected', 'ApiGreetings@selectGreetings');

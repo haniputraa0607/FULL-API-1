@@ -54,6 +54,9 @@ class Product extends Model
 		'product_visibility',
 		'position'
 	];
+	public function getProductCodesAttribute($value) {
+		return explode(',', $value);
+	}
 	public function getPhotoAttribute() {
 		return env('S3_URL_API').($this->photos[0]['product_photo']??'img/product/item/default.png');
 	}
@@ -135,5 +138,8 @@ class Product extends Model
     }
     public function modifiers(){
         return $this->hasMany(ProductModifier::class, 'id_product','id_product');
+    }
+    public function product_variants(){
+        return $this->belongsToMany(\Modules\ProductVariant\Entities\ProductVariant::class, 'product_product_variants', 'id_product', 'id_product_variant');
     }
 }
