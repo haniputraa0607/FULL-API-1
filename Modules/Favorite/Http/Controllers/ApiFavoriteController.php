@@ -70,6 +70,7 @@ class ApiFavoriteController extends Controller
                 $data = Favorite::where('id_user',$user->id)->select($select)->join('products','products.id_product','=','favorites.id_product')->with($with)->get()->toArray();
                 $datax = &$data;
             }
+            return $datax;
             if(count($datax)>=1){
                 $datax = MyHelper::groupIt($datax,'id_outlet',function($key,&$val) use ($nf,$data){
                     $total_price = $val['product']['price'];
