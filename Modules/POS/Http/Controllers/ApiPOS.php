@@ -65,6 +65,9 @@ use Exception;
 
 use DB;
 use DateTime;
+use Modules\ProductVariant\Entities\ProductGroup;
+use Modules\ProductVariant\Entities\ProductProductVariant;
+use Modules\ProductVariant\Entities\ProductVariant;
 
 class ApiPOS extends Controller
 {
@@ -425,108 +428,50 @@ class ApiPOS extends Controller
         if ($api['status'] != 'success') {
             return response()->json($api);
         }
-        $getBrand = Brand::pluck('code_brand')->toArray();
-        $getBrandList = Brand::select('id_brand', 'code_brand')->get()->toArray();
         $successOutlet = [];
         $failedOutlet = [];
-        $failedBrand = [];
         foreach ($post['store'] as $key => $value) {
             DB::beginTransaction();
-            // search different brand
-            if (empty($value['brand_code'])) {
-                $brand = Brand::first();
-                $value['brand_code'] = [$brand->code_brand];
-            }
-            $diffBrand = array_diff($value['brand_code'], $getBrand);
-            if (!empty($diffBrand)) {
-                $failedBrand[] = 'fail to sync outlet ' . $value['store_name'] . ', because code brand ' . implode(', ', $diffBrand) . ' not found';
-                continue;
-            }
             $cekOutlet = Outlet::where('outlet_code', strtoupper($value['store_code']))->first();
             if ($cekOutlet) {
                 try {
-                    $cekOutlet->outlet_name = $value['store_name'];
-                    $cekOutlet->outlet_status = $value['store_status'];
-                    $cekOutlet->save();
+                    $update = Outlet::updateOrCreate(['outlet_code' => strtoupper($value['store_code'])], [
+                            'outlet_name'       => $value['store_name'],
+                            'outlet_status'     => $value['store_status'],
+                            'outlet_address'    => $value['store_address'],
+                            'outlet_phone'      => $value['store_phone'],
+                            'outlet_latitude'   => $value['store_latitude'],
+                            'outlet_longitude'  => $value['store_longitude']
+                        ]);
                 } catch (\Exception $e) {
                     LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
                     $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'];
                     continue;
                 }
-                $cekBrandOutlet = BrandOutlet::join('brands', 'brands.id_brand', 'brand_outlet.id_brand')->where('id_outlet', $cekOutlet->id_outlet)->pluck('code_brand')->toArray();
-                // delete diff brand
-                $deleteDiffBrand = array_diff($cekBrandOutlet, $value['brand_code']);
-                if (!empty($deleteDiffBrand)) {
+                foreach ($value['store_schedule'] as $valueSchedule) {
                     try {
-                        BrandOutlet::join('brands', 'brands.id_brand', 'brand_outlet.id_brand')->where('id_outlet', $cekOutlet->id_outlet)->whereIn('brand_outlet.id_brand', $deleteDiffBrand)->delete();
-                    } catch (\Exception $e) {
-                        DB::rollback();
-                        LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
-                        $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'];
-                        continue;
-                    }
-                }
-                $createDiffBrand = array_diff($value['brand_code'], $cekBrandOutlet);
-                if (!empty($createDiffBrand)) {
-                    try {
-                        $brandOutlet = [];
-                        foreach ($createDiffBrand as $valueBrand) {
-                            $getIdBrand = $getBrandList[array_search($valueBrand, $getBrand)]['id_brand'];
-                            $brandOutlet[] = [
-                                'id_outlet' => $cekOutlet->id_outlet,
-                                'id_brand' => $getIdBrand,
-                                'created_at' => date('Y-m-d H:i:s'),
-                                'updated_at' => date('Y-m-d H:i:s'),
-                            ];
-                        }
-                        BrandOutlet::insert($brandOutlet);
+                        OutletSchedule::updateOrCreate(['id_outlet' => $cekOutlet->id_outlet, 'day' => $valueSchedule['day']], $valueSchedule);
                     } catch (Exception $e) {
                         DB::rollback();
                         LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
-                        $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'];
+                        $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'] . '. Error at store schedule '.$valueSchedule['day'];
                         continue;
-                    }
-                }
-                if (!empty($value['store_schedule'])) {
-                    foreach ($value['store_schedule'] as $valueSchedule) {
-                        try {
-                            OutletSchedule::updateOrCreate(['id_outlet' => $cekOutlet->id_outlet, 'day' => $valueSchedule['day']], $valueSchedule);
-                        } catch (Exception $e) {
-                            DB::rollback();
-                            LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
-                            $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'] . '. Error at store schedule '.$valueSchedule['day'];
-                            continue;
-                        }
                     }
                 }
             } else {
                 try {
                     $save = Outlet::create([
-                        'outlet_name'   => $value['store_name'],
-                        'outlet_status' => $value['store_status'],
-                        'outlet_code'   => $value['store_code']
+                        'outlet_code'       => $value['store_code'],
+                        'outlet_name'       => $value['store_name'],
+                        'outlet_status'     => $value['store_status'],
+                        'outlet_address'    => $value['store_address'],
+                        'outlet_phone'      => $value['store_phone'],
+                        'outlet_latitude'   => $value['store_latitude'],
+                        'outlet_longitude'  => $value['store_longitude']
                     ]);
                 } catch (\Exception $e) {
                     LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
                     $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'];
-                    continue;
-                }
-                try {
-                    $brandOutlet = [];
-                    foreach ($value['brand_code'] as $valueBrand) {
-                        $getIdBrand = $getBrandList[array_search($valueBrand, $getBrand)]['id_brand'];
-                        $brandOutlet[] = [
-                            'id_outlet' => $save->id_outlet,
-                            'id_brand' => $getIdBrand,
-                            'created_at' => date('Y-m-d H:i:s'),
-                            'updated_at' => date('Y-m-d H:i:s'),
-                        ];
-                    }
-                    BrandOutlet::insert($brandOutlet);
-                } catch (Exception $e) {
-                    DB::rollback();
-                    LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
-                    $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'] . '. Error at brand code';
                     continue;
                 }
                 if (!empty($value['store_schedule'])) {
@@ -551,8 +496,7 @@ class ApiPOS extends Controller
             'status' => 'success',
             'result' => [
                 'success_outlet' => $successOutlet,
-                'failed_outlet' => $failedOutlet,
-                'failed_brand' => $failedBrand
+                'failed_outlet' => $failedOutlet
             ]
         ]);
     }
@@ -561,6 +505,255 @@ class ApiPOS extends Controller
      * @param  Request $request laravel Request object
      * @return array        status update
      */
+    public function syncProduct(Request $request) {
+        $post = $request->json()->all();
+        $api = $this->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
+
+        $countInsert    = 0;
+        $insertProduct  = [];
+        $countUpdate    = 0;
+        $updatedProduct = [];
+        $failedProduct  = [];
+
+        foreach ($post['menu'] as $keyMenu => $menu) {
+            if (!isset($menu['menu_id'])) {
+                $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because menu_id not set';
+                continue;
+            }
+            if (!isset($menu['menu_variance'])) {
+                $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because menu_variance not set';
+                continue;
+            }
+
+            DB::beginTransaction();
+            $checkGroup = ProductGroup::where('product_group_code', $menu['menu_id'])->first();
+            if ($checkGroup) {
+                try {
+                    ProductGroup::where('product_group_code', $menu['menu_id'])->update([
+                        'product_group_name'    => $menu['menu_name']
+                    ]);
+                } catch (\Exception $e) {
+                    DB::rollback();
+                    LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                    $failedProduct[] = 'fail to sync, product ' . $menu['menu_name'];
+                    continue;
+                }
+
+                foreach ($menu['menu_variance'] as $keyVariance => $variance) {
+                    $variantSize = ProductVariant::where('product_variant_name', $variance['size'])->first();
+                    if (!$variantSize) {
+                        try {
+                            $variantSize = ProductVariant::create([
+                                'product_variant_code'       => $variance['size'],
+                                'product_variant_subtitle'  => '',
+                                'product_variant_name'      => $variance['size'],
+                                'product_variant_position'  => 0,
+                                'parent'                    => 1
+                            ]);
+                        } catch (\Exception $e) {
+                            DB::rollback();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    }
+                    
+                    $variantType = ProductVariant::where('product_variant_name', $variance['type'])->first();
+                    if (!$variantType) {
+                        try {
+                            $variantType = ProductVariant::create([
+                                'product_variant_code'       => $variance['type'],
+                                'product_variant_subtitle'  => '',
+                                'product_variant_name'      => $variance['type'],
+                                'product_variant_position'  => 0,
+                                'parent'                    => 2
+                            ]);
+                        } catch (\Exception $e) {
+                            DB::rollback();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    }
+
+                    $product = Product::where('product_code', $variance['sap_matnr'])->first();
+                    if ($product) {
+                        try {
+                            Product::where('product_code', $variance['sap_matnr'])->update([
+                                'product_name_pos'  => implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]),
+                                'product_status'    => $variance['status']
+                            ]);
+                            $countUpdate        = $countUpdate + 1;
+                            $updatedProduct[]   = implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                        } catch (\Exception $e) {
+                            DB::rollback();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    } else {
+                        try {
+                            $product = Product::create([
+                                'id_product_group'  => $checkGroup->id_product_group,
+                                'product_code'      => $variance['sap_matnr'],
+                                'product_name'      => implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]),
+                                'product_name_pos'  => implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]),
+                                'product_status'    => $variance['status']
+                            ]);
+                            $countInsert        = $countInsert + 1;
+                            $insertProduct[]    = implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                        } catch (\Exception $e) {
+                            DB::rollback();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    }
+
+                    try {
+                        ProductProductVariant::updateOrCreate([
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantSize->id_product_variant
+                        ], [
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantSize->id_product_variant
+                        ]);
+                        ProductProductVariant::updateOrCreate([
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantType->id_product_variant
+                        ], [
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantType->id_product_variant
+                        ]);
+                    } catch (\Exception $e) {
+                        DB::rollback();
+                        LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                        $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                        continue;
+                    }
+                }
+            } else {
+                try {
+                    $createGroup = ProductGroup::create([
+                        'product_group_code'    => $menu['menu_id'],
+                        'product_group_name'    => $menu['menu_name']
+                    ]);
+                } catch (\Exception $e) {
+                    DB::rollback();
+                    LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                    $failedProduct[] = 'fail to sync, product ' . $menu['menu_name'];
+                    continue;
+                }
+                
+                foreach ($menu['menu_variance'] as $keyVariance => $variance) {
+                    $variantSize = ProductVariant::where('product_variant_name', $variance['size'])->first();
+                    if (!$variantSize) {
+                        try {
+                            $variantSize = ProductVariant::create([
+                                'product_variant_code'       => $variance['size'],
+                                'product_variant_subtitle'  => '',
+                                'product_variant_name'      => $variance['size'],
+                                'product_variant_position'  => 0,
+                                'parent'                    => 1
+                            ]);
+                        } catch (\Exception $e) {
+                            DB::rollback();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    }
+                    
+                    $variantType = ProductVariant::where('product_variant_name', $variance['type'])->first();
+                    if (!$variantType) {
+                        try {
+                            $variantType = ProductVariant::create([
+                                'product_variant_code'       => $variance['type'],
+                                'product_variant_subtitle'  => '',
+                                'product_variant_name'      => $variance['type'],
+                                'product_variant_position'  => 0,
+                                'parent'                    => 2
+                            ]);
+                        } catch (\Exception $e) {
+                            DB::rollback();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    }
+
+                    $product = Product::where('product_code', $variance['sap_matnr'])->first();
+                    if ($product) {
+                        try {
+                            $product = Product::where('product_code', $variance['sap_matnr'])->update([
+                                'product_name_pos'  => implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]),
+                                'product_status'    => $variance['status']
+                            ]);
+                            $countUpdate        = $countUpdate + 1;
+                            $updatedProduct[]   = implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
+                        } catch (\Exception $e) {
+                            DB::rollback();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    } else {
+                        try {
+                            $product = Product::create([
+                                'id_product_group'  => $createGroup->id_product_group,
+                                'product_code'      => $variance['sap_matnr'],
+                                'product_name'      => implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]),
+                                'product_name_pos'  => implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]),
+                                'product_status'    => $variance['status']
+                            ]);
+                            $countInsert        = $countInsert + 1;
+                            $insertProduct[]    = implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
+                        } catch (\Exception $e) {
+                            DB::rollback();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    }
+
+                    try {
+                        ProductProductVariant::updateOrCreate([
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantSize->id_product_variant
+                        ], [
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantSize->id_product_variant
+                        ]);
+                        ProductProductVariant::updateOrCreate([
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantType->id_product_variant
+                        ], [
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantType->id_product_variant
+                        ]);
+                    } catch (\Exception $e) {
+                        DB::rollback();
+                        LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                        $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                        continue;
+                    }
+                }
+            }
+            DB::commit();
+        }
+        $hasil['new_product']['total']              = $countInsert;
+        $hasil['new_product']['list_product']       = $insertProduct;
+        $hasil['updated_product']['total']          = $countUpdate;
+        $hasil['updated_product']['list_product']   = $updatedProduct;
+        $hasil['failed_product']['list_product']    = $failedProduct;
+        return [
+            'status'    => 'success',
+            'result'  => $hasil,
+        ];
+    }
     public function syncMenu(Request $request) {
         $post = $request->json()->all();
         return $this->syncMenuProcess($post,'partial');
