@@ -523,6 +523,87 @@ class SettingsTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
+            71 =>
+                array(
+                    'id_setting' => 72,
+                    'key' => 'description_product_discount',
+                    'value' => 'Anda berhak mendapatkan potongan %discount% untuk pembelian %product%. Maksimal %qty% buah untuk setiap produk',
+                    'value_text' => null,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            72 =>
+                array(
+                    'id_setting' => 73,
+                    'key' => 'description_tier_discount',
+                    'value' => 'Anda berhak mendapatkan potongan setelah melakukan pembelian %product% sebanyak %minmax%',
+                    'value_text' => null,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            73 =>
+                array(
+                    'id_setting' => 74,
+                    'key' => 'description_buyxgety_discount',
+                    'value' => 'Anda berhak mendapatkan potongan setelah melakukan pembelian %product% sebanyak %minmax%',
+                    'value_text' => null,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            74 =>
+                array(
+                    'id_setting' => 75,
+                    'key' => 'error_product_discount',
+                    'value' => null,
+                    'value_text' => 'Promo hanya akan berlaku jika anda membeli <b>%product%</b>.',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            75 =>
+                array(
+                    'id_setting' => 76,
+                    'key' => 'error_tier_discount',
+                    'value' => null,
+                    'value_text' => 'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            76 =>
+                array(
+                    'id_setting' => 77,
+                    'key' => 'error_buyxgety_discount',
+                    'value' => null,
+                    'value_text' => 'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            77 =>
+                array(
+                    'id_setting' => 78,
+                    'key' => 'promo_error_title',
+                    'value' => 'promo tidak berlaku',
+                    'value_text' => null,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            78 =>
+                array(
+                    'id_setting' => 79,
+                    'key' => 'promo_error_ok_button',
+                    'value' => 'tambah item',
+                    'value_text' => null,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            79 =>
+                array(
+                    'id_setting' => 80,
+                    'key' => 'promo_error_cancel_button',
+                    'value' => 'cancel',
+                    'value_text' => null,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
         ));
     }
 }
