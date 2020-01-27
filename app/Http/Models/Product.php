@@ -142,4 +142,16 @@ class Product extends Model
     public function product_variants(){
         return $this->belongsToMany(\Modules\ProductVariant\Entities\ProductVariant::class, 'product_product_variants', 'id_product', 'id_product_variant');
     }
+
+    public function discountActive()
+    {
+        $now = date('Y-m-d');
+        $time = date('H:i:s');
+        $day = date('l');
+
+        return $this->hasMany(ProductDiscount::class, 'id_product', 'id_product')->where('discount_days', 'like', '%'.$day.'%')->where('discount_start', '<=', $now)->where('discount_end', '>=', $now)->where('discount_time_start', '<=', $time)->where('discount_time_end', '>=', $time);
+    }
+    public function product_group(){
+        return $this->belongsTo(\Modules\ProductVariant\Entities\ProductGroup::class, 'id_product_group', 'id_product_group');
+    }
 }
