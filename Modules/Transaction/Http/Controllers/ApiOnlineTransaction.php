@@ -1377,6 +1377,7 @@ class ApiOnlineTransaction extends Controller
         //Check Outlet
         $id_outlet = $post['id_outlet'];
         $outlet = Outlet::where('id_outlet', $id_outlet)->with('today')->first();
+        $rn = $request->json('request_number');
         if (empty($outlet)) {
             DB::rollback();
             return response()->json([
@@ -1648,8 +1649,9 @@ class ApiOnlineTransaction extends Controller
                 $mod = $mod->toArray();
                 $mod['product_modifier_price'] = (float) $mod['product_modifier_price'];
                 $mod['qty'] = $qty_product_modifier;
-                $product['modifiers'][]=$mod;
                 $mod_price+=$mod['qty']*$mod['product_modifier_price'];
+                $mod['product_modifier_price'] = MyHelper::requestNumber($mod['product_modifier_price'],$rn);
+                $product['modifiers'][]=$mod;
             }
             if($missing_modifier){
                 $error_msg[] = MyHelper::simpleReplace(
@@ -1672,9 +1674,13 @@ class ApiOnlineTransaction extends Controller
             if(!isset($tree[$product['id_brand']]['name_brand'])){
                 $tree[$product['id_brand']] = Brand::select('name_brand','id_brand')->find($product['id_brand'])->toArray();
             }
-            $product['product_price_total'] = $product['qty'] * ($product['product_price']+$mod_price) - $product['promo_discount'];
+
+            $product_price_total = $product['qty'] * ($product['product_price']+$mod_price) - $product['promo_discount'];
+            $product['product_price_total'] = MyHelper::requestNumber($product_price_total,$rn);
+            $product['product_price'] = MyHelper::requestNumber($product['product_price'],$rn);
+
             $tree[$product['id_brand']]['products'][]=$product;
-            $subtotal += $product['product_price_total'];
+            $subtotal += $product_price_total;
         }
         if($missing_product){
             $error_msg[] = MyHelper::simpleReplace(
@@ -1747,25 +1753,29 @@ class ApiOnlineTransaction extends Controller
             'outlet_address' => $outlet['outlet_address']
         ];
         $result['item'] = array_values($tree);
-        $result['subtotal'] = $subtotal;
-        $result['shipping'] = $post['shipping'];
-        $result['discount'] = $post['discount'];
-        $result['service'] = $post['service'];
-        $result['tax'] = (int) $post['tax'];
-        $result['grandtotal'] = (int)$post['subtotal'] + (int)(-$post['discount']) + (int)$post['service'] + (int)$post['tax'] + (int)$post['shipping'];
-        $result['used_point'] = 0;
+        $result['subtotal'] = MyHelper::requestNumber($subtotal,$rn);
+        $result['shipping'] = MyHelper::requestNumber($post['shipping'],$rn);
+        $result['discount'] = MyHelper::requestNumber($post['discount'],$rn);
+        $result['service'] = MyHelper::requestNumber($post['service'],$rn);
+        $result['tax'] = MyHelper::requestNumber($post['tax'],$rn);
+        $grandtotal = $post['subtotal'] + (-$post['discount']) + $post['service'] + $post['tax'] + $post['shipping'];
+        $result['grandtotal'] = MyHelper::requestNumber($grandtotal,$rn);
+        $used_point = 0;
+        $result['used_point'] = MyHelper::requestNumber(0,$rn);
         $balance = app($this->balance)->balanceNow($user->id);
-        $result['points'] = (int) $balance;
+        $result['points'] = MyHelper::requestNumber($balance,$rn);
         if (isset($post['payment_type'])&&$post['payment_type'] == 'Balance') {
-            if($balance>=$result['grandtotal']){
-                $result['used_point'] = $result['grandtotal'];
-                $result['grandtotal'] = 0;
+            if($balance>=$grandtotal){
+                $used_point = $grandtotal;
             }else{
-                $result['used_point'] = $balance;
-                $result['grandtotal'] -= $balance;
+                $used_point = $balance;
+                $result['used_point'] = MyHelper::requestNumber($balance,$rn);
             }
-            $result['points'] -= $result['used_point'];
+            $result['used_point'] = MyHelper::requestNumber($used_point,$rn);
+            $result['points'] = MyHelper::requestNumber(($balance - $used_point),$rn);
         }
+
+        $result['total_payment'] = MyHelper::requestNumber(($grandtotal-$used_point),$rn);
         return MyHelper::checkGet($result)+['messages'=>$error_msg, 'promo_error'=>$promo_error];
     }
 
