@@ -23,7 +23,7 @@ class ApiProductGroupController extends Controller
      */
     public function index(Request $request)
     {
-        $pg = (new ProductGroup)->newQuery();
+        $pg = ProductGroup::with('product_category');
         if($request->json('rule')){
             $this->filterList($pg,$request->post('rule'),$request->post('operator'));
         }

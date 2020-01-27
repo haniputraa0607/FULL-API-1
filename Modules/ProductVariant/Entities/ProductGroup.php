@@ -17,10 +17,16 @@ class ProductGroup extends Model
         'product_group_image_detail'
     ];
 
+    public function product_category()
+    {
+    	return $this->belongsTo(\App\Http\Models\ProductCategory::class,'id_product_category','id_product_category');
+    }
+
     public function products()
     {
-    	return $this->hasMany(\App\Http\Models\Product::class,'id_product_group','id_product_group');
+        return $this->hasMany(\App\Http\Models\Product::class,'id_product_group','id_product_group');
     }
+
     public function getProductGroupPhotoAttribute($value)
     {
         if($value){
@@ -35,6 +41,7 @@ class ProductGroup extends Model
         }
         return ($prd[0]['photos'][0]['url_product_photo']??env('S3_URL_API').'img/product/item/default.png');
     }
+
     public function getProductGroupImageDetailAttribute($value)
     {
         if($value){
@@ -42,6 +49,7 @@ class ProductGroup extends Model
         }
         return env('S3_URL_API').'img/product/item/default.png';
     }
+
     public function getVariantsAttribute($value) {
         return explode(',',$value);
     }

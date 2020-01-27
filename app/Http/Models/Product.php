@@ -142,4 +142,7 @@ class Product extends Model
     public function product_variants(){
         return $this->belongsToMany(\Modules\ProductVariant\Entities\ProductVariant::class, 'product_product_variants', 'id_product', 'id_product_variant');
     }
+    public function product_group(){
+        return $this->belongsTo(\Modules\ProductVariant\Entities\ProductGroup::class, 'id_product_group', 'id_product_group');
+    }
 }

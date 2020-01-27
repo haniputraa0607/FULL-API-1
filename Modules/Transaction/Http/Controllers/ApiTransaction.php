@@ -1397,9 +1397,25 @@ class ApiTransaction extends Controller
         $id = $request->json('id_transaction');
         $type = $request->json('type');
 
+        $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
+
         if ($type == 'trx') {
-            $list = Transaction::where([['id_transaction', $id],
-            ['id_user',$request->user()->id]])->with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->first();
+            if($use_product_variant){
+                $list = Transaction::where([['id_transaction', $id],
+                ['id_user',$request->user()->id]])->with(
+                    'user.city.province', 
+                    'productTransaction.product.product_group', 
+                    'productTransaction.product.product_variants', 
+                    'productTransaction.product.product_group.product_category', 
+                    'productTransaction.modifiers', 
+                    'productTransaction.product.product_photos', 
+                    'productTransaction.product.product_discounts', 
+                    'transaction_payment_offlines', 
+                    'outlet.city')->first();
+            }else{
+                $list = Transaction::where([['id_transaction', $id],
+                ['id_user',$request->user()->id]])->with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->first();
+            }
             if(!$list){
                 return MyHelper::checkGet([],'empty');
             }
@@ -1407,14 +1423,16 @@ class ApiTransaction extends Controller
             $label = [];
             $label2 = [];
             $product_count=0;
-            $list['product_transaction'] = MyHelper::groupIt($list['product_transaction'],'id_brand',null,function($key,&$val) use (&$product_count){
-                $product_count += array_sum(array_column($val,'transaction_product_qty'));
-                $brand = Brand::select('name_brand')->find($key);
-                if(!$brand){
-                    return 'No Brand';
-                }
-                return $brand->name_brand;
-            });
+            if(!$use_product_variant){
+                $list['product_transaction'] = MyHelper::groupIt($list['product_transaction'],'id_brand',null,function($key,&$val) use (&$product_count){
+                    $product_count += array_sum(array_column($val,'transaction_product_qty'));
+                    $brand = Brand::select('name_brand')->find($key);
+                    if(!$brand){
+                        return 'No Brand';
+                    }
+                    return $brand->name_brand;
+                });
+            }
             $cart = $list['transaction_subtotal'] + $list['transaction_shipment'] + $list['transaction_service'] + $list['transaction_tax'] - $list['transaction_discount'];
 
             $list['transaction_carttotal'] = $cart;
