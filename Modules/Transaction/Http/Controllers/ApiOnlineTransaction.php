@@ -1708,13 +1708,12 @@ class ApiOnlineTransaction extends Controller
         if (isset($post['payment_type'])&&$post['payment_type'] == 'Balance') {
             if($balance>=$result['grandtotal']){
                 $result['used_point'] = $result['grandtotal'];
-                $result['grandtotal'] = 0;
             }else{
                 $result['used_point'] = $balance;
-                $result['grandtotal'] -= $balance;
             }
             $result['points'] -= $result['used_point'];
         }
+        $result['total_payment'] = $result['grandtotal'] - $result['used_point'];
         return MyHelper::checkGet($result)+['messages'=>$error_msg];
     }
 
