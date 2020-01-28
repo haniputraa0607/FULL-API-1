@@ -1590,7 +1590,7 @@ class ApiPromoCampaign extends Controller
         if(!$pct->validateUser($code['id_promo_campaign'], $id_user, $phone, $device_type, $device_id, $errors)){
             return [
                 'status'=>'fail',
-                'messages'=>$errore??['Promo code not valid']
+                'messages'=>$errors??['Promo code not valid']
             ];
         }
 
