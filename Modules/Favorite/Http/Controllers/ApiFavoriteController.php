@@ -149,6 +149,12 @@ class ApiFavoriteController extends Controller
                         });
                     }
                 })->pluck('id_product')->first();
+            if(!$post['id_product']){
+                return [
+                    'status'=>'fail',
+                    'message'=>'Product not found'
+                ];
+            }
         }
         $id_user = $request->user()->id;
         $modifiers = $post['modifiers'];
