@@ -7,6 +7,7 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Modules\ProductVariant\Entities\ProductVariant;
 use Modules\ProductVariant\Entities\ProductProductVariant;
+use App\Http\Models\Product;
 
 use App\Lib\MyHelper;
 
@@ -184,5 +185,23 @@ class ApiProductVariantController extends Controller
         }        
         \DB::commit();
         return MyHelper::checkUpdate($update);
+    }
+    public function tree(Request $request) {
+        $variants = ProductVariant::whereNotNull('parent')->get();
+        $result = MyHelper::groupIt($variants,'parent');
+        $newResult = [];
+        foreach ($result as $key => $value) {
+            $parent = ProductVariant::find($key);
+            $parent['childs'] = $value;
+            $newResult[] = $parent;
+        }
+        return MyHelper::checkGet($newResult);
+    }
+    public function availableProduct(Request $request) {
+        $variants = Product::select('products.id_product','products.product_code','products.product_name')->leftJoin('product_product_variants','product_product_variants.id_product','products.id_product')
+            ->whereNull('product_product_variants.id_product_variant')
+            ->groupBy('products.id_product')
+            ->get()->toArray();
+        return MyHelper::checkGet($variants);
     }
 }

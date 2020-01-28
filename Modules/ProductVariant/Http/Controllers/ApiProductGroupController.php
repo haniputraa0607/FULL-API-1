@@ -23,7 +23,10 @@ class ApiProductGroupController extends Controller
      */
     public function index(Request $request)
     {
-        $pg = ProductGroup::with('product_category')->withCount('products');
+        $pg = ProductGroup::select(\DB::raw('product_groups.*,count(id_product) as products_count'))
+            ->leftJoin('products','products.id_product_group','=','product_groups.id_product_group')
+            ->groupBy('product_groups.id_product_group')
+            ->with('product_category');
         if($request->json('rule')){
             $this->filterList($pg,$request->post('rule'),$request->post('operator'));
         }
@@ -109,7 +112,7 @@ class ApiProductGroupController extends Controller
      */
     public function show(Request $request)
     {
-        $data = ProductGroup::find($request->json('id_product_group'));
+        $data = ProductGroup::with(['products'])->find($request->json('id_product_group'));
         return MyHelper::checkGet($data);
     }
 
