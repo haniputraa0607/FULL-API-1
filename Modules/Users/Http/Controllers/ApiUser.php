@@ -158,6 +158,7 @@ class ApiUser extends Controller
             foreach ($conditions as $key => $cond) {
                 $query = User::leftJoin('cities','cities.id_city','=','users.id_city')
                     ->leftJoin('provinces','provinces.id_province','=','cities.id_province')
+                    ->leftJoin('province_customs','province_customs.id_province_custom','=','users.id_province')
                     ->orderBy($order_field, $order_method);
 
                 if($cond != null){
@@ -264,12 +265,14 @@ class ApiUser extends Controller
                         $query = $query->select('users.*',
                             'cities.*',
                             'provinces.*',
+                            'province_customs.province_name as province_custom_name',
                             DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
                         );
                     } else {
                         $query = $query->select('users.*',
                             'cities.*',
                             'provinces.*',
+                            'province_customs.province_name as province_custom_name',
                             DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
                         );
                     }
@@ -285,6 +288,7 @@ class ApiUser extends Controller
                     $query = $query->select('users.*',
                         'cities.*',
                         'provinces.*',
+                        'province_customs.province_name as province_custom_name',
                         DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
                     );
                 }
@@ -308,22 +312,26 @@ class ApiUser extends Controller
             /*============= Final query when condition not null =============*/
             $finalResult = User::leftJoin('cities','cities.id_city','=','users.id_city')
                 ->leftJoin('provinces','provinces.id_province','=','cities.id_province')
+                ->leftJoin('province_customs','province_customs.id_province_custom','=','users.id_province')
                 ->orderBy($order_field, $order_method)
                 ->select('users.*',
                     'cities.*',
                     'provinces.*',
+                    'province_customs.province_name as province_custom_name',
                     DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
                 )
                 ->whereIn('users.id', $prevResult);
         }else {
             $query = User::leftJoin('cities','cities.id_city','=','users.id_city')
                 ->leftJoin('provinces','provinces.id_province','=','cities.id_province')
+                ->leftJoin('province_customs','province_customs.id_province_custom','=','users.id_province')
                 ->orderBy($order_field, $order_method);
 
             /*============= Final query when condition is null =============*/
             $finalResult = $query->select('users.*',
                 'cities.*',
                 'provinces.*',
+                'province_customs.province_name as province_custom_name',
                 DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
             );
         }
@@ -2117,14 +2125,19 @@ class ApiUser extends Controller
 
     public function show(Request $request)
     {
+        $use_custom_province = \App\Http\Models\Configs::where('id_config',96)->pluck('is_active')->first();
         $post = $request->json()->all();
 
-        $query = User::leftJoin('cities','cities.id_city','=','users.id_city')
-            ->leftJoin('provinces','provinces.id_province','=','cities.id_province')
+        $query = User::select('*')
             ->with('history_transactions.outlet_name', 'history_balance.detail_trx', 'user_membership')
-            ->where('phone','=',$post['phone'])
-            ->get()
-            ->first();
+            ->where('phone','=',$post['phone']);
+        if($use_custom_province){
+            $query->leftJoin('province_customs','province_customs.id_province_custom','=','users.id_province');
+        }else{
+            $query->leftJoin('cities','cities.id_city','=','users.id_city')
+            ->leftJoin('provinces','provinces.id_province','=','cities.id_province');
+        }
+        $query = $query->get()->first();
 
 
         if($query){
