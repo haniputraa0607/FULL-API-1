@@ -78,10 +78,6 @@ class Controller extends BaseController
 	}
 
 	function listProvince(Request $request){
-		$use_custom_province = \App\Http\Models\Configs::where('id_config',96)->pluck('is_active')->first();
-		if($use_custom_province){
-			return $this->listProvinceCustom($request);
-		}
 		$query = (new Province)->newQuery();
 		if($id_city=$request->json('id_city')){
 			$query->whereHas('cities',function($query) use ($id_city){
