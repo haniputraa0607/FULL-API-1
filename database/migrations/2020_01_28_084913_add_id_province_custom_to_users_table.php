@@ -14,8 +14,8 @@ class AddIdProvinceCustomToUsersTable extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->unsignedInteger('id_province_custom')->nullable()->after('id_city');
-            $table->foreign('id_province_custom', 'fk_users_id_province_custom')->references('id_province_custom')->on('province_customs')->onDelete('SET NULL');
+            $table->unsignedInteger('id_province')->nullable()->after('id_city');
+            $table->foreign('id_province', 'fk_users_id_province_custom')->references('id_province_custom')->on('province_customs')->onDelete('SET NULL');
         });
     }
 
@@ -28,7 +28,7 @@ class AddIdProvinceCustomToUsersTable extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->dropForeign('fk_users_id_province_custom');
-            $table->dropColumn('id_province_custom');
+            $table->dropColumn('id_province');
         });
     }
 }
