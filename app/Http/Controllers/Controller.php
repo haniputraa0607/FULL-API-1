@@ -78,6 +78,10 @@ class Controller extends BaseController
 	}
 
 	function listProvince(Request $request){
+		$use_custom_province = \App\Http\Models\Configs::where('id_config',96)->pluck('is_active')->first();
+		if($use_custom_province){
+			return $this->listProvinceCustom($request);
+		}
 		$query = (new Province)->newQuery();
 		if($id_city=$request->json('id_city')){
 			$query->whereHas('cities',function($query) use ($id_city){
@@ -87,6 +91,10 @@ class Controller extends BaseController
 		return MyHelper::checkGet($query->get()->toArray()); 
 	}
 	
+	function listProvinceCustom(Request $request){
+		return MyHelper::checkGet(\App\Http\Models\ProvinceCustom::all()->toArray()); 
+	}
+
 	function listCourier(){
 		$query = Courier::where('status','Active')->get()->toArray();
 		return MyHelper::checkGet($query); 
