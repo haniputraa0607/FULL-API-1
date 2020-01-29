@@ -319,6 +319,7 @@ class ApiProductGroupController extends Controller
             ->select(\DB::raw('product_price,GROUP_CONCAT(CONCAT_WS(",",product_variants.parent,product_variants.id_product_variant) separator ";") as defaults'))
             ->leftJoin('product_product_variants','product_product_variants.id_product','=','products.id_product')
             ->leftJoin('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
+            ->having('defaults','<>','')
             ->orderBy('product_price')
             ->groupBy('product_price')
             ->first();
