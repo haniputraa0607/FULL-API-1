@@ -198,8 +198,12 @@ class ApiProductVariantController extends Controller
         return MyHelper::checkGet($newResult);
     }
     public function availableProduct(Request $request) {
-        $variants = Product::select('products.id_product','products.product_code','products.product_name')->leftJoin('product_product_variants','product_product_variants.id_product','products.id_product')
-            ->whereNull('product_product_variants.id_product_variant')
+        $variants = Product::select('products.id_product','products.product_code','products.product_name')
+            ->whereNull('products.id_product_group')
+            ->orWhere('products.id_product_group',$request->json('id_product_group'))
+            ->leftJoin('product_product_variants','product_product_variants.id_product','products.id_product')
+            ->orWhereNull('product_product_variants.id_product_variant')
+            ->groupBy('products.id_product')
             ->groupBy('products.id_product')
             ->get()->toArray();
         return MyHelper::checkGet($variants);

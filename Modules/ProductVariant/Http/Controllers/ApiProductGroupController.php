@@ -8,6 +8,7 @@ use Illuminate\Routing\Controller;
 
 use Modules\ProductVariant\Entities\ProductGroup;
 use Modules\ProductVariant\Entities\ProductProductVariant;
+use Modules\ProductVariant\Entities\ProductVariant;
 use App\Http\Models\Setting;
 use App\Http\Models\Product;
 use App\Http\Models\ProductModifier;
@@ -112,7 +113,14 @@ class ApiProductGroupController extends Controller
      */
     public function show(Request $request)
     {
-        $data = ProductGroup::with(['products'])->find($request->json('id_product_group'));
+        $id_product_group = $request->json('id_product_group');
+        $data = ProductGroup::find($id_product_group)->toArray();
+        $data['variants'] = Product::select(\DB::raw('products.id_product,products.product_name,GROUP_CONCAT(id_product_variant) as variants'))
+            ->where('id_product_group',$id_product_group)
+            ->leftJoin('product_product_variants','product_product_variants.id_product','products.id_product')
+            ->groupBy('products.id_product')
+            ->get()->toArray();
+
         return MyHelper::checkGet($data);
     }
 
