@@ -65,6 +65,10 @@ use Exception;
 
 use DB;
 use DateTime;
+use Illuminate\Support\Facades\Schema;
+use Modules\Outlet\Entities\OutletOvo;
+use Modules\POS\Jobs\SyncProductPrice;
+use Modules\Product\Entities\ProductPricePeriode;
 use Modules\ProductVariant\Entities\ProductGroup;
 use Modules\ProductVariant\Entities\ProductProductVariant;
 use Modules\ProductVariant\Entities\ProductVariant;
@@ -500,6 +504,51 @@ class ApiPOS extends Controller
             ]
         ]);
     }
+
+    public function syncOutletOvo(Request $request)
+    {
+        $post = $request->json()->all();
+        $api = $this->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
+
+        $successOutlet = [];
+        $failedOutlet = [];
+        foreach ($post['store'] as $key => $value) {
+            DB::beginTransaction();
+            $cekOutlet = Outlet::where('outlet_code', strtoupper($value['store_code']))->first();
+            if ($cekOutlet) {
+                try {
+                    OutletOvo::updateOrCreate([
+                        'id_outlet'     => $cekOutlet->id_outlet
+                    ], [
+                        'id_outlet'     => $cekOutlet->id_outlet,
+                        'store_code'    => $value['store_code_ovo'],
+                        'tid'           => $value['tid'],
+                        'mid'           => $value['mid']
+                    ]);
+                } catch (\Exception $e) {
+                    LogBackendError::logExceptionMessage("ApiPOS/syncOutletOvo=>" . $e->getMessage(), $e);
+                    $failedOutlet[] = 'fail to sync, outlet ' . $value['store_code'];
+                    continue;
+                }
+            } else {
+                $failedOutlet[] = 'fail to sync, outlet ' . $value['store_code'];
+            }
+
+            $successOutlet[] = $value['store_code'];
+            DB::commit();
+        }
+        // return success
+        return response()->json([
+            'status' => 'success',
+            'result' => [
+                'success_outlet'    => $successOutlet,
+                'failed_outlet'     => $failedOutlet
+            ]
+        ]);
+    }
     /**
      * Synch menu for single outlet
      * @param  Request $request laravel Request object
@@ -754,10 +803,52 @@ class ApiPOS extends Controller
             'result'  => $hasil,
         ];
     }
+
+    public function syncProductPrice(Request $request) {
+        $post = $request->json()->all();
+        $api = $this->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
+        
+        $countInsert    = 0;
+        $insertProduct  = [];
+        $failedProduct  = [];
+        $dataJob = [];
+        foreach ($post['price'] as $menu) {
+            $checkProduct = Product::where('product_code', $menu['sap_matnr'])->first();
+            $dataJob['sap_matnr']       = $menu['sap_matnr'];
+            if ($checkProduct) {
+                foreach ($menu['price_detail'] as $key => $price) {
+                    $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
+                    if ($checkOutlet) {
+                        $dataJob['price_detail'][]  = $price;
+                        $countInsert     = $countInsert + 1;
+                        $insertProduct[] = 'Success to sync, product ' . $menu['sap_matnr'] . ' at outlet ' . $price['store_code'];
+                    } else {
+                        $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ' at outlet ' . $price['store_code'] . ', outlet not found';
+                    }
+                }
+                SyncProductPrice::dispatch($dataJob);
+            } else {
+                $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', product not found';
+            }
+        }
+
+        $hasil['list_product']['total']              = $countInsert;
+        $hasil['list_product']['list_product']       = $insertProduct;
+        $hasil['failed_product']['list_product']    = $failedProduct;
+        return [
+            'status'    => 'success',
+            'result'  => $hasil,
+        ];
+    }
+
     public function syncMenu(Request $request) {
         $post = $request->json()->all();
         return $this->syncMenuProcess($post,'partial');
     }
+
     public function syncMenuProcess($data, $flag)
     {
         $syncDatetime = date('d F Y h:i');

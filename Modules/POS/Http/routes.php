@@ -10,9 +10,11 @@ Route::group(['prefix' => 'api/v1/pos/', 'namespace' => 'Modules\POS\Http\Contro
         Route::any('check/voucher', 'ApiPOS@checkVoucher');
         Route::any('voucher/void', 'ApiPOS@voidVoucher');
         Route::post('outlet/sync', 'ApiPOS@syncOutlet');
+        Route::post('outlet/sync/ovo', 'ApiPOS@syncOutletOvo');
         Route::any('menu', 'ApiPOS@syncMenuReturn');
         Route::any('outlet/menu', 'ApiPOS@syncOutletMenu');
         Route::post('menu/sync', 'ApiPOS@syncProduct');
+        Route::post('menu/sync/price', 'ApiPOS@syncProductPrice');
         Route::any('transaction/refund', 'ApiPOS@transactionRefund');
         Route::any('transaction/detail', 'ApiPOS@transactionDetail');
     });
