@@ -8,6 +8,7 @@ use Illuminate\Routing\Controller;
 
 use Modules\ProductVariant\Entities\ProductGroup;
 use Modules\ProductVariant\Entities\ProductProductVariant;
+use Modules\ProductVariant\Entities\ProductVariant;
 use App\Http\Models\Setting;
 use App\Http\Models\Product;
 use App\Http\Models\ProductModifier;
@@ -26,7 +27,10 @@ class ApiProductGroupController extends Controller
      */
     public function index(Request $request)
     {
-        $pg = ProductGroup::with('product_category');
+        $pg = ProductGroup::select(\DB::raw('product_groups.*,count(id_product) as products_count'))
+            ->leftJoin('products','products.id_product_group','=','product_groups.id_product_group')
+            ->groupBy('product_groups.id_product_group')
+            ->with('product_category');
         if($request->json('rule')){
             $this->filterList($pg,$request->post('rule'),$request->post('operator'));
         }
@@ -112,7 +116,14 @@ class ApiProductGroupController extends Controller
      */
     public function show(Request $request)
     {
-        $data = ProductGroup::find($request->json('id_product_group'));
+        $id_product_group = $request->json('id_product_group');
+        $data = ProductGroup::find($id_product_group)->toArray();
+        $data['variants'] = Product::select(\DB::raw('products.id_product,products.product_name,GROUP_CONCAT(id_product_variant) as variants'))
+            ->where('id_product_group',$id_product_group)
+            ->leftJoin('product_product_variants','product_product_variants.id_product','products.id_product')
+            ->groupBy('products.id_product')
+            ->get()->toArray();
+
         return MyHelper::checkGet($data);
     }
 
@@ -412,6 +423,7 @@ class ApiProductGroupController extends Controller
             ->select(\DB::raw('product_price,GROUP_CONCAT(CONCAT_WS(",",product_variants.parent,product_variants.id_product_variant) separator ";") as defaults'))
             ->leftJoin('product_product_variants','product_product_variants.id_product','=','products.id_product')
             ->leftJoin('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
+            ->having('defaults','<>','')
             ->orderBy('product_price')
             ->groupBy('product_price')
             ->first();

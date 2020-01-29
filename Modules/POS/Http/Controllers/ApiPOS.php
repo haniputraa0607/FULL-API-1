@@ -844,6 +844,25 @@ class ApiPOS extends Controller
         ];
     }
 
+    public function cronProductPrice() {
+        $productPrice = ProductPrice::with('outlet')->get()->toArray();
+        foreach ($productPrice as $value) {
+            try {
+                $getPrice = DB::connection('mysql3')
+                ->table('outlet_'.$value['outlet']['outlet_code'])
+                ->where('id_product', $value['id_product'])
+                ->where('id_outlet', $value['id_outlet'])
+                ->where('date', date('Y-m-d'))->first();
+
+                $price = $getPrice->price;
+            } catch (\Exception $e) {
+                $price = null;
+            }
+            ProductPrice::where('id_product_price', $value['id_product_price'])
+            ->update(['product_price_periode' => $price]);
+        }
+    }
+
     public function syncMenu(Request $request) {
         $post = $request->json()->all();
         return $this->syncMenuProcess($post,'partial');
