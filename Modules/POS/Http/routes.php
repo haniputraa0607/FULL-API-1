@@ -62,4 +62,5 @@ Route::group(['prefix' => 'api/v1/pos/', 'namespace' => 'Modules\POS\Http\Contro
 {
     Route::any('outlet/menu/cron', 'ApiPOS@syncOutletMenuCron');
     Route::any('transaction/queue/cron', 'ApiTransactionSync@transaction');
+    Route::any('menu/cron/price', 'ApiPOS@cronProductPrice');
 });
