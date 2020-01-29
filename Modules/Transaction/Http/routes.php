@@ -118,6 +118,8 @@ Route::group(['prefix' => 'api/cron/transaction', 'namespace' => 'Modules\Transa
     Route::any('/pickup/completed', 'ApiCronTrxController@completeTransactionPickup');
     Route::any('/expire', 'ApiCronTrxController@cron');
     Route::any('/schedule', 'ApiCronTrxController@checkSchedule');
+    Route::any('reversal/new', 'ApiOvoReversal@insertReversal');
+    Route::any('reversal/process', 'ApiOvoReversal@processReversal');
 });
 
 Route::group(['prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {

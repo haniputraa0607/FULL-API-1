@@ -1276,7 +1276,7 @@ class MyHelper{
 		}
 	}
 
-	public static function post2($url, $bearer=null, $post, $form_type=0, $header=null){
+	public static function postWithTimeout($url, $bearer=null, $post, $form_type=0, $header=null, $timeout = 65){
 		$client = new Client;
 
 		$content = array(
@@ -1306,7 +1306,8 @@ class MyHelper{
 				}
 			}
 		}
-		$content['timeout']=65;
+		$content['timeout']=$timeout;
+
 		try {
 			$response = $client->post($url, $content);
 			$return = json_decode($response->getBody(), true);
