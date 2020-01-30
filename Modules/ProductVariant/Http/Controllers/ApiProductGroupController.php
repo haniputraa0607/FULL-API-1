@@ -171,9 +171,13 @@ class ApiProductGroupController extends Controller
             'product_group_code' => $request->json('product_group_code'),
             'product_group_name' => $request->json('product_group_name'),
             'product_group_description' => $request->json('product_group_description'),
-            'product_group_photo' => $post['product_group_photo'],
-            'product_group_image_detail' => $post['product_group_image_detail']
         ];
+        if($data['product_group_photo']??false){
+            $data['product_group_photo'] = $post['product_group_photo'];
+        }
+        if($data['product_group_photo']??false){
+            $data['product_group_image_detail'] = $post['product_group_image_detail'];
+        }
         $update = $pg->update($data);
         if($update){
             if($pg_old['product_group_photo']??false){
