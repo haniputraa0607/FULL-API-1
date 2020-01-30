@@ -211,14 +211,43 @@ class ApiProductGroupController extends Controller
 
     /**
      * Assign products to product group.
-     * @param int $id
      * @return Response
      */
     public function assign(Request $request) {
         $products = $request->json('products');
         $id_product_group = $request->json('id_product_group');
-        $update = Product::whereIn('id_product',$products)->update(['id_product_group'=>$id_product_group]);
-        return MyHelper::checkUpdate($update);
+        \DB::beginTransaction();
+        $id_products = [];
+        $updatex = [];
+        foreach ($products as $id_variant1 => $variants2) {
+            foreach($variants2 as $id_variant2 => $id_product){
+                $id_products[] = $id_product;
+                ProductProductVariant::where('id_product',$id_product)->delete();
+                $insertData = [];
+                $insertData[] = [
+                    'id_product'=>$id_product,
+                    'id_product_variant'=>$id_variant1
+                ];
+                $insertData[] = [
+                    'id_product'=>$id_product,
+                    'id_product_variant'=>$id_variant2
+                ];
+                $insert = ProductProductVariant::insert($insertData);
+                $updatex[] = $insertData;
+                if(!$insert){
+                    \DB::rollback();
+                    return MyHelper::checkCreate($insert);
+                }
+            }
+        }
+        $update = Product::where('id_product_group',$id_product_group)->update(['id_product_group'=>null]);
+        $update = Product::whereIn('id_product',$id_products)->update(['id_product_group'=>$id_product_group]);
+        if(!$update){
+            \DB::rollback();
+            return MyHelper::checkUpdate($update);
+        }
+        \DB::commit();
+        return MyHelper::checkUpdate($update)+$updatex;
     }
     protected function checkAvailable($availables) {
         $avarr = explode(',', $availables);
