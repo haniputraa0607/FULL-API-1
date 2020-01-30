@@ -131,14 +131,14 @@ class ApiWebviewController extends Controller
                 if($use_product_variant){
                     $list = Transaction::where([['id_transaction', $id],
                         ['id_user',$request->user()->id]])->with(
-                            'user.city.province', 
-                            'productTransaction.product.product_group', 
-                            'productTransaction.product.product_variants', 
-                            'productTransaction.product.product_group.product_category', 
-                            'productTransaction.modifiers', 
-                            'productTransaction.product.product_photos', 
-                            'productTransaction.product.product_discounts', 
-                            'transaction_payment_offlines', 
+                            'user.city.province',
+                            'productTransaction.product.product_group',
+                            'productTransaction.product.product_variants',
+                            'productTransaction.product.product_group.product_category',
+                            'productTransaction.modifiers',
+                            'productTransaction.product.product_photos',
+                            'productTransaction.product.product_discounts',
+                            'transaction_payment_offlines',
                             'outlet.city')->first();
                 }else{
                     $list = Transaction::where([['id_transaction', $id],
@@ -541,7 +541,7 @@ class ApiWebviewController extends Controller
                 'result' => [
                     'type'                       => $type,
                     'id_transaction' => $select['id_transaction'],
-                    'button'                     => 'LIHAT DETAIL',
+                    'button'                     => 'View Detail',
                     'url'                        => env('API_URL').'api/transaction/web/view/detail/balance?data='.$base,
                     'trx_url'                    => env('API_URL').'api/transaction/web/view/detail?data='.$base2
                 ],
