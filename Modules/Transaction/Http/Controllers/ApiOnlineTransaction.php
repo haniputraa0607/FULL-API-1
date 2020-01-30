@@ -87,7 +87,7 @@ class ApiOnlineTransaction extends Controller
                             $query->where('product_variants.id_product_variant',$variant);
                         });
                     }
-                })->first();
+                })->where('id_product_group',$prod['id_product_group'])->first();
                 if(!$prd){
                     return [
                         'status' => 'fail',
@@ -1361,7 +1361,7 @@ class ApiOnlineTransaction extends Controller
                             $query->where('product_variants.id_product_variant',$variant);
                         });
                     }
-                })->first();
+                })->where('id_product_group',$prod['id_product_group'])->first();
                 if(!$prd){
                     return [
                         'status' => 'fail',
