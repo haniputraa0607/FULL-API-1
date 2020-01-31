@@ -1335,7 +1335,8 @@ class ApiOnlineTransaction extends Controller
         // if($post['latitude'] && $post['longitude']){
         //    $savelocation = $this->saveLocation($post['latitude'], $post['longitude'], $insertTransaction['id_user'], $insertTransaction['id_transaction']);
         // }
-
+		$user->transaction_online = 1;
+        $user->save();
         DB::commit();
         return response()->json([
             'status'   => 'success',
@@ -1501,14 +1502,15 @@ class ApiOnlineTransaction extends Controller
                 ->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
                 ->where( function($q){
                 	$q->whereColumn('usage','<','limitation_usage')
-                		->orWhere('code_type','Single');
+                		->orWhere('code_type','Single')
+                        ->orWhere('limitation_usage',0);
                 } )
                 ->first();
 
             if ($code) 
             {
 	            $pct=new PromoCampaignTools();
-	            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore);
+	            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
 
 	            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors);
 
