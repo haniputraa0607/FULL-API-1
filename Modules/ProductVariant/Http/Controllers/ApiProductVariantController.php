@@ -91,7 +91,7 @@ class ApiProductVariantController extends Controller
      */
     public function show(Request $request)
     {
-        $data = ProductVariant::find($request->json('id_product_variant'));
+        $data = ProductVariant::where('product_variant_code',$request->json('product_variant_code'))->first();
         return MyHelper::checkGet($data);
     }
 
@@ -110,8 +110,8 @@ class ApiProductVariantController extends Controller
             'product_variant_name' => $request->json('product_variant_name',''),
             'parent' => $request->json('parent')
         ];
-        $update = ProductVariant::update($data);
-        return MyHelper::checkUpdate($create);
+        $update = ProductVariant::where(['product_variant_code'=>$product_variant_code_ori])->update($data);
+        return MyHelper::checkUpdate($update);
     }
 
     /**
