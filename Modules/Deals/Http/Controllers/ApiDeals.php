@@ -250,7 +250,7 @@ class ApiDeals extends Controller
             $deals->addSelect('id_brand');
             $deals->with('brand');
         }else{
-            if($request->json('deals_type') != 'WelcomeVoucher'){
+            if($request->json('deals_type') != 'WelcomeVoucher' && !$request->json('web')){
                 $deals->where('deals_end', '>', date('Y-m-d H:i:s'));
             }
         }
