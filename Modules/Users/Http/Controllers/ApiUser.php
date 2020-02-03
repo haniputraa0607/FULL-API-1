@@ -1492,11 +1492,21 @@ class ApiUser extends Controller
                         if(\Module::collections()->has('Autocrm')) {
                             $autocrm = app($this->autocrm)->SendAutoCRM('Pin Verify', $phone);
                         }
+
+                        //get response for confirmation pin didn't match
+                        $confirmPin = Setting::where('key', 'confirmation_pin_message')->first();
+                        if(isset($confirmPin['value'])){
+                            $confirmPin = $confirmPin['value'];
+                        }else{
+                            $confirmPin = 'Pin that you entered does not match';
+                        }
+
                         $result = [
                             'status'	=> 'success',
                             'result'	=> ['phone'	=>	$data[0]['phone'],
                                 'profile'=> $profile
-                            ]
+                            ],
+                            'error_pin_message'	=> [$confirmPin]
                         ];
                     }
                 } else {
@@ -1729,7 +1739,7 @@ class ApiUser extends Controller
 
                 //cek complete profile ?
                 if($datauser[0]['complete_profile'] != "1"){
-                    if($datauser[0]['name'] != "" && $datauser[0]['email'] != "" && $datauser[0]['gender'] != "" && $datauser[0]['birthday'] != "" && $datauser[0]['id_city'] != "" && $datauser[0]['celebrate'] != "" && $datauser[0]['job'] != "" && $datauser[0]['address'] != ""){
+                    if($datauser[0]['name'] != "" && $datauser[0]['email'] != "" && $datauser[0]['gender'] != "" && $datauser[0]['birthday'] != "" && $datauser[0]['id_province'] != ""){
                         //get point
 
                         $complete_profile_cashback = 0;
