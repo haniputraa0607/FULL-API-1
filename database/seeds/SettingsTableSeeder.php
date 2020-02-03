@@ -604,6 +604,15 @@ class SettingsTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
+            80 =>
+                array(
+                    'id_setting' => 81,
+                    'key' => 'confirmation_pin_message',
+                    'value' => 'Pin that you entered does not match',
+                    'value_text' => null,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
         ));
     }
 }
