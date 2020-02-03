@@ -11,6 +11,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use SMartins\PassportMultiauth\HasMultiAuthApiTokens;
 use Hash;
+use Modules\Outlet\Entities\OutletOvo;
 
 /**
  * Class Outlet
@@ -181,5 +182,10 @@ class Outlet extends Authenticatable
 		}
 
 		return $this->belongsTo(OutletSchedule::class, 'id_outlet', 'id_outlet')->where('day', $hari_ini);
+	}
+
+	public function outlet_ovo()
+	{
+		return $this->belongsTo(OutletOvo::class, 'id_outlet', 'id_outlet');
 	}
 }
