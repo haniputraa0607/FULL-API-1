@@ -1512,7 +1512,7 @@ class ApiUser extends Controller
                 } else {
                     $result = [
                         'status'	=> 'fail',
-                        'messages'	=> ['OTP yang kamu masukkan salah']
+                        'messages'	=> ['The OTP you entered is incorrect']
                     ];
                 }
             } else {
