@@ -79,7 +79,7 @@ class ApiOnlineTransaction extends Controller
     public function newTransaction(NewTransaction $request) {
         $post = $request->json()->all();
         $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
-        if($use_product_variant){
+        if($use_product_variant && !isset($post['from_fake'])){
             foreach ($post['item'] as &$prod) {
                 $prd = Product::where(function($query) use ($prod){
                     foreach($prod['variants'] as $variant){
@@ -1494,7 +1494,7 @@ class ApiOnlineTransaction extends Controller
             return $productDis;
         }
 
-                // check promo code 
+                // check promo code
         $promo_error=[];
         if($request->json('promo_code')){
         	$code=PromoCampaignPromoCode::where('promo_code',$request->promo_code)
@@ -1505,7 +1505,7 @@ class ApiOnlineTransaction extends Controller
                 } )
                 ->first();
 
-            if ($code) 
+            if ($code)
             {
 	            $pct=new PromoCampaignTools();
 	            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore);
