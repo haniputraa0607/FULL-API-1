@@ -35,7 +35,7 @@ use Storage;
 
 use Modules\Brand\Entities\BrandOutlet;
 use Modules\Brand\Entities\Brand;
-
+use Modules\Outlet\Entities\OutletOvo;
 use Modules\Outlet\Http\Requests\outlet\Upload;
 use Modules\Outlet\Http\Requests\outlet\Update;
 use Modules\Outlet\Http\Requests\outlet\UpdateStatus;
@@ -599,6 +599,23 @@ class ApiOutletController extends Controller
 
         return response()->json(MyHelper::checkGet($outlet));
 
+    }
+
+    function listOutletOvo(Request $request)
+    {
+        $post = $request->json()->all();
+
+        if (!$post) {
+            $outlet = Outlet::with(['outlet_ovo'])->get()->toArray();
+        } else {
+            $update = OutletOvo::where('id_outlet', $post['id_outlet'])->update($post);
+            if ($update) {
+                $outlet['updated'] = 1;
+            }
+            $outlet = Outlet::with(['outlet_ovo'])->get()->toArray();
+        }
+        
+        return response()->json(MyHelper::checkGet($outlet));
     }
 
     /* City Outlet */
