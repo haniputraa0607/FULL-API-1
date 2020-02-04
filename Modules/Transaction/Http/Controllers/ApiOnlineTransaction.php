@@ -1544,12 +1544,22 @@ class ApiOnlineTransaction extends Controller
         $missing_product = 0;
         foreach ($discount_promo['item']??$post['item'] as &$item) {
             // get detail product
-            $product = Product::select([
-                'products.id_product',
-                'products.product_code','products.product_name','products.product_description',
-                'product_prices.product_price','product_prices.product_stock_status',
-                'brand_product.id_product_category','brand_product.id_brand'
-            ])
+            if($use_product_variant){
+                $select = [
+                    'products.id_product',
+                    'products.product_code','product_groups.product_group_name as product_name','product_groups.product_group_description as product_description',
+                    'product_prices.product_price','product_prices.product_stock_status',
+                    'brand_product.id_product_category','brand_product.id_brand'
+                ];
+            }else{
+                $select = [
+                    'products.id_product',
+                    'products.product_code','products.product_name','products.product_description',
+                    'product_prices.product_price','product_prices.product_stock_status',
+                    'brand_product.id_product_category','brand_product.id_brand'
+                ];
+            }
+            $product = Product::select($select)
             ->join('brand_product','brand_product.id_product','=','products.id_product')
             // produk tersedia di outlet
             ->join('product_prices','product_prices.id_product','=','products.id_product')
