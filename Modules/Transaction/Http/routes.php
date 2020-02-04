@@ -122,7 +122,7 @@ Route::group(['prefix' => 'api/cron/transaction', 'namespace' => 'Modules\Transa
     Route::any('reversal/process', 'ApiOvoReversal@processReversal');
 });
 
-Route::group(['middleware' => ['auth:api', 'log_activities'],'prefix' => 'api/transaction/void', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
+Route::group(['middleware' => ['auth:api', 'log_activities','feature_control:227', 'scopes:be'],'prefix' => 'api/transaction/void', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
     Route::any('ovo', 'ApiOvoReversal@void');
 });
 
