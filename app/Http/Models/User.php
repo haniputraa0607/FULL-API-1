@@ -92,6 +92,11 @@ class User extends Authenticatable
 		return $this->belongsTo(\App\Http\Models\City::class, 'id_city');
 	}
 
+	public function province()
+	{
+		return $this->belongsTo(\App\Http\Models\ProvinceCustom::class, 'id_province');
+	}
+
 	public function autocrm_email_logs()
 	{
 		return $this->hasMany(\App\Http\Models\AutocrmEmailLog::class, 'id', 'id_user');
