@@ -171,9 +171,13 @@ class ApiProductGroupController extends Controller
             'product_group_code' => $request->json('product_group_code'),
             'product_group_name' => $request->json('product_group_name'),
             'product_group_description' => $request->json('product_group_description'),
-            'product_group_photo' => $post['product_group_photo'],
-            'product_group_image_detail' => $post['product_group_image_detail']
         ];
+        if($data['product_group_photo']??false){
+            $data['product_group_photo'] = $post['product_group_photo'];
+        }
+        if($data['product_group_photo']??false){
+            $data['product_group_image_detail'] = $post['product_group_image_detail'];
+        }
         $update = $pg->update($data);
         if($update){
             if($pg_old['product_group_photo']??false){
@@ -269,6 +273,10 @@ class ApiProductGroupController extends Controller
                     ->join('product_product_variants','products.id_product','=','product_product_variants.id_product')
                     ->join('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
                     ->join('product_variants as parents','product_variants.parent','=','parents.id_product_variant')
+                    ->join('brand_product','brand_product.id_product','=','product_product_variants.id_product')
+                    // brand produk ada di outlet
+                    ->where('brand_outlet.id_outlet','=',$post['id_outlet'])
+                    ->join('brand_outlet','brand_outlet.id_brand','=','brand_product.id_brand')
                     // where active
                     ->where(function($query){
                         $query->where('product_prices.product_visibility','=','Visible')
@@ -413,6 +421,10 @@ class ApiProductGroupController extends Controller
                     // join product_price (product_outlet pivot and product price data)
                     ->join('product_prices','product_prices.id_product','=','products.id_product')
                     ->where('product_prices.id_outlet','=',$post['id_outlet']) // filter outlet
+                    ->join('brand_product','brand_product.id_product','=','products.id_product')
+                    // brand produk ada di outlet
+                    ->where('brand_outlet.id_outlet','=',$post['id_outlet'])
+                    ->join('brand_outlet','brand_outlet.id_brand','=','brand_product.id_brand')
                     // where active
                     ->where(function($query){
                         $query->where('product_prices.product_visibility','=','Visible')

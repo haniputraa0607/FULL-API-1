@@ -357,6 +357,8 @@ class ApiDumpController extends Controller
                     $data['payment_note']             = $this->getrandomstring();
                 }
 
+                $data['from_fake'] = '1';
+
                 $insertTransaction = $this->insert($data);
                 // return $insertTransaction;
 
@@ -426,6 +428,8 @@ class ApiDumpController extends Controller
                     $data['payment_receipt_image']    = $this->image();
                     $data['payment_note']             = $this->getrandomstring();
                 }
+
+                $data['from_fake'] = '1';
 
                 $insertTransaction = $this->insert($data);
                 // return $insertTransaction;

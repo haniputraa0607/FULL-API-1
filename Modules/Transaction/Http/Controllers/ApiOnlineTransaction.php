@@ -79,7 +79,7 @@ class ApiOnlineTransaction extends Controller
     public function newTransaction(NewTransaction $request) {
         $post = $request->json()->all();
         $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
-        if($use_product_variant){
+        if($use_product_variant && !isset($post['from_fake'])){
             foreach ($post['item'] as &$prod) {
                 $prd = Product::where(function($query) use ($prod){
                     foreach($prod['variants'] as $variant){
@@ -1494,7 +1494,7 @@ class ApiOnlineTransaction extends Controller
             return $productDis;
         }
 
-                // check promo code 
+                // check promo code
         $promo_error=[];
         if($request->json('promo_code')){
         	$code=PromoCampaignPromoCode::where('promo_code',$request->promo_code)
@@ -1505,7 +1505,7 @@ class ApiOnlineTransaction extends Controller
                 } )
                 ->first();
 
-            if ($code) 
+            if ($code)
             {
 	            $pct=new PromoCampaignTools();
 	            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore);
@@ -1544,12 +1544,22 @@ class ApiOnlineTransaction extends Controller
         $missing_product = 0;
         foreach ($discount_promo['item']??$post['item'] as &$item) {
             // get detail product
-            $product = Product::select([
-                'products.id_product',
-                'products.product_code','products.product_name','products.product_description',
-                'product_prices.product_price','product_prices.product_stock_status',
-                'brand_product.id_product_category','brand_product.id_brand'
-            ])
+            if($use_product_variant){
+                $select = [
+                    'products.id_product',
+                    'products.product_code','product_groups.product_group_name as product_name','product_groups.product_group_description as product_description',
+                    'product_prices.product_price','product_prices.product_stock_status',
+                    'brand_product.id_product_category','brand_product.id_brand'
+                ];
+            }else{
+                $select = [
+                    'products.id_product',
+                    'products.product_code','products.product_name','products.product_description',
+                    'product_prices.product_price','product_prices.product_stock_status',
+                    'brand_product.id_product_category','brand_product.id_brand'
+                ];
+            }
+            $product = Product::select($select)
             ->join('brand_product','brand_product.id_product','=','products.id_product')
             // produk tersedia di outlet
             ->join('product_prices','product_prices.id_product','=','products.id_product')
