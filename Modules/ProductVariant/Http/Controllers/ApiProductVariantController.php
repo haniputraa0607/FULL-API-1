@@ -144,27 +144,9 @@ class ApiProductVariantController extends Controller
         return MyHelper::checkCreate($create);
     }
     public function reorder(Request $request) {
-        // [
-        //   "parent" => [
-        //     0 => "1"
-        //     1 => "2"
-        //   ],
-        //   "child" => [
-        //     [
-        //       0 => "3"
-        //       1 => "4"
-        //     ],
-        //     [
-        //       0 => "5"
-        //       1 => "6"
-        //       2 => "7"
-        //       3 => "8"
-        //       4 => "9"
-        //     ]
-        //   ]
-        // ]
         $parent = $request->json('parent',[]);
         $child = $request->json('child',[]);
+        $variants = $request->json('variants',[]);
         $inserts = [];
         \DB::beginTransaction();
         foreach ($parent as $key => $value) {
@@ -183,6 +165,13 @@ class ApiProductVariantController extends Controller
                 }
             }
         }        
+        foreach ($variants as $variant) {
+            $update = ProductVariant::updateOrCreate(['id_product_variant'=>$variant['id_product_variant']],$variant);
+            if(!$update){
+                \DB::rollback();
+                return MyHelper::checkUpdate($update);
+            }
+        }
         \DB::commit();
         return MyHelper::checkUpdate($update);
     }
