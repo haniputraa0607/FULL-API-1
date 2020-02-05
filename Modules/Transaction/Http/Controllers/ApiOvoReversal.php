@@ -112,8 +112,10 @@ class ApiOvoReversal extends Controller
     //process reversal
     public function void(Request $request){
         $post = $request->json()->all();
-        $transaction = TransactionPaymentOvo::where('transaction_payment_ovos.id_transaction', $post['id_transaction'])
-            ->join('transactions','transactions.id_transaction','=','transaction_payment_ovos.id_transaction')
+        $transaction = Transaction::where('transaction_payment_ovos.id_transaction', $post['id_transaction'])
+            ->join('transaction_payment_ovos','transactions.id_transaction','=','transaction_payment_ovos.id_transaction')
+            ->where('transaction_payment_status','Completed')
+            ->whereDate('transactions.created_at','=',date('Y-m-d'))
             ->first();
         if(!$transaction){
             return [
@@ -125,8 +127,17 @@ class ApiOvoReversal extends Controller
         }
 
         $void = Ovo::Void($transaction);
-
-        return $void;
-
+        if($void['status_code'] == "200"){
+            $transaction->update(['transaction_payment_status'=>'Cancelled']);
+            return [
+                'status' => 'success',
+                'result' => $void
+            ];
+        }else{
+            return [
+                'status' => 'fail',
+                'result' => $void
+            ];
+        }
     }
 }
