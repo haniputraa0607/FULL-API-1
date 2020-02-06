@@ -171,7 +171,7 @@ class ApiFavoriteController extends Controller
             ['id_product',$post['id_product']],
             ['id_brand',$post['id_brand']],
             ['id_user',$id_user],
-            ['notes',$post['notes']??'']]
+            ['notes',$post['notes']??'']
         ])->where(function($query) use ($modifiers){
             foreach ($modifiers as $modifier) {
                 if(is_array($modifier)){
