@@ -276,7 +276,7 @@ class ApiOnlineTransaction extends Controller
                         ->orWhere('limitation_usage',0);
                 } )
                 ->first();
-            if ($code) 
+            if ($code)
             {
                 $post['id_promo_campaign_promo_code'] = $code->id_promo_campaign_promo_code;
                 if($code->promo_type = "Referral"){
@@ -1994,7 +1994,7 @@ class ApiOnlineTransaction extends Controller
         }
 
         $dataEncode = [
-            'transaction_receipt_number'   => $id,
+            'id_transaction'   => $list['id_transaction'],
             'type' => $type,
         ];
 
@@ -2030,7 +2030,7 @@ class ApiOnlineTransaction extends Controller
             'transaction_receipt_number' => $list['transaction_receipt_number'],
             'transaction_grandtotal'     => $list['transaction_grandtotal'],
             'type'                       => $type,
-            'url'                        => env('VIEW_URL').'/transaction/web/view/detail?data='.$base
+            'url'                        => env('API_URL').'api/transaction/web/view/detail?data='.$base
         ];
 
         return $send;
