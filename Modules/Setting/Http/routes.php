@@ -14,7 +14,6 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::any('jobs_list', 'ApiSetting@jobsList');
     Route::any('celebrate_list', 'ApiSetting@celebrateList');
     Route::post('webview', 'ApiSetting@settingWebview');
-    Route::get('/cron/point-reset', 'ApiSetting@cronPointReset');
 
     // complete profile
     Route::group(['prefix' => 'complete-profile'], function()
@@ -79,10 +78,10 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::post('/update', 'ApiSetting@settingUpdate');
     Route::post('/update2','ApiSetting@update');
 
-    Route::get('/get/{key}', 'ApiSetting@get');		 
+    Route::get('/get/{key}', 'ApiSetting@get');
     Route::any('/', 'ApiSetting@settingList');
     Route::post('/edit', 'ApiSetting@settingEdit');
-												
+
     Route::post('/date', 'ApiSetting@date');
     Route::any('/app_logo', 'ApiSetting@appLogo');
     Route::any('/app_navbar', 'ApiSetting@appNavbar');
@@ -147,7 +146,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
         Route::post('reorder', 'ApiFeaturedDeal@reorder');
         Route::post('delete', 'ApiFeaturedDeal@destroy');
     });
-															  
+
 });
 
 Route::group(['middleware' => ['auth:api', 'scopes:be'], 'prefix' => 'api/timesetting', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
@@ -169,5 +168,5 @@ Route::group(['middleware' => ['auth:api', 'scopes:be'], 'prefix' => 'api/greeti
     Route::post('selected', 'ApiGreetings@selectGreetings');
     Route::post('create', 'ApiGreetings@createGreetings');
     Route::post('update', 'ApiGreetings@updateGreetings');
-    Route::post('delete', 'ApiGreetings@deleteGreetings');														 
+    Route::post('delete', 'ApiGreetings@deleteGreetings');
 });
