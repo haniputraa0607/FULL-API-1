@@ -738,7 +738,7 @@ class ApiPOS extends Controller
                     $product = Product::where('product_code', $variance['sap_matnr'])->first();
                     if ($product) {
                         try {
-                            $product = Product::where('product_code', $variance['sap_matnr'])->update([
+                            Product::where('product_code', $variance['sap_matnr'])->update([
                                 'product_name_pos'  => implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]),
                                 'product_status'    => $variance['status']
                             ]);
@@ -787,7 +787,7 @@ class ApiPOS extends Controller
                     } catch (\Exception $e) {
                         DB::rollback();
                         LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
-                        $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                        $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
                         continue;
                     }
                 }
