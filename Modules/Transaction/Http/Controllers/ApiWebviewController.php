@@ -625,9 +625,9 @@ class ApiWebviewController extends Controller
             $view = 'detail_transaction_voucher';
         }
 
-        if (isset($data['success'])) {
-            $view = 'transaction_success';
-        }
+        // if (isset($data['success'])) {
+        //     $view = 'transaction_success';
+        // }
 
         if (isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Pending') {
             $view = 'transaction_proccess';
@@ -695,9 +695,9 @@ class ApiWebviewController extends Controller
             $view = 'detail_transaction_voucher';
         }
 
-        if (isset($data['success'])) {
-            $view = 'transaction_success';
-        }
+        // if (isset($data['success'])) {
+        //     $view = 'transaction_success';
+        // }
 
         if (isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Pending') {
             $view = 'transaction_proccess';
