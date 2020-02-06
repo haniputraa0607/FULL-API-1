@@ -2,6 +2,7 @@
 
 namespace Modules\Deals\Http\Controllers;
 
+use App\Http\Models\Configs;
 use App\Http\Models\DealTotal;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -979,10 +980,19 @@ class ApiDeals extends Controller
 
     /*Welcome Voucher*/
     function listDealsWelcomeVoucher(Request $request){
-        $getDeals = Deal::join('brands', 'brands.id_brand', 'deals.id_brand')
-            ->where('deals_type','WelcomeVoucher')
-            ->select('deals.*','brands.name_brand')
-            ->get()->toArray();
+        $configUseBrand = Configs::where('config_name', 'use brand')->first();
+
+        if($configUseBrand['is_active']){
+            $getDeals = Deal::join('brands', 'brands.id_brand', 'deals.id_brand')
+                ->where('deals_type','WelcomeVoucher')
+                ->select('deals.*','brands.name_brand')
+                ->get()->toArray();
+        }else{
+            $getDeals = Deal::where('deals_type','WelcomeVoucher')
+                ->select('deals.*')
+                ->get()->toArray();
+        }
+
 
         $result = [
             'status' => 'success',
@@ -993,10 +1003,19 @@ class ApiDeals extends Controller
 
     function welcomeVoucherSetting(Request $request){
         $setting = Setting::where('key', 'welcome_voucher_setting')->first();
-        $getDeals = DealTotal::join('deals', 'deals.id_deals', 'deals_total.id_deals')
-            ->join('brands', 'brands.id_brand', 'deals.id_brand')
-            ->select('deals.*','deals_total.deals_total','brands.name_brand')
-            ->get()->toArray();
+        $configUseBrand = Configs::where('config_name', 'use brand')->first();
+
+        if($configUseBrand['is_active']){
+            $getDeals = DealTotal::join('deals', 'deals.id_deals', 'deals_total.id_deals')
+                ->join('brands', 'brands.id_brand', 'deals.id_brand')
+                ->select('deals.*','deals_total.deals_total','brands.name_brand')
+                ->get()->toArray();
+        }else{
+            $getDeals = DealTotal::join('deals', 'deals.id_deals', 'deals_total.id_deals')
+                ->select('deals.*','deals_total.deals_total')
+                ->get()->toArray();
+        }
+
 
         $result = [
             'status' => 'success',
