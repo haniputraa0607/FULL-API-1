@@ -2003,22 +2003,22 @@ class ApiOnlineTransaction extends Controller
             $button = 'LIHAT NOTA';
         }
 
-        $title = 'Sukses';
-        if ($list['transaction_payment_status'] == 'Pending') {
-            $title = 'Pending';
-        }
+        $title = 'Transaction Detail';
+        // if ($list['transaction_payment_status'] == 'Pending') {
+        //     $title = 'Pending';
+        // }
 
-        if ($list['transaction_payment_status'] == 'Terbayar') {
-            $title = 'Terbayar';
-        }
+        // if ($list['transaction_payment_status'] == 'Terbayar') {
+        //     $title = 'Terbayar';
+        // }
 
-        if ($list['transaction_payment_status'] == 'Sukses') {
-            $title = 'Sukses';
-        }
+        // if ($list['transaction_payment_status'] == 'Sukses') {
+        //     $title = 'Sukses';
+        // }
 
-        if ($list['transaction_payment_status'] == 'Gagal') {
-            $title = 'Gagal';
-        }
+        // if ($list['transaction_payment_status'] == 'Gagal') {
+        //     $title = 'Gagal';
+        // }
 
         $encode = json_encode($dataEncode);
         $base = base64_encode($encode);
