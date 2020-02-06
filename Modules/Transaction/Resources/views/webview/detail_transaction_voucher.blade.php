@@ -6,8 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-    <link href="{{ env('S3_URL_VIEW') }}{{('css/slide.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ env('API_URL') }}css/transaction.css">
     <style type="text/css">
         @font-face {
             font-family: "Ubuntu-Bold";
@@ -94,9 +93,9 @@
     		margin : 10px;
     		padding: 16.7px 11.7px;
     		/*margin-right: 15px;*/
-            -webkit-box-shadow: 0px 1px 3.3px 0px rgba(168,168,168,1);
-            -moz-box-shadow: 0px 1px 3.3px 0px rgba(168,168,168,1);
-            box-shadow: 0px 1px 3.3px 0px rgba(168,168,168,1);
+            -webkit-box-shadow: 0px 3.3px 10px 0px #eeeeee;
+            -moz-box-shadow: 0px 3.3px 10px 0px #eeeeee;
+            box-shadow: 0px 3.3px 10px 0px #eeeeee;
 			/* border-radius: 3px; */
 			background: #fff;
 			border-radius: 10px;
@@ -218,19 +217,46 @@
     @endphp
     <div class="container">
         <div class="row">
-            <div class="col-12 text-black text-14-3px Ubuntu-Medium" style="margin-top:10px">
+            <div class="col-12 text-black text-16-7px Ubuntu-Medium" style="margin-top:10px">
                 <span>Buy Voucher</span>
                 <hr style="margin: 15px 0px;border-top: dashed 1px #D7D2CB;"/>
             </div>
-            <div class="col-7 text-left text-black text-13-3px Ubuntu">#TRX-{{ $data['voucher_hash_code'] }}</div>
-            <div class="col-5 text-right text-black text-13-3px Ubuntu">{{ date('d M Y H:i', strtotime($data['date'])) }}</div>
-            <div class="col-12 text-black text-14-3px Ubuntu-Medium" style="margin-top: 15px;">Your Transaction</div>
+            <div class="col-7 text-left text-black text-14px Ubuntu-Medium">#TRX-{{ $data['voucher_hash_code'] }}</div>
+            <div style="color: #707070;" class="col-5 text-right text-13-3px Ubuntu">{{ date('d M Y H:i', strtotime($data['date'])) }}</div>
+            <div class="col-12 text-black text-13-3px Ubuntu-Medium" style="margin-top: 15px;">Your Transaction</div>
         </div>
     </div>
     <div class="kotak">
         <div class="row">
-            <div class="col-6 text-13-3px text-black Ubuntu-Medium">Use {{env('POINT_NAME', 'Points')}}</div>
-            <div class="col-6 text-right text-13-3px text-red Ubuntu-Medium">{{str_replace(',', '.', number_format($data['balance']))}}</div>
+            <div style="color: #8fd6bd;" class="col-1 text-12-7px Ubuntu-Medium">1x</div>
+            <div class="col-8 text-12-7px text-black Ubuntu-Medium">Use {{$data['deal_voucher']['deal']['deals_title']}}</div>
+            <div class="col-3 text-12-7px text-black text-right Ubuntu-Medium">@if ($data['voucher_price_point'] != null) {{number_format($data['voucher_price_point'], 0, ',', '.')}} @else {{number_format($data['voucher_price_cash'], 0, ',', '.')}} @endif</div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-black text-13-3px Ubuntu-Medium" style="margin-top: 15px;">Payment Details</div>
+        </div>
+    </div>
+    <div class="kotak" style="box-shadow: none;background-color: #f0f3f7;">
+        <div class="row">
+            <div class="col-6 text-13-3px text-black Ubuntu-Medium">Grand Total</div>
+            <div class="col-6 text-13-3px text-black text-right Ubuntu-Medium">@if ($data['voucher_price_point'] != null) {{number_format($data['voucher_price_point'], 0, ',', '.')}} @else {{number_format($data['voucher_price_cash'], 0, ',', '.')}} @endif</div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-black text-13-3px Ubuntu-Medium" style="margin-top: 15px;">Payment Method</div>
+        </div>
+    </div>
+    <div class="kotak">
+        <div class="row">
+            <div class="col-6 text-13-3px text-black Ubuntu-Medium">@if ($data['payment_method'] == 'Midtrans')
+                {{$data['payment']['payment_type']}}
+            @elseif ($data['payment_method'] == 'Balance')
+                Maxx Points
+            @endif</div>
+            <div class="col-6 text-13-3px text-black text-right Ubuntu-Medium">@if ($data['voucher_price_point'] != null) {{number_format($data['voucher_price_point'], 0, ',', '.')}} @else {{number_format($data['voucher_price_cash'], 0, ',', '.')}} @endif</div>
         </div>
     </div>
 
@@ -238,9 +264,7 @@
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.0.2/pace.js"></script>
+    <script src="{{ env('API_URL') }}js/jquery.js"></script>
+    <script src="{{ env('API_URL') }}js/transaction.js"></script>
   </body>
 </html>
