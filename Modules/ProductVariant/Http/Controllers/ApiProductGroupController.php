@@ -455,6 +455,7 @@ class ApiProductGroupController extends Controller
         foreach ($products as $product) {
             if($product['product_variant_code']){
                 $varcode = explode(',',$product['product_variant_code']);
+                if(count($varcode) !== 2) continue;
                 $variant_stock[$varcode[0]][$varcode[1]] = [
                     'product_variant_code' => $varcode[1],
                     'product_stock_status' => $product['product_stock_status'],
@@ -463,8 +464,8 @@ class ApiProductGroupController extends Controller
             }
         }
         // product exists?
-        if(!$id_products){
-            return MyHelper::checkGet($id_products);
+        if(!$id_products || !$variant_stock){
+            return MyHelper::checkGet([]);
         }
         // get product lowest price and default variant
         $default = $query2
