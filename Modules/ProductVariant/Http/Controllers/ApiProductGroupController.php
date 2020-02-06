@@ -337,6 +337,12 @@ class ApiProductGroupController extends Controller
 	            ];
 	        }else{
 
+	        	if ($code['promo_campaign']['date_end'] < date('Y-m-d H:i:s')) {
+	        		return [
+		                'status'=>'fail',
+		                'messages'=>['Promo campaign is ended']
+		            ];
+	        	}
 	        	$code = $code->toArray();
 
 		        if ( ($code['promo_campaign']['promo_campaign_product_discount_rules']['is_all_product']??false) == 1)
@@ -374,13 +380,14 @@ class ApiProductGroupController extends Controller
 			        		// loop product group
 		        			foreach ($data as $key2 => $value2) {
 		        				// loop product
-								unset($data[$key2]['products']);
-			        			foreach ($value2['products'] as $key3 => $value3) {
-			        				if ( $value3['id_product'] == $value['id_product'] ) {
-			    						$data[$key2]['is_promo'] = 1;
-			    						break;
-			    					}
-			        			}
+		        				if (isset($value2['products'])) {
+				        			foreach ($value2['products'] as $key3 => $value3) {
+				        				if ( $value3['id_product'] == $value['id_product'] ) {
+				    						$data[$key2]['is_promo'] = 1;
+				    						break;
+				    					}
+				        			}
+		        				}
 		        			}
 			        	}
         			}elseif(isset($applied_product['id_product'])){
