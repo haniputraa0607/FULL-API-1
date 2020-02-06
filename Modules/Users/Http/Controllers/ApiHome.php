@@ -707,7 +707,9 @@ class ApiHome extends Controller
         foreach ($hidden as $hide) {
             unset($retUser[$hide]);
         }
-
+        if($retUser['province'] == ""){
+            $retUser['province'] = null;
+        }
         $retUser['membership']=$membership;
         $result = [
             'status' => 'success',
