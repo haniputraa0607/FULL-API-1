@@ -935,9 +935,14 @@ class ApiDeals extends Controller
 
         if (in_array("all", $id_outlet)) {
             /* SELECT ALL OUTLET */
-            $id_outlet = Outlet::select('id_outlet')->whereHas('brands',function($query) use ($id_brand){
-                $query->where('brands.id_brand',$id_brand);
-            })->get()->toArray();
+            if($id_brand){
+                $id_outlet = Outlet::select('id_outlet')->whereHas('brands',function($query) use ($id_brand){
+                    $query->where('brands.id_brand',$id_brand);
+                })->get()->toArray();
+
+            }else{
+                $id_outlet = Outlet::select('id_outlet')->get()->toArray();
+            }
 
             if (empty($id_outlet)) {
                 return false;
