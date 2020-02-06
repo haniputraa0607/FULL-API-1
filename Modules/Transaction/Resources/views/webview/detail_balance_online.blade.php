@@ -215,7 +215,7 @@
                 <span>{{ $data['detail']['outlet']['outlet_name'] }}</span>
                 <hr style="margin: 15px 0px;border-top: dashed 1px #D7D2CB;"/>
             </div>
-            <div class="col-7 text-left text-black text-14px Ubuntu-Medium">#TRX-{{ $data['detail']['transaction_receipt_number'] }}</div>
+            <div class="col-7 text-left text-black text-14px Ubuntu-Medium">#{{ $data['detail']['transaction_receipt_number'] }}</div>
             <div style="color: #707070;" class="col-5 text-right text-13-3px Ubuntu">{{ date('d M Y H:i', strtotime($data['detail']['transaction_date'])) }}</div>
             <div class="col-12 text-black text-13-3px Ubuntu-Medium" style="margin-top: 15px;">Your Transaction</div>
         </div>
