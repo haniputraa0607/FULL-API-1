@@ -7,7 +7,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::post('step2', ['middleware' => 'feature_control:111', 'uses' => 'ApiPromotion@ShowPromotionStep2']);
     Route::post('step3', ['middleware' => 'feature_control:111', 'uses' => 'ApiPromotion@ShowCampaignStep2']);
     Route::post('update', ['middleware' => 'feature_control:112', 'uses' => 'ApiPromotion@update']);
-												 
+
     Route::post('delete', ['middleware' => 'feature_control:113', 'uses' => 'ApiPromotion@delete']);
     Route::any('list', ['middleware' => 'feature_control:109', 'uses' => 'ApiPromotion@list']);
     Route::post('recipient/list', ['middleware' => 'feature_control:110', 'uses' => 'ApiPromotion@recipientPromotion']);
@@ -20,13 +20,11 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     {
         Route::any('', ['middleware' => 'feature_control:109', 'uses' => 'ApiPromotionDeals@list']);
         Route::post('save', ['middleware' => 'feature_control:112', 'uses' => 'ApiPromotionDeals@save']);
-    
+
     });
 });
 
-Route::group(['prefix' => 'api/promotion', 'middleware' => ['log_activities', 'user_agent'], 'namespace' => 'Modules\Promotion\Http\Controllers'], function()
+Route::group(['prefix' => 'api/promotion', 'namespace' => 'Modules\Promotion\Http\Controllers'], function()
 {
     Route::get('display_logo/{hash}', 'ApiPromotion@displayLogo');
-    Route::any('queue', 'ApiPromotion@addPromotionQueue');
-    Route::any('send', 'ApiPromotion@sendPromotion');
 });
