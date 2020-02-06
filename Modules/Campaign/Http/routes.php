@@ -16,11 +16,5 @@ Route::group(['middleware' => ['auth:api','log_activities', 'user_agent', 'scope
 	Route::post('push/outbox/list', ['middleware' => 'feature_control:107', 'uses' =>'ApiCampaign@campaignPushOutboxList']);
 	Route::post('push/outbox/detail', ['middleware' => 'feature_control:107', 'uses' =>'ApiCampaign@campaignPushOutboxDetail']);
     Route::post('whatsapp/outbox/list', 'ApiCampaign@campaignWhatsappOutboxList');
-    Route::post('step2', ['middleware' => 'feature_control:99', 'uses' =>'ApiCampaign@ShowCampaignStep2']);												  
-});
-
-Route::group(['prefix' => 'api/campaign/cron', 'namespace' => 'Modules\Campaign\Http\Controllers'], function()
-{
-    Route::any('queue', 'ApiCampaign@insertQueue');
-    Route::any('send', 'ApiCampaign@sendCampaignCron');
+    Route::post('step2', ['middleware' => 'feature_control:99', 'uses' =>'ApiCampaign@ShowCampaignStep2']);
 });
