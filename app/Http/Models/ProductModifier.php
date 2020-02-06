@@ -21,6 +21,7 @@ class ProductModifier extends Model
 		'type',
 		'code',
 		'text',
+		'status',
 		'product_modifier_visibility',
 		'created_at',
 		'updated_at'

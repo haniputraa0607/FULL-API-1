@@ -36,6 +36,9 @@ use App\Http\Models\UserLocationDetail;
 use Modules\ProductVariant\Entities\ProductVariant;
 use Modules\PromoCampaign\Entities\PromoCampaign;
 use Modules\PromoCampaign\Entities\PromoCampaignPromoCode;
+use Modules\PromoCampaign\Entities\PromoCampaignReferral;
+use Modules\PromoCampaign\Entities\PromoCampaignReferralTransaction;
+use Modules\PromoCampaign\Entities\UserReferralCode;
 
 use Modules\Balance\Http\Controllers\NewTopupController;
 use Modules\PromoCampaign\Lib\PromoCampaignTools;
@@ -79,7 +82,7 @@ class ApiOnlineTransaction extends Controller
     public function newTransaction(NewTransaction $request) {
         $post = $request->json()->all();
         $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
-        if($use_product_variant){
+        if($use_product_variant && !isset($post['from_fake'])){
             foreach ($post['item'] as &$prod) {
                 $prd = Product::where(function($query) use ($prod){
                     foreach($prod['variants'] as $variant){
@@ -256,10 +259,54 @@ class ApiOnlineTransaction extends Controller
         }
 
         // return $totalDiscount;
+        // check promo code and referral
+        $promo_error=[];
+        $use_referral = false;
+        $discount_promo = [];
+        $promo_discount = 0;
+        if($request->json('promo_code')){
+            $code=PromoCampaignPromoCode::where('promo_code',$request->promo_code)
+                ->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
+                ->where( function($q){
+                    $q->whereColumn('usage','<','limitation_usage')
+                        ->orWhere('code_type','Single')
+                        ->orWhere('limitation_usage',0);
+                } )
+                ->first();
+            if ($code) 
+            {
+                $post['id_promo_campaign_promo_code'] = $code->id_promo_campaign_promo_code;
+                if($code->promo_type = "Referral"){
+                    $use_referral = true;
+                }
+                $pct=new PromoCampaignTools();
+                $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
+
+                $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors);
+
+                if ( !empty($errore) || !empty($errors)) {
+                    DB::rollback();
+                    return [
+                        'status'=>'fail',
+                        'messages'=>['Promo code not valid']
+                    ];
+                }
+                $promo_discount=$discount_promo['discount'];
+            }
+            else
+            {
+                return [
+                    'status'=>'fail',
+                    'messages'=>['Promo code not valid']
+                ];
+            }
+        }
+
+        $error_msg=[];
 
         foreach ($grandTotal as $keyTotal => $valueTotal) {
             if ($valueTotal == 'subtotal') {
-                $post['sub'] = app($this->setting_trx)->countTransaction($valueTotal, $post);
+                $post['sub'] = app($this->setting_trx)->countTransaction($valueTotal, $post, $discount_promo);
                 // $post['sub'] = $this->countTransaction($valueTotal, $post);
                 if (gettype($post['sub']) != 'array') {
                     $mes = ['Data Not Valid'];
@@ -414,6 +461,30 @@ class ApiOnlineTransaction extends Controller
 
         $post['discount'] = -$post['discount'];
 
+        // apply cashback
+        if ($use_referral){
+            $referral_rule = PromoCampaignReferral::where('id_promo_campaign',$code->id_promo_campaign)->first();
+            if(!$referral_rule){
+                DB::rollback();
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['Insert Referrer Cashback Failed']
+                ]);
+            }
+            $referred_cashback = 0;
+            if($referral_rule->referred_promo_type == 'Cashback'){
+                if($referral_rule->referred_promo_unit == 'Percent'){
+                    $referred_discount_percent = $referral_rule->referred_promo_value<=100?$referral_rule->referred_promo_value:100;
+                    $referred_cashback = $post['subtotal']*$referred_discount_percent/100;
+                }else{
+                    if($post['subtotal'] >= $referral_rule->referred_min_value){
+                        $referred_cashback = $referral_rule->referred_promo_value<=$post['subtotal']?$referral_rule->referred_promo_value:$post['subtotal'];
+                    }
+                }
+            }
+            $post['cashback'] = $referred_cashback;
+        }
+
         if (isset($post['payment_type']) && $post['payment_type'] == 'Balance') {
             $post['cashback'] = 0;
             $post['point']    = 0;
@@ -513,6 +584,7 @@ class ApiOnlineTransaction extends Controller
         $transaction = [
             'id_outlet'                   => $post['id_outlet'],
             'id_user'                     => $id,
+            'id_promo_campaign_promo_code'           => $post['id_promo_campaign_promo_code']??null,
             'transaction_date'            => $post['transaction_date'],
             // 'transaction_receipt_number'  => 'TRX-'.app($this->setting_trx)->getrandomnumber(8).'-'.date('YmdHis'),
             'trasaction_type'             => $type,
@@ -564,6 +636,21 @@ class ApiOnlineTransaction extends Controller
                 'messages'  => ['Insert Transaction Failed']
             ]);
         }
+        // add report referral
+        if($use_referral){
+            $addPromoCounter = PromoCampaignReferralTransaction::create([
+                'id_promo_campaign_promo_code' =>$code->id_promo_campaign_promo_code,
+                'id_user' => $insertTransaction['id_user'],
+                'id_transaction' => $insertTransaction['id_transaction']
+            ]);
+            if(!$addPromoCounter){
+                DB::rollback();
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['Insert Transaction Failed']
+                ]);
+            }
+        }
 
         //update receipt
         $receipt = 'TRX-'.MyHelper::createrandom(6,'Angka').time().MyHelper::createrandom(3,'Angka').$insertTransaction['id_outlet'].MyHelper::createrandom(3,'Angka');
@@ -579,9 +666,20 @@ class ApiOnlineTransaction extends Controller
             ]);
         }
 
+        $user->transaction_online = 1;
+        $user->save();
+
         $insertTransaction['transaction_receipt_number'] = $receipt;
 
         foreach ($post['item'] as $keyProduct => $valueProduct) {
+            $this_discount=0;
+            if($discount_promo){
+                foreach ($discount_promo['item']??[] as $disc) {
+                    if($disc['id_product']==$valueProduct['id_product']){
+                        $this_discount=$disc['discount']??0;
+                    }
+                }
+            }
             $checkProduct = Product::where('id_product', $valueProduct['id_product'])->first();
             if (empty($checkProduct)) {
                 DB::rollback();
@@ -622,7 +720,8 @@ class ApiOnlineTransaction extends Controller
                 'transaction_product_price'    => $checkPriceProduct['product_price'],
                 'transaction_product_price_base'    => $checkPriceProduct['product_price_base'],
                 'transaction_product_price_tax'    => $checkPriceProduct['product_price_tax'],
-                'transaction_product_subtotal' => $valueProduct['qty'] * $checkPriceProduct['product_price'],
+                'transaction_product_discount'   => $this_discount,
+                'transaction_product_subtotal' => ($valueProduct['qty'] * $checkPriceProduct['product_price'])-$this_discount,
                 'transaction_product_note'     => $valueProduct['note'],
                 'created_at'                   => date('Y-m-d', strtotime($insertTransaction['transaction_date'])).' '.date('H:i:s'),
                 'updated_at'                   => date('Y-m-d H:i:s')
@@ -810,6 +909,8 @@ class ApiOnlineTransaction extends Controller
         }
 
 
+        //sum balance
+        $sumBalance = LogBalance::where('id_user', $id)->sum('balance');
         if ($post['type'] == 'Delivery') {
             $link = '';
             if($configAdminOutlet && $configAdminOutlet['is_active'] == '1'){
@@ -1143,7 +1244,6 @@ class ApiOnlineTransaction extends Controller
                 }
 
                 if ($insertTransaction['transaction_cashback_earned'] != 0) {
-
                     $insertDataLogCash = app($this->balance)->addLogBalance( $insertTransaction['id_user'], $insertTransaction['transaction_cashback_earned'], $insertTransaction['id_transaction'], 'Transaction', $insertTransaction['transaction_grandtotal']);
                     if (!$insertDataLogCash) {
                         DB::rollback();
@@ -1277,6 +1377,8 @@ class ApiOnlineTransaction extends Controller
                         $savelocation = $this->saveLocation($post['latitude'], $post['longitude'], $insertTransaction['id_user'], $insertTransaction['id_transaction'], $insertTransaction['id_outlet']);
                      }
 
+                    PromoCampaignTools::applyReferrerCashback($insertTransaction);
+
                     DB::commit();
                     return response()->json([
                         'status'     => 'success',
@@ -1335,7 +1437,6 @@ class ApiOnlineTransaction extends Controller
         // if($post['latitude'] && $post['longitude']){
         //    $savelocation = $this->saveLocation($post['latitude'], $post['longitude'], $insertTransaction['id_user'], $insertTransaction['id_transaction']);
         // }
-
         DB::commit();
         return response()->json([
             'status'   => 'success',
@@ -1494,21 +1595,22 @@ class ApiOnlineTransaction extends Controller
             return $productDis;
         }
 
-                // check promo code 
+                // check promo code
         $promo_error=[];
         if($request->json('promo_code')){
         	$code=PromoCampaignPromoCode::where('promo_code',$request->promo_code)
                 ->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
                 ->where( function($q){
                 	$q->whereColumn('usage','<','limitation_usage')
-                		->orWhere('code_type','Single');
+                		->orWhere('code_type','Single')
+                        ->orWhere('limitation_usage',0);
                 } )
                 ->first();
 
-            if ($code) 
+            if ($code)
             {
 	            $pct=new PromoCampaignTools();
-	            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore);
+	            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
 
 	            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors);
 
@@ -1544,12 +1646,22 @@ class ApiOnlineTransaction extends Controller
         $missing_product = 0;
         foreach ($discount_promo['item']??$post['item'] as &$item) {
             // get detail product
-            $product = Product::select([
-                'products.id_product',
-                'products.product_code','products.product_name','products.product_description',
-                'product_prices.product_price','product_prices.product_stock_status',
-                'brand_product.id_product_category','brand_product.id_brand'
-            ])
+            if($use_product_variant){
+                $select = [
+                    'products.id_product',
+                    'products.product_code','product_groups.product_group_name as product_name','product_groups.product_group_description as product_description',
+                    'product_prices.product_price','product_prices.product_stock_status',
+                    'brand_product.id_product_category','brand_product.id_brand'
+                ];
+            }else{
+                $select = [
+                    'products.id_product',
+                    'products.product_code','products.product_name','products.product_description',
+                    'product_prices.product_price','product_prices.product_stock_status',
+                    'brand_product.id_product_category','brand_product.id_brand'
+                ];
+            }
+            $product = Product::select($select)
             ->join('brand_product','brand_product.id_product','=','products.id_product')
             // produk tersedia di outlet
             ->join('product_prices','product_prices.id_product','=','products.id_product')

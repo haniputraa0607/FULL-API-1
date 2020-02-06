@@ -67,6 +67,7 @@ use DB;
 use DateTime;
 use Illuminate\Support\Facades\Schema;
 use Modules\Outlet\Entities\OutletOvo;
+use Modules\POS\Jobs\SyncAddOnPrice;
 use Modules\POS\Jobs\SyncProductPrice;
 use Modules\Product\Entities\ProductPricePeriode;
 use Modules\ProductVariant\Entities\ProductGroup;
@@ -793,14 +794,11 @@ class ApiPOS extends Controller
             }
             DB::commit();
         }
-        $hasil['new_product']['total']              = $countInsert;
-        $hasil['new_product']['list_product']       = $insertProduct;
-        $hasil['updated_product']['total']          = $countUpdate;
-        $hasil['updated_product']['list_product']   = $updatedProduct;
-        $hasil['failed_product']['list_product']    = $failedProduct;
+        $hasil['inserted']  = $countInsert;
+        $hasil['updated']   = $countUpdate;
         return [
             'status'    => 'success',
-            'result'  => $hasil,
+            'result'    => $hasil,
         ];
     }
 
@@ -813,9 +811,10 @@ class ApiPOS extends Controller
         
         $countInsert    = 0;
         $insertProduct  = [];
+        $countfailed    = 0;
         $failedProduct  = [];
         $dataJob = [];
-        foreach ($post['price'] as $menu) {
+        foreach ($post['menu'] as $menu) {
             $checkProduct = Product::where('product_code', $menu['sap_matnr'])->first();
             $dataJob['sap_matnr']       = $menu['sap_matnr'];
             if ($checkProduct) {
@@ -826,18 +825,177 @@ class ApiPOS extends Controller
                         $countInsert     = $countInsert + 1;
                         $insertProduct[] = 'Success to sync, product ' . $menu['sap_matnr'] . ' at outlet ' . $price['store_code'];
                     } else {
+                        $countfailed     = $countfailed + 1;
                         $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ' at outlet ' . $price['store_code'] . ', outlet not found';
                     }
                 }
                 SyncProductPrice::dispatch($dataJob);
             } else {
+                $countfailed     = $countfailed + 1;
                 $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', product not found';
             }
         }
 
-        $hasil['list_product']['total']              = $countInsert;
-        $hasil['list_product']['list_product']       = $insertProduct;
-        $hasil['failed_product']['list_product']    = $failedProduct;
+        $hasil['success_menu']['total']         = $countInsert;
+        $hasil['success_menu']['list_menu']     = $insertProduct;
+        $hasil['failed_product']['total']       = $countfailed;
+        $hasil['failed_product']['list_menu']   = $failedProduct;
+        return [
+            'status'    => 'success',
+            'result'  => $hasil,
+        ];
+    }
+
+    public function syncAddOn(Request $request) 
+    {
+        $post = $request->json()->all();
+        $api = $this->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
+
+        $countInsert    = 0;
+        $insertProduct  = [];
+        $countUpdate    = 0;
+        $updatedProduct = [];
+        $failedProduct  = [];
+
+        foreach ($post['add_on'] as $keyMenu => $menu) {
+            if (!isset($menu['menu_id'])) {
+                $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because menu_id not set';
+                continue;
+            }
+            if (!isset($menu['menu'])) {
+                $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because menu not set';
+                continue;
+            }
+
+            DB::beginTransaction();
+            $productModifier = ProductModifier::where('code', $menu['menu_id'])->first();
+            if ($productModifier) {
+                try {
+                    ProductModifier::where('code', $menu['menu_id'])->update([
+                        'text'      => $menu['menu_name'],
+                        'type'      => $menu['group'],
+                        'status'    => $menu['status'] = ($menu['status'] == 'Active') ? 1 : 0,
+                    ]);
+                } catch (\Exception $e) {
+                    DB::rollback();
+                    LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                    $failedProduct[] = 'fail to sync, product ' . $menu['menu_name'];
+                    continue;
+                }
+
+                foreach ($menu['menu'] as $keyVariance => $variance) {
+                    $product = Product::where('product_code', $variance)->first();
+                    if (!$product) {
+                        $failedProduct[] = 'fail to sync, product modifier ' . $productModifier->text;
+                        continue;
+                    }
+
+                    try {
+                        ProductModifierProduct::updateOrCreate([
+                            'id_product'            => $product->id_product,
+                            'id_product_modifier'   => $productModifier->id_product_modifier
+                        ], [
+                            'id_product'            => $product->id_product,
+                            'id_product_modifier'   => $productModifier->id_product_modifier
+                        ]);
+                        $countUpdate = $countUpdate + 1;
+                    } catch (\Exception $e) {
+                        DB::rollback();
+                        LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                        $failedProduct[] = 'fail to sync, product ' . $productModifier->text;
+                        continue;
+                    }
+                }
+            } else {
+                try {
+                    $productModifier = ProductModifier::create([
+                        'code'      => $menu['menu_id'],
+                        'text'      => $menu['menu_name'],
+                        'type'      => $menu['group'],
+                        'status'    => $menu['status'] = ($menu['status'] == 'Active') ? 1 : 0,
+                    ]);
+                } catch (\Exception $e) {
+                    DB::rollback();
+                    LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                    $failedProduct[] = 'fail to sync, product modifier ' . $menu['menu_id'];
+                    continue;
+                }
+                
+                foreach ($menu['menu'] as $keyVariance => $variance) {
+                    $product = Product::where('product_code', $variance)->first();
+                    if (!$product) {
+                        $failedProduct[] = 'fail to sync, product modifier ' . $productModifier->text;
+                        continue;
+                    }
+
+                    try {
+                        ProductModifierProduct::updateOrCreate([
+                            'id_product'            => $product->id_product,
+                            'id_product_modifier'   => $productModifier->id_product_modifier
+                        ], [
+                            'id_product'            => $product->id_product,
+                            'id_product_modifier'   => $productModifier->id_product_modifier
+                        ]);
+                        $countInsert = $countInsert + 1;
+                    } catch (\Exception $e) {
+                        DB::rollback();
+                        LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                        $failedProduct[] = 'fail to sync, product ' . $productModifier->text;
+                        continue;
+                    }
+                }
+            }
+            DB::commit();
+        }
+        $hasil['inserted']  = $countInsert;
+        $hasil['updated']   = $countUpdate;
+        return [
+            'status'    => 'success',
+            'result'    => $hasil,
+        ];
+    }
+
+    public function syncAddOnPrice(Request $request) {
+        $post = $request->json()->all();
+        $api = $this->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
+        
+        $countInsert    = 0;
+        $insertProduct  = [];
+        $countfailed    = 0;
+        $failedProduct  = [];
+        $dataJob        = [];
+        foreach ($post['add_on'] as $menu) {
+            $checkProduct = ProductModifier::where('code', $menu['menu_id'])->first();
+            $dataJob['menu_id'] = $menu['menu_id'];
+            if ($checkProduct) {
+                foreach ($menu['price_detail'] as $key => $price) {
+                    $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
+                    if ($checkOutlet) {
+                        $dataJob['price_detail'][]  = $price;
+                        $countInsert     = $countInsert + 1;
+                        $insertProduct[] = 'Success to sync, product modifier ' . $menu['menu_id'] . ' at outlet ' . $price['store_code'];
+                    } else {
+                        $countfailed     = $countfailed + 1;
+                        $failedProduct[] = 'Fail to sync, product modifier ' . $menu['menu_id'] . ' at outlet ' . $price['store_code'] . ', outlet not found';
+                    }
+                }
+                SyncAddOnPrice::dispatch($dataJob);
+            } else {
+                $countfailed     = $countfailed + 1;
+                $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', product not found';
+            }
+        }
+
+        $hasil['success_menu']['total']         = $countInsert;
+        $hasil['success_menu']['list_menu']     = $insertProduct;
+        $hasil['failed_product']['total']       = $countfailed;
+        $hasil['failed_product']['list_menu']   = $failedProduct;
         return [
             'status'    => 'success',
             'result'  => $hasil,

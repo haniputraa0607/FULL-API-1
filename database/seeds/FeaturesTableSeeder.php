@@ -1819,6 +1819,14 @@ class FeaturesTableSeeder extends Seeder
                 'created_at' => date('Y-m-d H:00:00'),
                 'updated_at' => date('Y-m-d H:00:00'),
             ),
+            226 =>
+            array(
+                'id_feature' => 227,
+                'feature_type' => 'Create',
+                'feature_module' => 'Void Ovo',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
         ));
     }
 }

@@ -371,18 +371,21 @@ class ApiDealsVoucher extends Controller
             } else {
                 $voucher[$index]['deal_voucher']['deal']['label_outlet'] = 'Some';
             }
-            if($datavoucher['used_at']){
+           if($datavoucher['used_at']){
                 $voucher[$index]['label']='Used';
                 // $voucher[$index]['status_text']="Sudah digunakan pada \n".MyHelper::dateFormatInd($voucher[$index]['used_at'],false);
-                $voucher[$index]['status_text']="Used on ".date('d F Y');
+                $voucher[$index]['status_text']="Used on ".date('d F Y', strtotime($voucher[$index]['voucher_expired_at']));
+                $voucher[$index]['voucher_status_text']=["Used on",date('d F Y', strtotime($voucher[$index]['voucher_expired_at']))];
             }elseif($datavoucher['voucher_expired_at']<date('Y-m-d H:i:s')){
                 $voucher[$index]['label']='Expired';
                 // $voucher[$index]['status_text']="Telah berakhir pada \n".MyHelper::dateFormatInd($voucher[$index]['voucher_expired_at'],false);
-                $voucher[$index]['status_text']="Expired on ".date('d F Y');
+                $voucher[$index]['status_text']="Expired on ".date('d F Y', strtotime($voucher[$index]['voucher_expired_at']));
+                $voucher[$index]['voucher_status_text']=["Expired on", date('d F Y', strtotime($voucher[$index]['voucher_expired_at']))];
             }else{
                 $voucher[$index]['label']='Used';
                 // $voucher[$index]['status_text']="Berlaku hingga \n".MyHelper::dateFormatInd($voucher[$index]['voucher_expired_at'],false);
-                $voucher[$index]['status_text']="Valid until ".date('d F Y');
+                $voucher[$index]['status_text']="Valid until ".date('d F Y', strtotime($voucher[$index]['voucher_expired_at']));
+                $voucher[$index]['voucher_status_text']=["Valid until", date('d F Y', strtotime($voucher[$index]['voucher_expired_at']))];
             }
             $outlet = null;
             if($datavoucher['deal_voucher'] == null){
@@ -482,6 +485,7 @@ class ApiDealsVoucher extends Controller
                     'status_redeem'=>($var['redeemed_at']??false)?1:0,
                     'label'=>$var['label'],
                     'status_text'=>$var['status_text'],
+                    'voucher_status_text'=>$var['voucher_status_text'],
                     'is_used'=>$var['is_used']
                 ];
             },$voucher);

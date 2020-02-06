@@ -5,6 +5,7 @@
 @extends('webview.main')
 
 @section('css')
+	<link rel="stylesheet" href="{{env('API_URL')}}css/deals.css">
 	<style type="text/css">
     	p{
     		margin-top: 0px !important;
@@ -58,6 +59,15 @@
         .bg-grey{
             background-color: #cccccc;
         }
+		.bg-pale-teal {
+			background-color: #8fd6bd;
+		}
+		.pale-teal{
+			color: #8fd6bd;
+		}
+		.dark-sea-green {
+			color: #10704e;
+		}
     	.fee{
 			margin-top: 30px;
 			font-size: 18px;
@@ -127,21 +137,21 @@
 	<div class="deals-detail">
 		@if(!empty($deals))
 			<div class="col-md-4 col-md-offset-4" style="background-color: #ffffff;">
-				<div style="background-color: #ffffff;padding: 10px;box-shadow: 0 0.7px 3.3px #eeeeee;" class="col-md-12 clearfix Ubuntu">
-					<div class="text-center title Ubuntu-Medium" style="color: #ff9d6e;font-size: 16.7px;">
+				<div style="background: url('{{env('API_URL')}}img/asset/bg_card_membership.png');background-size: contain;padding: 10px;box-shadow: 0 0.7px 3.3px #eeeeee;" class="col-md-12 clearfix Ubuntu">
+					<div class="text-center title Ubuntu-Medium pale-teal" style="font-size: 16.7px;">
 						Horayy!
 					</div>
-					<div class="text-center Ubuntu" style="color: #3d3935;margin-top: 14.3px;">
+					<div class="text-center Ubuntu-Medium" style="font-size: 14px;color: #333333;margin-top: 10px;">
 						Thankyou for buying
 					</div>
-					<div style="position: relative;margin-top: 26.7px;">
+					<div style="position: relative;margin-top: 20px;">
 						<div style="width: 56%;height: 100px;position: absolute;top: 10%;left: 40%;">
 							<div class="cotainer">
-								<div class="pull-left" style="margin-top: 10px;">
+								<div style="margin-top: 5px;">
 									<p class="Ubuntu-Medium" style="font-size: 14px;color: #333333;">{{$deals['deals_voucher']['deal']['deals_title']}}</p>
 									{{-- <p style="font-size: 13.3px;color: #333333;">{{$deals['deals_voucher']['deal']['deals_second_title']}}</p> --}}
 									<div style="margin-top: 23px;"></div>
-									<p class="Ubuntu" style="font-size: 10.7px;color: #3d3935;padding: 5px 10px;background-color: #f0f3f7;border-radius: 100px;">Valid until {{date('d F Y', strtotime($deals['deals_voucher']['deal']['deals_end']))}}</p>
+									<p class="Ubuntu" style="font-size: 11.7px;color: #707070;padding: 5px 10px;background-color: #f8f9fb;border-radius: 100px;">Valid until <span style="color: #333333;">{{date('d F Y', strtotime($deals['deals_voucher']['deal']['deals_end']))}}</span></p>
 								</div>
 							</div>
 						</div>
@@ -150,18 +160,23 @@
 					</div>
 				</div>
 
-				<div style="background-color: #f8f9fb;" class="title-wrapper col-md-12 clearfix Ubuntu-Bold">
-					<div class="title" style="font-size: 13.3px; color: #333333;">Transaction</div>
+				<div style="background-color: #ffffff;" class="title-wrapper col-md-12 clearfix Ubuntu-Bold">
+					<div class="title" style="font-size: 14px; color: #333333;">Transaction</div>
 				</div>
 
-				<div style="background-color: #ffffff;padding-top: 0px; color: #aaaaaa; height: 40px;font-size: 12.7px;" class="description-wrapper Ubuntu">
-					<div class="description pull-left Ubuntu-SemiBold">Date</div>
-					<div style="color: #3d3935;" class="description pull-right">{{date('d M Y H:i', strtotime($deals['claimed_at']))}}</div>
+				<div style="background-color: #ffffff;padding-top: 0px;padding-bottom: 16.7px;color: #aaaaaa;font-size: 12.7px;" class="description-wrapper Ubuntu">
+					<div class="row">
+						<div class="description col-6 Ubuntu-SemiBold">Date</div>
+						<div style="color: #3d3935;" class="description col-6 text-right">{{date('d M Y H:i', strtotime($deals['claimed_at']))}}</div>
+					</div>
+					<div class="row" style="margin-top: 16.7px;">
+						<div class="description col-6 Ubuntu-SemiBold">Transaction ID</div>
+						<div style="color: #3d3935;" class="description col-6 text-right">{{strtotime($deals['claimed_at'])}}</div>
+					</div>
 				</div>
 
-				<div style="background-color: #ffffff;padding-top: 0px; color: #aaaaaa; height: 40px;font-size: 12.7px;" class="description-wrapper Ubuntu">
-					<div class="description pull-left Ubuntu-SemiBold">Transaction ID</div>
-					<div style="color: #3d3935;" class="description pull-right">{{strtotime($deals['claimed_at'])}}</div>
+				<div style="background-color: #ffffff;padding-top: 0px;padding-bottom: 0px;color: #aaaaaa;font-size: 12.7px;" class="description-wrapper Ubuntu">
+					<hr style="padding-top: 16.7px;margin-bottom: 0px;border-top-style: dashed;">
 				</div>
 
 				@php
@@ -173,19 +188,15 @@
 						$payment = 'Free';
 					}
 				@endphp
-				<div style="background-color: #ffffff;padding-top: 0px; color: #aaaaaa; height: 60px;font-size: 12.7px;" class="description-wrapper Ubuntu">
-					<div class="description pull-left Ubuntu-SemiBold">Maxx Points</div>
-					<div style="color: #b72126;" class="description pull-right">{{$payment}}</div>
-				</div>
-				<div style="background-color: #ffffff;font-size: 13.3px;">
-					<div style="background-color: #eed484;padding-top: 0px;color: #3d3935;height: 45px;border-radius: 10px;margin: 0px 15px;" class="description-wrapper Ubuntu-Medium">
-						<div class="description pull-left Ubuntu-SemiBold">Total Pembayaran</div>
-						<div class="description pull-right Ubuntu-SemiBold">{{$payment}}</div>
+				<div style="background-color: #ffffff;padding-top: 0px;padding-bottom: 0px;color: #aaaaaa;font-size: 12.7px;" class="description-wrapper Ubuntu">
+					<div class="row">
+						<div style="color: #333333;" class="description col-6 Ubuntu-Medium">Total Payment</div>
+						<div style="color: #333333;" class="description col-6 text-right Ubuntu-Medium">{{$payment}}</div>
 					</div>
 				</div>
 
-				<div style="background-color: #ffffff;padding-top: 0px;color: rgb(0, 0, 0);height: 70px;position: fixed;bottom: 10px;width: 100%;" class="description-wrapper Ubuntu">
-					<a style="width:100%;background-color: #8fd6bd;color: #10704e;font-size: 15px;" class="btn btn-lg Ubuntu-Bold" href="#yes">Lihat Voucher</a>
+				<div style="background-color: #ffffff;padding-top: 0px;color: rgb(0, 0, 0);height: 80px;position: fixed;bottom: 10px;width: 100%;" class="description-wrapper Ubuntu">
+					<a style="width:100%;background-color: #8fd6bd;color: #10704e;font-size: 15px;" class="btn btn-lg Ubuntu-Bold" href="#yes">View Voucher</a>
 				</div>
 			</div>
 		@else
@@ -194,110 +205,4 @@
 			</div>
 		@endif
 	</div>
-@stop
-
-@section('page-script')
-    @if(!empty($deals))
-        <script type="text/javascript">
-            @php $month = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', "Juli", 'Agustus', 'September', 'Oktober', 'November', 'Desember']; @endphp
-
-            // timer
-            var deals_start = "{{ strtotime($deals['deals_voucher']['deal']['deals_start']) }}";
-            var deals_end   = "{{ strtotime($deals['deals_voucher']['deal']['deals_end']) }}";
-            var timer_text;
-            var difference;
-
-            if (server_time >= deals_start && server_time <= deals_end) {
-                // deals date is valid and count the timer
-                difference = deals_end - server_time;
-                document.getElementById('timer').classList.add("bg-black");
-            }
-            else {
-                // deals is not yet start
-                difference = deals_start - server_time;
-                document.getElementById('timer').classList.add("bg-grey");
-            }
-
-            var display_flag = 0;
-            this.interval = setInterval(() => {
-                if(difference >= 0) {
-                    timer_text = timer(difference);
-					@if($deals['deals_voucher']['deal']['deals_status'] == 'available')
-					if(timer_text.includes('lagi')){
-						document.getElementById("timer").innerHTML = "<i class='fas fa-clock'></i> &nbsp; Berakhir dalam";
-					}else{
-						document.getElementById("timer").innerHTML = "<i class='fas fa-clock'></i> &nbsp; Berakhir pada";
-					}
-                    document.getElementById("timer").innerHTML += " ";
-                    document.getElementById('timer').innerHTML += timer_text;
-                    @elseif($deals['deals_voucher']['deal']['deals_status'] == 'soon')
-                    document.getElementById("timer").innerHTML = "<i class='fas fa-clock'></i> &nbsp; Akan dimulai pada";
-                    document.getElementById("timer").innerHTML += " ";
-                    document.getElementById('timer').innerHTML += "{{ date('d', strtotime($deals['deals_voucher']['deal']['deals_start'])) }} {{$month[date('m', strtotime($deals['deals_voucher']['deal']['deals_start']))-1]}} {{ date('Y', strtotime($deals['deals_voucher']['deal']['deals_start'])) }} : {{ date('H:i', strtotime($deals['deals_voucher']['deal']['deals_start'])) }}";
-                    @endif
-
-                    difference--;
-                }
-                else {
-                    clearInterval(this.interval);
-                }
-
-                // if days then stop the timer
-                if (timer_text!=null && timer_text.includes("day")) {
-                    clearInterval(this.interval);
-                }
-
-                // show timer
-                if (display_flag == 0) {
-                    document.getElementById('timer').style.display = 'block';
-                    display_flag = 1;
-                }
-            }, 1000); // 1 second
-
-            function timer(difference) {
-                if(difference === 0) {
-                    return null;    // stop the function
-                }
-
-                var daysDifference, hoursDifference, minutesDifference, secondsDifference, timer;
-
-                // countdown
-                daysDifference = Math.floor(difference/60/60/24);
-                if (daysDifference > 0) {
-					timer = "{{ date('d', strtotime($deals['deals_voucher']['deal']['deals_end'])) }} {{$month[ date('m', strtotime($deals['deals_voucher']['deal']['deals_end']))-1]}} {{ date('Y', strtotime($deals['deals_voucher']['deal']['deals_end'])) }}";
-                  //  timer = daysDifference + " hari";
-                    console.log('timer d', timer);
-                }
-                else {
-                    difference -= daysDifference*60*60*24;
-
-                    hoursDifference = Math.floor(difference/60/60);
-                    difference -= hoursDifference*60*60;
-                    hoursDifference = ("0" + hoursDifference).slice(-2);
-
-                    minutesDifference = Math.floor(difference/60);
-                    difference -= minutesDifference*60;
-                    minutesDifference = ("0" + minutesDifference).slice(-2);
-
-                    secondsDifference = Math.floor(difference);
-
-                    if (secondsDifference-1 < 0) {
-                        secondsDifference = "00";
-                    }
-                    else {
-                        secondsDifference = secondsDifference-1;
-                        secondsDifference = ("0" + secondsDifference).slice(-2);
-                    }
-                    console.log('timer h', hoursDifference);
-                    console.log('timer m', minutesDifference);
-                    console.log('timer s', secondsDifference);
-
-                    timer = hoursDifference + " : " + minutesDifference + " : " + secondsDifference;
-                    console.log('timer', timer);
-                }
-
-                return timer;
-            }
-        </script>
-    @endif
 @stop
