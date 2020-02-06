@@ -337,7 +337,42 @@
 							@endforeach
 						</div>
 					</div>
-					<br>
+				</div>
+				<hr width="100%" style="margin-top: 10px;margin-bottom: 0px;">
+				<div class="container" style="border-top: 3.3px solid #8fd6bd;background-color: #ffffff;">
+					<div style="padding-top: 15px;">
+						@if ($voucher['is_used'] == 1)
+							@if ($voucher['is_online'] == 1)
+								<p class="col-12 Ubuntu-Medium" style="font-size: 13.3px;color: #333333;">Online Transaction</p>
+								<p class="col-12 Ubuntu-Regular" style="font-size: 11.3px;color: #707070;">Apply promo on this app</p>
+								<center>
+									<button onclick="location.href='{{url()->current()}}#use_later'" style="outline:none; font-size:15px; margin-bottom: 15px; margin-top: 15px; background-color: #b72126; color: #ffffff" type="button" id="invalidate" class="btn Ubuntu-Bold">Use Later</button>
+								</center>
+							@endif
+							@if ($voucher['is_offline'] == 1)
+								<p class="col-12 Ubuntu-Medium" style="font-size: 13.3px;color: #333333;">Offline Transaction</p>
+								<p class="col-12 Ubuntu-Regular" style="font-size: 11.3px;color: #707070;">Redeem directly at Cashier</p>
+								<center>
+									<button disabled style="outline:none; font-size:15px; margin-bottom: 15px; margin-top: 15px; background-color: #cccccc; color: #ffffff" type="button" id="invalidate" class="btn Ubuntu-Bold">Redeem to Cashier</button>
+								</center>
+							@endif
+						@else
+							@if ($voucher['is_online'] == 1)
+								<p class="col-12 Ubuntu-Medium" style="font-size: 13.3px;color: #333333;">Online Transaction</p>
+								<p class="col-12 Ubuntu-Regular" style="font-size: 11.3px;color: #707070;">Apply promo on this app</p>
+								<center>
+									<button onclick="location.href='{{url()->current()}}#use_voucher'" style="outline:none; font-size:15px; margin-bottom: 15px; margin-top: 15px; background-color: #8fd6bd; color: #10704e" type="button" id="invalidate" class="btn Ubuntu-Bold">Use Voucher</button>
+								</center>
+							@endif
+							@if ($voucher['is_offline'] == 1)
+								<p class="col-12 Ubuntu-Medium" style="font-size: 13.3px;color: #333333;">Offline Transaction</p>
+								<p class="col-12 Ubuntu-Regular" style="font-size: 11.3px;color: #707070;">Redeem directly at Cashier</p>
+								<center>
+									<button onclick="location.href='{{url()->current()}}#redeem_to_cashier'" style="outline:none; font-size:15px; margin-bottom: 15px; margin-top: 15px; background-color: #333333; color: #ffffff" type="button" id="invalidate" class="btn Ubuntu-Bold">Redeem to Cashier</button>
+								</center>
+							@endif
+						@endif
+					</div>
 				</div>
 				@endif
 				</div>

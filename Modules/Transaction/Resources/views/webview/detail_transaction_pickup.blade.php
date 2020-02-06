@@ -421,19 +421,19 @@
                 <div class="container">
                 <div class="row text-center">
                     @if($data['detail']['reject_at'] != null)
-                    <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #3d3935;">
+                    <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #b72126;">
                         Order Rejected
                     </div>
                     @elseif($data['detail']['taken_at'] != null)
-                    <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #3d3935;">
+                    <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #8fd6bd;">
                         Order Has Been Taken
                     </div>
                     @elseif($data['detail']['ready_at'] != null)
-                    <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #3d3935;">
+                    <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #8fd6bd;">
                         Order Is Ready
                     </div>
                     @elseif($data['detail']['receive_at'] != null)
-                    <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #3d3935;">
+                    <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #8fd6bd;">
                         Order Received
                     </div>
                     @else
@@ -471,19 +471,19 @@
                         <div class="container">
                             <div class="row text-center">
                                 @if($data['detail']['reject_at'] != null)
-                                <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #3d3935;">
+                                <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #b72126;">
                                     Order Rejected
                                 </div>
                                 @elseif($data['detail']['taken_at'] != null)
-                                <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #3d3935;">
+                                <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #8fd6bd;">
                                     Order Has Been Taken
                                 </div>
                                 @elseif($data['detail']['ready_at'] != null)
-                                <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #3d3935;">
+                                <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #8fd6bd;">
                                     Order Is Ready
                                 </div>
                                 @elseif($data['detail']['receive_at'] != null)
-                                <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #3d3935;">
+                                <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #8fd6bd;">
                                     Order Received
                                 </div>
                                 @else
@@ -520,24 +520,18 @@
                         <div class="col-12 text-16-7px text-black Ubuntu space-nice">{{ $data['user']['phone'] }}</div>
                         @endif
                         <div class="col-12 space-nice text-black Ubuntu" style="padding-bottom: 10px;">
-                            @if ($data['detail']['pickup_type'] == 'set time') 
-                                Your order will be ready on
-                            @else 
-                                Your order will be processed on
-                            @endif
+                            Your order will be ready on
                         </div>
                         <div class="col-12 text-14px space-text text-black Ubuntu-Medium">{{ date('d F Y', strtotime($data['transaction_date'])) }}</div>
-                        <div class="col-12 text-21-7px space-text text-black Ubuntu-Medium">{{ date('H:i', strtotime($data['transaction_date'])) }}</div>
-                        {{-- <div class="col-12 text-15px space-nice text-black Ubuntu-Bold" style="padding-bottom: 8.3px;">PICK UP</div> --}}
-                        {{-- <div class="col-12 text-21-7px Ubuntu-Medium" style="color: #ff9d6e;">
+                        <div class="col-12 text-21-7px Ubuntu-Medium" style="color: #8fd6bd;">
                             @if ($data['detail']['pickup_type'] == 'set time') 
                                 {{ date('H:i', strtotime($data['detail']['pickup_at'])) }} 
                             @elseif($data['detail']['pickup_type'] == 'at arrival') 
-                                On Arrival
+                                ON ARRIVAL
                             @else 
-                                Right Now
+                                RIGHT NOW
                             @endif
-                        </div> --}}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -718,7 +712,7 @@
             @endif
             <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
                 <div class="round-black @if($bg) bg-black @endif"></div>
-                Your urder awaits confirmation
+                Your order awaits confirmation
             </div>
             <div class="col-12 text-11-7px Ubuntu text-black space-bottom top-{{$top}}px">
                 <div class="round-white"></div>
