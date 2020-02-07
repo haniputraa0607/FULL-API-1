@@ -738,7 +738,7 @@ class ApiPOS extends Controller
                     $product = Product::where('product_code', $variance['sap_matnr'])->first();
                     if ($product) {
                         try {
-                            $product = Product::where('product_code', $variance['sap_matnr'])->update([
+                            Product::where('product_code', $variance['sap_matnr'])->update([
                                 'product_name_pos'  => implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]),
                                 'product_status'    => $variance['status']
                             ]);
@@ -787,8 +787,8 @@ class ApiPOS extends Controller
                     } catch (\Exception $e) {
                         DB::rollback();
                         LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
-                        $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
-                        continue;
+                        $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
+                        ;
                     }
                 }
             }
@@ -814,25 +814,29 @@ class ApiPOS extends Controller
         $countfailed    = 0;
         $failedProduct  = [];
         $dataJob = [];
-        foreach ($post['menu'] as $menu) {
+        foreach ($post['menu'] as $keyMenu => $menu) {
             $checkProduct = Product::where('product_code', $menu['sap_matnr'])->first();
-            $dataJob['sap_matnr']       = $menu['sap_matnr'];
             if ($checkProduct) {
-                foreach ($menu['price_detail'] as $key => $price) {
+                $dataJob[$keyMenu]['sap_matnr']   = $menu['sap_matnr'];
+                foreach ($menu['price_detail'] as $keyPrice => $price) {
                     $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
                     if ($checkOutlet) {
-                        $dataJob['price_detail'][]  = $price;
+                        $dataJob[$keyMenu]['price_detail'][$keyPrice]  = $price;
                         $countInsert     = $countInsert + 1;
                         $insertProduct[] = 'Success to sync, product ' . $menu['sap_matnr'] . ' at outlet ' . $price['store_code'];
                     } else {
                         $countfailed     = $countfailed + 1;
                         $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ' at outlet ' . $price['store_code'] . ', outlet not found';
+                        continue;
                     }
                 }
-                SyncProductPrice::dispatch($dataJob);
+                if (isset($dataJob[$keyMenu]['price_detail'])) {
+                    SyncProductPrice::dispatch(json_encode($dataJob[$keyMenu]));
+                }
             } else {
                 $countfailed     = $countfailed + 1;
                 $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', product not found';
+                continue;
             }
         }
 
@@ -970,25 +974,29 @@ class ApiPOS extends Controller
         $countfailed    = 0;
         $failedProduct  = [];
         $dataJob        = [];
-        foreach ($post['add_on'] as $menu) {
+        foreach ($post['add_on'] as $keyMenu => $menu) {
             $checkProduct = ProductModifier::where('code', $menu['menu_id'])->first();
-            $dataJob['menu_id'] = $menu['menu_id'];
             if ($checkProduct) {
-                foreach ($menu['price_detail'] as $key => $price) {
+                $dataJob[$keyMenu]['menu_id'] = $menu['menu_id'];
+                foreach ($menu['price_detail'] as $keyPrice => $price) {
                     $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
                     if ($checkOutlet) {
-                        $dataJob['price_detail'][]  = $price;
+                        $dataJob[$keyMenu]['price_detail'][$keyPrice]  = $price;
                         $countInsert     = $countInsert + 1;
                         $insertProduct[] = 'Success to sync, product modifier ' . $menu['menu_id'] . ' at outlet ' . $price['store_code'];
                     } else {
                         $countfailed     = $countfailed + 1;
                         $failedProduct[] = 'Fail to sync, product modifier ' . $menu['menu_id'] . ' at outlet ' . $price['store_code'] . ', outlet not found';
+                        continue;
                     }
                 }
-                SyncAddOnPrice::dispatch($dataJob);
+                if (isset($dataJob[$keyMenu]['price_detail'])) {
+                    SyncAddOnPrice::dispatch(json_encode($dataJob[$keyMenu]));
+                }
             } else {
                 $countfailed     = $countfailed + 1;
-                $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', product not found';
+                $failedProduct[] = 'Fail to sync, menu ' . $menu['menu_id'] . ', menu not found';
+                continue;
             }
         }
 

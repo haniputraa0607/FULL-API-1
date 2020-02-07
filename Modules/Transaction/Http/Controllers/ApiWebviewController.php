@@ -61,22 +61,22 @@ class ApiWebviewController extends Controller
                     $button = 'LIHAT NOTA';
                 }
 
-                $title = 'Sukses';
-                if ($list['transaction_payment_status'] == 'Pending') {
-                    $title = 'Pending';
-                }
+                $title = 'Transaction Detail';
+                // if ($list['transaction_payment_status'] == 'Pending') {
+                //     $title = 'Pending';
+                // }
 
-                if ($list['transaction_payment_status'] == 'Paid') {
-                    $title = 'Terbayar';
-                }
+                // if ($list['transaction_payment_status'] == 'Paid') {
+                //     $title = 'Paid';
+                // }
 
-                if ($list['transaction_payment_status'] == 'Completed') {
-                    $title = 'Sukses';
-                }
+                // if ($list['transaction_payment_status'] == 'Completed') {
+                //     $title = 'Success';
+                // }
 
-                if ($list['transaction_payment_status'] == 'Cancelled') {
-                    $title = 'Gagal';
-                }
+                // if ($list['transaction_payment_status'] == 'Cancelled') {
+                //     $title = 'Failed';
+                // }
 
                 $encode = json_encode($dataEncode);
                 $base = base64_encode($encode);
@@ -625,9 +625,9 @@ class ApiWebviewController extends Controller
             $view = 'detail_transaction_voucher';
         }
 
-        if (isset($data['success'])) {
-            $view = 'transaction_success';
-        }
+        // if (isset($data['success'])) {
+        //     $view = 'transaction_success';
+        // }
 
         if (isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Pending') {
             $view = 'transaction_proccess';
@@ -695,9 +695,9 @@ class ApiWebviewController extends Controller
             $view = 'detail_transaction_voucher';
         }
 
-        if (isset($data['success'])) {
-            $view = 'transaction_success';
-        }
+        // if (isset($data['success'])) {
+        //     $view = 'transaction_success';
+        // }
 
         if (isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Pending') {
             $view = 'transaction_proccess';

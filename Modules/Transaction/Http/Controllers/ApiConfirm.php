@@ -47,7 +47,7 @@ class ApiConfirm extends Controller
         $productMidtrans = [];
         $dataDetailProduct = [];
 
-        $check = Transaction::with('transaction_shipments', 'productTransaction.product','outlet_name')->where('transaction_receipt_number', $post['id'])->first();
+        $check = Transaction::with('transaction_shipments', 'productTransaction.product','outlet_name')->where('id_user',$user->id)->where('id_transaction', $post['id'])->first();
 
         if (empty($check)) {
             DB::rollback();
@@ -319,7 +319,7 @@ class ApiConfirm extends Controller
                 $phone = '0'.$phone;
             }
 
-            $pay = $this->paymentOvo($check, $countGrandTotal, $phone, 'staging');
+            $pay = $this->paymentOvo($check, $countGrandTotal, $phone, env('OVO_ENV')?:'staging');
 
             return $pay;
         }
@@ -569,11 +569,14 @@ class ApiConfirm extends Controller
 
                             $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
                             if($update){
-                                $updatePaymentStatus = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Completed']);
+                                $updatePaymentStatus = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Completed', 'show_rate_popup' => 1]);
                                 if($updatePaymentStatus){
 
                                     $dataTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction')
                                     ->where('id_transaction', $payment['id_transaction'])->first();
+
+                                    // apply cashback to referrer
+                                    \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($dataTrx);
 
                                     $mid = [
                                         'order_id' => $dataTrx['transaction_receipt_number'],
@@ -595,7 +598,7 @@ class ApiConfirm extends Controller
                                         $savelocation = app($this->trx)->saveLocation($dataTrx['latitude'], $dataTrx['longitude'], $dataTrx['id_user'], $dataTrx['id_transaction'], $dataTrx['id_outlet']);
                                     }
 
-                                    $fraud = app($this->notif)->checkFraud($dataTrx);
+                                    //$fraud = app($this->notif)->checkFraud($dataTrx);
 
                                 }
                                 else{

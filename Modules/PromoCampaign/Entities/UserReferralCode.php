@@ -10,7 +10,7 @@ class UserReferralCode extends Model
     	'id_promo_campaign_promo_code',
     	'id_user'
     ];
-
+  
     public function promo_code()
 	{
 		return $this->belongsTo(\Modules\PromoCampaign\Entities\PromoCampaignPromoCode::class, 'id_promo_campaign_promo_code', 'id_promo_campaign_promo_code');

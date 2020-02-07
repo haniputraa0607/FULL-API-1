@@ -155,6 +155,10 @@ class ApiNotification extends Controller {
 
                     $kirim = $this->kirimOutlet($newTrx['transaction_receipt_number']);
                     if (isset($kirim['status']) && $kirim['status'] == 1) {
+
+                        // apply cashback to referrer
+                        \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($newTrx);
+
                         DB::commit();
                         // langsung
                         return response()->json(['status' => 'success']);
@@ -1014,20 +1018,22 @@ Detail: ".$link['short'],
             $paymentBalanceTrx = TransactionPaymentBalance::where('id_transaction', $data['id_transaction'])->first();
             $insertDataLogCash = app($this->balance)->addLogBalance( $data['id_user'], -$paymentBalanceTrx['balance_nominal'], $data['id_transaction'], 'Transaction', $data['transaction_grandtotal']);
         }
-        $usere= User::where('id',$data['id_user'])->first();
-        $send = app($this->autocrm)->SendAutoCRM('Transaction Point Achievement', $usere->phone,
-            [
-                "outlet_name"       => $data['outlet']['outlet_name'],
-                "transaction_date"  => $data['transaction_date'],
-                'id_transaction'    => $data['id_transaction'],
-                'receipt_number'    => $data['transaction_receipt_number'],
-                'received_point'    => (string) $data['transaction_cashback_earned']
-            ]
-        );
-        if($send != true){
-            DB::rollback();
-            return false;
-        }
+
+        // why send notif in here ???
+        // $usere= User::where('id',$data['id_user'])->first();
+        // $send = app($this->autocrm)->SendAutoCRM('Transaction Point Achievement', $usere->phone,
+        //     [
+        //         "outlet_name"       => $data['outlet']['outlet_name'],
+        //         "transaction_date"  => $data['transaction_date'],
+        //         'id_transaction'    => $data['id_transaction'],
+        //         'receipt_number'    => $data['transaction_receipt_number'],
+        //         'received_point'    => (string) $data['transaction_cashback_earned']
+        //     ]
+        // );
+        // if($send != true){
+        //     DB::rollback();
+        //     return false;
+        // }
 
         if ($insertDataLogCash == false) {
             return false;

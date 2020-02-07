@@ -99,7 +99,9 @@ class Deal extends Model
 		'deals_total_redeemed',
 		'deals_total_used',
 		'claim_allowed',
-		'user_limit'
+		'user_limit',
+		'is_offline',
+		'is_online'
 	];
 
 	protected $appends  = ['url_deals_image', 'deals_status', 'deals_voucher_price_type', 'url_webview'];

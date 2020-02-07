@@ -91,7 +91,7 @@ class ApiProductVariantController extends Controller
      */
     public function show(Request $request)
     {
-        $data = ProductVariant::find($request->json('id_product_variant'));
+        $data = ProductVariant::where('product_variant_code',$request->json('product_variant_code'))->first();
         return MyHelper::checkGet($data);
     }
 
@@ -110,8 +110,8 @@ class ApiProductVariantController extends Controller
             'product_variant_name' => $request->json('product_variant_name',''),
             'parent' => $request->json('parent')
         ];
-        $update = ProductVariant::update($data);
-        return MyHelper::checkUpdate($create);
+        $update = ProductVariant::where(['product_variant_code'=>$product_variant_code_ori])->update($data);
+        return MyHelper::checkUpdate($update);
     }
 
     /**
@@ -144,45 +144,46 @@ class ApiProductVariantController extends Controller
         return MyHelper::checkCreate($create);
     }
     public function reorder(Request $request) {
-        // [
-        //   "parent" => [
-        //     0 => "1"
-        //     1 => "2"
-        //   ],
-        //   "child" => [
-        //     [
-        //       0 => "3"
-        //       1 => "4"
-        //     ],
-        //     [
-        //       0 => "5"
-        //       1 => "6"
-        //       2 => "7"
-        //       3 => "8"
-        //       4 => "9"
-        //     ]
-        //   ]
-        // ]
         $parent = $request->json('parent',[]);
         $child = $request->json('child',[]);
+        $variants = $request->json('variants',[]);
         $inserts = [];
+        $dataId = [];
         \DB::beginTransaction();
+        // reorder parent
         foreach ($parent as $key => $value) {
+            $dataId[] = $value;
             $update = ProductVariant::where('id_product_variant' , $value)->update(['product_variant_position' => ($key+1)]);
             if(!$update){
                 \DB::rollback();
                 return MyHelper::checkUpdate($update);
             }
         }
-        foreach ($child as $child2) {
+        // reorder child and assign its parent
+        foreach ($child as $par => $child2) {
             foreach ($child2 as $key => $value) {
-                $update = ProductVariant::where('id_product_variant' , $value)->update(['product_variant_position' => ($key+1)]);
+                $dataId[] = $value;
+                $update = ProductVariant::where('id_product_variant' , $value)->update(['product_variant_position' => ($key+1),'parent'=>$par]);
                 if(!$update){
                     \DB::rollback();
                     return MyHelper::checkUpdate($update);
                 }
             }
         }        
+        // update data
+        foreach ($variants as $variant) {
+            $update = ProductVariant::updateOrCreate(['id_product_variant'=>$variant['id_product_variant']],$variant);
+            if(!$update){
+                \DB::rollback();
+                return MyHelper::checkUpdate($update);
+            }
+        }
+        // delete not exist variant
+        $delete = ProductVariant::whereNotIn('id_product_variant',$dataId)->delete();
+        if(!$delete){
+            \DB::rollback();
+            return MyHelper::checkDelete($update);
+        }
         \DB::commit();
         return MyHelper::checkUpdate($update);
     }

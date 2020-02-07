@@ -25,7 +25,7 @@ class SyncAddOnPrice implements ShouldQueue
      */
     public function __construct($data)
     {
-        $this->data = $data;
+        $this->data = json_decode($data, true);
     }
 
     /**
@@ -62,7 +62,9 @@ class SyncAddOnPrice implements ShouldQueue
                     'id_product_modifier'   => $productModifier->id_product_modifier,
                     'id_outlet'             => $outlet->id_outlet,
                     'price'                 => $price['price'],
-                    'date'                  => date('Y-m-d H:i:s', strtotime($price['start_date'] . ' +' . $i . ' day'))
+                    'date'                  => date('Y-m-d H:i:s', strtotime($price['start_date'] . ' +' . $i . ' day')),
+                    'created_at'            => date('Y-m-d H:i:s'),
+                    'updated_at'            => date('Y-m-d H:i:s')
                 ]);
             }
         }

@@ -570,6 +570,7 @@ class ApiHome extends Controller
     }
 
     public function membership(Request $request){
+        $use_custom_province = \App\Http\Models\Configs::where('id_config',96)->pluck('is_active')->first();
         $user = $request->user();
         if($user->first_login===0){
             $send = app($this->autocrm)->SendAutoCRM('Login First Time', $user['phone']);
@@ -586,7 +587,11 @@ class ApiHome extends Controller
             $user->first_login=1;
             $user->save();
         }
-        $user->load(['city','city.province']);
+        if($use_custom_province){
+            $user->load(['province']);
+        }else{
+            $user->load(['city','city.province']);
+        }
         $birthday = "";
         if ($user->birthday != "") {
             $birthday = date("d F Y", strtotime($user->birthday));
@@ -702,7 +707,9 @@ class ApiHome extends Controller
         foreach ($hidden as $hide) {
             unset($retUser[$hide]);
         }
-
+        if($retUser['province'] == ""){
+            $retUser['province'] = null;
+        }
         $retUser['membership']=$membership;
         $result = [
             'status' => 'success',

@@ -171,9 +171,13 @@ class ApiProductGroupController extends Controller
             'product_group_code' => $request->json('product_group_code'),
             'product_group_name' => $request->json('product_group_name'),
             'product_group_description' => $request->json('product_group_description'),
-            'product_group_photo' => $post['product_group_photo'],
-            'product_group_image_detail' => $post['product_group_image_detail']
         ];
+        if($data['product_group_photo']??false){
+            $data['product_group_photo'] = $post['product_group_photo'];
+        }
+        if($data['product_group_photo']??false){
+            $data['product_group_image_detail'] = $post['product_group_image_detail'];
+        }
         $update = $pg->update($data);
         if($update){
             if($pg_old['product_group_photo']??false){
@@ -269,6 +273,10 @@ class ApiProductGroupController extends Controller
                     ->join('product_product_variants','products.id_product','=','product_product_variants.id_product')
                     ->join('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
                     ->join('product_variants as parents','product_variants.parent','=','parents.id_product_variant')
+                    ->join('brand_product','brand_product.id_product','=','product_product_variants.id_product')
+                    // brand produk ada di outlet
+                    ->where('brand_outlet.id_outlet','=',$post['id_outlet'])
+                    ->join('brand_outlet','brand_outlet.id_brand','=','brand_product.id_brand')
                     // where active
                     ->where(function($query){
                         $query->where('product_prices.product_visibility','=','Visible')
@@ -329,6 +337,12 @@ class ApiProductGroupController extends Controller
 	            ];
 	        }else{
 
+	        	if ($code['promo_campaign']['date_end'] < date('Y-m-d H:i:s')) {
+	        		return [
+		                'status'=>'fail',
+		                'messages'=>['Promo campaign is ended']
+		            ];
+	        	}
 	        	$code = $code->toArray();
 
 		        if ( ($code['promo_campaign']['promo_campaign_product_discount_rules']['is_all_product']??false) == 1)
@@ -366,13 +380,14 @@ class ApiProductGroupController extends Controller
 			        		// loop product group
 		        			foreach ($data as $key2 => $value2) {
 		        				// loop product
-								unset($data[$key2]['products']);
-			        			foreach ($value2['products'] as $key3 => $value3) {
-			        				if ( $value3['id_product'] == $value['id_product'] ) {
-			    						$data[$key2]['is_promo'] = 1;
-			    						break;
-			    					}
-			        			}
+		        				if (isset($value2['products'])) {
+				        			foreach ($value2['products'] as $key3 => $value3) {
+				        				if ( $value3['id_product'] == $value['id_product'] ) {
+				    						$data[$key2]['is_promo'] = 1;
+				    						break;
+				    					}
+				        			}
+		        				}
 		        			}
 			        	}
         			}elseif(isset($applied_product['id_product'])){
@@ -413,6 +428,10 @@ class ApiProductGroupController extends Controller
                     // join product_price (product_outlet pivot and product price data)
                     ->join('product_prices','product_prices.id_product','=','products.id_product')
                     ->where('product_prices.id_outlet','=',$post['id_outlet']) // filter outlet
+                    ->join('brand_product','brand_product.id_product','=','products.id_product')
+                    // brand produk ada di outlet
+                    ->where('brand_outlet.id_outlet','=',$post['id_outlet'])
+                    ->join('brand_outlet','brand_outlet.id_brand','=','brand_product.id_brand')
                     // where active
                     ->where(function($query){
                         $query->where('product_prices.product_visibility','=','Visible')
@@ -436,6 +455,7 @@ class ApiProductGroupController extends Controller
         foreach ($products as $product) {
             if($product['product_variant_code']){
                 $varcode = explode(',',$product['product_variant_code']);
+                if(count($varcode) !== 2) continue;
                 $variant_stock[$varcode[0]][$varcode[1]] = [
                     'product_variant_code' => $varcode[1],
                     'product_stock_status' => $product['product_stock_status'],
@@ -444,8 +464,8 @@ class ApiProductGroupController extends Controller
             }
         }
         // product exists?
-        if(!$id_products){
-            return MyHelper::checkGet($id_products);
+        if(!$id_products || !$variant_stock){
+            return MyHelper::checkGet([]);
         }
         // get product lowest price and default variant
         $default = $query2
