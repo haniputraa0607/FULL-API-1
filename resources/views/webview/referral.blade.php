@@ -5,8 +5,8 @@
 @extends('webview.main')
 
 @section('css')
-    <link rel="stylesheet" href="{{ env('S3_URL_API') }}{{ ('css/referral.css') }}">
-    <link rel="stylesheet" href="{{ env('S3_URL_API') }}{{ ('css/fontawesome.css') }}">
+    <link rel="stylesheet" href="{{ env('API_URL') }}css/referral.css">
+    <link rel="stylesheet" href="{{ env('API_URL') }}css/fontawesome.css">
     <style>
         body {
             width: 100%;
@@ -65,10 +65,10 @@
 @section('content')
     <div class="row box">
         <div class="col-12 text-black text-13-3px Ubuntu-Regular">
-            <p class="text-left no-space-bottom">Refer us to your and earn some points.</p>
+            <p class="text-left no-space-bottom">Refer us to your and earn some {{$referral['referred_promo_type']}}.</p>
             <ul class="list">
-                <li>They'll each get 5.000 points</li>
-                <li>You'll get 10.000 points for each friend that makes first any transaction through MAXX Coffee application</li>
+                <li>They'll each get {{$referral['referred_promo_value']}}@if ($referral['referred_promo_unit'] == 'Percent')% @else points @endif {{$referral['referred_promo_type']}}</li>
+                <li>You'll get {{$referral['referrer_promo_value']}}@if ($referral['referrer_promo_unit'] == 'Percent')% @else points @endif {{$referral['referred_promo_type']}} for each friend that makes first any transaction through MAXX Coffee application</li>
             </ul>
         </div>
         <div class="col-12 text-apricot text-16-7px space-top-30 Ubuntu-Medium">
@@ -76,10 +76,10 @@
         </div>
         <div class="col-12 text-black text-21-7px Ubuntu-Bold">
             <img class="bg-img" src="{{ env('S3_URL_API') }}{{ ('img/bg_referral.png') }}">
-            <span class="code">54FIASKL323</span>
+            <span class="code">{{$promo_code}}</span>
         </div>
         <div class="col-12 space-top-30 text-black text-21-7px Ubuntu-Bold">
-            <button class="btn btn-custom"><i class="fas fa-share-alt"></i> Share Now</button>
+            <button onclick="location.href='{{url()->current()}}#share_now'" class="btn btn-custom"><i class="fas fa-share-alt"></i> Share Now</button>
         </div>
     </div>
 @stop

@@ -9,6 +9,7 @@ use Illuminate\Routing\Controller;
 use \App\Lib\MyHelper;
 
 use \Modules\PromoCampaign\Entities\PromoCampaignReferral;
+use \Modules\PromoCampaign\Entities\UserReferralCode;
 
 class ApiReferralController extends Controller
 {
@@ -16,59 +17,17 @@ class ApiReferralController extends Controller
      * Display a listing of the resource.
      * @return Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        return view('promocampaign::index');
-    }
+        $user = $request->user();
+        $referral = UserReferralCode::with(['promo_code', 'promo_code.promo_campaign_referral'])->where('id_user', $user->id)->get()->first();
 
-    /**
-     * Show the form for creating a new resource.
-     * @return Response
-     */
-    public function create()
-    {
-        return view('promocampaign::create');
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     * @param Request $request
-     * @return Response
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Show the specified resource.
-     * @param int $id
-     * @return Response
-     */
-    public function show($id)
-    {
-        return view('promocampaign::show');
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     * @param int $id
-     * @return Response
-     */
-    public function edit($id)
-    {
-        return view('promocampaign::edit');
-    }
-
-    /**
-     * Update the specified resource in storage.
-     * @param Request $request
-     * @param int $id
-     * @return Response
-     */
-    public function update(Request $request, $id)
-    {
-        //
+        $data = [
+            'promo_code'    => $referral->promo_code->promo_code,
+            'referral'      => $referral->promo_code->promo_campaign_referral
+        ];
+        
+        return view('webview.referral', $data);
     }
 
     /**

@@ -17,6 +17,3 @@ Route::get('/', function () {
 Route::any('api/webview/default', function(){
     return view('webview.default');
 });
-Route::any('api/webview/referral', function(){
-    return view('webview.referral');
-});
