@@ -6,9 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
 	<!-- Bootstrap CSS -->
-	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans|Questrial" rel="stylesheet">
+    <link href="{{ env('API_URL') }}css/general.css" rel="stylesheet">
 	<style type="text/css">
 	@font-face {
             font-family: "Ubuntu-Bold";
@@ -310,8 +308,6 @@
 	}
 
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css">
   </head>
   <body>
 
@@ -337,47 +333,47 @@
   		    <div class="Ubuntu-Medium space-text" id="testClick" style="color: #3d3935; font-size: 13.3px; padding-bottom: 5px;">Open Hours</div>
   			@php
   				$hari = date ("D");
-
-			switch($hari){
-				case 'Sun':
-					$hari_ini = "Minggu";
-				break;
-
-				case 'Mon':
-					$hari_ini = "Senin";
-				break;
-
-				case 'Tue':
-					$hari_ini = "Selasa";
-				break;
-
-				case 'Wed':
-					$hari_ini = "Rabu";
-				break;
-
-				case 'Thu':
-					$hari_ini = "Kamis";
-				break;
-
-				case 'Fri':
-					$hari_ini = "Jumat";
-				break;
-
-				default:
-					$hari_ini = "Sabtu";
-				break;
-			}
-
 			@endphp
 			<div class="row Ubuntu">
 				<div class="col-8">
 				    @if (!empty($data[0]['outlet_schedules']))
 						@foreach ($data[0]['outlet_schedules'] as $key => $val)
+						@php
+							switch($val['day']){
+								case 'Minggu':
+									$val['day'] = "Sun";
+								break;
+
+								case 'Senin':
+									$val['day'] = "Mon";
+								break;
+
+								case 'Selasa':
+									$val['day'] = "Tue";
+								break;
+
+								case 'Rabu':
+									$val['day'] = "Wed";
+								break;
+
+								case 'Kamis':
+									$val['day'] = "Thu";
+								break;
+
+								case 'Jumat':
+									$val['day'] = "Fri";
+								break;
+
+								default:
+									$val['day'] = "Sat";
+								break;
+							}
+						@endphp
 						<div class="pull-left row space-sch">
-							<div style="@if ($val['day'] == $hari_ini) color: #3d3935; @else color: #979797; @endif font-size: 12.7px; padding-bottom: 0;" class="@if ($val['day'] == $hari_ini) Ubuntu-Medium @endif col-3 min-left">{{ $val['day'] }}</div>
-							<div style="@if ($val['day'] == $hari_ini) color: #3d3935; @else color: #979797; @endif font-size: 12.7px; padding-bottom: 0;" class="@if ($val['day'] == $hari_ini) Ubuntu-Medium @endif col-9">
+							<div style="@if ($val['day'] == $hari) color: #3d3935; @else color: #979797; @endif font-size: 12.7px; padding-bottom: 0;" class="@if ($val['day'] == $hari) Ubuntu-Medium @endif col-3 min-left">{{ $val['day'] }}</div>
+							<div style="@if ($val['day'] == $hari) color: #3d3935; @else color: #979797; @endif font-size: 12.7px; padding-bottom: 0;" class="@if ($val['day'] == $hari) Ubuntu-Medium @endif col-9">
 								@if($val['is_closed'] == '1')
-									TUTUP
+									Close
 								@else
 									{{date('H.i', strtotime($val['open']))}} - {{date('H.i', strtotime($val['close']))}}
 								@endif
@@ -405,9 +401,8 @@
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCOHBNv3Td9_zb_7uW-AJDU6DHFYk-8e9Y&v=3.exp&signed_in=true&libraries=places"></script>
+	<script src="{{ env('API_URL') }}js/jquery.js"></script>
+	<script src="{{ env('API_URL') }}js/general.js"></script>
 	<script>
 	$(document).ready(function() {
     	$("#testClick").click(function() {
