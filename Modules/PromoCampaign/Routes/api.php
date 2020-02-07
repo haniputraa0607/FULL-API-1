@@ -43,4 +43,17 @@ Route::group(['middleware' => ['auth:api', 'scopes:apps'], 'prefix' => 'promo-ca
 // DEVELOPMENT
 Route::group(['middleware' => ['auth:api', 'scopes:apps'], 'prefix' => 'promo-campaign'], function () {
     Route::post('validate', 'ApiPromoCampaign@validateCode');
+<<<<<<< Updated upstream
+=======
+});
+
+// Referral
+Route::group(['middleware' => ['auth:api', 'scopes:be'], 'prefix' => 'referral'], function () {
+    Route::get('setting', 'ApiReferralController@setting');
+});
+
+//APPS Referral
+Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'prefix' => 'webview'], function () {
+    Route::any('referral', 'ApiReferralController@index');
+>>>>>>> Stashed changes
 });

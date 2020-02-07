@@ -44,6 +44,11 @@ class PromoCampaignPromoCode extends Eloquent
 		return $this->belongsTo(\Modules\PromoCampaign\Entities\PromoCampaign::class, 'id_promo_campaign');
 	}
 
+	public function promo_campaign_referral()
+	{
+		return $this->belongsTo(\Modules\PromoCampaign\Entities\PromoCampaignReferral::class, 'id_promo_campaign');
+	}
+
 	public function promo_campaign_reports()
 	{
 		return $this->hasMany(\Modules\PromoCampaign\Entities\PromoCampaignReport::class, 'id_promo_campaign_promo_code');
