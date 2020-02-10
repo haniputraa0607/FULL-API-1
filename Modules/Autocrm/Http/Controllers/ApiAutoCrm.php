@@ -79,22 +79,23 @@ class ApiAutoCrm extends Controller
 
 					if($autocrm_title == 'Transaction Success'){
 
-						Mailgun::send('emails.test2', $data, function($message) use ($to,$subject,$name,$setting,$variables)
+						Mail::send('emails.test2', $data, function($message) use ($to,$subject,$name,$setting,$variables)
 						{
 
 							if(stristr($to, 'gmail.con')){
 								$to = str_replace('gmail.con', 'gmail.com', $to);
 							}
 
-
-							$message->to($to, $name)->subject($subject)
-											->trackClicks(true)
-											->trackOpens(true);
-							if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
-								$message->from($setting['email_from'], $setting['email_sender']);
-							}else if(!empty($setting['email_from'])){
-								$message->from($setting['email_from']);
+							$message->to($to, $name)->subject($subject);
+							if(env('MAIL_DRIVER') == 'mailgun'){
+								$message->trackClicks(true)
+										->trackOpens(true);
 							}
+                            if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
+                                $message->from($setting['email_sender'], $setting['email_from']);
+                            }else if(!empty($setting['email_sender'])){
+                                $message->from($setting['email_sender']);
+                            }
 
 							if(!empty($setting['email_reply_to'])){
 								$message->replyTo($setting['email_reply_to'], $setting['email_reply_to_name']);
@@ -120,16 +121,18 @@ class ApiAutoCrm extends Controller
 							}
 						});
 					}else{
-						Mailgun::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting,$variables)
+						Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting,$variables)
 						{
-							$message->to($to, $name)->subject($subject)
-											->trackClicks(true)
-											->trackOpens(true);
-							if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
-								$message->from($setting['email_from'], $setting['email_sender']);
-							}else if(!empty($setting['email_from'])){
-								$message->from($setting['email_from']);
+							$message->to($to, $name)->subject($subject);
+							if(env('MAIL_DRIVER') == 'mailgun'){
+								$message->trackClicks(true)
+										->trackOpens(true);
 							}
+                            if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
+                                $message->from($setting['email_sender'], $setting['email_from']);
+                            }else if(!empty($setting['email_sender'])){
+                                $message->from($setting['email_sender']);
+                            }
 
 							if(!empty($setting['email_reply_to'])){
 								$message->replyTo($setting['email_reply_to'], $setting['email_reply_to_name']);
@@ -192,16 +195,18 @@ class ApiAutoCrm extends Controller
 							'setting' => $setting
 						);
 
-						Mailgun::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting)
+						Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting)
 						{
-							$message->to($to, $name)->subject($subject)
-											->trackClicks(true)
-											->trackOpens(true);
-							if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
-								$message->from($setting['email_from'], $setting['email_sender']);
-							}else if(!empty($setting['email_from'])){
-								$message->from($setting['email_from']);
+							$message->to($to, $name)->subject($subject);
+							if(env('MAIL_DRIVER') == 'mailgun'){
+								$message->trackClicks(true)
+										->trackOpens(true);
 							}
+                            if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
+                                $message->from($setting['email_sender'], $setting['email_from']);
+                            }else if(!empty($setting['email_sender'])){
+                                $message->from($setting['email_sender']);
+                            }
 
 							if(!empty($setting['email_reply_to'])){
 								$message->replyTo($setting['email_reply_to'], $setting['email_reply_to_name']);

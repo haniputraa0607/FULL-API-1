@@ -610,7 +610,7 @@ class ApiPOS extends Controller
                             continue;
                         }
                     }
-                    
+
                     $variantType = ProductVariant::where('product_variant_name', $variance['type'])->first();
                     if (!$variantType) {
                         try {
@@ -697,7 +697,7 @@ class ApiPOS extends Controller
                     $failedProduct[] = 'fail to sync, product ' . $menu['menu_name'];
                     continue;
                 }
-                
+
                 foreach ($menu['menu_variance'] as $keyVariance => $variance) {
                     $variantSize = ProductVariant::where('product_variant_name', $variance['size'])->first();
                     if (!$variantSize) {
@@ -716,7 +716,7 @@ class ApiPOS extends Controller
                             continue;
                         }
                     }
-                    
+
                     $variantType = ProductVariant::where('product_variant_name', $variance['type'])->first();
                     if (!$variantType) {
                         try {
@@ -808,7 +808,7 @@ class ApiPOS extends Controller
         if ($api['status'] != 'success') {
             return response()->json($api);
         }
-        
+
         $countInsert    = 0;
         $insertProduct  = [];
         $countfailed    = 0;
@@ -850,7 +850,7 @@ class ApiPOS extends Controller
         ];
     }
 
-    public function syncAddOn(Request $request) 
+    public function syncAddOn(Request $request)
     {
         $post = $request->json()->all();
         $api = $this->checkApi($post['api_key'], $post['api_secret']);
@@ -927,7 +927,7 @@ class ApiPOS extends Controller
                     $failedProduct[] = 'fail to sync, product modifier ' . $menu['menu_id'];
                     continue;
                 }
-                
+
                 foreach ($menu['menu'] as $keyVariance => $variance) {
                     $product = Product::where('product_code', $variance)->first();
                     if (!$product) {
@@ -968,7 +968,7 @@ class ApiPOS extends Controller
         if ($api['status'] != 'success') {
             return response()->json($api);
         }
-        
+
         $countInsert    = 0;
         $insertProduct  = [];
         $countfailed    = 0;
@@ -1132,7 +1132,7 @@ class ApiPOS extends Controller
                             }
                             // cek name pos, jika beda product tidak di update
                             if (empty($product->product_name_pos) || $product->product_name_pos == $menu['name']) {
-                                // update modifiers 
+                                // update modifiers
                                 if (isset($menu['modifiers'])) {
                                     ProductModifierProduct::where('id_product',$product['id_product'])->delete();
                                     foreach ($menu['modifiers'] as $mod) {
@@ -1144,7 +1144,7 @@ class ApiPOS extends Controller
                                         $dataProductMod['modifier_type'] = 'Specific';
                                         $updateProductMod = ProductModifier::updateOrCreate([
                                             'code'  => $mod['code']
-                                        ], $dataProductMod);                                        
+                                        ], $dataProductMod);
                                         $id_product_modifier = $updateProductMod['id_product_modifier'];
                                         ProductModifierProduct::create([
                                             'id_product_modifier' => $id_product_modifier,
@@ -1152,7 +1152,7 @@ class ApiPOS extends Controller
                                         ]);
                                     }
                                 }
-                                // update price 
+                                // update price
                                 $productPrice = ProductPrice::where('id_product', $product->id_product)->where('id_outlet', $outlet->id_outlet)->first();
                                 if ($productPrice) {
                                     $oldPrice =  $productPrice->product_price;
@@ -1470,15 +1470,18 @@ class ApiPOS extends Controller
                     'content' => $content,
                     'setting' => $setting
                 );
-                Mailgun::send('pos::email_sync_menu', $data, function ($message) use ($to, $subject, $setting) {
-                    $message->to($to)->subject($subject)
-                        ->trackClicks(true)
-                        ->trackOpens(true);
-                    if (!empty($setting['email_from']) && !empty($setting['email_sender'])) {
-                        $message->from($setting['email_from'], $setting['email_sender']);
-                    } else if (!empty($setting['email_from'])) {
-                        $message->from($setting['email_from']);
+                Mail::send('pos::email_sync_menu', $data, function ($message) use ($to, $subject, $setting) {
+                    $message->to($to, $name)->subject($subject);
+                    if(env('MAIL_DRIVER') == 'mailgun'){
+                        $message->trackClicks(true)
+                                ->trackOpens(true);
                     }
+                    if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
+                        $message->from($setting['email_sender'], $setting['email_from']);
+                    }else if(!empty($setting['email_sender'])){
+                        $message->from($setting['email_sender']);
+                    }
+
                     if (!empty($setting['email_reply_to'])) {
                         $message->replyTo($setting['email_reply_to'], $setting['email_reply_to_name']);
                     }
@@ -2602,7 +2605,7 @@ class ApiPOS extends Controller
         DB::commit();
         return response()->json(MyHelper::checkGet($insertRequest));
     }
-    
+
     public function syncOutletMenuCron(Request $request)
     {
         $syncDatetime = date('d F Y h:i');
@@ -2643,7 +2646,7 @@ class ApiPOS extends Controller
                     }
                 }
             }
-            
+
             // if (count($listRejected) > 0) {
             //     $this->syncSendEmail($syncDatetime, $outlet->outlet_code, $outlet->outlet_name, $rejectedProduct, null);
             // }
