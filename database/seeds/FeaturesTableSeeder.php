@@ -1827,6 +1827,14 @@ class FeaturesTableSeeder extends Seeder
                 'created_at' => date('Y-m-d H:00:00'),
                 'updated_at' => date('Y-m-d H:00:00'),
             ),
+            227 =>
+                array(
+                    'id_feature' => 228,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Referral',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
         ));
     }
 }
