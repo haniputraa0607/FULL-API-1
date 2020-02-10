@@ -51,6 +51,7 @@ Route::group(['middleware' => ['auth:api', 'scopes:be'], 'prefix' => 'referral']
 });
 
 //APPS Referral
-Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'prefix' => 'webview'], function () {
-    Route::any('referral', 'ApiReferralController@index');
+Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'prefix' => 'referral'], function () {
+    Route::any('/', 'ApiReferralController@index');
+    Route::any('webview', 'ApiReferralController@webview');
 });
