@@ -448,15 +448,17 @@ class ApiSettingFraud extends Controller
                         );
 
                         try{
-                            Mailgun::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting)
+                            Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting)
                             {
-                                $message->to($to, $name)->subject($subject)
-                                    ->trackClicks(true)
-                                    ->trackOpens(true);
+                                $message->to($to, $name)->subject($subject);
+                                if(env('MAIL_DRIVER') == 'mailgun'){
+                                    $message->trackClicks(true)
+                                            ->trackOpens(true);
+                                }
                                 if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
-                                    $message->from($setting['email_from'], $setting['email_sender']);
-                                }else if(!empty($setting['email_from'])){
-                                    $message->from($setting['email_from']);
+                                    $message->from($setting['email_sender'], $setting['email_from']);
+                                }else if(!empty($setting['email_sender'])){
+                                    $message->from($setting['email_sender']);
                                 }
 
                                 if(!empty($setting['email_reply_to'])){
