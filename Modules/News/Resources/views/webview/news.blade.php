@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <link href="{{ env('API_URL') }}css/news.css" rel="stylesheet">
+        <link href="{{ env('API_URL') }}css/general.css" rel="stylesheet">
         <style type="text/css">
         @font-face {
                 font-family: "Ubuntu-Bold";
@@ -497,7 +497,7 @@
         {{ csrf_field() }}
         <script src="{{ env('API_URL') }}js/jquery.js"></script>
         <script src="{{ env('API_URL') }}js/popper.js"></script>
-        <script src="{{ env('API_URL') }}js/news.js"></script>
+        <script src="{{ env('API_URL') }}js/general.js"></script>
         <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCOHBNv3Td9_zb_7uW-AJDU6DHFYk-8e9Y&v=3.exp&signed_in=true&libraries=places"></script>
         <script src="{{ env('API_URL') }}js/pace.js"></script>
 
