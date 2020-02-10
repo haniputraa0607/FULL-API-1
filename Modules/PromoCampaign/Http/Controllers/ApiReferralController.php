@@ -7,6 +7,7 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 
 use \App\Lib\MyHelper;
+use Modules\PromoCampaign\Lib\PromoCampaignTools;
 
 use \Modules\PromoCampaign\Entities\PromoCampaignReferral;
 use \Modules\PromoCampaign\Entities\UserReferralCode;
@@ -32,6 +33,10 @@ class ApiReferralController extends Controller
         }
 
         $referral = UserReferralCode::with(['promo_code', 'promo_code.promo_campaign_referral'])->where('id_user', $user->id)->get()->first();
+        if (!$referral) {
+            PromoCampaignTools::createReferralCode($user->id);
+            $referral = UserReferralCode::with(['promo_code', 'promo_code.promo_campaign_referral'])->where('id_user', $user->id)->get()->first();
+        }
 
         $value = implode('', [$referral->promo_code->promo_campaign_referral->referred_promo_value, $retVal = ($referral->promo_code->promo_campaign_referral->referred_promo_unit == 'Percent') ? '%' : ' point']);
         
