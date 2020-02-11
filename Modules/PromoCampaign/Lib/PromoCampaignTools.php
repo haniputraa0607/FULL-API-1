@@ -968,7 +968,10 @@ class PromoCampaignTools{
      */
     public static function createReferralCode($id_user) {
     	//check user have referral code
-    	$check = UserReferralCode::where('id_user',$id_user);
+    	$check = UserReferralCode::where('id_user',$id_user)->first();
+    	if($check){
+    		return $check;
+    	}
     	$max_iterate = 1000;
     	$iterate = 0;
     	$exist = true;
