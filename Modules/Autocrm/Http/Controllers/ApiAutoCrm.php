@@ -25,6 +25,7 @@ use App\Lib\MyHelper;
 use App\Lib\PushNotificationHelper;
 use App\Lib\classTexterSMS;
 use App\Lib\classMaskingJson;
+use App\Lib\classJatisSMS;
 use App\Lib\apiwha;
 use Validator;
 use Hash;
@@ -41,6 +42,7 @@ class ApiAutoCrm extends Controller
         date_default_timezone_set('Asia/Jakarta');
 		$this->textersms = new classTexterSMS();
 		$this->rajasms = new classMaskingJson();
+		$this->jatissms = new classJatisSMS();
 		$this->apiwha = new apiwha();
     }
 
@@ -234,27 +236,80 @@ class ApiAutoCrm extends Controller
 
 			if($crm['autocrm_sms_toogle'] == 1){
 				if(!empty($user['phone'])){
-					$senddata = array(
-						'apikey' => env('SMS_KEY'),
-						'callbackurl' => env('APP_URL'),
-						'datapacket'=>array()
-					);
+					switch (env('SMS_GATEWAY')) {
+						case 'Jatis':
+							$senddata = [
+								'userid'	=> env('SMS_USER'),
+								'password'	=> env('SMS_PASSWORD'),
+								'msisdn'	=> '62'.substr($user['phone'],1),
+								'sender'	=> env('SMS_SENDER'),
+								'division'	=> env('SMS_DIVISION'),
+								'batchname'	=> env('SMS_BATCHNAME'),
+								'uploadby'	=> env('SMS_UPLOADBY')
+							];
+							
+							if($crm['autocrm_title'] == 'Pin Sent' || $crm['autocrm_title'] == 'Pin Forgot'){
+								if($useragent && $useragent == "Android"){
+									$crm['autocrm_sms_content'] = '<#> '.$crm['autocrm_sms_content'].' '.ENV('HASH_KEY_'.ENV('HASH_KEY_TYPE'));
+								}
+								$senddata['message'] 	= $this->TextReplace($crm['autocrm_sms_content'], $user['phone'], $variables);
+								$senddata['channel']	= 2;
+							} else {
+								$senddata['message'] 	= $this->TextReplace($crm['autocrm_sms_content'], $user['phone'], $variables);
+								$senddata['channel']	= 0;
+							}
+							
+							$this->jatissms->setData($senddata);
+							$send = $this->jatissms->send();
+							
+							break;
+						case 'RajaSMS':
+							$senddata = array(
+								'apikey' => env('SMS_KEY'),
+								'callbackurl' => env('APP_URL'),
+								'datapacket'=>array()
+							);
 
-					//add <#> and Hash Key in pin sms content
-					if($crm['autocrm_title'] == 'Pin Sent' || $crm['autocrm_title'] == 'Pin Forgot'){
-						if($useragent && $useragent == "Android"){
-							$crm['autocrm_sms_content'] = '<#> '.$crm['autocrm_sms_content'].' '.ENV('HASH_KEY_'.ENV('HASH_KEY_TYPE'));
-						}
+							//add <#> and Hash Key in pin sms content
+							if($crm['autocrm_title'] == 'Pin Sent' || $crm['autocrm_title'] == 'Pin Forgot'){
+								if($useragent && $useragent == "Android"){
+									$crm['autocrm_sms_content'] = '<#> '.$crm['autocrm_sms_content'].' '.ENV('HASH_KEY_'.ENV('HASH_KEY_TYPE'));
+								}
+							}
+
+							$content 	= $this->TextReplace($crm['autocrm_sms_content'], $user['phone'], $variables);
+							array_push($senddata['datapacket'],array(
+									'number' => trim($user['phone']),
+									'message' => urlencode(stripslashes(utf8_encode($content))),
+									'sendingdatetime' => ""));
+									
+							$this->rajasms->setData($senddata);
+							$send = $this->rajasms->send();
+							break;
+						default:
+							$senddata = array(
+								'apikey' => env('SMS_KEY'),
+								'callbackurl' => env('APP_URL'),
+								'datapacket'=>array()
+							);
+
+							//add <#> and Hash Key in pin sms content
+							if($crm['autocrm_title'] == 'Pin Sent' || $crm['autocrm_title'] == 'Pin Forgot'){
+								if($useragent && $useragent == "Android"){
+									$crm['autocrm_sms_content'] = '<#> '.$crm['autocrm_sms_content'].' '.ENV('HASH_KEY_'.ENV('HASH_KEY_TYPE'));
+								}
+							}
+
+							$content 	= $this->TextReplace($crm['autocrm_sms_content'], $user['phone'], $variables);
+							array_push($senddata['datapacket'],array(
+									'number' => trim($user['phone']),
+									'message' => urlencode(stripslashes(utf8_encode($content))),
+									'sendingdatetime' => ""));
+									
+							$this->rajasms->setData($senddata);
+							$send = $this->rajasms->send();
+							break;
 					}
-
-					$content 	= $this->TextReplace($crm['autocrm_sms_content'], $user['phone'], $variables);
-					array_push($senddata['datapacket'],array(
-							'number' => trim($user['phone']),
-							'message' => urlencode(stripslashes(utf8_encode($content))),
-							'sendingdatetime' => ""));
-
-					$this->rajasms->setData($senddata);
-					$send = $this->rajasms->send();
 
 					$logData = [];
 					$logData['id_user'] = $user['id'];
