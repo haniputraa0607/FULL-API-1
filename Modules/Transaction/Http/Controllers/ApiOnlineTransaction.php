@@ -129,7 +129,7 @@ class ApiOnlineTransaction extends Controller
 
         $fraudTrxDay = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 day%')->where('fraud_settings_status','Active')->first();
         $fraudTrxWeek = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 week%')->where('fraud_settings_status','Active')->first();
-        
+
         $issetDate = false;
         if (isset($post['transaction_date'])) {
             $issetDate = true;
@@ -1172,9 +1172,6 @@ class ApiOnlineTransaction extends Controller
         }
 
         if ($post['transaction_payment_status'] == 'Completed') {
-            $updateReview = Transaction::where('id_transaction', $insertTransaction['id_transaction'])->update([
-                'show_rate_popup' => '1'
-            ]);
             //========= This process to check if user have fraud ============//
             $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
                 ->where('transactions.id_user', $insertTransaction['id_user'])

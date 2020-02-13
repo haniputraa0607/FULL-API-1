@@ -569,45 +569,32 @@ class ApiConfirm extends Controller
 
                             $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
                             if($update){
-                                $updatePaymentStatus = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Completed', 'show_rate_popup' => 1]);
-                                if($updatePaymentStatus){
+                                $dataTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction')
+                                ->where('id_transaction', $payment['id_transaction'])->first();
 
-                                    $dataTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction')
-                                    ->where('id_transaction', $payment['id_transaction'])->first();
+                                // apply cashback to referrer
+                                \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($dataTrx);
 
-                                    // apply cashback to referrer
-                                    \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($dataTrx);
+                                $mid = [
+                                    'order_id' => $dataTrx['transaction_receipt_number'],
+                                    'gross_amount' => $amount
+                                ];
 
-                                    $mid = [
-                                        'order_id' => $dataTrx['transaction_receipt_number'],
-                                        'gross_amount' => $amount
-                                    ];
-
-                                    $notif = app($this->notif)->notification($mid, $dataTrx);
-                                    if (!$notif) {
-                                        DB::rollBack();
-                                        return response()->json([
-                                            'status'   => 'fail',
-                                            'messages' => ['Transaction Notification failed']
-                                        ]);
-                                    }
-                                    $sendNotifOutlet = app($this->trx)->outletNotif($dataTrx['id_transaction']);
-
-                                    //create geocode location
-                                    if(isset($dataTrx['latitude']) && isset($dataTrx['longitude'])){
-                                        $savelocation = app($this->trx)->saveLocation($dataTrx['latitude'], $dataTrx['longitude'], $dataTrx['id_user'], $dataTrx['id_transaction'], $dataTrx['id_outlet']);
-                                    }
-
-                                    //$fraud = app($this->notif)->checkFraud($dataTrx);
-
-                                }
-                                else{
+                                $notif = app($this->notif)->notification($mid, $dataTrx);
+                                if (!$notif) {
                                     DB::rollBack();
                                     return response()->json([
                                         'status'   => 'fail',
-                                        'messages' => [' Update Transaction Payment Status Failed']
+                                        'messages' => ['Transaction Notification failed']
                                     ]);
                                 }
+                                $sendNotifOutlet = app($this->trx)->outletNotif($dataTrx['id_transaction']);
+
+                                //create geocode location
+                                if(isset($dataTrx['latitude']) && isset($dataTrx['longitude'])){
+                                    $savelocation = app($this->trx)->saveLocation($dataTrx['latitude'], $dataTrx['longitude'], $dataTrx['id_user'], $dataTrx['id_transaction'], $dataTrx['id_outlet']);
+                                }
+                                //$fraud = app($this->notif)->checkFraud($dataTrx);
                             }
                             else{
                                 DB::rollBack();
@@ -678,7 +665,7 @@ class ApiConfirm extends Controller
                                     "outlet_name"       => $trx['outlet_name']['outlet_name']??'',
                                     "transaction_date"  => $trx['transaction_date'],
                                     'receipt_number'    => $trx['transaction_receipt_number'],
-                                    'id_transaction'    => $trx['id_transaction'], 
+                                    'id_transaction'    => $trx['id_transaction'],
                                     'received_point'    => (string) $checkBalance['balance_nominal']
                                 ]
                             );
@@ -787,7 +774,7 @@ class ApiConfirm extends Controller
                     [
                         "outlet_name"       => $trx['outlet_name']['outlet_name']??'',
                         "transaction_date"  => $trx['transaction_date'],
-                        'id_transaction'    => $trx['id_transaction'], 
+                        'id_transaction'    => $trx['id_transaction'],
                         'receipt_number'    => $trx['transaction_receipt_number'],
                         'received_point'    => (string) $checkBalance['balance_nominal']
                     ]
