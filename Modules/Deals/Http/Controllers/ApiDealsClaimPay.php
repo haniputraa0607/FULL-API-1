@@ -540,7 +540,6 @@ class ApiDealsClaimPay extends Controller
         }else{
             $is_prod = '0';
         }
-        \DB::beginTransaction();
         //update ovo_references
         $updateOvoRef = OvoReference::updateOrCreate(['id_ovo_reference'=> 1], [
             'date' => date('Y-m-d'),
@@ -589,6 +588,7 @@ class ApiDealsClaimPay extends Controller
                         $dataUpdate['ovo_points_balance'] = $response['transactionResponseData']['ovoPointsBalance'];
                         $dataUpdate['payment_type'] = $response['transactionResponseData']['paymentType'];
 
+                        \DB::beginTransaction();
                         $update = $payment->update($dataUpdate);
                         if($update){
                             $updatePaymentStatus = DealsUser::where('id_deals_user', $voucher['id_deals_user'])->update(['paid_status' => 'Completed']);
@@ -621,9 +621,9 @@ class ApiDealsClaimPay extends Controller
                                 'messages' => [' Update Deals Payment Failed']
                             ]);
                         }
+                        DB::commit();
                     }
 
-                    DB::commit();
                 }
 
                 //
@@ -657,6 +657,7 @@ class ApiDealsClaimPay extends Controller
                     $dataUpdate['response_code'] = $response['responseCode'];
                     $dataUpdate = Ovo::detailResponse($dataUpdate);
                 }
+                \DB::beginTransaction();
 
                 $update = DealsPaymentOvo::where('id_deals_user', $voucher['id_deals_user'])->update($dataUpdate);
 
@@ -676,7 +677,6 @@ class ApiDealsClaimPay extends Controller
                 }
                 DealsVoucher::where('id_deals_voucher',$voucher['id_deals_voucher'])->update(['deals_voucher_status'=>'Available']);
 
-                DB::commit();
                 //request reversal
                 if(!isset($payOvo['status_code']) || $payOvo['status_code'] == '404'){
                     $reversal = Ovo::Reversal($voucher, $payData, $data['amount'], $type,'deals');
@@ -701,6 +701,7 @@ class ApiDealsClaimPay extends Controller
                         $update = DealsPaymentOvo::where('id_deals_user', $voucher['id_deals_user'])->update($dataUpdate);
                     }
                 }
+                DB::commit();
             }
         }
         $voucher = DealsUser::where('id_deals_user',$request->json('id_deals_user'))->with('deals_voucher.deals')->first();
@@ -735,7 +736,6 @@ class ApiDealsClaimPay extends Controller
                 'type'                       => 'deals'
             ],
         ];
-        DB::commit();
         return response()->json($send);
     }
     /* CEK STATUS */
