@@ -90,7 +90,8 @@ class ApiDealsClaimPay extends Controller
 
                     //CEK IF BALANCE O
                     if(isset($post['balance']) && $post['balance'] == true){
-                        if(app($this->claim)->getPoint($request->user()->id) <= 0){
+                        $user_balance = app($this->claim)->getPoint($request->user()->id);
+                        if($user_balance <= 0){
                             DB::rollback();
                             return response()->json([
                                 'status'   => 'fail',
@@ -366,13 +367,13 @@ class ApiDealsClaimPay extends Controller
     function paymentMethod($dataDeals, $voucher, $request)
     {
         //IF USING BALANCE
-        if ($request->get('balance') && $request->get('balance') == true){
+        if ($request->json('balance') == true){
             /* BALANCE */
-            $pay = $this->balance($dataDeals, $voucher,$request->get('payment_deals') );
+            $pay = $this->balance($dataDeals, $voucher,$request->json('payment_deals') );
         }else{
 
             /* BALANCE */
-            if ($request->get('payment_deals') && $request->get('payment_deals') == "balance") {
+            if ($request->json('payment_deals') && $request->json('payment_deals') == "balance") {
                 $pay = $this->balance($dataDeals, $voucher);
             }
 
@@ -442,7 +443,7 @@ class ApiDealsClaimPay extends Controller
     }
 
     /* OVO */
-    function ovo($deals, $voucher, $grossAmount=null, $phone)
+    function ovo($deals, $voucher, $grossAmount=null)
     {
         return [
             'ovo' => true,
@@ -470,6 +471,16 @@ class ApiDealsClaimPay extends Controller
 
         $void = Ovo::Void($transaction);
         if($void['status_code'] == "200"){
+            if($transaction->balance_nominal){
+                $insertDataLogCash = app("Modules\Balance\Http\Controllers\BalanceController")->addLogBalance($transaction->id_user, $transaction->balance_nominal, $transaction->id_deals_user, 'Claim Deals Failed');
+                if (!$insertDataLogCash) {
+                    DB::rollback();
+                    return response()->json([
+                        'status'    => 'fail',
+                        'messages'  => ['Insert Cashback Failed']
+                    ]);
+                }
+            }
             $transaction->update(['paid_status'=>'Cancelled']);
             return [
                 'status' => 'success',
@@ -541,7 +552,7 @@ class ApiDealsClaimPay extends Controller
         $data = [
             'id_deals'      => $deals->id_deals,
             'id_deals_user' => $voucher->id_deals_user,
-            'amount' => $voucher->voucher_price_cash,
+            'amount' => $voucher->voucher_price_cash - $voucher->balance_nominal,
             'batch_no' => $batchNo,
             'reference_number' => $refnumber,
             'phone' => $request->json('phone'),
@@ -551,7 +562,7 @@ class ApiDealsClaimPay extends Controller
         ];
 
         $payData = DealsPaymentOvo::create($data);
-        $payOvo = Ovo::PayTransaction($voucher, $payData, $voucher->voucher_price_cash, $type,'deals');
+        $payOvo = Ovo::PayTransaction($voucher, $payData, $data['amount'], $type,'deals');
         //jika response code 200
         if(isset($payOvo['status_code']) && $payOvo['status_code'] == '200'){
             $response = $payOvo['response'];
@@ -663,11 +674,12 @@ class ApiDealsClaimPay extends Controller
                         ]);
                     }
                 }
+                DealsVoucher::where('id_deals_voucher',$voucher['id_deals_voucher'])->update(['deals_voucher_status'=>'Available']);
 
                 DB::commit();
                 //request reversal
                 if(!isset($payOvo['status_code']) || $payOvo['status_code'] == '404'){
-                    $reversal = Ovo::Reversal($voucher, $payData, $voucher->voucher_price_cash, $type,'deals');
+                    $reversal = Ovo::Reversal($voucher, $payData, $data['amount'], $type,'deals');
 
                     if(isset($reversal['response'])){
                         $response = $reversal['response'];
@@ -806,6 +818,8 @@ class ApiDealsClaimPay extends Controller
                 if ($this->updateInfoDealUsers($voucher->id_deals_user, $dataDealsUserUpdate)) {
                     if($paymentMethod == 'midtrans'){
                         return $this->midtrans($deals, $voucher, $dataDealsUserUpdate['balance_nominal']);
+                    }elseif($paymentMethod == 'ovo'){
+                        return $this->ovo($deals, $voucher, $dataDealsUserUpdate['balance_nominal']);
                     }
                 }
             }

@@ -11,6 +11,8 @@ use App\Lib\MyHelper;
 
 use App\Http\Models\LogOvo;
 use App\Http\Models\LogOvoDeals;
+use App\Http\Models\DealsUser;
+use App\Http\Models\DealsVoucher;
 use App\Http\Models\TransactionPaymentOvo;
 use App\Http\Models\DealsPaymentOvo;
 
@@ -272,7 +274,7 @@ class Ovo {
 
         $data['type'] = "0200"; 
         $data['processingCode'] = "020040";
-        $data['amount'] = $transaction['transaction_grandtotal']??$transaction['voucher_price_cash'];
+        $data['amount'] = $transaction['transaction_grandtotal']??$transaction['amount'];
         $data['date'] = date('Y-m-d H:i:s.v');
         $data['referenceNumber'] = $transaction['reference_number'];
         $data['tid']        = $tid;
@@ -302,7 +304,8 @@ class Ovo {
                     'order_id' => $transaction['order_id'],
                     'url' => $url,
                     'header' => json_encode($header),
-                    'request' => json_encode($data)
+                    'request' => json_encode($data),
+                    'payment_type' => 'Void'
                 ]);
             }else{
                 $createLog = LogOvo::create([
@@ -310,7 +313,8 @@ class Ovo {
                     'transaction_receipt_number' => $transaction['transaction_receipt_number'],
                     'url' => $url,
                     'header' => json_encode($header),
-                    'request' => json_encode($data)
+                    'request' => json_encode($data),
+                    'payment_type' => 'Void'
                 ]);
             }
 
@@ -346,6 +350,8 @@ class Ovo {
 
             }else{
                 if($type == 'deals'){
+                    $deals_user = DealsUser::where('id_deals_user',$transaction['id_deals_user'])->first();
+                    $voucher = DealsVoucher::where('id_deals_voucher',$deals_user['id_deals_voucher'])->update(['deals_voucher_status'=>'Available']);
                     $updateLog = LogOvoDeals::where('id_log_ovo_deals', $createLog['id_log_ovo_deals'])->update([
                         'response_status' => 'fail',
                         'response' => json_encode($pay)
