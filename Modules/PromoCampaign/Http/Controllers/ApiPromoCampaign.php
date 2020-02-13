@@ -1708,6 +1708,7 @@ class ApiPromoCampaign extends Controller
         }
         elseif (!$request->promo_code && $request->id_deals_user) 
         {
+        	/* Check voucher */
         	$deals = DealsUser::where('id_deals_user', '=', $request->id_deals_user)
         			->whereIn('paid_status', ['Free', 'Completed'])
         			->whereNull('used_at')
@@ -1761,12 +1762,12 @@ class ApiPromoCampaign extends Controller
             ];
         }
         
+        // return $query;
     	$getProduct = $this->getProduct($source,$query[$source]);
     	$desc = $this->getPromoDescription($source, $query[$source], $getProduct['product']??'');
 
         $errors=[];
 
-        // return $query;
         // check outlet
 		if (isset($id_outlet)) {
 			if (!$pct->checkOutletRule($id_outlet, $query[$source]['is_all_outlet']??0,$query[$source][$source.'_outlets']??$query[$source]['outlets_active'])) {
@@ -1962,9 +1963,84 @@ class ApiPromoCampaign extends Controller
 				]);
 	    }
 
-
 	    $code = $code->first();
 
         return $code;
+    }
+
+	public function checkVoucher($id_deals_user, $outlet=null, $product=null)
+    {
+        $deals = DealsUser::where('id_deals_user', '=', $id_deals_user)
+        			->whereIn('paid_status', ['Free', 'Completed'])
+        			->whereNull('used_at')
+        			->where('voucher_expired_at','>=',date('Y-m-d H:i:s'))
+        			->where(function($q) {
+        				$q->where('voucher_active_at','<=',date('Y-m-d H:i:s'))	
+        					->orWhereNull('voucher_active_at');
+        			});
+
+
+
+	    if (!empty($outlet)) {
+        	$deals = $deals->with(['dealVoucher.deals.outlets_active']);
+	    }
+
+	    if (!empty($product)) {
+        	$deals = $deals->with([
+                    'dealVoucher.deals.outlets_active',
+                    'dealVoucher.deals.deals_product_discount.product' => function($q) {
+						$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
+					}, 
+                    'dealVoucher.deals.deals_tier_discount_product.product' => function($q) {
+						$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
+					}, 
+                    'dealVoucher.deals.deals_buyxgety_product_requirement.product' => function($q) {
+						$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
+					}, 
+                    'dealVoucher.deals.deals_product_discount_rules', 
+                    'dealVoucher.deals.deals_tier_discount_rules', 
+                    'dealVoucher.deals.deals_buyxgety_rules'
+                ]);
+	    }
+
+	    $deals = $deals->first();
+
+        return $deals;
+    }
+
+    public function promoError($source, $errore=null, $errors=null)
+    {
+    	if ($source == 'transaction') 
+    	{
+    		$setting = ['promo_error_title', 'promo_error_ok_button', 'promo_error_cancel_button'];
+	    	$getData = Setting::whereIn('key',$setting)->get()->toArray();
+	    	$data = [];
+	    	foreach ($getData as $key => $value) {
+	    		$data[$key] = $value;
+	    	}
+
+	    	$result['title'] = $data['promo_error_title']??'Promo tidak berlaku';
+	        $result['button_ok'] = $data['promo_error_ok_button']??'Tambah item';
+	        $result['button_cancel'] = $data['promo_error_cancel_button']??'Tidak';
+
+    	}
+    	else
+    	{
+    		return null;
+    	}
+
+    	$result['message'] = [];
+    	if(isset($errore)){
+			foreach ($errore as $key => $value) {
+				array_push($result['message'], $value);
+			}
+		}
+		if(isset($errors)){
+			foreach ($errors as $key => $value) {
+				array_push($result['message'], $value);
+			}
+		}
+
+	    return $result;	
     }
 }

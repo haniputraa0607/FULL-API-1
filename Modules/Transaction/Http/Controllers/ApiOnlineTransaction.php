@@ -1593,9 +1593,10 @@ class ApiOnlineTransaction extends Controller
             return $productDis;
         }
 
-                // check promo code
+        // check promo code
         $promo_error=[];
-        if($request->json('promo_code')){
+        if($request->json('promo_code'))
+        {
         	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1);
 
             if ($code)
@@ -1611,21 +1612,10 @@ class ApiOnlineTransaction extends Controller
 		            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors);
 
 		            if ( !empty($errore) || !empty($errors)) {
-		            	$promo_error['title'] = Setting::where('key','=','promo_error_title')->first()['value']??'Promo tidak berlaku';
-				        $promo_error['button_ok'] = Setting::where('key','=','promo_error_ok_button')->first()['value']??'Tambah item';
-				        $promo_error['button_cancel'] = Setting::where('key','=','promo_error_cancel_button')->first()['value']??'Tidak';
+
+		            	$promo_error = app($this->promo_campaign)->promoError('transaction', $errore, $errors);
 				        $promo_error['product'] = $pct->getRequiredProduct($code->id_promo_campaign)??null;
-		            	$promo_error['message']=[];
-		                if(isset($errore)){
-		            		foreach ($errore as $key => $value) {
-		            			array_push($promo_error['message'], $value);
-		            		}
-		            	}
-		            	if(isset($errors)){
-		            		foreach ($errors as $key => $value) {
-		            			array_push($promo_error['message'], $value);
-		            		}
-		            	}
+		                
 		            }
 		            $promo_discount=$discount_promo['discount'];
 	        	}
@@ -1635,6 +1625,27 @@ class ApiOnlineTransaction extends Controller
             	$promo_error[] = 'Promo code invalid';
             }
         }
+        elseif($request->json('id_deals_user'))
+        {
+        	$deals = app($this->promo_campaign)->checkVoucher($request->id_deals_user, 1);
+
+			if($deals)
+			{
+				$pct=new PromoCampaignTools();
+				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals');
+
+				if ( !empty($errors) ) {
+	            	$promo_error = app($this->promo_campaign)->promoError('transaction', null, $errors);
+		        	$promo_error['product'] = $pct->getRequiredProduct($deals->dealVoucher->id_deals, 'deals')??null;
+	            }
+	            $promo_discount=$discount_promo['discount'];
+	        }
+	        else
+	        {
+	        	$promo_error[] = 'Voucher is not valid';
+	        }
+        }
+        // end check promo code
 
         $tree = [];
         // check and group product
