@@ -498,7 +498,7 @@ class ApiDealsClaimPay extends Controller
         if(DealsPaymentOvo::where('id_deals_user',$request->json('id_deals_user'))->exists()){
             return [
                 'status'=>'fail',
-                'messages'=>'Deals Invalid'
+                'messages'=>['Deals Invalid']
             ];
         }
         $voucher = DealsUser::where('id_deals_user',$request->json('id_deals_user'))->with('deals_voucher.deals')->first();
