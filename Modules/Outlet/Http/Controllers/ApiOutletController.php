@@ -64,6 +64,7 @@ class ApiOutletController extends Controller
 
     function __construct() {
         date_default_timezone_set('Asia/Jakarta');
+        $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
     }
 
     function checkInputOutlet($post=[]) {
@@ -898,24 +899,17 @@ class ApiOutletController extends Controller
 				$outlet[$key]['is_promo'] = 0;
 			}
 			// check if isset promo_code
+			$promo_error = [];
             if (isset($post['promo_code'])) {
-	        	$code=PromoCampaignPromoCode::where('promo_code',$request->promo_code)
-		                ->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
-		                ->where('step_complete', '=', 1)
-		                ->where( function($q){
-		                	$q->whereColumn('usage','<','limitation_usage')
-		                		->orWhere('code_type','Single');
-		                } )
-		                ->with(['promo_campaign.promo_campaign_outlets'])
-		                ->first();
+	        	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1);
 
 		        if(!$code){
-		            return [
-		                'status'=>'fail',
-		                'messages'=>['Promo code not valid']
-		            ];
+		        	$promo_error[] = 'Promo code not valid';
 		        }else{
-
+		        	
+		        	if ($code['promo_campaign']['date_end'] < date('Y-m-d H:i:s')) {
+		        		$promo_error[] = 'Promo campaign is ended'; 
+		        	}
 		        	// if valid give flag is_promo = 1
 		        	$code = $code->toArray();
 	        		if ($code['promo_campaign']['is_all_outlet']) {
@@ -1010,6 +1004,7 @@ class ApiOutletController extends Controller
                 if ($pagingOutlet['status'] == true) {
                     $urutan['next_page_url'] = ENV('APP_API_URL').'api/outlet/filter?page='.$next_page;
                 }
+                $urutan['promo_error']   = $promo_error;
             } else {
                 if($countAll){
                     return response()->json(['status' => 'fail', 'messages' => ['Outlet is Empty']]);
