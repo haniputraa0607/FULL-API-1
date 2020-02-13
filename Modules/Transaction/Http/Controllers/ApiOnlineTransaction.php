@@ -77,6 +77,7 @@ class ApiOnlineTransaction extends Controller
         $this->notif         = "Modules\Transaction\Http\Controllers\ApiNotification";
         $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiSettingFraud";
         $this->setting_trx   = "Modules\Transaction\Http\Controllers\ApiSettingTransactionV2";
+        $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
     }
 
     public function newTransaction(NewTransaction $request) {
@@ -1598,40 +1599,39 @@ class ApiOnlineTransaction extends Controller
                 // check promo code
         $promo_error=[];
         if($request->json('promo_code')){
-        	$code=PromoCampaignPromoCode::where('promo_code',$request->promo_code)
-                ->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
-                ->where( function($q){
-                	$q->whereColumn('usage','<','limitation_usage')
-                		->orWhere('code_type','Single')
-                        ->orWhere('limitation_usage',0);
-                } )
-                ->first();
+        	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1);
 
             if ($code)
             {
-	            $pct=new PromoCampaignTools();
-	            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
+	        	if ($code['promo_campaign']['date_end'] < date('Y-m-d H:i:s')) {
+	        		$promo_error[]='Promo campaign is ended';
+	        	}
+	        	else
+	        	{
+		            $pct=new PromoCampaignTools();
+		            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
 
-	            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors);
+		            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors);
 
-	            if ( !empty($errore) || !empty($errors)) {
-	            	$promo_error['title'] = Setting::where('key','=','promo_error_title')->first()['value']??'Promo tidak berlaku';
-			        $promo_error['button_ok'] = Setting::where('key','=','promo_error_ok_button')->first()['value']??'Tambah item';
-			        $promo_error['button_cancel'] = Setting::where('key','=','promo_error_cancel_button')->first()['value']??'Tidak';
-			        $promo_error['product'] = $pct->getRequiredProduct($code->id_promo_campaign)??null;
-	            	$promo_error['message']=[];
-	                if(isset($errore)){
-	            		foreach ($errore as $key => $value) {
-	            			array_push($promo_error['message'], $value);
-	            		}
-	            	}
-	            	if(isset($errors)){
-	            		foreach ($errors as $key => $value) {
-	            			array_push($promo_error['message'], $value);
-	            		}
-	            	}
-	            }
-	            $promo_discount=$discount_promo['discount'];
+		            if ( !empty($errore) || !empty($errors)) {
+		            	$promo_error['title'] = Setting::where('key','=','promo_error_title')->first()['value']??'Promo tidak berlaku';
+				        $promo_error['button_ok'] = Setting::where('key','=','promo_error_ok_button')->first()['value']??'Tambah item';
+				        $promo_error['button_cancel'] = Setting::where('key','=','promo_error_cancel_button')->first()['value']??'Tidak';
+				        $promo_error['product'] = $pct->getRequiredProduct($code->id_promo_campaign)??null;
+		            	$promo_error['message']=[];
+		                if(isset($errore)){
+		            		foreach ($errore as $key => $value) {
+		            			array_push($promo_error['message'], $value);
+		            		}
+		            	}
+		            	if(isset($errors)){
+		            		foreach ($errors as $key => $value) {
+		            			array_push($promo_error['message'], $value);
+		            		}
+		            	}
+		            }
+		            $promo_discount=$discount_promo['discount'];
+	        	}
             }
             else
             {
