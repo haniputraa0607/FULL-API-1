@@ -16,6 +16,7 @@ use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionPaymentBalance;
 
 use Modules\UserRating\Entities\UserRating;
+use Modules\PointInjection\Entities\PointInjection;
 
 use App\Lib\MyHelper;
 
@@ -921,7 +922,7 @@ class ApiHistoryController extends Controller
         $listBalance = [];
 
         foreach ($log as $key => $value) {
-            if ($value['source'] == 'Transaction' || $value['source'] == 'Rejected Order'  || $value['source'] == 'Rejected Order Point' || $value['source'] == 'Rejected Order Midtrans' || $value['source'] == 'Reversal') {
+            if ($value['source'] == 'Transaction' || $value['source'] == 'Rejected Order'  || $value['source'] == 'Rejected Order Point' || $value['source'] == 'Rejected Order Midtrans' || $value['source'] == 'Rejected Order Ovo' || $value['source'] == 'Reversal' || $value['source'] == 'Transaction Failed') {
                 $trx = Transaction::with('outlet')->where('id_transaction', $value['id_reference'])->first();
 
                 // return $trx;
@@ -990,6 +991,30 @@ class ApiHistoryController extends Controller
                 // $dataList['online'] = 1;
 
                 $listBalance[$key] = $dataList;
+            } elseif ($value['source'] == 'Reversal Duplicate') {
+                continue;
+            } elseif ($value['source'] == 'Point Injection') {
+                $getPointInjection = PointInjection::find($value['id_reference']);
+                if ($getPointInjection) {
+                    $dataList['outlet'] = $getPointInjection->title;
+                } else {
+                    $dataList['outlet'] = 'Free Point';
+                }
+
+                $dataList['type']   = 'profile';
+                $dataList['id']      = $value['id_log_balance'];
+                $dataList['date']    = date('Y-m-d H:i:s', strtotime($value['created_at']));
+                $dataList['amount'] = '+ ' . number_format($value['balance'], 0, ',', '.');
+
+                $listBalance[$key] = $dataList;
+            } elseif($value['source'] == 'Balance Reset') {
+                $dataList['type']   = 'profile';
+                $dataList['id']      = $value['id_log_balance'];
+                $dataList['date']    = date('Y-m-d H:i:s', strtotime($value['created_at']));
+                $dataList['outlet'] = 'Point Expired';
+                $dataList['amount'] = number_format($value['balance'], 0, ',', '.');
+
+                $listBalance[$key] = $dataList;
             } else {
                 // return 'a';
                 $dataList['type']   = 'profile';
@@ -1046,6 +1071,7 @@ class ApiHistoryController extends Controller
             // }
 
         }
+
 
         return array_values($listBalance);
     }
