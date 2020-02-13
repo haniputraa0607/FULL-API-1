@@ -1868,6 +1868,8 @@ class ApiPOS extends Controller
                         $dataTrx['transaction_cashier'] = $trx['cashier'];
                     }
 
+                    $dataTrx['show_rate_popup'] = 1;
+
                     $createTrx = Transaction::create($dataTrx);
                     if (!$createTrx) {
                         DB::rollback();
