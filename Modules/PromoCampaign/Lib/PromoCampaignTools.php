@@ -140,35 +140,59 @@ class PromoCampaignTools{
 				// sum total quantity of same product, if greater than max product assign value to max product
 				// get all modifier price total, index array of item, and qty for each modifier
 				$item_get_promo = [];
+				$item_group_get_promo = [];
 				$mod_price_per_item = [];
 				$mod_price_qty_per_item = [];
+				($promo['product_type'] == 'group') ? $id = 'id_product_group' : $id = 'id_product';
+
 				foreach ($trxs as $key => $value) 
 				{
-					if (isset($item_get_promo[$value['id_product']])) 
+					// count item get promo qty
+					if (isset($item_get_promo[$value[$id]])) 
 					{
-						if ( ($item_get_promo[$value['id_product']] + $value['qty']) >= $max_product) {
-							$item_get_promo[$value['id_product']] = $max_product;
+						if ( ($item_get_promo[$value[$id]] + $value['qty']) >= $max_product) {
+							$item_get_promo[$value[$id]] = $max_product;
 						}else{
-							$item_get_promo[$value['id_product']] += $value['qty'];
+							$item_get_promo[$value[$id]] += $value['qty'];
 						}
 					}
 					else
 					{
 						if ($value['qty'] >= $max_product) {
-							$item_get_promo[$value['id_product']] = $max_product;
+							$item_get_promo[$value[$id]] = $max_product;
 						}else{
-							$item_get_promo[$value['id_product']] = $value['qty'];
+							$item_get_promo[$value[$id]] = $value['qty'];
 						}
 					}
 
-					$mod_price_qty_per_item[$value['id_product']][$key] = [];
-					$mod_price_qty_per_item[$value['id_product']][$key]['qty'] = $value['qty'];
-					$mod_price_qty_per_item[$value['id_product']][$key]['price'] = 0;
-					$mod_price_per_item[$value['id_product']][$key] = 0;
+					// count item group get promo qty
+					if (isset($item_group_get_promo[$value['id_product_group']])) 
+					{
+						if ( ($item_group_get_promo[$value['id_product_group']] + $value['qty']) >= $max_product) {
+							$item_group_get_promo[$value['id_product_group']] = $max_product;
+						}else{
+							$item_group_get_promo[$value['id_product_group']] += $value['qty'];
+						}
+					}
+					else
+					{
+						if ($value['qty'] >= $max_product) {
+							$item_group_get_promo[$value['id_product_group']] = $max_product;
+						}else{
+							$item_group_get_promo[$value['id_product_group']] = $value['qty'];
+						}
+					}
+
+					// count modifier for each item
+					$mod_price_qty_per_item[$value[$id]][$key] = [];
+					$mod_price_qty_per_item[$value[$id]][$key]['qty'] = $value['qty'];
+					$mod_price_qty_per_item[$value[$id]][$key]['price'] = 0;
+
+					$mod_price_per_item[$value[$id]][$key] = 0;
 					foreach ($value['modifiers'] as $key2 => $value2) 
 					{
-						$mod_price_qty_per_item[$value['id_product']][$key]['price'] += $mod_price[$value2['id_product_modifier']??$value2]??0;
-						$mod_price_per_item[$value['id_product']][$key] += $mod_price[$value2['id_product_modifier']??$value2]??0;
+						$mod_price_qty_per_item[$value[$id]][$key]['price'] += ($mod_price[$value2['id_product_modifier']??$value2]??0)*($value2['qty']??1);
+						$mod_price_per_item[$value[$id]][$key] += ($mod_price[$value2['id_product_modifier']??$value2]??0)*($value2['qty']??1);
 					}
 
 				}
@@ -188,7 +212,6 @@ class PromoCampaignTools{
 					foreach ($value as $key2 => $row) {
 					    $price[$key][$key2]  = $row['price'];
 					}
-
 					array_multisort($price[$key], SORT_ASC, $value);
 
 
@@ -201,11 +224,11 @@ class PromoCampaignTools{
 					$mod_price_qty_per_item[$key] = $sortedArray;
 				}
 
-				// check promo qty for each item
 				foreach ($mod_price_qty_per_item as $key => $value) 
 				{
 					foreach ($value as $key2 => &$value2) 
 					{
+
 						if ($value2['qty'] > 0) {
 							if (($item_get_promo[$key] - $value2['qty']) > 0) 
 							{
@@ -232,7 +255,6 @@ class PromoCampaignTools{
 					{
 						$modifier += ($mod_price[$value2['id_product_modifier']??$value2]??0) * ($value2['qty']??1);
 					}
-
 					// is all product get promo
 					if($promo_rules->is_all_product){
 						// get product data
@@ -245,30 +267,42 @@ class PromoCampaignTools{
 						//is product available
 						if(!$product){
 							// product not available
-							$errors[]='Product with id '.$trx['id_product'].' could not be found';
+							$errors[]='Product could not be found';
 							continue;
 						}
 						// add discount
 						$discount+=$this->discount_product($product,$promo_rules,$trx, $modifier);
 					}else{
+
 						// is product available in promo
-						if(is_array($promo_product)&&in_array($trx['id_product'],array_column($promo_product,'id_product'))){
-							// get product data
-							$product=Product::with(['product_prices' => function($q) use ($id_outlet){ 
-								$q->where('id_outlet', '=', $id_outlet)
-								  ->where('product_status', '=', 'Active')
-								  ->where('product_stock_status', '=', 'Available')
-								  ->where('product_visibility', '=', 'Visible');
-							} ])->find($trx['id_product']);
-							//is product available
-							if(!$product){
-								// product not available
-								$errors[]='Product with id '.$trx['id_product'].' could not be found';
+						if ($promo['product_type'] == 'group') 
+						{
+							if(!is_array($promo_product) || !in_array($trx['id_product_group'],array_column($promo_product,'id_product'))){
 								continue;
 							}
-							// add discount
-							$discount+=$this->discount_product($product,$promo_rules,$trx, $modifier);
 						}
+						else
+						{
+							if(!is_array($promo_product) || !in_array($trx['id_product'],array_column($promo_product,'id_product'))){
+								continue;
+							}
+						}
+
+						// get product data
+						$product=Product::with(['product_prices' => function($q) use ($id_outlet){ 
+							$q->where('id_outlet', '=', $id_outlet)
+							  ->where('product_status', '=', 'Active')
+							  ->where('product_stock_status', '=', 'Available')
+							  ->where('product_visibility', '=', 'Visible');
+						} ])->find($trx['id_product']);
+						//is product available
+						if(!$product){
+							// product not available
+							$errors[]='Product could not be found';
+							continue;
+						}
+						// add discount
+						$discount+=$this->discount_product($product,$promo_rules,$trx, $modifier);
 					}
 				}
 
@@ -282,25 +316,26 @@ class PromoCampaignTools{
 				break;
 
 			case 'Tier discount':
+
 				// load requirement relationship
 				$promo->load($source.'_tier_discount_rules',$source.'_tier_discount_product');
 				$promo_product=$promo[$source.'_tier_discount_product'];
-				$promo_product->load('product');
+				($promo['product_type'] == 'group') ? $id = 'id_product_group' : $id = 'id_product';
+
 				if(!$promo_product){
 					$errors[]='Tier discount promo product is not set correctly';
 					return false;
 				}
-
 				// sum total quantity of same product
 				foreach ($trxs as $key => $value) 
 				{
-					if (isset($item_get_promo[$value['id_product']])) 
+					if (isset($item_get_promo[$value[$id]])) 
 					{
-						$item_get_promo[$value['id_product']] += $value['qty'];
+						$item_get_promo[$value[$id]] += $value['qty'];
 					}
 					else
 					{
-						$item_get_promo[$value['id_product']] = $value['qty'];
+						$item_get_promo[$value[$id]] = $value['qty'];
 					}
 				}
 
@@ -317,20 +352,27 @@ class PromoCampaignTools{
 					}
 				}
 
+				if ($promo['product_type'] == 'group') {
+					$product_name = $promo_product->product_group->product_group_name;
+				}else{
+					$product_name = $promo_product->product->product_name;
+				}
+
 				// promo product not available in cart?
-				if(!in_array($promo_product->id_product, array_column($trxs, 'id_product'))){
+				if(!in_array($promo_product->id_product, array_column($trxs, $id))){
 					$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
 					$message = $this->getMessage('error_tier_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.'; 
-					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax]);
+					$message = MyHelper::simpleReplace($message,['product'=>$product_name, 'minmax'=>$minmax]);
 
 					$errors[]= $message;
 					return false;
 				}
+
 				//get cart's product to apply promo
 				$product=null;
 				foreach ($trxs as &$trx) {
 					//is this the cart product we looking for?
-					if($trx['id_product']==$promo_product->id_product){
+					if($trx[$id]==$promo_product->id_product){
 						//set reference to this cart product
 						$product=&$trx;
 						// break from loop
@@ -341,7 +383,7 @@ class PromoCampaignTools{
 				if(!$product){
 					$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
 					$message = $this->getMessage('error_tier_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.'; 
-					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax]);
+					$message = MyHelper::simpleReplace($message,['product'=>$product_name, 'minmax'=>$minmax]);
 
 					$errors[]= $message;
 					return false;
@@ -365,10 +407,11 @@ class PromoCampaignTools{
 					}
 					$promo_rule=$rule;
 				}
+
 				if(!$promo_rule){
 					$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
 					$message = $this->getMessage('error_tier_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.'; 
-					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax]);
+					$message = MyHelper::simpleReplace($message,['product'=>$product_name, 'minmax'=>$minmax]);
 
 					$errors[]= $message;
 					return false;
@@ -379,10 +422,10 @@ class PromoCampaignTools{
 					$modifier = 0;
 					foreach ($trx['modifiers'] as $key2 => $value2) 
 					{
-						$modifier += $mod_price[$value2['id_product_modifier']??$value2]??0;
+						$modifier += ($mod_price[$value2['id_product_modifier']??$value2]??0) * ($value2['qty']??1);
 					}
 
-					if($trx['id_product']==$promo_product->id_product){
+					if($trx[$id]==$promo_product->id_product){
 						$trx['promo_qty'] = $trx['qty'];
 						$discount+=$this->discount_product($promo_product->product,$promo_rule,$trx, $modifier);
 					}
@@ -394,7 +437,8 @@ class PromoCampaignTools{
 				// load requirement relationship
 				$promo->load($source.'_buyxgety_rules',$source.'_buyxgety_product_requirement');
 				$promo_product=$promo[$source.'_buyxgety_product_requirement'];
-				$promo_product->load('product');
+				($promo['product_type'] == 'group') ? $id = 'id_product_group' : $id = 'id_product';
+				// $promo_product->load('product');
 
 				if(!$promo_product){
 					$errors[]='Benefit product is not set correctly';
@@ -404,13 +448,13 @@ class PromoCampaignTools{
 				// sum total quantity of same product
 				foreach ($trxs as $key => $value) 
 				{
-					if (isset($item_get_promo[$value['id_product']])) 
+					if (isset($item_get_promo[$value[$id]])) 
 					{
-						$item_get_promo[$value['id_product']] += $value['qty'];
+						$item_get_promo[$value[$id]] += $value['qty'];
 					}
 					else
 					{
-						$item_get_promo[$value['id_product']] = $value['qty'];
+						$item_get_promo[$value[$id]] = $value['qty'];
 					}
 				}
 
@@ -428,8 +472,13 @@ class PromoCampaignTools{
 					}
 				}
 
+				if ($promo['product_type'] == 'group') {
+					$product_name = $promo_product->product_group->product_group_name;
+				}else{
+					$product_name = $promo_product->product->product_name;
+				}
 				// promo product not available in cart?
-				if(!in_array($promo_product->id_product, array_column($trxs, 'id_product'))){
+				if(!in_array($promo_product->id_product, array_column($trxs, $id))){
 					$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
 					$message = $this->getMessage('error_buyxgety_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.'; 
 					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax]);
@@ -441,13 +490,14 @@ class PromoCampaignTools{
 				$product=null;
 				foreach ($trxs as &$trx) {
 					//is this the cart product we looking for?
-					if($trx['id_product']==$promo_product->id_product){
+					if($trx[$id]==$promo_product->id_product){
 						//set reference to this cart product
 						$product=&$trx;
 						// break from loop
 						break;
 					}
 				}
+
 				// product not found? buat jaga-jaga kalau sesuatu yang tidak diinginkan terjadi
 				if(!$product){
 					$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
@@ -526,15 +576,11 @@ class PromoCampaignTools{
 					'is_free'		=> ($promo_rule->discount_type == "percent" && $promo_rule->discount_value == 100) ? 1 : 0,
 					'modifiers'		=> []
 				];
-				// $benefit_item['id_product']	= $benefit_product->id_product;
-				// $benefit_item['id_brand'] 	= $benefit_product->brands[0]->id_brand??'';
-				// $benefit_item['qty'] 		= $promo_rule->benefit_qty;
 
 				$discount+=$this->discount_product($benefit_product,$rule,$benefit_item);
 
-				// return $benefit_item;
 				array_push($trxs, $benefit_item);
-				// return $trxs;
+
 				break;
 
 			case 'Discount global':

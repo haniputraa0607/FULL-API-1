@@ -29,6 +29,10 @@ class PromoCampaignProductDiscount extends Eloquent
 {
 	protected $primaryKey = 'id_promo_campaign_product_discount';
 
+	protected $appends  = [
+		'get_product'
+	];
+	
 	protected $casts = [
 		'id_promo_campaign' => 'int',
 		'id_product' => 'int',
@@ -38,7 +42,8 @@ class PromoCampaignProductDiscount extends Eloquent
 	protected $fillable = [
 		'id_promo_campaign',
 		'id_product',
-		'id_product_category'
+		'id_product_category',
+		'product_type'
 	];
 
 	public function product()
@@ -55,4 +60,21 @@ class PromoCampaignProductDiscount extends Eloquent
 	{
 		return $this->belongsTo(\Modules\PromoCampaign\Entities\PromoCampaign::class, 'id_promo_campaign');
 	}
+
+	public function product_group()
+	{
+		return $this->hasOne(\Modules\ProductVariant\Entities\ProductGroup::class, 'id_product_group', 'id_product');
+	}
+
+	public function getGetProductAttribute() {
+
+        if( $this->product_type == 'group')
+        {
+        	$this->load(['product_group']);
+        } 
+        else
+        {
+        	$this->load(['product']);
+        }
+    }
 }
