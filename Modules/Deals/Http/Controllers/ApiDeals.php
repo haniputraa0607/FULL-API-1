@@ -103,6 +103,9 @@ class ApiDeals extends Controller
         if (isset($post['deals_description'])) {
             $data['deals_description'] = $post['deals_description'];
         }
+        if (isset($post['product_type'])) {
+            $data['product_type'] = $post['product_type'];
+        }
         if (isset($post['deals_tos'])) {
             $data['deals_tos'] = $post['deals_tos'];
         }
@@ -300,7 +303,7 @@ class ApiDeals extends Controller
                 // 'deals_vouchers.deals_user.user'
             ])->where('id_deals', $request->json('id_deals'))->with(['outlets', 'outlets.city', 'product','brand']);
         }else{
-            $deals->addSelect('id_deals','deals_title','deals_second_title','deals_voucher_price_point','deals_voucher_price_cash','deals_total_voucher','deals_total_claimed','deals_voucher_type','deals_image','deals_start','deals_end','deals_type','is_offline','is_online');
+            $deals->addSelect('id_deals','deals_title','deals_second_title','deals_voucher_price_point','deals_voucher_price_cash','deals_total_voucher','deals_total_claimed','deals_voucher_type','deals_image','deals_start','deals_end','deals_type','is_offline','is_online','product_type');
             if(strpos($request->user()->level,'Admin')>=0){
                 $deals->addSelect('deals_promo_id','deals_publish_start','deals_publish_end','created_at');
             }

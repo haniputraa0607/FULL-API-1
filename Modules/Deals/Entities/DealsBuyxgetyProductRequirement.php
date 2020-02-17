@@ -29,6 +29,10 @@ class DealsBuyxgetyProductRequirement extends Eloquent
 {
 	protected $primaryKey = 'id_deals_buyxgety_product';
 
+	protected $appends  = [
+		'get_product'
+	];
+
 	protected $casts = [
 		'id_deals' => 'int',
 		'id_product' => 'int',
@@ -55,4 +59,21 @@ class DealsBuyxgetyProductRequirement extends Eloquent
 	{
 		return $this->belongsTo(\App\Http\Models\ProductCategory::class, 'id_product_category');
 	}
+
+	public function product_group()
+	{
+		return $this->hasOne(\Modules\ProductVariant\Entities\ProductGroup::class, 'id_product_group', 'id_product');
+	}
+
+	public function getGetProductAttribute() {
+
+        if( $this->product_type == 'group')
+        {
+        	$this->load(['product_group']);
+        } 
+        else
+        {
+        	$this->load(['product']);
+        }
+    }
 }

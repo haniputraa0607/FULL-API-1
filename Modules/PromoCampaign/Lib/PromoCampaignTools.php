@@ -1061,15 +1061,15 @@ class PromoCampaignTools{
 	        }
 	        elseif ( !empty($promo[$source.'_product_discount']) )
 	        {
-	        	$product = $promo[$source.'_product_discount'][0]['product']??'';
+	        	$product = $promo[$source.'_product_discount'][0]['product']??$promo[$source.'_product_discount'][0]['product_group']??'';
 	        }
 	        elseif ( !empty($promo[$source.'_tier_discount_product']) )
 	        {
-	        	$product = $promo[$source.'_tier_discount_product']['product']??'';
+	        	$product = $promo[$source.'_tier_discount_product']['product']??$promo[$source.'_tier_discount_product']['product_group']??'';
 	        }
 	        elseif ( !empty($promo[$source.'_buyxgety_product_requirement']) )
 	        {
-	        	$product = $promo[$source.'_buyxgety_product_requirement']['product']??'';
+	        	$product = $promo[$source.'_buyxgety_product_requirement']['product']??$promo[$source.'_buyxgety_product_requirement']['product_group']??'';
 	        }
 	        else
 	        {

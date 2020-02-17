@@ -1875,7 +1875,7 @@ class ApiPromoCampaign extends Controller
     		$key_null = 'Anda berhak mendapatkan potongan %discount% untuk pembelian %product%. Maksimal %qty% buah untuk setiap produk.';
     		$desc = Setting::where('key', '=', 'description_product_discount')->first()['value']??$key_null;
 
-    		$desc = MyHelper::simpleReplace($desc,['discount'=>$discount, 'product'=>$product, 'qty'=>$qty,]);
+    		$desc = MyHelper::simpleReplace($desc,['discount'=>$discount, 'product'=>$product, 'qty'=>$qty]);
     	}
     	elseif ($query['promo_type'] == 'Tier discount') 
     	{
