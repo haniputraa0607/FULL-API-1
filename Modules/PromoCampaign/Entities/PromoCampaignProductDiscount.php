@@ -74,7 +74,7 @@ class PromoCampaignProductDiscount extends Eloquent
         } 
         else
         {
-        	$this->load(['product']);
+        	$this->load(['product.product_group']);
         }
     }
 }

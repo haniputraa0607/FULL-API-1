@@ -37,6 +37,7 @@ class ApiConfirm extends Controller
         $this->notif = "Modules\Transaction\Http\Controllers\ApiNotification";
         $this->trx = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
         $this->autocrm  = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
+        $this->voucher  = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
     }
 
     public function confirmTransaction(ConfirmPayment $request) {
@@ -66,6 +67,7 @@ class ApiConfirm extends Controller
         }
 
         $checkPayment = TransactionMultiplePayment::where('id_transaction', $check['id_transaction'])->first();
+
         $countGrandTotal = $check['transaction_grandtotal'];
 
         if (isset($check['productTransaction'])) {
@@ -658,6 +660,7 @@ class ApiConfirm extends Controller
                     $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
 
                     $updatePaymentStatus = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Cancelled', 'void_date' => date('Y-m-d H:i:s')]);
+                    $updateVoucher = app($this->voucher)->returnVoucher($trx['id_transaction']);
 
                     //return balance
                     $payBalance = TransactionMultiplePayment::where('id_transaction', $trx['id_transaction'])->where('type', 'Balance')->first();
@@ -768,6 +771,8 @@ class ApiConfirm extends Controller
         }
 
         $updatePaymentStatus = Transaction::where('id_transaction', $payment['id_transaction'])->update(['transaction_payment_status' => 'Cancelled']);
+        
+        $updateVoucher = app($this->voucher)->returnVoucher($payment['id_transaction']);
 
         //return balance
         $payBalance = TransactionMultiplePayment::where('id_transaction', $trx['id_transaction'])->where('type', 'Balance')->first();

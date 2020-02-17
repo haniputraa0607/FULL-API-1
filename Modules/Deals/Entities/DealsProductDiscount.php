@@ -2,49 +2,53 @@
 
 /**
  * Created by Reliese Model.
- * Date: Mon, 16 Dec 2019 16:41:26 +0700.
+ * Date: Tue, 04 Feb 2020 14:40:58 +0700.
  */
 
-namespace Modules\PromoCampaign\Entities;
+namespace Modules\Deals\Entities;
 
 use Reliese\Database\Eloquent\Model as Eloquent;
 
 /**
- * Class PromoCampaignTierDiscountProduct
+ * Class DealsProductDiscount
  * 
- * @property int $id_promo_campaign_product_discount_rule
- * @property int $id_promo_campaign
+ * @property int $id_deals_product_discount
+ * @property int $id_deals
  * @property int $id_product
  * @property int $id_product_category
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  * 
- * @property \Modules\PromoCampaign\Entities\Product $product
- * @property \Modules\PromoCampaign\Entities\ProductCategory $product_category
- * @property \Modules\PromoCampaign\Entities\PromoCampaign $promo_campaign
+ * @property \Modules\Deals\Entities\Deal $deal
+ * @property \Modules\Deals\Entities\Product $product
+ * @property \Modules\Deals\Entities\ProductCategory $product_category
  *
- * @package Modules\PromoCampaign\Entities
+ * @package Modules\Deals\Entities
  */
-class PromoCampaignTierDiscountProduct extends Eloquent
+class DealsProductDiscount extends Eloquent
 {
-	protected $primaryKey = 'id_promo_campaign_product_discount_rule';
+	protected $primaryKey = 'id_deals_product_discount';
 
 	protected $appends  = [
 		'get_product'
 	];
 
 	protected $casts = [
-		'id_promo_campaign' => 'int',
+		'id_deals' => 'int',
 		'id_product' => 'int',
 		'id_product_category' => 'int'
 	];
 
 	protected $fillable = [
-		'id_promo_campaign',
+		'id_deals',
 		'id_product',
-		'id_product_category',
-		'product_type'
+		'id_product_category'
 	];
+
+	public function deal()
+	{
+		return $this->belongsTo(\App\Http\Models\Deal::class, 'id_deals');
+	}
 
 	public function product()
 	{
@@ -54,11 +58,6 @@ class PromoCampaignTierDiscountProduct extends Eloquent
 	public function product_category()
 	{
 		return $this->belongsTo(\App\Http\Models\ProductCategory::class, 'id_product_category');
-	}
-
-	public function promo_campaign()
-	{
-		return $this->belongsTo(\Modules\PromoCampaign\Entities\PromoCampaign::class, 'id_promo_campaign');
 	}
 
 	public function product_group()

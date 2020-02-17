@@ -124,13 +124,14 @@ class Ovo {
                 'header' => json_encode($header),
                 'request' => json_encode($data)
             ]);
+
             //update push_time
             $updateTime = TransactionPaymentOvo::where('id_transaction', $dataTrx['id_transaction'])->update(['push_to_pay_at' => date('Y-m-d H:i:s')]);
             $pay = MyHelper::postWithTimeout($url, null, $data, 0, $header);
 
             // dd($pay->getStatusCode());
             if(isset($pay['status_code'])){
-                $updateLog = LogOvo::where('id_log_ovo', $createLog['id'])->update([
+                $updateLog = LogOvo::where('id_log_ovo', $createLog['id_log_ovo'])->update([
                     'response_status' => 'success',
                     'response_code' => $pay['status_code'],
                     'response' => json_encode($pay['response'])
@@ -150,7 +151,7 @@ class Ovo {
         
             }
 
-            $updateLog = LogOvo::where('id_log_ovo', $createLog['id_log'])->update([
+            $updateLog = LogOvo::where('id_log_ovo', $createLog['id_log_ovo'])->update([
                 'response_status' => 'fail',
                 'response' => json_encode($pay)
             ]);
