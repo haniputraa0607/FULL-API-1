@@ -15,6 +15,8 @@ use App\Http\Models\DealsPaymentMidtran;
 use App\Http\Models\DealsUser;
 use App\Http\Models\DealsVoucher;
 use App\Http\Models\Outlet;
+use App\Http\Models\TransactionVoucher;
+use App\Http\Models\Transaction;
 
 use Modules\Deals\Http\Requests\Deals\Voucher;
 use Modules\Deals\Http\Requests\Deals\UseVoucher;
@@ -621,6 +623,35 @@ class ApiDealsVoucher extends Controller
 		$deals_user['webview_url'] = env('API_URL') ."api/webview/voucher/". $post['id_deals_user'];
 		$deals_user['webview_url_v2'] = env('API_URL') ."api/webview/voucher/v2/". $post['id_deals_user'];
 		return response()->json($deals_user);
+
+    }
+
+    public function returnVoucher($id_transaction)
+    {
+    	$getVoucher = TransactionVoucher::where('id_transaction','=',$id_transaction)->first();
+
+    	if ($getVoucher) 
+    	{
+	    	$update = DealsUser::where('id_deals_voucher', '=', $getVoucher['id_deals_voucher'])->update(['used_at' => null]);
+
+	    	if ($update) 
+	    	{
+	    		$update = TransactionVoucher::where('id_deals_voucher', '=', $getVoucher['id_deals_voucher'])->update(['status' => 'failed']);
+
+	    		if ($update) 
+	    		{
+	    			return true;		
+	    		}
+	    		else
+	    		{
+	    			return false;
+	    		}
+	    	}
+	    	else
+	    	{
+	    		return false;
+	    	}
+    	}
 
     }
 }

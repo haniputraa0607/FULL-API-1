@@ -57,6 +57,7 @@ class ApiNotification extends Controller {
         $this->url_oauth  = env('URL_OUTLET_OAUTH');
         $this->oauth_id  = env('OUTLET_OAUTH_ID');
         $this->oauth_secret  = env('OUTLET_OAUTH_SECRET');
+        $this->voucher  = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
     }
 
     /* RECEIVE NOTIFICATION */
@@ -100,6 +101,7 @@ class ApiNotification extends Controller {
             $newTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction')->where('transaction_receipt_number', $midtrans['order_id'])->first();
 
             $checkType = TransactionMultiplePayment::where('id_transaction', $newTrx['id_transaction'])->get()->toArray();
+
             $column = array_column($checkType, 'type');
 
             // $user = User::where('id', $newTrx['id_user'])->first();
@@ -219,23 +221,25 @@ class ApiNotification extends Controller {
                                     ]);
                                 }
                             }
-                        }
-                        $usere = User::where('id', $order['id_user'])->first();
-                        $send = app($this->autocrm)->SendAutoCRM('Rejected Order Point Refund', $usere->phone,
-                            [
-                                "outlet_name"       => $newTrx['outlet']['outlet_name'],
-                                "transaction_date"  => $newTrx['transaction_date'],
-                                'id_transaction'    => $newTrx['id_transaction'],
-                                'receipt_number'    => $newTrx['transaction_receipt_number'],
-                                'received_point'    => (string) $checkBalance['balance_nominal']
-                            ]
-                        );
-                        if($send != true){
-                            DB::rollback();
-                            return response()->json([
-                                    'status' => 'fail',
-                                    'messages' => ['Failed Send notification to customer']
-                                ]);
+
+	                        $usere = User::where('id', $newTrx['id_user'])->first();
+
+	                        $send = app($this->autocrm)->SendAutoCRM('Rejected Order Point Refund', $usere->phone,
+	                            [
+	                                "outlet_name"       => $newTrx['outlet']['outlet_name'],
+	                                "transaction_date"  => $newTrx['transaction_date'],
+	                                'id_transaction'    => $newTrx['id_transaction'],
+	                                'receipt_number'    => $newTrx['transaction_receipt_number'],
+	                                'received_point'    => (string) $checkBalance['balance_nominal']
+	                            ]
+	                        );
+	                        if($send != true){
+	                            DB::rollback();
+	                            return response()->json([
+	                                    'status' => 'fail',
+	                                    'messages' => ['Failed Send notification to customer']
+	                                ]);
+	                        }
                         }
                     }
                 }
@@ -859,6 +863,11 @@ Detail: ".$link['short'],
 
             if (!$check) {
                 return false;
+            }
+
+            $update_voucher = app($this->voucher)->returnVoucher($trx->id_transaction);
+            if (!$update_voucher) {
+            	return false;
             }
         }
 
