@@ -129,8 +129,7 @@ class ApiWebviewController extends Controller
         if ($type == 'trx') {
             if($request->json('id_transaction')){
                 if($use_product_variant){
-                    $list = Transaction::where([['id_transaction', $id],
-                        ['id_user',$request->user()->id]])->with(
+                    $list = Transaction::where([['id_transaction', $id]])->with(
                             'user.city.province',
                             'productTransaction.product.product_group',
                             'productTransaction.product.product_variants',
