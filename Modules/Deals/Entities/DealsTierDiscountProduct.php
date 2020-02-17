@@ -32,7 +32,7 @@ class DealsTierDiscountProduct extends Eloquent
 	protected $appends  = [
 		'get_product'
 	];
-	
+
 	protected $casts = [
 		'id_deals' => 'int',
 		'id_product' => 'int',
@@ -73,7 +73,7 @@ class DealsTierDiscountProduct extends Eloquent
         } 
         else
         {
-        	$this->load(['product']);
+        	$this->load(['product.product_group']);
         }
     }
 }

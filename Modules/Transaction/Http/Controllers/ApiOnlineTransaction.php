@@ -1640,9 +1640,8 @@ class ApiOnlineTransaction extends Controller
         }else{
             return $productDis;
         }
-
         // check promo code
-        $promo_error=[];
+        $promo_error=null;
         if($request->json('promo_code'))
         {
         	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1);
@@ -1650,7 +1649,7 @@ class ApiOnlineTransaction extends Controller
             if ($code)
             {
 	        	if ($code['promo_campaign']['date_end'] < date('Y-m-d H:i:s')) {
-	        		$promo_error[]='Promo campaign is ended';
+	        		$promo_error='Promo campaign is ended';
 	        	}
 	        	else
 	        	{
@@ -1670,7 +1669,7 @@ class ApiOnlineTransaction extends Controller
             }
             else
             {
-            	$promo_error[] = 'Promo code invalid';
+            	$promo_error = 'Promo code invalid';
             }
         }
         elseif($request->json('id_deals_user'))
@@ -1690,7 +1689,7 @@ class ApiOnlineTransaction extends Controller
 	        }
 	        else
 	        {
-	        	$promo_error[] = 'Voucher is not valid';
+	        	$promo_error = 'Voucher is not valid';
 	        }
         }
         // end check promo code

@@ -1055,21 +1055,22 @@ class PromoCampaignTools{
 
         if ($promo) {
         	$promo = $promo->toArray();
+
         	if ( ($promo[$source.'_product_discount_rules']['is_all_product']??false) == 1) 
 	        {
-	        	$product = '*';
+	        	$product = ['all' => '*'];
 	        }
 	        elseif ( !empty($promo[$source.'_product_discount']) )
 	        {
-	        	$product = $promo[$source.'_product_discount'][0]['product']??$promo[$source.'_product_discount'][0]['product_group']??'';
+	        	$product = $promo[$source.'_product_discount'][0]['product']['product_group']??$promo[$source.'_product_discount'][0]['product_group']??'';
 	        }
 	        elseif ( !empty($promo[$source.'_tier_discount_product']) )
 	        {
-	        	$product = $promo[$source.'_tier_discount_product']['product']??$promo[$source.'_tier_discount_product']['product_group']??'';
+	        	$product = $promo[$source.'_tier_discount_product']['product']['product_group']??$promo[$source.'_tier_discount_product']['product_group']??'';
 	        }
 	        elseif ( !empty($promo[$source.'_buyxgety_product_requirement']) )
 	        {
-	        	$product = $promo[$source.'_buyxgety_product_requirement']['product']??$promo[$source.'_buyxgety_product_requirement']['product_group']??'';
+	        	$product = $promo[$source.'_buyxgety_product_requirement']['product']['product_group']??$promo[$source.'_buyxgety_product_requirement']['product_group']??'';
 	        }
 	        else
 	        {
