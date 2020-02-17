@@ -1823,8 +1823,7 @@ class ApiPromoCampaign extends Controller
 
     public function getProduct($source, $query)
     {
-    	// return $source;
-    	if ( ($query[$source.'_product_discount_rules']['is_all_product']??false) == 1) 
+    	if ( ($query[$source.'_product_discount_rules']['is_all_product']??false) == 1 || ($query['promo_type']??false) == 'Referral') 
         {
         	$applied_product = '*';
         	$product = 'semua product';
