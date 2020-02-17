@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 
+use App\Http\Models\Outlet;
 use App\Http\Models\Setting;
 use App\Http\Models\Transaction;
 use Modules\UserRating\Entities\UserRating;
@@ -63,7 +64,7 @@ class ApiUserRatingController extends Controller
         }
         if($rules=$newRule['star']??false){
             foreach ($rules as $rul) {
-                $model->$where('star',$rul['operator'],$rul['parameter']);
+                $model->$where('rating_value',$rul['operator'],$rul['parameter']);
             }
         }
         if($rules=$newRule['transaction_date']??false){
@@ -143,7 +144,7 @@ class ApiUserRatingController extends Controller
             'rating_value' => $post['rating_value'],
             'suggestion' => $post['suggestion']??'',
             'option_question' => $post['option_question'],
-            'option_value' => implode(',',$post['option_value']??[])
+            'option_value' => implode(',',array_map(function($var){return trim($var,'"');},$post['option_value']??[]))
         ];
         $create = UserRating::updateOrCreate(['id_transaction'=>$trx->id_transaction],$insert);
         UserRatingLog::where('id_user',$request->user()->id)->delete();
@@ -242,7 +243,8 @@ class ApiUserRatingController extends Controller
         $result['transaction_date'] = date('d M Y H:i',strtotime($transaction->transaction_date));
         $defaultOptions = [
             'question'=>Setting::where('key','default_rating_question')->pluck('value_text')->first()?:'What\'s best from us?',
-            'options' =>explode(',',Setting::where('key','default_rating_options')->pluck('value_text')->first()?:'Cleanness,Accuracy,Employee Hospitality,Process Time')];
+            'options' =>explode(',',Setting::where('key','default_rating_options')->pluck('value_text')->first()?:'Cleanness,Accuracy,Employee Hospitality,Process Time')
+        ];
         $options = ['1'=>$defaultOptions,'2'=>$defaultOptions,'3'=>$defaultOptions,'4'=>$defaultOptions,'5'=>$defaultOptions];
         $ratings = RatingOption::select('star','question','options')->get();
         foreach ($ratings as $rt) {
@@ -257,5 +259,148 @@ class ApiUserRatingController extends Controller
         $result['options'] = $options;
         $result['webview_url'] = env('APP_API_URL').'api/transaction/web/view/trx/'.$result['id'];
         return MyHelper::checkGet($result);
+    }
+    public function report(Request $request) {
+        $post = $request->json()->all();
+        $showOutlet = 10;
+        $counter = UserRating::select(\DB::raw('rating_value,count(id_user_rating) as total'))
+        ->groupBy('rating_value');
+        $this->applyFilter($counter,$post);
+        $counter = $counter->get()->toArray();
+        foreach ($counter as &$value) {
+            $datax = UserRating::where('rating_value',$value['rating_value'])->with([
+                'transaction'=>function($query){
+                    $query->select('id_transaction','transaction_receipt_number','trasaction_type','transaction_grandtotal');
+                },'user'=>function($query){
+                    $query->select('id','name','phone');
+                }
+            ])->take(10);
+            $this->applyFilter($datax,$post);
+            $value['data'] = $datax->get();
+        }
+        $outlet5 = UserRating::select(\DB::raw('outlets.id_outlet,outlet_name,outlet_code,user_ratings.rating_value,count(*) as total'))
+        ->join('transactions','transactions.id_transaction','=','user_ratings.id_transaction')
+        ->join('outlets','transactions.id_outlet','=','outlets.id_outlet')
+        ->where('rating_value','5')
+        ->groupBy('outlets.id_outlet')
+        ->orderBy('total','desc')
+        ->take($showOutlet);
+        $this->applyFilter($outlet5,$post);
+        for ($i=4; $i > 0 ; $i--) { 
+            $outlet = UserRating::select(\DB::raw('outlets.id_outlet,outlet_name,outlet_code,user_ratings.rating_value,count(*) as total'))
+            ->join('transactions','transactions.id_transaction','=','user_ratings.id_transaction')
+            ->join('outlets','transactions.id_outlet','=','outlets.id_outlet')
+            ->where('rating_value',$i)
+            ->groupBy('outlets.id_outlet')
+            ->orderBy('total','desc')
+            ->take($showOutlet);
+            $this->applyFilter($outlet,$post);
+            $outlet5->union($outlet);
+        }
+        $data['rating_item'] = $counter;
+        $data['rating_item_count'] = count($counter);
+        $data['outlet_data'] = $outlet5->get();
+        return MyHelper::checkGet($data);
+    }
+    // apply filter photos only/notes_only
+    public function applyFilter($model,$rule,$col='user_ratings'){
+        if($rule['notes_only']??false){
+            $model->whereNotNull($col.'.suggestion');
+            $model->where($col.'.suggestion','<>','');
+        }
+        $model->whereDate($col.'.created_at','>=',$rule['date_start'])->whereDate($col.'.created_at','<=',$rule['date_end']);
+    }
+    public function reportOutlet(Request $request) {
+        $post = $request->json()->all();
+        if($post['outlet_code']??false){
+            $outlet = Outlet::select(\DB::raw('outlets.id_outlet,outlets.outlet_code,outlets.outlet_name,count(f1.id_user_rating) as rating1,count(f2.id_user_rating) as rating2,count(f3.id_user_rating) as rating3,count(f4.id_user_rating) as rating4,count(f5.id_user_rating) as rating5'))
+            ->where('outlet_code',$post['outlet_code'])->join('transactions','outlets.id_outlet','=','transactions.id_outlet')
+            ->leftJoin('user_ratings as f1',function($join) use ($post){
+                $join->on('f1.id_transaction','=','transactions.id_transaction')
+                ->where('f1.rating_value','=','1');
+                $this->applyFilter($join,$post,'f1');
+            })
+            ->leftJoin('user_ratings as f2',function($join) use ($post){
+                $join->on('f2.id_transaction','=','transactions.id_transaction')
+                ->where('f2.rating_value','=','2');
+                $this->applyFilter($join,$post,'f2');
+            })
+            ->leftJoin('user_ratings as f3',function($join) use ($post){
+                $join->on('f3.id_transaction','=','transactions.id_transaction')
+                ->where('f3.rating_value','=','3');
+                $this->applyFilter($join,$post,'f3');
+            })
+            ->leftJoin('user_ratings as f4',function($join) use ($post){
+                $join->on('f4.id_transaction','=','transactions.id_transaction')
+                ->where('f4.rating_value','=','4');
+                $this->applyFilter($join,$post,'f4');
+            })
+            ->leftJoin('user_ratings as f5',function($join) use ($post){
+                $join->on('f5.id_transaction','=','transactions.id_transaction')
+                ->where('f5.rating_value','=','5');
+                $this->applyFilter($join,$post,'f5');
+            })->first();
+            if(!$outlet){
+                return MyHelper::checkGet($outlet);
+            }
+            $data['outlet_data'] = $outlet;
+            $post['id_outlet'] = $outlet->id_outlet;
+            $counter['data'] = [];
+            for ($i = 1; $i<=5 ;$i++) {
+                $datax = UserRating::where('rating_value',$i)->with([
+                    'transaction'=>function($query){
+                        $query->select('id_transaction','transaction_receipt_number','trasaction_type','transaction_grandtotal');
+                    },'user'=>function($query){
+                        $query->select('id','name','phone');
+                    }
+                ])
+                ->join('transactions','transactions.id_transaction','=','user_ratings.id_transaction')
+                ->where('id_outlet',$outlet->id_outlet)
+                ->take(10);
+                $this->applyFilter($datax,$post);
+                $counter['data'][$i] = $datax->get();
+            }
+            $data['rating_item'] = $counter;
+            return MyHelper::checkGet($data);
+        }else{
+            $dasc = ($post['order']??'outlet_name')=='outlet_name'?'asc':'desc';
+            $outlet = Outlet::select(\DB::raw('outlets.id_outlet,outlets.outlet_code,outlets.outlet_name,count(f1.id_user_rating) as rating1,count(f2.id_user_rating) as rating2,count(f3.id_user_rating) as rating3,count(f4.id_user_rating) as rating4,count(f5.id_user_rating) as rating5'))
+            ->join('transactions','outlets.id_outlet','=','transactions.id_outlet')
+            ->leftJoin('user_ratings as f1',function($join) use ($post){
+                $join->on('f1.id_transaction','=','transactions.id_transaction')
+                ->where('f1.rating_value','=','1');
+                $this->applyFilter($join,$post,'f1');
+            })
+            ->leftJoin('user_ratings as f2',function($join) use ($post){
+                $join->on('f2.id_transaction','=','transactions.id_transaction')
+                ->where('f2.rating_value','=','2');
+                $this->applyFilter($join,$post,'f2');
+            })
+            ->leftJoin('user_ratings as f3',function($join) use ($post){
+                $join->on('f3.id_transaction','=','transactions.id_transaction')
+                ->where('f3.rating_value','=','3');
+                $this->applyFilter($join,$post,'f1');
+            })
+            ->leftJoin('user_ratings as f4',function($join) use ($post){
+                $join->on('f4.id_transaction','=','transactions.id_transaction')
+                ->where('f4.rating_value','=','4');
+                $this->applyFilter($join,$post,'f4');
+            })
+            ->leftJoin('user_ratings as f5',function($join) use ($post){
+                $join->on('f5.id_transaction','=','transactions.id_transaction')
+                ->where('f5.rating_value','=','5');
+                $this->applyFilter($join,$post,'f5');
+            })
+            ->orderBy($post['order']??'outlet_name',$dasc)
+            ->groupBy('outlets.id_outlet');
+            if($post['search']??false){
+                $outlet->where(function($query) use($post){
+                    $param = '%'.$post['search'].'%';
+                    $query->where('outlet_name','like',$param)
+                    ->orWhere('outlet_code','like',$param);
+                });
+            }
+            return MyHelper::checkGet($outlet->paginate(15)->toArray());
+        }
     }
 }
