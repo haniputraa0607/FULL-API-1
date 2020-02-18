@@ -1037,7 +1037,7 @@ class ApiPOS extends Controller
                     }
                 } else {
                     try {
-                        $add = ProductPrice::updateOrCreate([
+                        ProductPrice::updateOrCreate([
                             'id_product'            => $getProduct[$j]['id_product'],
                             'id_outlet'             => $getOutlet[$i]['id_outlet']
                         ], [
