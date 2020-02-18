@@ -59,6 +59,7 @@ class ApiPromoCampaign extends Controller
         date_default_timezone_set('Asia/Jakarta');
 
         $this->online_transaction   = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
+        $this->voucher   = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
         // $this->fraud   = "Modules\SettingFraud\Http\Controllers\ApiFraud";
     }
 
@@ -1783,6 +1784,9 @@ class ApiPromoCampaign extends Controller
 		$result['errors'] 			= $errors;
 		$result['promo_code'] 		= $request->promo_code;
 		$result['id_deals_user'] 	= $request->id_deals_user;
+		$result['webview_url'] 		= "";
+		$result['webview_url_v2'] 	= "";
+
 
 		$result = MyHelper::checkGet($result);
 		// check item
@@ -1810,13 +1814,40 @@ class ApiPromoCampaign extends Controller
 	        	}
 	        }
 
-	        foreach ($trx['result'] as $key => $value) {
-	        	$result['result'][$key] = $value;
+	        if (!empty($trx['result'])) {
+		        foreach ($trx['result'] as $key => $value) {
+		        	$result['result'][$key] = $value;
+		        }
+		        $result['messages'] = $trx['messages'];
+		        $result['promo_error'] = $trx['promo_error'];
+	        }else{
+	        	return [
+	                'status'=>'fail',
+	                'messages'=>['Something went wrong']
+	            ];
 	        }
-	        $result['messages'] = $trx['messages'];
-	        $result['promo_error'] = $trx['promo_error'];
         }
 
+        if ($source == 'deals') {
+        	$change_used_voucher = app($this->voucher)->useVoucher($request->id_deals_user);
+        	if (($change_used_voucher['status']??false) == 'success') {
+	        	$result['webview_url'] = $change_used_voucher['webview_url'];
+	        	$result['webview_url_v2'] = $change_used_voucher['webview_url_v2'];
+        	}else{
+        		return [
+	                'status'=>'fail',
+	                'messages'=>['Something went wrong']
+	            ]; 
+        	}
+        }else{
+        	$change_used_voucher = app($this->voucher)->useVoucher($request->id_deals_user, 1);
+        	if (!$change_used_voucher) {
+        		return [
+	                'status'=>'fail',
+	                'messages'=>['Something went wrong']
+	            ];
+        	}
+        }
 
 		return $result;
     }
