@@ -25,7 +25,7 @@ class SyncAddOnPrice implements ShouldQueue
      */
     public function __construct($data)
     {
-        $this->data = json_decode($data, true);
+        $this->data = $data;
     }
 
     /**
