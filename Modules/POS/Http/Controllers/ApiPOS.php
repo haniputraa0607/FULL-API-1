@@ -788,7 +788,6 @@ class ApiPOS extends Controller
                         DB::rollback();
                         LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                         $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
-                        ;
                     }
                 }
             }
@@ -1011,21 +1010,48 @@ class ApiPOS extends Controller
     }
 
     public function cronProductPrice() {
-        $productPrice = ProductPrice::with('outlet')->get()->toArray();
-        foreach ($productPrice as $value) {
-            try {
-                $getPrice = DB::connection('mysql3')
-                ->table('outlet_'.$value['outlet']['outlet_code'])
-                ->where('id_product', $value['id_product'])
-                ->where('id_outlet', $value['id_outlet'])
-                ->where('date', date('Y-m-d'))->first();
+        $getOutlet = Outlet::select('id_outlet','outlet_code')->get()->toArray();
+        $getProduct = Product::select('id_product')->get()->toArray();
+        for ($i = 0; $i < count($getOutlet); $i++) { 
+            for ($j = 0; $j < count($getProduct); $j++) { 
+                try {
+                    $getPrice = DB::connection('mysql3')
+                    ->table('outlet_'.$getOutlet[$i]['outlet_code'])
+                    ->where('id_product', $getProduct[$j]['id_product'])
+                    ->where('id_outlet', $getOutlet[$i]['id_outlet'])
+                    ->where('date', date('Y-m-d'))->first();
 
-                $price = $getPrice->price;
-            } catch (\Exception $e) {
-                $price = null;
+                    $price = $getPrice->price;
+                } catch (\Exception $e) {
+                    $price = 0;
+                }
+
+                $getProductPrice = ProductPrice::where('id_product', $getProduct[$j]['id_product'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
+                if ($getProductPrice && $price != 0) {
+                    try {
+                        ProductPrice::where('id_product_price', $getProductPrice->id_product_price)->update([
+                            'product_price' => $price
+                        ]);
+                    } catch (\Exception $e) {
+                        LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
+                    }
+                } else {
+                    try {
+                        $add = ProductPrice::updateOrCreate([
+                            'id_product'            => $getProduct[$j]['id_product'],
+                            'id_outlet'             => $getOutlet[$i]['id_outlet']
+                        ], [
+                            'id_product'            => $getProduct[$j]['id_product'],
+                            'id_outlet'             => $getOutlet[$i]['id_outlet'],
+                            'product_price'         => $price,
+                            'product_status'        => 'Inactive',
+                            'product_stock_status'  => 'Available'
+                        ]);
+                    } catch (\Exception $e) {
+                        LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
+                    }
+                }
             }
-            ProductPrice::where('id_product_price', $value['id_product_price'])
-            ->update(['product_price_periode' => $price]);
         }
     }
 
