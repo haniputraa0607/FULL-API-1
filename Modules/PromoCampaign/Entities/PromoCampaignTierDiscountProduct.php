@@ -70,11 +70,15 @@ class PromoCampaignTierDiscountProduct extends Eloquent
 
         if( $this->product_type == 'group')
         {
-        	$this->load(['product_group']);
+        	$this->load(['product_group' => function($q){
+        		$q->select('id_product_group', 'product_group_code', 'product_group_name', 'id_product_category');
+        	}]);
         } 
         else
         {
-        	$this->load(['product.product_group']);
+        	$this->load(['product.product_group' => function($q){
+        		$q->select('id_product_group', 'product_group_code', 'product_group_name', 'id_product_category');
+        	}]);
         }
     }
 }

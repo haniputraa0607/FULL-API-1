@@ -1947,15 +1947,9 @@ class ApiPromoCampaign extends Controller
 
 	    if (!empty($product)) {
 		    $code = $code->with([
-					'promo_campaign.promo_campaign_product_discount.product' => function($q) {
-						$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
-					},
-					'promo_campaign.promo_campaign_buyxgety_product_requirement.product' => function($q) {
-						$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
-					},
-					'promo_campaign.promo_campaign_tier_discount_product.product' => function($q) {
-						$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
-					},
+					'promo_campaign.promo_campaign_product_discount',
+					'promo_campaign.promo_campaign_buyxgety_product_requirement',
+					'promo_campaign.promo_campaign_tier_discount_product',
 					'promo_campaign.promo_campaign_product_discount_rules',
 					'promo_campaign.promo_campaign_tier_discount_rules',
 					'promo_campaign.promo_campaign_buyxgety_rules'
@@ -1987,15 +1981,9 @@ class ApiPromoCampaign extends Controller
 	    if (!empty($product)) {
         	$deals = $deals->with([
                     'dealVoucher.deals.outlets_active',
-                    'dealVoucher.deals.deals_product_discount.product' => function($q) {
-						$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
-					}, 
-                    'dealVoucher.deals.deals_tier_discount_product.product' => function($q) {
-						$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
-					}, 
-                    'dealVoucher.deals.deals_buyxgety_product_requirement.product' => function($q) {
-						$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
-					}, 
+                    'dealVoucher.deals.deals_product_discount', 
+                    'dealVoucher.deals.deals_tier_discount_product', 
+                    'dealVoucher.deals.deals_buyxgety_product_requirement', 
                     'dealVoucher.deals.deals_product_discount_rules', 
                     'dealVoucher.deals.deals_tier_discount_rules', 
                     'dealVoucher.deals.deals_buyxgety_rules'
