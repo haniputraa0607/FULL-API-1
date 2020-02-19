@@ -468,6 +468,8 @@ class ApiDealsVoucher extends Controller
             $voucher[0]['deals_title'] = $voucher[0]['deal_voucher']['deal']['deals_title'];
             $voucher[0]['is_offline'] = $voucher[0]['deal_voucher']['deal']['is_offline'];
             $voucher[0]['is_online'] = $voucher[0]['deal_voucher']['deal']['is_online'];
+            $voucher[0]['popup_message'][] = $voucher[0]['deal_voucher']['deal']['deals_title'];
+            $voucher[0]['popup_message'][] = 'will be used on the next transaction';
             $result['data'] = $voucher;
         }
         else {
