@@ -378,7 +378,7 @@ class ApiDealsClaimPay extends Controller
             }
 
            /* MIDTRANS */
-            if ($request->get('payment_deals') && $request->get('payment_deals') == "midtrans") {
+            if ($request->json('payment_deals') && $request->json('payment_deals') == "midtrans") {
                 $pay = $this->midtrans($dataDeals, $voucher);
             }
 
@@ -388,7 +388,7 @@ class ApiDealsClaimPay extends Controller
             }
 
             /* MANUAL */
-            if ($request->get('payment_deals') && $request->get('payment_deals') == "manual") {
+            if ($request->json('payment_deals') && $request->json('payment_deals') == "manual") {
                 $post             = $request->json()->all();
                 $post['id_deals'] = $dataDeals->id_deals;
 
