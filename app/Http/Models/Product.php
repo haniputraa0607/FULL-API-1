@@ -39,11 +39,13 @@ class Product extends Model
 
 	protected $casts = [
 		'id_product_category' => 'int',
+		'id_product_group' => 'int',
 		'product_weight' => 'int'
 	];
 
 	protected $fillable = [
 		'id_product_category',
+		'id_product_group',
 		'product_code',
 		'product_name',
 		'product_name_pos',
