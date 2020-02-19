@@ -1831,8 +1831,8 @@ class ApiPromoCampaign extends Controller
         if ($source == 'deals') {
         	$change_used_voucher = app($this->voucher)->useVoucher($request->id_deals_user);
         	if (($change_used_voucher['status']??false) == 'success') {
-	        	$result['webview_url'] = $change_used_voucher['webview_url'];
-	        	$result['webview_url_v2'] = $change_used_voucher['webview_url_v2'];
+	        	$result['result']['webview_url'] = $change_used_voucher['webview_url'];
+	        	$result['result']['webview_url_v2'] = $change_used_voucher['webview_url_v2'];
         	}else{
         		return [
 	                'status'=>'fail',
