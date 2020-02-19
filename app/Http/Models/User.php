@@ -206,4 +206,14 @@ class User extends Authenticatable
     {
     	return $this->hasOne(\Modules\UserRating\Entities\UserRatingLog::class,'id_user');
     }
+
+    public function referred_user()
+    {
+    	return $this->belongsToMany(User::class,'promo_campaign_referral_transactions','id_referrer','id_user');
+    }
+
+    public function referred_transaction()
+    {
+    	return $this->hasMany(\Modules\PromoCampaign\Entities\PromoCampaignReferralTransaction::class,'id_referrer','id');
+    }
 }
