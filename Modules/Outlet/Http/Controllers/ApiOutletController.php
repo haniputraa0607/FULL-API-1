@@ -894,39 +894,11 @@ class ApiOutletController extends Controller
             if($settingTime && $settingTime->value){
                 $processing = $settingTime->value;
             }
-            // give all product flag is_promo = 0
-            foreach ($outlet as $key => $value) {
-				$outlet[$key]['is_promo'] = 0;
-			}
-			// check if isset promo_code
-			$promo_error = [];
-            if (isset($post['promo_code'])) {
-	        	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1);
 
-		        if(!$code){
-		        	$promo_error[] = 'Promo code not valid';
-		        }else{
-		        	
-		        	if ($code['promo_campaign']['date_end'] < date('Y-m-d H:i:s')) {
-		        		$promo_error[] = 'Promo campaign is ended'; 
-		        	}
-		        	// if valid give flag is_promo = 1
-		        	$code = $code->toArray();
-	        		if ($code['promo_campaign']['is_all_outlet']) {
-	        			foreach ($outlet as $key => $value) {
-	    					$outlet[$key]['is_promo'] = 1;
-	    				}
-	        		}else{
-			        	foreach ($code['promo_campaign']['promo_campaign_outlets'] as $key => $value) {
-		        			foreach ($outlet as $key2 => $value2) {
-		        				if ( $value2['id_outlet'] == $value['id_outlet'] ) {
-		    						$outlet[$key2]['is_promo'] = 1;
-		    						break;
-		    					}
-		        			}
-			        	}
-	        		}
-		        }
+			$promo_data = $this->applyPromo($post, $outlet, $promo_error);
+
+	        if ($promo_data) {
+	        	$outlet = $promo_data;
 	        }
 
             foreach ($outlet as $key => $value) {
@@ -2026,5 +1998,63 @@ class ApiOutletController extends Controller
         }else{
             return response()->json(['status' => 'fail', 'message' => 'empty']);
         }
+    }
+
+    public function applyPromo($promo_post, $data_outlet, &$promo_error)
+    {
+    	// check promo
+    	$post = $promo_post;
+    	$outlet = $data_outlet;
+
+    	// give all product flag is_promo = 0
+        foreach ($outlet as $key => $value) {
+			$outlet[$key]['is_promo'] = 0;
+		}
+
+		$promo_error = null;
+		if ( (!empty($post['promo_code']) && empty($post['id_deals_user'])) || (empty($post['promo_code']) && !empty($post['id_deals_user'])) ) {
+        // if (isset($post['promo_code'])) {
+        	if (!empty($post['promo_code'])) 
+        	{
+        		$code = app($this->promo_campaign)->checkPromoCode($post['promo_code'], 1);
+        		$source = 'promo_campaign';
+        	}else{
+        		$code = app($this->promo_campaign)->checkVoucher($post['id_deals_user'], 1);
+        		$source = 'deals';
+        	}
+
+	        if(!$code){
+	        	$promo_error = 'Promo not valid';
+	        	return false;
+	        }else{
+	        	
+	        	if ( ($code['promo_campaign']['date_end']??$code['voucher_expired_at']) < date('Y-m-d H:i:s') ) {
+	        		$promo_error = 'Promo is ended';
+	        		return false;
+	        	}
+
+	        	// if valid give flag is_promo = 1
+	        	$code = $code->toArray();
+        		if ($code['promo_campaign']['is_all_outlet']??false) {
+        			foreach ($outlet as $key => $value) {
+    					$outlet[$key]['is_promo'] = 1;
+    				}
+        		}else{
+		        	foreach ( ($code['promo_campaign']['promo_campaign_outlets']??$code['deal_voucher']['deals']['outlets_active']) as $key => $value) {
+	        			foreach ($outlet as $key2 => $value2) {
+	        				if ( $value2['id_outlet'] == $value['id_outlet'] ) {
+	    						$outlet[$key2]['is_promo'] = 1;
+	    						break;
+	    					}
+	        			}
+		        	}
+        		}
+	        }
+        }else{
+        	$promo_error = 'Can only use either promo code or voucher';
+        }
+
+        return $outlet;
+        // end check promo
     }
 }
