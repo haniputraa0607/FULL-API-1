@@ -53,11 +53,13 @@ class PromoCampaignTools{
 		{
 			$promo=PromoCampaign::with('promo_campaign_outlets')->find($id_promo);
 			$promo_outlet = $promo->promo_campaign_outlets;
+			$promo_title = $promo['promo_title'];
 		}
 		elseif($source == 'deals')
 		{
 			$promo=Deal::with('outlets_active')->find($id_promo);
 			$promo_outlet = $promo->outlets_active;
+			$promo_title = $promo['deals_title'];
 		}
 		else
 		{
@@ -308,7 +310,7 @@ class PromoCampaignTools{
 
 				if($discount<=0){
 					$message = $this->getMessage('error_product_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b>.'; 
-					$message = MyHelper::simpleReplace($message,['product'=>'product bertanda khusus']);
+					$message = MyHelper::simpleReplace($message,['product'=>'product bertanda khusus', 'title' => $promo_title]);
 
 					$errors[]= $message;
 					return false;
@@ -362,7 +364,7 @@ class PromoCampaignTools{
 				if(!in_array($promo_product->id_product, array_column($trxs, $id))){
 					$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
 					$message = $this->getMessage('error_tier_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.'; 
-					$message = MyHelper::simpleReplace($message,['product'=>$product_name, 'minmax'=>$minmax]);
+					$message = MyHelper::simpleReplace($message,['product'=>$product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
 
 					$errors[]= $message;
 					return false;
@@ -383,7 +385,7 @@ class PromoCampaignTools{
 				if(!$product){
 					$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
 					$message = $this->getMessage('error_tier_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.'; 
-					$message = MyHelper::simpleReplace($message,['product'=>$product_name, 'minmax'=>$minmax]);
+					$message = MyHelper::simpleReplace($message,['product'=>$product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
 
 					$errors[]= $message;
 					return false;
@@ -411,7 +413,7 @@ class PromoCampaignTools{
 				if(!$promo_rule){
 					$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
 					$message = $this->getMessage('error_tier_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.'; 
-					$message = MyHelper::simpleReplace($message,['product'=>$product_name, 'minmax'=>$minmax]);
+					$message = MyHelper::simpleReplace($message,['product'=>$product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
 
 					$errors[]= $message;
 					return false;
@@ -477,11 +479,12 @@ class PromoCampaignTools{
 				}else{
 					$product_name = $promo_product->product->product_name;
 				}
+
 				// promo product not available in cart?
 				if(!in_array($promo_product->id_product, array_column($trxs, $id))){
 					$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
 					$message = $this->getMessage('error_buyxgety_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.'; 
-					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax]);
+					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
 
 					$errors[]= $message;
 					return false;
@@ -502,7 +505,7 @@ class PromoCampaignTools{
 				if(!$product){
 					$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
 					$message = $this->getMessage('error_buyxgety_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.'; 
-					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax]);
+					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
 
 					$errors[]= $message;
 					return false;
@@ -533,11 +536,10 @@ class PromoCampaignTools{
 					}
 					$promo_rule=$rule;
 				}
-
 				if(!$promo_rule){
 					$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
 					$message = $this->getMessage('error_buyxgety_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.'; 
-					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax]);
+					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
 
 					$errors[]= $message;
 					return false;
@@ -1062,7 +1064,8 @@ class PromoCampaignTools{
 	        }
 	        elseif ( !empty($promo[$source.'_product_discount']) )
 	        {
-	        	$product = $promo[$source.'_product_discount'][0]['product']['product_group']??$promo[$source.'_product_discount'][0]['product_group']??'';
+	        	// $product = $promo[$source.'_product_discount'][0]['product']['product_group']??$promo[$source.'_product_discount'][0]['product_group']??'';
+	        	$product = null;
 	        }
 	        elseif ( !empty($promo[$source.'_tier_discount_product']) )
 	        {

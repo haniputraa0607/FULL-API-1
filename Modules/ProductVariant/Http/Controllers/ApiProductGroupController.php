@@ -657,6 +657,8 @@ class ApiProductGroupController extends Controller
         			}
         		}
 	        }
+        }else{
+        	$promo_error = 'Can only use either promo code or voucher';
         }
         return $data;
         // end promo code

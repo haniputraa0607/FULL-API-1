@@ -1644,7 +1644,7 @@ class ApiOnlineTransaction extends Controller
         $promo_error=null;
         if($request->json('promo_code'))
         {
-        	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1);
+        	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1, 1);
 
             if ($code)
             {
@@ -1661,6 +1661,7 @@ class ApiOnlineTransaction extends Controller
 		            if ( !empty($errore) || !empty($errors)) {
 
 		            	$promo_error = app($this->promo_campaign)->promoError('transaction', $errore, $errors);
+		            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('promo_campaign', $code['promo_campaign'])['product']??'';
 				        $promo_error['product'] = $pct->getRequiredProduct($code->id_promo_campaign)??null;
 		                
 		            }
@@ -1674,7 +1675,7 @@ class ApiOnlineTransaction extends Controller
         }
         elseif($request->json('id_deals_user'))
         {
-        	$deals = app($this->promo_campaign)->checkVoucher($request->id_deals_user, 1);
+        	$deals = app($this->promo_campaign)->checkVoucher($request->id_deals_user, 1, 1);
 
 			if($deals)
 			{
@@ -1682,7 +1683,9 @@ class ApiOnlineTransaction extends Controller
 				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals');
 
 				if ( !empty($errors) ) {
+					$code = $deals->toArray();
 	            	$promo_error = app($this->promo_campaign)->promoError('transaction', null, $errors);
+	            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('deals', $code['deal_voucher']['deals'])['product']??'';
 		        	$promo_error['product'] = $pct->getRequiredProduct($deals->dealVoucher->id_deals, 'deals')??null;
 	            }
 	            $promo_discount=$discount_promo['discount'];
