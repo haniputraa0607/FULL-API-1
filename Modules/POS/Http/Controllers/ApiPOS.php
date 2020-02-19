@@ -593,7 +593,7 @@ class ApiPOS extends Controller
                 }
 
                 foreach ($menu['menu_variance'] as $keyVariance => $variance) {
-                    $variantSize = ProductVariant::where('product_variant_name', $variance['size'])->first();
+                    $variantSize = ProductVariant::where('product_variant_code', $variance['size'])->first();
                     if (!$variantSize) {
                         try {
                             $variantSize = ProductVariant::create([
@@ -611,7 +611,8 @@ class ApiPOS extends Controller
                         }
                     }
 
-                    $variantType = ProductVariant::where('product_variant_name', $variance['type'])->first();
+
+                    $variantType = ProductVariant::where('product_variant_code', $variance['type'])->first();
                     if (!$variantType) {
                         try {
                             $variantType = ProductVariant::create([
@@ -634,7 +635,8 @@ class ApiPOS extends Controller
                         try {
                             Product::where('product_code', $variance['sap_matnr'])->update([
                                 'product_name_pos'  => implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]),
-                                'product_status'    => $variance['status']
+                                'product_status'    => $variance['status'],
+                                'id_product_group'  => $checkGroup->id_product_group
                             ]);
                             $countUpdate        = $countUpdate + 1;
                             $updatedProduct[]   = implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
@@ -699,7 +701,7 @@ class ApiPOS extends Controller
                 }
 
                 foreach ($menu['menu_variance'] as $keyVariance => $variance) {
-                    $variantSize = ProductVariant::where('product_variant_name', $variance['size'])->first();
+                    $variantSize = ProductVariant::where('product_variant_code', $variance['size'])->first();
                     if (!$variantSize) {
                         try {
                             $variantSize = ProductVariant::create([
@@ -717,7 +719,8 @@ class ApiPOS extends Controller
                         }
                     }
 
-                    $variantType = ProductVariant::where('product_variant_name', $variance['type'])->first();
+
+                    $variantType = ProductVariant::where('product_variant_code', $variance['type'])->first();
                     if (!$variantType) {
                         try {
                             $variantType = ProductVariant::create([
@@ -740,7 +743,8 @@ class ApiPOS extends Controller
                         try {
                             Product::where('product_code', $variance['sap_matnr'])->update([
                                 'product_name_pos'  => implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]),
-                                'product_status'    => $variance['status']
+                                'product_status'    => $variance['status'],
+                                'id_product_group'  => $createGroup->id_product_group
                             ]);
                             $countUpdate        = $countUpdate + 1;
                             $updatedProduct[]   = implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
@@ -788,6 +792,7 @@ class ApiPOS extends Controller
                         DB::rollback();
                         LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                         $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
+                        ;
                     }
                 }
             }
@@ -795,6 +800,7 @@ class ApiPOS extends Controller
         }
         $hasil['inserted']  = $countInsert;
         $hasil['updated']   = $countUpdate;
+        $hasil['failed']   = $failedProduct;
         return [
             'status'    => 'success',
             'result'    => $hasil,
@@ -1012,8 +1018,8 @@ class ApiPOS extends Controller
     public function cronProductPrice() {
         $getOutlet = Outlet::select('id_outlet','outlet_code')->get()->toArray();
         $getProduct = Product::select('id_product')->get()->toArray();
-        for ($i = 0; $i < count($getOutlet); $i++) { 
-            for ($j = 0; $j < count($getProduct); $j++) { 
+        for ($i = 0; $i < count($getOutlet); $i++) {
+            for ($j = 0; $j < count($getProduct); $j++) {
                 try {
                     $getPrice = DB::connection('mysql3')
                     ->table('outlet_'.$getOutlet[$i]['outlet_code'])
@@ -1497,7 +1503,7 @@ class ApiPOS extends Controller
                     'setting' => $setting
                 );
                 Mail::send('pos::email_sync_menu', $data, function ($message) use ($to, $subject, $setting) {
-                    $message->to($to, $name)->subject($subject);
+                    $message->to($to)->subject($subject);
                     if(env('MAIL_DRIVER') == 'mailgun'){
                         $message->trackClicks(true)
                                 ->trackOpens(true);
