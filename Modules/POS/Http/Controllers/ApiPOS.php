@@ -43,7 +43,7 @@ use App\Http\Models\OutletSchedule;
 use App\Http\Models\SyncTransactionFaileds;
 use App\Http\Models\SyncTransactionQueues;
 use App\Lib\MyHelper;
-use Mailgun;
+use Mail;
 
 use Modules\POS\Http\Requests\reqMember;
 use Modules\POS\Http\Requests\reqVoucher;
@@ -593,7 +593,7 @@ class ApiPOS extends Controller
                 }
 
                 foreach ($menu['menu_variance'] as $keyVariance => $variance) {
-                    $variantSize = ProductVariant::where('product_variant_name', $variance['size'])->first();
+                    $variantSize = ProductVariant::where('product_variant_code', $variance['size'])->first();
                     if (!$variantSize) {
                         try {
                             $variantSize = ProductVariant::create([
@@ -610,8 +610,8 @@ class ApiPOS extends Controller
                             continue;
                         }
                     }
-                    
-                    $variantType = ProductVariant::where('product_variant_name', $variance['type'])->first();
+
+                    $variantType = ProductVariant::where('product_variant_code', $variance['type'])->first();
                     if (!$variantType) {
                         try {
                             $variantType = ProductVariant::create([
@@ -634,7 +634,8 @@ class ApiPOS extends Controller
                         try {
                             Product::where('product_code', $variance['sap_matnr'])->update([
                                 'product_name_pos'  => implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]),
-                                'product_status'    => $variance['status']
+                                'product_status'    => $variance['status'],
+                                'id_product_group'  => $checkGroup->id_product_group
                             ]);
                             $countUpdate        = $countUpdate + 1;
                             $updatedProduct[]   = implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
@@ -697,9 +698,9 @@ class ApiPOS extends Controller
                     $failedProduct[] = 'fail to sync, product ' . $menu['menu_name'];
                     continue;
                 }
-                
+
                 foreach ($menu['menu_variance'] as $keyVariance => $variance) {
-                    $variantSize = ProductVariant::where('product_variant_name', $variance['size'])->first();
+                    $variantSize = ProductVariant::where('product_variant_code', $variance['size'])->first();
                     if (!$variantSize) {
                         try {
                             $variantSize = ProductVariant::create([
@@ -716,8 +717,8 @@ class ApiPOS extends Controller
                             continue;
                         }
                     }
-                    
-                    $variantType = ProductVariant::where('product_variant_name', $variance['type'])->first();
+
+                    $variantType = ProductVariant::where('product_variant_code', $variance['type'])->first();
                     if (!$variantType) {
                         try {
                             $variantType = ProductVariant::create([
@@ -740,7 +741,8 @@ class ApiPOS extends Controller
                         try {
                             Product::where('product_code', $variance['sap_matnr'])->update([
                                 'product_name_pos'  => implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]),
-                                'product_status'    => $variance['status']
+                                'product_status'    => $variance['status'],
+                                'id_product_group'  => $createGroup->id_product_group
                             ]);
                             $countUpdate        = $countUpdate + 1;
                             $updatedProduct[]   = implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
@@ -788,6 +790,7 @@ class ApiPOS extends Controller
                         DB::rollback();
                         LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                         $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
+                        ;
                     }
                 }
             }
@@ -795,6 +798,7 @@ class ApiPOS extends Controller
         }
         $hasil['inserted']  = $countInsert;
         $hasil['updated']   = $countUpdate;
+        $hasil['failed']   = $failedProduct;
         return [
             'status'    => 'success',
             'result'    => $hasil,
@@ -807,7 +811,7 @@ class ApiPOS extends Controller
         if ($api['status'] != 'success') {
             return response()->json($api);
         }
-        
+
         $countInsert    = 0;
         $insertProduct  = [];
         $countfailed    = 0;
@@ -849,7 +853,7 @@ class ApiPOS extends Controller
         ];
     }
 
-    public function syncAddOn(Request $request) 
+    public function syncAddOn(Request $request)
     {
         $post = $request->json()->all();
         $api = $this->checkApi($post['api_key'], $post['api_secret']);
@@ -926,7 +930,7 @@ class ApiPOS extends Controller
                     $failedProduct[] = 'fail to sync, product modifier ' . $menu['menu_id'];
                     continue;
                 }
-                
+
                 foreach ($menu['menu'] as $keyVariance => $variance) {
                     $product = Product::where('product_code', $variance)->first();
                     if (!$product) {
@@ -967,7 +971,7 @@ class ApiPOS extends Controller
         if ($api['status'] != 'success') {
             return response()->json($api);
         }
-        
+
         $countInsert    = 0;
         $insertProduct  = [];
         $countfailed    = 0;
@@ -1012,8 +1016,8 @@ class ApiPOS extends Controller
     public function cronProductPrice() {
         $getOutlet = Outlet::select('id_outlet','outlet_code')->get()->toArray();
         $getProduct = Product::select('id_product')->get()->toArray();
-        for ($i = 0; $i < count($getOutlet); $i++) { 
-            for ($j = 0; $j < count($getProduct); $j++) { 
+        for ($i = 0; $i < count($getOutlet); $i++) {
+            for ($j = 0; $j < count($getProduct); $j++) {
                 try {
                     $getPrice = DB::connection('mysql3')
                     ->table('outlet_'.$getOutlet[$i]['outlet_code'])
@@ -1158,7 +1162,7 @@ class ApiPOS extends Controller
                             }
                             // cek name pos, jika beda product tidak di update
                             if (empty($product->product_name_pos) || $product->product_name_pos == $menu['name']) {
-                                // update modifiers 
+                                // update modifiers
                                 if (isset($menu['modifiers'])) {
                                     ProductModifierProduct::where('id_product',$product['id_product'])->delete();
                                     foreach ($menu['modifiers'] as $mod) {
@@ -1170,7 +1174,7 @@ class ApiPOS extends Controller
                                         $dataProductMod['modifier_type'] = 'Specific';
                                         $updateProductMod = ProductModifier::updateOrCreate([
                                             'code'  => $mod['code']
-                                        ], $dataProductMod);                                        
+                                        ], $dataProductMod);
                                         $id_product_modifier = $updateProductMod['id_product_modifier'];
                                         ProductModifierProduct::create([
                                             'id_product_modifier' => $id_product_modifier,
@@ -1178,7 +1182,7 @@ class ApiPOS extends Controller
                                         ]);
                                     }
                                 }
-                                // update price 
+                                // update price
                                 $productPrice = ProductPrice::where('id_product', $product->id_product)->where('id_outlet', $outlet->id_outlet)->first();
                                 if ($productPrice) {
                                     $oldPrice =  $productPrice->product_price;
@@ -1496,15 +1500,18 @@ class ApiPOS extends Controller
                     'content' => $content,
                     'setting' => $setting
                 );
-                Mailgun::send('pos::email_sync_menu', $data, function ($message) use ($to, $subject, $setting) {
-                    $message->to($to)->subject($subject)
-                        ->trackClicks(true)
-                        ->trackOpens(true);
-                    if (!empty($setting['email_from']) && !empty($setting['email_sender'])) {
-                        $message->from($setting['email_from'], $setting['email_sender']);
-                    } else if (!empty($setting['email_from'])) {
-                        $message->from($setting['email_from']);
+                Mail::send('pos::email_sync_menu', $data, function ($message) use ($to, $subject, $setting) {
+                    $message->to($to)->subject($subject);
+                    if(env('MAIL_DRIVER') == 'mailgun'){
+                        $message->trackClicks(true)
+                                ->trackOpens(true);
                     }
+                    if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
+                        $message->from($setting['email_sender'], $setting['email_from']);
+                    }else if(!empty($setting['email_sender'])){
+                        $message->from($setting['email_sender']);
+                    }
+
                     if (!empty($setting['email_reply_to'])) {
                         $message->replyTo($setting['email_reply_to'], $setting['email_reply_to_name']);
                     }
@@ -1890,6 +1897,8 @@ class ApiPOS extends Controller
                     if(isset($trx['cashier'])){
                         $dataTrx['transaction_cashier'] = $trx['cashier'];
                     }
+
+                    $dataTrx['show_rate_popup'] = 1;
 
                     $createTrx = Transaction::create($dataTrx);
                     if (!$createTrx) {
@@ -2628,7 +2637,7 @@ class ApiPOS extends Controller
         DB::commit();
         return response()->json(MyHelper::checkGet($insertRequest));
     }
-    
+
     public function syncOutletMenuCron(Request $request)
     {
         $syncDatetime = date('d F Y h:i');
@@ -2669,7 +2678,7 @@ class ApiPOS extends Controller
                     }
                 }
             }
-            
+
             // if (count($listRejected) > 0) {
             //     $this->syncSendEmail($syncDatetime, $outlet->outlet_code, $outlet->outlet_name, $rejectedProduct, null);
             // }
