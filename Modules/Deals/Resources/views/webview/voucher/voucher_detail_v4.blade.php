@@ -5,8 +5,7 @@
 @extends('webview.main')
 
 @section('css')
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
-	<link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+	<link rel="stylesheet" href="{{env('API_URL')}}css/voucher.css">
 	<style type="text/css">
     	p{
     		margin-top: 0px !important;
@@ -191,21 +190,16 @@
 		}
 		.nav-item a{
 			color: #d7d2cb !important;
-			font-weight: 600;
-			padding-left: 28px;
-			padding-right: 28px;
 		}
 		.nav-item .active{
-			color: #ff9d6e !important;
+			color: #10704e !important;
 			border:none !important;
-			border-bottom: 3px solid #ff9d6e !important;
-			font-weight: 600;
-			padding: 10px;
+			border-bottom: 3px solid #10704e !important;
 			border-radius: 3px;
 		}
 		.nav-item .active:hover{
 			border:none !important;
-			border-bottom: 3px solid #ff9d6e !important;
+			border-bottom: 3px solid #10704e !important;
 		}
 		.nav-tabs{
 			border-bottom: none;
@@ -292,8 +286,7 @@
 					</div>
 				</div>
 				@else
-				<div style="background-color: #ffffff;padding: 10px;height: 190px;" class="col-md-12 clearfix Ubuntu">
-					<img style="width: 100%;height: 80px;position: absolute;background-color: #f8f9fb;left: 0;top: 50%;" src="{{ env('S3_URL_API')}}img/asset/bg_my_voucher.png" alt="">
+				<div style="background: url('{{env('API_URL')}}img/asset/bg_card_membership.png');background-size: contain;padding: 10px;height: 190px;" class="col-md-12 clearfix Ubuntu">
 					<div style="position: relative;margin-top: 26.7px;">
 						<div style="width: 56%;height: 100px;position: absolute;top: 10%;left: 40%;">
 							<div class="cotainer">
@@ -344,19 +337,45 @@
 							@endforeach
 						</div>
 					</div>
-					<br>
 				</div>
-				@if(!isset($voucher['redeemed_at']) || $voucher['redeemed_at'] == null)
-					<center style="position: fixed; bottom: 0; width: 100%; background-color: #ffffff;">
-						<button style="outline:none; font-size:15px; margin-bottom: 15px; margin-top: 15px; background-color: #383b67; color: #ffffff" type="button" id="invalidate" class="btn Ubuntu-Bold">{{$voucher['button_text']}}</button>
-					</center>
-				@endif
-				@endif
-
+				<hr width="100%" style="margin-top: 10px;margin-bottom: 0px;">
+				<div class="container" style="border-top: 3.3px solid #8fd6bd;background-color: #ffffff;">
+					<div style="padding-top: 15px;">
+						@if ($voucher['is_used'] == 1)
+							@if ($voucher['is_online'] == 1)
+								<p class="col-12 Ubuntu-Medium" style="font-size: 13.3px;color: #333333;">Online Transaction</p>
+								<p class="col-12 Ubuntu-Regular" style="font-size: 11.3px;color: #707070;">Apply promo on this app</p>
+								<center>
+									<button onclick="location.href='{{url()->current()}}#use_later'" style="outline:none; font-size:15px; margin-bottom: 15px; margin-top: 15px; background-color: #b72126; color: #ffffff" type="button" id="invalidate" class="btn Ubuntu-Bold">Use Later</button>
+								</center>
+							@endif
+							@if ($voucher['is_offline'] == 1)
+								<p class="col-12 Ubuntu-Medium" style="font-size: 13.3px;color: #333333;">Offline Transaction</p>
+								<p class="col-12 Ubuntu-Regular" style="font-size: 11.3px;color: #707070;">Redeem directly at Cashier</p>
+								<center>
+									<button disabled style="outline:none; font-size:15px; margin-bottom: 15px; margin-top: 15px; background-color: #cccccc; color: #ffffff" type="button" id="invalidate" class="btn Ubuntu-Bold">Redeem to Cashier</button>
+								</center>
+							@endif
+						@else
+							@if ($voucher['is_online'] == 1)
+								<p class="col-12 Ubuntu-Medium" style="font-size: 13.3px;color: #333333;">Online Transaction</p>
+								<p class="col-12 Ubuntu-Regular" style="font-size: 11.3px;color: #707070;">Apply promo on this app</p>
+								<center>
+									<button onclick="location.href='{{url()->current()}}#use_voucher'" style="outline:none; font-size:15px; margin-bottom: 15px; margin-top: 15px; background-color: #8fd6bd; color: #10704e" type="button" id="invalidate" class="btn Ubuntu-Bold">Use Voucher</button>
+								</center>
+							@endif
+							@if ($voucher['is_offline'] == 1)
+								<p class="col-12 Ubuntu-Medium" style="font-size: 13.3px;color: #333333;">Offline Transaction</p>
+								<p class="col-12 Ubuntu-Regular" style="font-size: 11.3px;color: #707070;">Redeem directly at Cashier</p>
+								<center>
+									<button onclick="location.href='{{url()->current()}}#redeem_to_cashier'" style="outline:none; font-size:15px; margin-bottom: 15px; margin-top: 15px; background-color: #333333; color: #ffffff" type="button" id="invalidate" class="btn Ubuntu-Bold">Redeem to Cashier</button>
+								</center>
+							@endif
+						@endif
+					</div>
 				</div>
-				<br>
-				<br>
-				<br>
+				@endif
+				</div>
 		@else
 			<div class="col-md-4 col-md-offset-4">
 				<h4 class="text-center" style="margin-top: 30px;">Voucher not found</h4>
@@ -366,90 +385,7 @@
 @stop
 
 @section('page-script')
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
-	<script type="text/javascript">
-		@php $month = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', "Juli", 'Agustus', 'September', 'Oktober', 'November', 'Desember']; @endphp
-
-		// timer
-		var deals_end   = "{{ strtotime($voucher['voucher_expired_at']) }}";
-		var server_time = "{{ strtotime($voucher['deal_voucher']['deal']['time_server']) }}";
-		var timer_text;
-		var difference;
-
-		if (server_time <= deals_end) {
-			difference = deals_end - server_time;
-			document.getElementById('timer').classList.add("text-center");
-		}
-
-		var display_flag = 0;
-		this.interval = setInterval(() => {
-			daysDifference = Math.floor(difference/60/60/24);
-			if (daysDifference >= 0) {
-				document.getElementById('day').classList.add("text-center");
-				document.getElementById("day").innerHTML = " ";
-				document.getElementById("day").innerHTML += " ";
-				document.getElementById('day').innerHTML += daysDifference;
-				document.getElementById("day").innerHTML += " Hari";
-			}
-
-			if(difference >= 0) {
-				timer_text = timer(difference);
-				document.getElementById("timer").innerHTML = " ";
-				document.getElementById("timer").innerHTML += " ";
-				document.getElementById('timer').innerHTML += timer_text;
-
-				difference--;
-			}
-			else {
-				clearInterval(this.interval);
-			}
-
-			// if days then stop the timer
-			if (timer_text!=null && timer_text.includes("day")) {
-				clearInterval(this.interval);
-			}
-
-			// show timer
-			if (display_flag == 0) {
-				document.getElementById('timer');
-				display_flag = 1;
-			}
-		}, 1000); // 1 second
-
-		function timer(difference) {
-			if(difference === 0) {
-				return null;    // stop the function
-			}
-
-			var daysDifference, hoursDifference, minutesDifference, secondsDifference, timer;
-
-			// countdown
-			daysDifference = Math.floor(difference/60/60/24);
-			difference -= daysDifference*60*60*24;
-
-			hoursDifference = Math.floor(difference/60/60);
-			difference -= hoursDifference*60*60;
-			hoursDifference = ("0" + hoursDifference).slice(-2);
-
-			minutesDifference = Math.floor(difference/60);
-			difference -= minutesDifference*60;
-			minutesDifference = ("0" + minutesDifference).slice(-2);
-
-			secondsDifference = Math.floor(difference);
-
-			if (secondsDifference-1 < 0) {
-				secondsDifference = "00";
-			}
-			else {
-				secondsDifference = secondsDifference-1;
-				secondsDifference = ("0" + secondsDifference).slice(-2);
-			}
-
-			timer = hoursDifference + ":" + minutesDifference + ":" + secondsDifference;
-
-			return timer;
-		}
-	</script>
+	<script src="{{env('API_URL')}}js/jquery.js"></script>
+    <script src="{{env('API_URL')}}js/popper.js"></script>
+    <script src="{{env('API_URL')}}js/voucher.js"></script>
 @stop

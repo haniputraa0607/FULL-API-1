@@ -87,6 +87,10 @@ class Controller extends BaseController
 		return MyHelper::checkGet($query->get()->toArray()); 
 	}
 	
+	function listProvinceCustom(Request $request){
+		return MyHelper::checkGet(\App\Http\Models\ProvinceCustom::all()->toArray()); 
+	}
+
 	function listCourier(){
 		$query = Courier::where('status','Active')->get()->toArray();
 		return MyHelper::checkGet($query); 

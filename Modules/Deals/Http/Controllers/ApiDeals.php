@@ -2,6 +2,7 @@
 
 namespace Modules\Deals\Http\Controllers;
 
+use App\Http\Models\Configs;
 use App\Http\Models\DealTotal;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -19,12 +20,20 @@ use App\Http\Models\DealsVoucher;
 use App\Http\Models\SpinTheWheel;
 use App\Http\Models\Setting;
 
+use Modules\Deals\Entities\DealsProductDiscount;
+use Modules\Deals\Entities\DealsProductDiscountRule;
+use Modules\Deals\Entities\DealsTierDiscountProduct;
+use Modules\Deals\Entities\DealsTierDiscountRule;
+use Modules\Deals\Entities\DealsBuyxgetyProductRequirement;
+use Modules\Deals\Entities\DealsBuyxgetyRule;
+
 use DB;
 
 use Modules\Deals\Http\Requests\Deals\Create;
 use Modules\Deals\Http\Requests\Deals\Update;
 use Modules\Deals\Http\Requests\Deals\Delete;
 use Modules\Deals\Http\Requests\Deals\ListDeal;
+use Modules\Deals\Http\Requests\Deals\DetailDealsRequest;
 
 use Illuminate\Support\Facades\Schema;
 
@@ -78,6 +87,9 @@ class ApiDeals extends Controller
         }
         if (isset($post['deals_voucher_type'])) {
             $data['deals_voucher_type'] = $post['deals_voucher_type'];
+            if ($data['deals_voucher_type'] == 'Unlimited') {
+            	$data['deals_total_voucher'] = 0;
+            }
         }
         if (isset($post['deals_promo_id'])) {
             $data['deals_promo_id'] = $post['deals_promo_id'];
@@ -90,6 +102,9 @@ class ApiDeals extends Controller
         }
         if (isset($post['deals_description'])) {
             $data['deals_description'] = $post['deals_description'];
+        }
+        if (isset($post['product_type'])) {
+            $data['product_type'] = $post['product_type'];
         }
         if (isset($post['deals_tos'])) {
             $data['deals_tos'] = $post['deals_tos'];
@@ -194,6 +209,18 @@ class ApiDeals extends Controller
             $data['user_limit'] = 0;
         }
 
+        if (isset($post['is_online'])) {
+            $data['is_online'] = 1;
+        } else {
+            $data['is_online'] = 0;
+        }
+
+        if (isset($post['is_offline'])) {
+            $data['is_offline'] = 1;
+        } else {
+            $data['is_offline'] = 0;
+        }
+
         return $data;
     }
 
@@ -250,7 +277,7 @@ class ApiDeals extends Controller
             $deals->addSelect('id_brand');
             $deals->with('brand');
         }else{
-            if($request->json('deals_type') != 'WelcomeVoucher'){
+            if($request->json('deals_type') != 'WelcomeVoucher' && !$request->json('web')){
                 $deals->where('deals_end', '>', date('Y-m-d H:i:s'));
             }
         }
@@ -276,9 +303,9 @@ class ApiDeals extends Controller
                 // 'deals_vouchers.deals_user.user'
             ])->where('id_deals', $request->json('id_deals'))->with(['outlets', 'outlets.city', 'product','brand']);
         }else{
-            $deals->addSelect('id_deals','deals_title','deals_second_title','deals_voucher_price_point','deals_voucher_price_cash','deals_total_voucher','deals_total_claimed','deals_voucher_type','deals_image','deals_start','deals_end','deals_type');
+            $deals->addSelect('id_deals','deals_title','deals_second_title','deals_voucher_price_point','deals_voucher_price_cash','deals_total_voucher','deals_total_claimed','deals_voucher_type','deals_image','deals_start','deals_end','deals_type','is_offline','is_online','product_type');
             if(strpos($request->user()->level,'Admin')>=0){
-                $deals->addSelect('deals_promo_id','deals_publish_start','deals_publish_end');
+                $deals->addSelect('deals_promo_id','deals_publish_start','deals_publish_end','created_at');
             }
             // return($deals->toSql());
         }
@@ -287,6 +314,7 @@ class ApiDeals extends Controller
         }
         if ($request->json('publish')) {
             $deals->where('deals_publish_end', '>=', date('Y-m-d H:i:s'));
+            $deals->where('step_complete', '=', 1);
         }
 
         if ($request->json('deals_type')) {
@@ -476,6 +504,7 @@ class ApiDeals extends Controller
                         $deals[0]['payment_fail_message'] = Setting::where('key', 'payment_fail_messages')->pluck('value_text')->first()??'Mohon maaf, point anda tidak cukup';
                     }
                 }else{
+                    $deals[0]['button_text'] = 'Beli';
                     if($deals[0]['deals_status']=='available'){
                         $deals[0]['button_status'] = 1;
                     }
@@ -793,6 +822,7 @@ class ApiDeals extends Controller
     function update($id, $data)
     {
         $data = $this->checkInputan($data);
+    	// return $data;
 
         // error
         if (isset($data['error'])) {
@@ -837,8 +867,10 @@ class ApiDeals extends Controller
     /* UPDATE REQUEST */
     function updateReq(Update $request)
     {
+
         DB::beginTransaction();
         $save = $this->update($request->json('id_deals'), $request->json()->all());
+        // return $save;
 
         if ($save) {
             DB::commit();
@@ -938,6 +970,14 @@ class ApiDeals extends Controller
             $id_outlet = Outlet::select('id_outlet')->whereHas('brands',function($query) use ($id_brand){
                 $query->where('brands.id_brand',$id_brand);
             })->get()->toArray();
+            if($id_brand){
+                $id_outlet = Outlet::select('id_outlet')->whereHas('brands',function($query) use ($id_brand){
+                    $query->where('brands.id_brand',$id_brand);
+                })->get()->toArray();
+
+            }else{
+                $id_outlet = Outlet::select('id_outlet')->get()->toArray();
+            }
 
             if (empty($id_outlet)) {
                 return false;
@@ -974,10 +1014,19 @@ class ApiDeals extends Controller
 
     /*Welcome Voucher*/
     function listDealsWelcomeVoucher(Request $request){
-        $getDeals = Deal::join('brands', 'brands.id_brand', 'deals.id_brand')
-            ->where('deals_type','WelcomeVoucher')
-            ->select('deals.*','brands.name_brand')
-            ->get()->toArray();
+        $configUseBrand = Configs::where('config_name', 'use brand')->first();
+
+        if($configUseBrand['is_active']){
+            $getDeals = Deal::join('brands', 'brands.id_brand', 'deals.id_brand')
+                ->where('deals_type','WelcomeVoucher')
+                ->select('deals.*','brands.name_brand')
+                ->get()->toArray();
+        }else{
+            $getDeals = Deal::where('deals_type','WelcomeVoucher')
+                ->select('deals.*')
+                ->get()->toArray();
+        }
+
 
         $result = [
             'status' => 'success',
@@ -988,10 +1037,19 @@ class ApiDeals extends Controller
 
     function welcomeVoucherSetting(Request $request){
         $setting = Setting::where('key', 'welcome_voucher_setting')->first();
-        $getDeals = DealTotal::join('deals', 'deals.id_deals', 'deals_total.id_deals')
-            ->join('brands', 'brands.id_brand', 'deals.id_brand')
-            ->select('deals.*','deals_total.deals_total','brands.name_brand')
-            ->get()->toArray();
+        $configUseBrand = Configs::where('config_name', 'use brand')->first();
+
+        if($configUseBrand['is_active']){
+            $getDeals = DealTotal::join('deals', 'deals.id_deals', 'deals_total.id_deals')
+                ->join('brands', 'brands.id_brand', 'deals.id_brand')
+                ->select('deals.*','deals_total.deals_total','brands.name_brand')
+                ->get()->toArray();
+        }else{
+            $getDeals = DealTotal::join('deals', 'deals.id_deals', 'deals_total.id_deals')
+                ->select('deals.*','deals_total.deals_total')
+                ->get()->toArray();
+        }
+
 
         $result = [
             'status' => 'success',
@@ -1063,5 +1121,45 @@ class ApiDeals extends Controller
             ]
         );
         return true;
+    }
+
+    public function detail(DetailDealsRequest $request)
+    {
+        $post = $request->json()->all();
+        $user = $request->user();
+
+        $deals = Deal::
+        				with([  
+                            'deals_product_discount', 
+                            'deals_product_discount_rules', 
+                            'deals_tier_discount_product', 
+                            'deals_tier_discount_rules', 
+                            'deals_buyxgety_product_requirement', 
+                            'deals_buyxgety_rules',
+                            'outlets'
+                        ])
+                        ->where('id_deals', '=', $post['id_deals'])
+                        ->first();
+        // return $deals;
+
+        if (isset($deals)) {
+            $deals = $deals->toArray();
+        }else{
+            $deals = false;
+        }
+
+        if ($deals) {
+            $result = [
+                'status'  => 'success',
+                'result'  => $deals
+            ];
+        } else {
+            $result = [
+                'status'  => 'fail',
+                'messages'  => ['Deals Not Found']
+            ];
+        }
+
+        return response()->json($result);
     }
 }

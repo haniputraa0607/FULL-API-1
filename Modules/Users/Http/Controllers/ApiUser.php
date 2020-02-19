@@ -158,6 +158,7 @@ class ApiUser extends Controller
             foreach ($conditions as $key => $cond) {
                 $query = User::leftJoin('cities','cities.id_city','=','users.id_city')
                     ->leftJoin('provinces','provinces.id_province','=','cities.id_province')
+                    ->leftJoin('province_customs','province_customs.id_province_custom','=','users.id_province')
                     ->orderBy($order_field, $order_method);
 
                 if($cond != null){
@@ -264,12 +265,14 @@ class ApiUser extends Controller
                         $query = $query->select('users.*',
                             'cities.*',
                             'provinces.*',
+                            'province_customs.province_name as province_custom_name',
                             DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
                         );
                     } else {
                         $query = $query->select('users.*',
                             'cities.*',
                             'provinces.*',
+                            'province_customs.province_name as province_custom_name',
                             DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
                         );
                     }
@@ -285,6 +288,7 @@ class ApiUser extends Controller
                     $query = $query->select('users.*',
                         'cities.*',
                         'provinces.*',
+                        'province_customs.province_name as province_custom_name',
                         DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
                     );
                 }
@@ -308,22 +312,26 @@ class ApiUser extends Controller
             /*============= Final query when condition not null =============*/
             $finalResult = User::leftJoin('cities','cities.id_city','=','users.id_city')
                 ->leftJoin('provinces','provinces.id_province','=','cities.id_province')
+                ->leftJoin('province_customs','province_customs.id_province_custom','=','users.id_province')
                 ->orderBy($order_field, $order_method)
                 ->select('users.*',
                     'cities.*',
                     'provinces.*',
+                    'province_customs.province_name as province_custom_name',
                     DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
                 )
                 ->whereIn('users.id', $prevResult);
         }else {
             $query = User::leftJoin('cities','cities.id_city','=','users.id_city')
                 ->leftJoin('provinces','provinces.id_province','=','cities.id_province')
+                ->leftJoin('province_customs','province_customs.id_province_custom','=','users.id_province')
                 ->orderBy($order_field, $order_method);
 
             /*============= Final query when condition is null =============*/
             $finalResult = $query->select('users.*',
                 'cities.*',
                 'provinces.*',
+                'province_customs.province_name as province_custom_name',
                 DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
             );
         }
@@ -1484,17 +1492,27 @@ class ApiUser extends Controller
                         if(\Module::collections()->has('Autocrm')) {
                             $autocrm = app($this->autocrm)->SendAutoCRM('Pin Verify', $phone);
                         }
+
+                        //get response for confirmation pin didn't match
+                        $confirmPin = Setting::where('key', 'confirmation_pin_message')->first();
+                        if(isset($confirmPin['value'])){
+                            $confirmPin = $confirmPin['value'];
+                        }else{
+                            $confirmPin = 'Pin that you entered does not match';
+                        }
+
                         $result = [
                             'status'	=> 'success',
                             'result'	=> ['phone'	=>	$data[0]['phone'],
                                 'profile'=> $profile
-                            ]
+                            ],
+                            'error_pin_message'	=> [$confirmPin]
                         ];
                     }
                 } else {
                     $result = [
                         'status'	=> 'fail',
-                        'messages'	=> ['OTP yang kamu masukkan salah']
+                        'messages'	=> ['The OTP you entered is incorrect']
                     ];
                 }
             } else {
@@ -1641,6 +1659,8 @@ class ApiUser extends Controller
     }
 
     function profileUpdate(users_profile $request){
+        $use_custom_province = \App\Http\Models\Configs::where('id_config',96)->pluck('is_active')->first();
+
         $phone = preg_replace("/[^0-9]/", "", $request->json('phone'));
 
         $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
@@ -1689,8 +1709,14 @@ class ApiUser extends Controller
                 if($request->json('birthday')){
                     $dataupdate['birthday'] = $request->json('birthday');
                 }
-                if($request->json('id_city')){
-                    $dataupdate['id_city'] = $request->json('id_city');
+                if($use_custom_province){
+                    if($request->json('id_province')){
+                        $dataupdate['id_province'] = $request->json('id_province');
+                    }
+                }else{
+                    if($request->json('id_city')){
+                        $dataupdate['id_city'] = $request->json('id_city');
+                    }
                 }
                 if($request->json('relationship')){
                     $dataupdate['relationship'] = $request->json('relationship');
@@ -1707,13 +1733,23 @@ class ApiUser extends Controller
 
                 DB::beginTransaction();
 
+                $referral = \Modules\PromoCampaign\Lib\PromoCampaignTools::createReferralCode($data[0]['id']);
+
+                if(!$referral){
+                    DB::rollback();
+                    return [
+                        'status'=>'fail',
+                        'messages' => ['failed create referral code']
+                    ];
+                }
+
                 $update = User::where('id','=',$data[0]['id'])->update($dataupdate);
 
                 $datauser = User::where('id','=',$data[0]['id'])->get()->toArray();
 
                 //cek complete profile ?
                 if($datauser[0]['complete_profile'] != "1"){
-                    if($datauser[0]['name'] != "" && $datauser[0]['email'] != "" && $datauser[0]['gender'] != "" && $datauser[0]['birthday'] != "" && $datauser[0]['id_city'] != "" && $datauser[0]['celebrate'] != "" && $datauser[0]['job'] != "" && $datauser[0]['address'] != ""){
+                    if($datauser[0]['name'] != "" && $datauser[0]['email'] != "" && $datauser[0]['gender'] != "" && $datauser[0]['birthday'] != "" && $datauser[0]['id_province'] != ""){
                         //get point
 
                         $complete_profile_cashback = 0;
@@ -1787,7 +1823,6 @@ class ApiUser extends Controller
                         'email' => $datauser[0]['email'],
                         'gender' => $datauser[0]['gender'],
                         'birthday' => $datauser[0]['birthday'],
-                        'id_city' => $datauser[0]['id_city'],
                         'relationship' => $datauser[0]['relationship'],
                         'celebrate' => $datauser[0]['celebrate'],
                         'job' => $datauser[0]['job'],
@@ -1795,6 +1830,11 @@ class ApiUser extends Controller
                     ],
                     'message'	=> 'Data telah berhasil diubah'
                 ];
+                if($use_custom_province){
+                    $result['result']['id_province'] = $datauser[0]['id_province'];
+                }else{
+                    $result['result']['id_city'] = $datauser[0]['id_city'];
+                }
                 // } else {
                 // 	$result = [
                 //         'status'	=> 'fail',
@@ -2105,14 +2145,19 @@ class ApiUser extends Controller
 
     public function show(Request $request)
     {
+        $use_custom_province = \App\Http\Models\Configs::where('id_config',96)->pluck('is_active')->first();
         $post = $request->json()->all();
 
-        $query = User::leftJoin('cities','cities.id_city','=','users.id_city')
-            ->leftJoin('provinces','provinces.id_province','=','cities.id_province')
+        $query = User::select('*')
             ->with('history_transactions.outlet_name', 'history_balance.detail_trx', 'user_membership')
-            ->where('phone','=',$post['phone'])
-            ->get()
-            ->first();
+            ->where('phone','=',$post['phone']);
+        if($use_custom_province){
+            $query->leftJoin('province_customs','province_customs.id_province_custom','=','users.id_province');
+        }else{
+            $query->leftJoin('cities','cities.id_city','=','users.id_city')
+            ->leftJoin('provinces','provinces.id_province','=','cities.id_province');
+        }
+        $query = $query->get()->first();
 
 
         if($query){

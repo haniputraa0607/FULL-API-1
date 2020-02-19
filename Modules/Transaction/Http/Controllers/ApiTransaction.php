@@ -1397,9 +1397,25 @@ class ApiTransaction extends Controller
         $id = $request->json('id_transaction');
         $type = $request->json('type');
 
+        $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
+
         if ($type == 'trx') {
-            $list = Transaction::where([['id_transaction', $id],
-            ['id_user',$request->user()->id]])->with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->first();
+            if($use_product_variant){
+                $list = Transaction::where([['id_transaction', $id],
+                ['id_user',$request->user()->id]])->with(
+                    'user.city.province', 
+                    'productTransaction.product.product_group', 
+                    'productTransaction.product.product_variants', 
+                    'productTransaction.product.product_group.product_category', 
+                    'productTransaction.modifiers', 
+                    'productTransaction.product.product_photos', 
+                    'productTransaction.product.product_discounts', 
+                    'transaction_payment_offlines', 
+                    'outlet.city')->first();
+            }else{
+                $list = Transaction::where([['id_transaction', $id],
+                ['id_user',$request->user()->id]])->with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->first();
+            }
             if(!$list){
                 return MyHelper::checkGet([],'empty');
             }
@@ -1407,14 +1423,16 @@ class ApiTransaction extends Controller
             $label = [];
             $label2 = [];
             $product_count=0;
-            $list['product_transaction'] = MyHelper::groupIt($list['product_transaction'],'id_brand',null,function($key,&$val) use (&$product_count){
-                $product_count += array_sum(array_column($val,'transaction_product_qty'));
-                $brand = Brand::select('name_brand')->find($key);
-                if(!$brand){
-                    return 'No Brand';
-                }
-                return $brand->name_brand;
-            });
+            if(!$use_product_variant){
+                $list['product_transaction'] = MyHelper::groupIt($list['product_transaction'],'id_brand',null,function($key,&$val) use (&$product_count){
+                    $product_count += array_sum(array_column($val,'transaction_product_qty'));
+                    $brand = Brand::select('name_brand')->find($key);
+                    if(!$brand){
+                        return 'No Brand';
+                    }
+                    return $brand->name_brand;
+                });
+            }
             $cart = $list['transaction_subtotal'] + $list['transaction_shipment'] + $list['transaction_service'] + $list['transaction_tax'] - $list['transaction_discount'];
 
             $list['transaction_carttotal'] = $cart;
@@ -1606,6 +1624,7 @@ class ApiTransaction extends Controller
             id_transaction_product,
             id_brand,
             transaction_products.id_outlet,
+            outlets.outlet_code,
             transaction_product_qty as qty,
             product_prices.product_price,
             products.product_name,
@@ -1614,10 +1633,11 @@ class ApiTransaction extends Controller
             '))
         ->join('products','products.id_product','=','transaction_products.id_product')
         ->join('product_prices','product_prices.id_product','=','products.id_product')
+        ->join('outlets','outlets.id_outlet','=','transaction_products.id_outlet')
         ->whereRaw('product_prices.id_outlet = transaction_products.id_outlet')
         ->where(['id_transaction'=>$id_transaction])
         ->with(['modifiers'=>function($query){
-                    $query->select('id_transaction_product','id_product_modifier','qty','text');
+                    $query->select('id_transaction_product','product_modifiers.code','transaction_product_modifiers.id_product_modifier','qty','product_modifiers.text')->join('product_modifiers','product_modifiers.id_product_modifier','=','transaction_product_modifiers.id_product_modifier');
                 }])->first()->toArray();
         if(!$pt){
             return MyHelper::checkGet($pt);

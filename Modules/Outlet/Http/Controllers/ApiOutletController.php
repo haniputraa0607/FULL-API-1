@@ -35,7 +35,7 @@ use Storage;
 
 use Modules\Brand\Entities\BrandOutlet;
 use Modules\Brand\Entities\Brand;
-
+use Modules\Outlet\Entities\OutletOvo;
 use Modules\Outlet\Http\Requests\outlet\Upload;
 use Modules\Outlet\Http\Requests\outlet\Update;
 use Modules\Outlet\Http\Requests\outlet\UpdateStatus;
@@ -56,12 +56,15 @@ use Modules\Outlet\Http\Requests\Holiday\HolidayEdit;
 use Modules\Outlet\Http\Requests\Holiday\HolidayUpdate;
 use Modules\Outlet\Http\Requests\Holiday\HolidayDelete;
 
+use Modules\PromoCampaign\Entities\PromoCampaignPromoCode;
+
 class ApiOutletController extends Controller
 {
     public $saveImage = "img/outlet/";
 
     function __construct() {
         date_default_timezone_set('Asia/Jakarta');
+        $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
     }
 
     function checkInputOutlet($post=[]) {
@@ -599,6 +602,23 @@ class ApiOutletController extends Controller
 
     }
 
+    function listOutletOvo(Request $request)
+    {
+        $post = $request->json()->all();
+
+        if (!$post) {
+            $outlet = Outlet::with(['outlet_ovo'])->get()->toArray();
+        } else {
+            $update = OutletOvo::where('id_outlet', $post['id_outlet'])->update($post);
+            if ($update) {
+                $outlet['updated'] = 1;
+            }
+            $outlet = Outlet::with(['outlet_ovo'])->get()->toArray();
+        }
+        
+        return response()->json(MyHelper::checkGet($outlet));
+    }
+
     /* City Outlet */
     function cityOutlet(Request $request) {
         $outlet = Outlet::join('cities', 'cities.id_city', '=', 'outlets.id_city')->where('outlet_status', 'Active')->select('outlets.id_city', 'city_name')->orderBy('city_name', 'ASC')->distinct()->get()->toArray();
@@ -875,6 +895,12 @@ class ApiOutletController extends Controller
                 $processing = $settingTime->value;
             }
 
+			$promo_data = $this->applyPromo($post, $outlet, $promo_error);
+
+	        if ($promo_data) {
+	        	$outlet = $promo_data;
+	        }
+
             foreach ($outlet as $key => $value) {
                 $jaraknya =   number_format((float)$this->distance($latitude, $longitude, $value['outlet_latitude'], $value['outlet_longitude'], "K"), 2, '.', '');
                 settype($jaraknya, "float");
@@ -950,6 +976,7 @@ class ApiOutletController extends Controller
                 if ($pagingOutlet['status'] == true) {
                     $urutan['next_page_url'] = ENV('APP_API_URL').'api/outlet/filter?page='.$next_page;
                 }
+                $urutan['promo_error']   = $promo_error;
             } else {
                 if($countAll){
                     return response()->json(['status' => 'fail', 'messages' => ['Outlet is Empty']]);
@@ -1087,7 +1114,7 @@ class ApiOutletController extends Controller
     function setAvailableOutlet($outlet, $processing){
         $outlet['today']['status'] = 'open';
 
-        if($outlet['today']['open'] == null || $outlet['today']['close'] == null){
+        if( !isset($outlet['today']['open']) || !isset($outlet['today']['close']) ){
             $outlet['today']['status'] = 'closed';
         }else{
             if($outlet['today']['is_closed'] == '1'){
@@ -1971,5 +1998,63 @@ class ApiOutletController extends Controller
         }else{
             return response()->json(['status' => 'fail', 'message' => 'empty']);
         }
+    }
+
+    public function applyPromo($promo_post, $data_outlet, &$promo_error)
+    {
+    	// check promo
+    	$post = $promo_post;
+    	$outlet = $data_outlet;
+
+    	// give all product flag is_promo = 0
+        foreach ($outlet as $key => $value) {
+			$outlet[$key]['is_promo'] = 0;
+		}
+
+		$promo_error = null;
+		if ( (!empty($post['promo_code']) && empty($post['id_deals_user'])) || (empty($post['promo_code']) && !empty($post['id_deals_user'])) ) {
+        // if (isset($post['promo_code'])) {
+        	if (!empty($post['promo_code'])) 
+        	{
+        		$code = app($this->promo_campaign)->checkPromoCode($post['promo_code'], 1);
+        		$source = 'promo_campaign';
+        	}else{
+        		$code = app($this->promo_campaign)->checkVoucher($post['id_deals_user'], 1);
+        		$source = 'deals';
+        	}
+
+	        if(!$code){
+	        	$promo_error = 'Promo not valid';
+	        	return false;
+	        }else{
+	        	
+	        	if ( ($code['promo_campaign']['date_end']??$code['voucher_expired_at']) < date('Y-m-d H:i:s') ) {
+	        		$promo_error = 'Promo is ended';
+	        		return false;
+	        	}
+
+	        	// if valid give flag is_promo = 1
+	        	$code = $code->toArray();
+        		if ($code['promo_campaign']['is_all_outlet']??false) {
+        			foreach ($outlet as $key => $value) {
+    					$outlet[$key]['is_promo'] = 1;
+    				}
+        		}else{
+		        	foreach ( ($code['promo_campaign']['promo_campaign_outlets']??$code['deal_voucher']['deals']['outlets_active']) as $key => $value) {
+	        			foreach ($outlet as $key2 => $value2) {
+	        				if ( $value2['id_outlet'] == $value['id_outlet'] ) {
+	    						$outlet[$key2]['is_promo'] = 1;
+	    						break;
+	    					}
+	        			}
+		        	}
+        		}
+	        }
+        }else{
+        	$promo_error = 'Can only use either promo code or voucher';
+        }
+
+        return $outlet;
+        // end check promo
     }
 }

@@ -33,6 +33,7 @@ class ApiWebviewController extends Controller
         $type = $request->json('type');
         $check = $request->json('check');
         $button = '';
+        $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
 
         $success = $request->json('trx_success');
 
@@ -60,22 +61,22 @@ class ApiWebviewController extends Controller
                     $button = 'LIHAT NOTA';
                 }
 
-                $title = 'Sukses';
-                if ($list['transaction_payment_status'] == 'Pending') {
-                    $title = 'Pending';
-                }
+                $title = 'Transaction Detail';
+                // if ($list['transaction_payment_status'] == 'Pending') {
+                //     $title = 'Pending';
+                // }
 
-                if ($list['transaction_payment_status'] == 'Paid') {
-                    $title = 'Terbayar';
-                }
+                // if ($list['transaction_payment_status'] == 'Paid') {
+                //     $title = 'Paid';
+                // }
 
-                if ($list['transaction_payment_status'] == 'Completed') {
-                    $title = 'Sukses';
-                }
+                // if ($list['transaction_payment_status'] == 'Completed') {
+                //     $title = 'Success';
+                // }
 
-                if ($list['transaction_payment_status'] == 'Cancelled') {
-                    $title = 'Gagal';
-                }
+                // if ($list['transaction_payment_status'] == 'Cancelled') {
+                //     $title = 'Failed';
+                // }
 
                 $encode = json_encode($dataEncode);
                 $base = base64_encode($encode);
@@ -127,7 +128,21 @@ class ApiWebviewController extends Controller
 
         if ($type == 'trx') {
             if($request->json('id_transaction')){
-                $list = Transaction::where('id_transaction', $request->json('id_transaction'))->with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city', 'transaction_vouchers.deals_voucher')->first();
+                if($use_product_variant){
+                    $list = Transaction::where([['id_transaction', $id]])->with(
+                            'user.city.province',
+                            'productTransaction.product.product_group',
+                            'productTransaction.product.product_variants',
+                            'productTransaction.product.product_group.product_category',
+                            'productTransaction.modifiers',
+                            'productTransaction.product.product_photos',
+                            'productTransaction.product.product_discounts',
+                            'transaction_payment_offlines',
+                            'outlet.city')->first();
+                }else{
+                    $list = Transaction::where([['id_transaction', $id],
+                        ['id_user',$request->user()->id]])->with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->first();
+                }
             }else{
                 $arrId = explode(',',$id);
 
@@ -525,7 +540,7 @@ class ApiWebviewController extends Controller
                 'result' => [
                     'type'                       => $type,
                     'id_transaction' => $select['id_transaction'],
-                    'button'                     => 'LIHAT DETAIL',
+                    'button'                     => 'View Detail',
                     'url'                        => env('API_URL').'api/transaction/web/view/detail/balance?data='.$base,
                     'trx_url'                    => env('API_URL').'api/transaction/web/view/detail?data='.$base2
                 ],
@@ -609,9 +624,9 @@ class ApiWebviewController extends Controller
             $view = 'detail_transaction_voucher';
         }
 
-        if (isset($data['success'])) {
-            $view = 'transaction_success';
-        }
+        // if (isset($data['success'])) {
+        //     $view = 'transaction_success';
+        // }
 
         if (isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Pending') {
             $view = 'transaction_proccess';
@@ -679,9 +694,9 @@ class ApiWebviewController extends Controller
             $view = 'detail_transaction_voucher';
         }
 
-        if (isset($data['success'])) {
-            $view = 'transaction_success';
-        }
+        // if (isset($data['success'])) {
+        //     $view = 'transaction_success';
+        // }
 
         if (isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Pending') {
             $view = 'transaction_proccess';

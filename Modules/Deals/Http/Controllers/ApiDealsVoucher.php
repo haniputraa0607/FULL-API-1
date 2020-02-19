@@ -15,8 +15,11 @@ use App\Http\Models\DealsPaymentMidtran;
 use App\Http\Models\DealsUser;
 use App\Http\Models\DealsVoucher;
 use App\Http\Models\Outlet;
+use App\Http\Models\TransactionVoucher;
+use App\Http\Models\Transaction;
 
 use Modules\Deals\Http\Requests\Deals\Voucher;
+use Modules\Deals\Http\Requests\Deals\UseVoucher;
 use DB;
 
 class ApiDealsVoucher extends Controller
@@ -237,7 +240,7 @@ class ApiDealsVoucher extends Controller
         $voucher = DealsUser::where('id_user', $request->user()->id)
                             ->whereIn('paid_status', ['Free', 'Completed'])
                             ->with(['dealVoucher', 'dealVoucher.deal', 'dealVoucher.deal.outlets.city', 'dealVoucher.deal.outlets.city']);
-        $voucher->select('deals_users.id_deals','voucher_expired_at','deals_users.id_deals_voucher','id_deals_user','id_outlet','voucher_hash','redeemed_at','used_at');
+        $voucher->select('deals_users.id_deals','voucher_expired_at','deals_users.id_deals_voucher','id_deals_user','id_outlet','voucher_hash','redeemed_at','used_at','is_used');
         if (isset($post['id_deals_user'])) {
             $voucher->addselect('deals_users.redeemed_at', 'deals_users.used_at');
             $voucher->where('id_deals_user', $post['id_deals_user']);
@@ -370,18 +373,21 @@ class ApiDealsVoucher extends Controller
             } else {
                 $voucher[$index]['deal_voucher']['deal']['label_outlet'] = 'Some';
             }
-            if($datavoucher['used_at']){
+           if($datavoucher['used_at']){
                 $voucher[$index]['label']='Used';
                 // $voucher[$index]['status_text']="Sudah digunakan pada \n".MyHelper::dateFormatInd($voucher[$index]['used_at'],false);
-                $voucher[$index]['status_text']="Used on ".date('d F Y');
+                $voucher[$index]['status_text']="Used on ".date('d F Y', strtotime($voucher[$index]['voucher_expired_at']));
+                $voucher[$index]['voucher_status_text']=["Used on",date('d F Y', strtotime($voucher[$index]['voucher_expired_at']))];
             }elseif($datavoucher['voucher_expired_at']<date('Y-m-d H:i:s')){
                 $voucher[$index]['label']='Expired';
                 // $voucher[$index]['status_text']="Telah berakhir pada \n".MyHelper::dateFormatInd($voucher[$index]['voucher_expired_at'],false);
-                $voucher[$index]['status_text']="Expired on ".date('d F Y');
+                $voucher[$index]['status_text']="Expired on ".date('d F Y', strtotime($voucher[$index]['voucher_expired_at']));
+                $voucher[$index]['voucher_status_text']=["Expired on", date('d F Y', strtotime($voucher[$index]['voucher_expired_at']))];
             }else{
                 $voucher[$index]['label']='Used';
                 // $voucher[$index]['status_text']="Berlaku hingga \n".MyHelper::dateFormatInd($voucher[$index]['voucher_expired_at'],false);
-                $voucher[$index]['status_text']="Valid until ".date('d F Y');
+                $voucher[$index]['status_text']="Valid until ".date('d F Y', strtotime($voucher[$index]['voucher_expired_at']));
+                $voucher[$index]['voucher_status_text']=["Valid until", date('d F Y', strtotime($voucher[$index]['voucher_expired_at']))];
             }
             $outlet = null;
             if($datavoucher['deal_voucher'] == null){
@@ -460,6 +466,10 @@ class ApiDealsVoucher extends Controller
         // if voucher detail, no need pagination
         if (isset($post['id_deals_user']) && $post['id_deals_user'] != "") {
             $voucher[0]['deals_title'] = $voucher[0]['deal_voucher']['deal']['deals_title'];
+            $voucher[0]['is_offline'] = $voucher[0]['deal_voucher']['deal']['is_offline'];
+            $voucher[0]['is_online'] = $voucher[0]['deal_voucher']['deal']['is_online'];
+            $voucher[0]['popup_message'][] = $voucher[0]['deal_voucher']['deal']['deals_title'];
+            $voucher[0]['popup_message'][] = 'will be used on the next transaction';
             $result['data'] = $voucher;
         }
         else {
@@ -478,7 +488,9 @@ class ApiDealsVoucher extends Controller
                     'url_deals_image'=>$var['deal_voucher']['deal']['url_deals_image'],
                     'status_redeem'=>($var['redeemed_at']??false)?1:0,
                     'label'=>$var['label'],
-                    'status_text'=>$var['status_text']
+                    'status_text'=>$var['status_text'],
+                    'voucher_status_text'=>$var['voucher_status_text'],
+                    'is_used'=>$var['is_used']
                 ];
             },$voucher);
             $result['current_page'] = $current_page;
@@ -590,5 +602,72 @@ class ApiDealsVoucher extends Controller
                                 ->get();
 
         return response()->json(MyHelper::checkGet($voucher));
+    }
+
+    public function useVoucher($id_deals_user, $use_later=null)
+    {
+    	$user = auth()->user();
+
+		DB::beginTransaction();
+		// change is used flag to 0
+		$deals_user = DealsUser::where('id_user','=',$user->id)->where('is_used','=',1)->update(['is_used' => 0]);
+		if (empty($use_later)) {
+			// change specific deals user is used to 1
+			$deals_user = DealsUser::where('id_deals_user','=',$id_deals_user)->update(['is_used' => 1]);
+		}
+		
+		if ($deals_user) {
+			DB::commit();
+		}else{
+			DB::rollback();
+		}
+		$deals_user = MyHelper::checkUpdate($deals_user);
+		$deals_user['webview_url'] = env('API_URL') ."api/webview/voucher/". $id_deals_user;
+		$deals_user['webview_url_v2'] = env('API_URL') ."api/webview/voucher/v2/". $id_deals_user;
+		return $deals_user;
+
+    }
+
+    public function unuseVoucher(Request $request)
+    {
+    	$post = $request->json()->all();
+    	$unuse = $this->useVoucher($post['id_deals_user'], 1);
+    	if ($unuse) {
+    		return response()->json($unuse);
+    	}else{
+    		return response()->json([
+    			'status' => 'fail',
+    			'messages' => 'Failed to update voucher'
+    		]);
+    	}
+    }
+
+    public function returnVoucher($id_transaction)
+    {
+    	$getVoucher = TransactionVoucher::where('id_transaction','=',$id_transaction)->first();
+
+    	if ($getVoucher) 
+    	{
+	    	$update = DealsUser::where('id_deals_voucher', '=', $getVoucher['id_deals_voucher'])->update(['used_at' => null]);
+
+	    	if ($update) 
+	    	{
+	    		$update = TransactionVoucher::where('id_deals_voucher', '=', $getVoucher['id_deals_voucher'])->update(['status' => 'failed']);
+
+	    		if ($update) 
+	    		{
+	    			return true;		
+	    		}
+	    		else
+	    		{
+	    			return false;
+	    		}
+	    	}
+	    	else
+	    	{
+	    		return false;
+	    	}
+    	}
+
     }
 }

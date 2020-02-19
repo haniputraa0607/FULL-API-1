@@ -10,7 +10,6 @@ class ProductProductVariant extends Model
     protected $fillable   = [
         'id_product',
         'id_product_variant',
-        'id_product_group',
         'product_variant_price'
     ];
     public function product_groups()

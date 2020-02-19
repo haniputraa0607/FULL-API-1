@@ -854,7 +854,61 @@ class ConfigsTableSeeder extends Seeder
                     'is_active' => 1,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
-                )
+                ),
+            94 => 
+                array (
+                    'id_config' => 95,
+                    'config_name' => 'promo campaign',
+                    'description' => '',
+                    'is_active' => 1,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            95 => 
+                array (
+                    'id_config' => 96,
+                    'config_name' => 'custom province',
+                    'description' => '',
+                    'is_active' => 1,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            96 =>
+                array (
+                    'id_config' => 97,
+                    'config_name' => 'use brand',
+                    'description' => '',
+                    'is_active' => 1,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            97 =>
+                array (
+                    'id_config' => 98,
+                    'config_name' => 'delivery services',
+                    'description' => '',
+                    'is_active' => 0,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            98 =>
+                array (
+                    'id_config' => 99,
+                    'config_name' => 'deals offline',
+                    'description' => '',
+                    'is_active' => 1,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            99 =>
+                array (
+                    'id_config' => 100,
+                    'config_name' => 'deals online',
+                    'description' => '',
+                    'is_active' => 1,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
         ));
     }
 }

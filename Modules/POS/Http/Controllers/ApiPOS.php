@@ -611,6 +611,7 @@ class ApiPOS extends Controller
                         }
                     }
 
+
                     $variantType = ProductVariant::where('product_variant_code', $variance['type'])->first();
                     if (!$variantType) {
                         try {
@@ -717,6 +718,7 @@ class ApiPOS extends Controller
                             continue;
                         }
                     }
+
 
                     $variantType = ProductVariant::where('product_variant_code', $variance['type'])->first();
                     if (!$variantType) {

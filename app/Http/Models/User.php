@@ -33,6 +33,7 @@ class User extends Authenticatable
 	protected $casts = [
 		'id_membership' => 'int',
 		'id_city' => 'int',
+		'id_province' => 'int',
 		'points' => 'int',
 		'count_transaction_day' => 'int',
 		'count_transaction_week' => 'int'
@@ -54,6 +55,7 @@ class User extends Authenticatable
 		'email',
 		'password',
 		'id_city',
+		'id_province',
 		'gender',
 		'provider',
 		'birthday',
@@ -88,6 +90,11 @@ class User extends Authenticatable
 	public function city()
 	{
 		return $this->belongsTo(\App\Http\Models\City::class, 'id_city');
+	}
+
+	public function province()
+	{
+		return $this->belongsTo(\App\Http\Models\ProvinceCustom::class, 'id_province');
 	}
 
 	public function autocrm_email_logs()

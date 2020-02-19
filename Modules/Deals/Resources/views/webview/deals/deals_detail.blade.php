@@ -5,7 +5,7 @@
 @extends('webview.main')
 
 @section('css')
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+<link rel="stylesheet" href="{{env('API_URL')}}css/deals.css">
     <style type="text/css">
     	p{
     		margin-top: 0px !important;
@@ -64,9 +64,15 @@
         }
         .bg-yellow-light{
             background-color: #eed484;
-        }
+		}
+		.bg-pale-teal {
+			background-color: #8fd6bd;
+		}
 		.brown-dark{
 			color: #b29333;
+		}
+		.dark-sea-green {
+			color: #10704e;
 		}
     	.fee{
 			margin-top: 30px;
@@ -122,21 +128,16 @@
 		}
 		.nav-item a{
 			color: #d7d2cb !important;
-			font-weight: 600;
-			padding-left: 28px;
-			padding-right: 28px;
 		}
 		.nav-item .active{
-			color: #ff9d6e !important;
+			color: #10704e !important;
 			border:none !important;
-			border-bottom: 3px solid #ff9d6e !important;
-			font-weight: 600;
-			padding: 10px;
+			border-bottom: 3px solid #10704e !important;
 			border-radius: 3px;
 		}
 		.nav-item .active:hover{
 			border:none !important;
-			border-bottom: 3px solid #ff9d6e !important;
+			border-bottom: 3px solid #10704e !important;
 		}
 		.nav-tabs{
 			border-bottom: none;
@@ -177,7 +178,7 @@
 				<img class="deals-img center-block" src="{{ $deals['url_deals_image'] }}" alt="">
 
 				<div class="title-wrapper clearfix">
-					<div class="col-left voucher font-red Ubuntu" style="color: #3d3935;">
+					<div class="col-8 voucher font-red Ubuntu" style="color: #3d3935;">
 					    @if($deals['deals_voucher_type'] != 'Unlimited')
 							<span class="Ubuntu-Medium" style="font-size: 13.3px;">{{ $deals['deals_total_voucher']-$deals['deals_total_claimed'] }}/{{ $deals['deals_total_voucher'] }}</span>
 							<span style="font-size: 12.7px;">vouchers available</span>
@@ -186,7 +187,7 @@
 						@endif
 					</div>
 					<div class="col-right">
-					    <div id="timer" class="brown-dark text-center Ubuntu-Reguler">
+					    <div id="timer" class="dark-sea-green text-center Ubuntu-Reguler">
 					        <span id="timerchild">End in</span>
 					    </div>
 						<div class="fee text-right font-red Ubuntu-Bold" style="color: #3d3935;">{{ $deals_fee }}</div>
@@ -255,9 +256,9 @@
 
 @section('page-script')
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+    <script src="{{env('API_URL')}}js/jquery.js"></script>
+    <script src="{{env('API_URL')}}js/popper.js"></script>
+    <script src="{{env('API_URL')}}js/deals.js"></script>
     @if(!empty($deals))
         <script type="text/javascript">
             @php $month = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', "Juli", 'Agustus', 'September', 'Oktober', 'November', 'Desember']; @endphp
@@ -272,14 +273,14 @@
             if (server_time >= deals_start && server_time <= deals_end) {
                 // deals date is valid and count the timer
                 difference = deals_end - server_time;
-                document.getElementById('timer').classList.add("bg-yellow-light");
-                document.getElementById('timer').classList.add("brown-dark");
+                document.getElementById('timer').classList.add("bg-pale-teal");
+                document.getElementById('timer').classList.add("dark-sea-green");
             }
             else {
                 // deals is not yet start
                 difference = deals_start - server_time;
-                document.getElementById('timer').classList.add("bg-yellow-light");
-                document.getElementById('timer').classList.add("brown-dark");
+                document.getElementById('timer').classList.add("bg-pale-teal");
+                document.getElementById('timer').classList.add("dark-sea-green");
             }
 
             var display_flag = 0;
@@ -288,14 +289,14 @@
                     timer_text = timer(difference);
 					@if($deals['deals_status'] == 'available')
 					if(timer_text.includes('lagi')){
-						document.getElementById("timer").innerHTML = "<p class='brown-dark Ubuntu-Medium'>End in</p>";
+						document.getElementById("timer").innerHTML = "<p style='font-size: 11.7px;' class='dark-sea-green Ubuntu-Medium'>End in</p>";
 					}else{
-						document.getElementById("timer").innerHTML = "<p class='brown-dark Ubuntu-Medium'>End at</p>";
+						document.getElementById("timer").innerHTML = "<p style='font-size: 11.7px;' class='dark-sea-green Ubuntu-Medium'>End in</p>";
 					}
                     document.getElementById('timer').innerHTML += timer_text;
                     @elseif($deals['deals_status'] == 'soon')
-                    document.getElementById("timer").innerHTML = "<p class='brown-dark Ubuntu-Medium'>Start at</p>";
-                    document.getElementById('timer').innerHTML += "<p class='brown-dark Ubuntu-Bold'>{{ date('d', strtotime($deals['deals_start'])) }} {{$month[date('m', strtotime($deals['deals_start']))-1]}} {{ date('Y', strtotime($deals['deals_start'])) }} jam {{ date('H:i', strtotime($deals['deals_start'])) }}</p>";
+                    document.getElementById("timer").innerHTML = "<p style='font-size: 11.7px;' class='dark-sea-green Ubuntu-Medium'>Start at</p>";
+                    document.getElementById('timer').innerHTML += "<p style='font-size: 12.7px;' class='dark-sea-green Ubuntu-Bold'>{{ date('d', strtotime($deals['deals_start'])) }} {{$month[date('m', strtotime($deals['deals_start']))-1]}} {{ date('Y', strtotime($deals['deals_start'])) }} jam {{ date('H:i', strtotime($deals['deals_start'])) }}</p>";
                     @endif
 
                     difference--;
@@ -312,6 +313,7 @@
                 // show timer
                 if (display_flag == 0) {
                     document.getElementById('timer').style.display = 'block';
+                    document.getElementById('timer').style.width = '50%';
                     display_flag = 1;
                 }
             }, 1000); // 1 second
@@ -326,7 +328,7 @@
                 // countdown
                 daysDifference = Math.floor(difference/60/60/24);
                 if (daysDifference > 0) {
-					timer = "<p class='brown-dark Ubuntu-Bold'>{{ date('d', strtotime($deals['deals_end'])) }} {{$month[ date('m', strtotime($deals['deals_end']))-1]}} {{ date('Y', strtotime($deals['deals_end'])) }}</p>";
+					timer = "<p style='font-size: 12.7px;' class='dark-sea-green Ubuntu-Bold'>{{ date('d', strtotime($deals['deals_end'])) }} {{$month[ date('m', strtotime($deals['deals_end']))-1]}} {{ date('Y', strtotime($deals['deals_end'])) }}</p>";
                   //  timer = daysDifference + " hari";
                     console.log('timer d', timer);
                 }

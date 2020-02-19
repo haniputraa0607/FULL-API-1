@@ -10,6 +10,8 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'pr
     Route::group(['prefix' => 'claim'], function () {
         Route::post('/', 'ApiDealsClaim@claim');
         Route::post('paid', 'ApiDealsClaimPay@claim');
+        Route::post('paid/confirm', 'ApiDealsClaimPay@confirm');
+        Route::post('paid/status', 'ApiDealsClaimPay@status');
         Route::post('pay-now', 'ApiDealsClaimPay@bayarSekarang');
     });
 
@@ -25,6 +27,7 @@ Route::group(['prefix' => 'api/deals', 'namespace' => 'Modules\Deals\Http\Contro
 
 Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'prefix' => 'api/voucher', 'namespace' => 'Modules\Deals\Http\Controllers'], function () {
     Route::any('me', 'ApiDealsVoucher@myVoucher');
+    Route::any('cancel', 'ApiDealsVoucher@unuseVoucher');
 });
 
 /* Webview */
@@ -39,11 +42,13 @@ Route::group(['middleware' => ['auth:api','web', 'scopes:apps'], 'prefix' => 'ap
 /*=================== BE Route ===================*/
 Route::group(['middleware' => ['auth:api', 'log_activities','user_agent', 'scopes:be'], 'prefix' => 'api/deals', 'namespace' => 'Modules\Deals\Http\Controllers'], function () {
     Route::any('be/list', ['middleware' => 'feature_control:72', 'uses' => 'ApiDeals@listDeal']);
+    Route::any('be/detail', ['middleware' => 'feature_control:72', 'uses' => 'ApiDeals@detail']);
     Route::post('create', ['middleware' => 'feature_control:74', 'uses' => 'ApiDeals@createReq']);
     Route::post('update', ['middleware' => 'feature_control:75', 'uses' => 'ApiDeals@updateReq']);
     Route::post('delete', ['middleware' => 'feature_control:76', 'uses' => 'ApiDeals@deleteReq']);
     Route::post('user', ['middleware' => 'feature_control:72', 'uses' => 'ApiDeals@listUserVoucher']);
     Route::post('voucher', ['middleware' => 'feature_control:72', 'uses' => 'ApiDeals@listVoucher']);
+    Route::any('void/ovo', ['middleware' => 'feature_control:227', 'uses' => 'ApiDealsClaimPay@void']);
 
     /* MANUAL PAYMENT */
     Route::group(['prefix' => 'manualpayment'], function () {

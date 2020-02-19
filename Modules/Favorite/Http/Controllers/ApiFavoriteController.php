@@ -55,7 +55,7 @@ class ApiFavoriteController extends Controller
         $longitude = $request->json('longitude');
         $nf = $request->json('number_format',$request->json('request_number'))?:'float';
         $favorite = Favorite::where('id_user',$user->id);
-        $select = ['id_favorite','id_outlet','favorites.id_product','id_brand','id_user','product_qty','notes'];
+        $select = ['id_favorite','id_outlet','favorites.id_product','id_brand','id_user','notes'];
         $with = [
             'modifiers'=>function($query){
                 $query->select('product_modifiers.id_product_modifier','type','code','text','favorite_modifiers.qty');
@@ -89,8 +89,13 @@ class ApiFavoriteController extends Controller
                     $status = app('Modules\Outlet\Http\Controllers\ApiOutletController')->checkOutletStatus($outlet);
                     $outlet['outlet_address']=$outlet['outlet_address']??'';
                     $outlet['status']=$status;
-                    $outlet['distance_raw'] = MyHelper::count_distance($latitude,$longitude,$outlet['outlet_latitude'],$outlet['outlet_longitude']);
-                    $outlet['distance'] = MyHelper::count_distance($latitude,$longitude,$outlet['outlet_latitude'],$outlet['outlet_longitude'],'K',true);
+                    if(!empty($latitude)&&!empty($longitude)){
+                        $outlet['distance_raw'] = MyHelper::count_distance($latitude,$longitude,$outlet['outlet_latitude'],$outlet['outlet_longitude']);
+                        $outlet['distance'] = MyHelper::count_distance($latitude,$longitude,$outlet['outlet_latitude'],$outlet['outlet_longitude'],'K',true);
+                    }else{
+                        $outlet['distance_raw'] = null;
+                        $outlet['distance'] = '';
+                    }
                     $val=[
                         'outlet'=>$outlet,
                         'favorites'=>$val
@@ -98,9 +103,11 @@ class ApiFavoriteController extends Controller
                     return $key;
                 });
                 $datax = array_values($datax);
-                usort($datax, function(&$a,&$b){
-                    return $a['outlet']['distance_raw'] <=> $b['outlet']['distance_raw'];
-                });
+                if(!empty($latitude)&&!empty($longitude)){
+                    usort($datax, function(&$a,&$b){
+                        return $a['outlet']['distance_raw'] <=> $b['outlet']['distance_raw'];
+                    });
+                }
             }else{
                 $data = [];
             }
@@ -149,6 +156,12 @@ class ApiFavoriteController extends Controller
                         });
                     }
                 })->pluck('id_product')->first();
+            if(!$post['id_product']){
+                return [
+                    'status'=>'fail',
+                    'message'=>'Product not found'
+                ];
+            }
         }
         $id_user = $request->user()->id;
         $modifiers = $post['modifiers'];
@@ -158,8 +171,7 @@ class ApiFavoriteController extends Controller
             ['id_product',$post['id_product']],
             ['id_brand',$post['id_brand']],
             ['id_user',$id_user],
-            ['notes',$post['notes']??''],
-            ['product_qty',$post['product_qty']]
+            ['notes',$post['notes']??'']
         ])->where(function($query) use ($modifiers){
             foreach ($modifiers as $modifier) {
                 if(is_array($modifier)){
@@ -186,7 +198,6 @@ class ApiFavoriteController extends Controller
                 'id_outlet' => $post['id_outlet'],
                 'id_brand' => $post['id_brand'],
                 'id_product' => $post['id_product'],
-                'product_qty' => $post['product_qty'],
                 'id_user' => $id_user,
                 'notes' => $post['notes']?:''];
 
