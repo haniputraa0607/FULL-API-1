@@ -1780,7 +1780,8 @@ class ApiPromoCampaign extends Controller
 		}
 
 		$result['title'] 			= $query[$source]['promo_title']??$query[$source]['deals_title'];
-        $result['description']		= $desc;
+		$result['description']		= $desc;
+		$result['promo_detail']		= "";
 		$result['errors'] 			= $errors;
 		$result['promo_code'] 		= $request->promo_code;
 		$result['id_deals_user'] 	= $request->id_deals_user;
@@ -1820,6 +1821,8 @@ class ApiPromoCampaign extends Controller
 		        }
 		        $result['messages'] = $trx['messages'];
 		        $result['promo_error'] = $trx['promo_error'];
+		        $result['result']['description'] = $trx['promo']['description'];
+		        $result['promo'] = $trx['promo'];
 	        }else{
 	        	return [
 	                'status'=>'fail',
@@ -1854,6 +1857,10 @@ class ApiPromoCampaign extends Controller
 
     public function getProduct($source, $query)
     {
+    	// return $query[$source.'_tier_discount_product'];
+    	if (!is_array($query)) {
+			$query = $query->toArray();
+    	}
     	if ( ($query[$source.'_product_discount_rules']['is_all_product']??false) == 1 || ($query['promo_type']??false) == 'Referral') 
         {
         	$applied_product = '*';
@@ -1897,15 +1904,15 @@ class ApiPromoCampaign extends Controller
         	$qty = $query[$source.'_product_discount_rules']['max_product']??0;
 
         	if ($discount == 'Percent') {
-        		$discount = ($query[$source.'_product_discount_rules']['discount_value']??0).' %';
+        		$discount = ($query[$source.'_product_discount_rules']['discount_value']??0).'%';
         	}else{
         		$discount = 'Rp '.number_format($query[$source.'_product_discount_rules']['discount_value']??0);
         	}
 
-    		$key_null = 'Anda berhak mendapatkan potongan %discount% untuk pembelian %product%. Maksimal %qty% buah untuk setiap produk.';
-    		$desc = Setting::where('key', '=', 'description_product_discount')->first()['value']??$key_null;
+			$key_null = 'Anda berhak mendapatkan potongan %discount% untuk pembelian %product%. Maksimal %qty% buah untuk setiap produk.';
+			$desc = Setting::where('key', '=', 'description_product_discount')->first()['value']??$key_null;
 
-    		$desc = MyHelper::simpleReplace($desc,['discount'=>$discount, 'product'=>$product, 'qty'=>$qty]);
+			$desc = MyHelper::simpleReplace($desc,['discount'=>$discount, 'product'=>$product, 'qty'=>$qty]);
     	}
     	elseif ($query['promo_type'] == 'Tier discount') 
     	{
