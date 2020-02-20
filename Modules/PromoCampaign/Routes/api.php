@@ -51,6 +51,7 @@ Route::group(['middleware' => ['auth:api', 'scopes:be','feature_control:228'], '
     Route::post('settingUpdate', 'ApiReferralController@settingUpdate');
     Route::post('report', 'ApiReferralController@report');
     Route::post('report/user', 'ApiReferralController@reportUser');
+    Route::post('report/{key}', 'ApiReferralController@reportAjax');
 });
 
 //APPS Referral
