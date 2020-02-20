@@ -49,7 +49,6 @@ class ApiConfirm extends Controller
         $dataDetailProduct = [];
 
         $check = Transaction::with('transaction_shipments', 'productTransaction.product','outlet_name')->where('id_user',$user->id)->where('id_transaction', $post['id'])->first();
-
         if (empty($check)) {
             DB::rollback();
             return response()->json([
@@ -324,6 +323,12 @@ class ApiConfirm extends Controller
             $pay = $this->paymentOvo($check, $countGrandTotal, $phone, env('OVO_ENV')?:'staging');
 
             return $pay;
+        }
+        elseif ($post['payment_type'] == 'Cimb') {
+            $cimb['MERCHANT_TRANID']    = $check->transaction_receipt_number;
+            $cimb['AMOUNT']             = $countGrandTotal;
+            
+            return view('transaction::curl_cimb', $cimb);
         }
         else {
             if (isset($post['id_manual_payment_method'])) {
