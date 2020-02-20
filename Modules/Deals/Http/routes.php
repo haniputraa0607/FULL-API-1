@@ -31,7 +31,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'pr
 });
 
 /* Webview */
-Route::group(['middleware' => ['auth:api','web', 'scopes:apps'], 'prefix' => 'api/webview', 'namespace' => 'Modules\Deals\Http\Controllers'], function () {
+Route::group(['prefix' => 'api/webview', 'namespace' => 'Modules\Deals\Http\Controllers'], function () {
     Route::any('deals/{id_deals}/{deals_type}', 'ApiDealsWebview@webviewDealsDetail');
     Route::any('mydeals/{id_deals_user}', 'ApiDealsWebview@dealsClaim');
     Route::any('voucher/{id_deals_user}', 'ApiDealsVoucherWebviewController@voucherDetail');
@@ -45,6 +45,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities','user_agent', 'scope
     Route::any('be/detail', ['middleware' => 'feature_control:72', 'uses' => 'ApiDeals@detail']);
     Route::post('create', ['middleware' => 'feature_control:74', 'uses' => 'ApiDeals@createReq']);
     Route::post('update', ['middleware' => 'feature_control:75', 'uses' => 'ApiDeals@updateReq']);
+    Route::post('update-content', ['middleware' => 'feature_control:75', 'uses' => 'ApiDeals@updateContent']);
     Route::post('delete', ['middleware' => 'feature_control:76', 'uses' => 'ApiDeals@deleteReq']);
     Route::post('user', ['middleware' => 'feature_control:72', 'uses' => 'ApiDeals@listUserVoucher']);
     Route::post('voucher', ['middleware' => 'feature_control:72', 'uses' => 'ApiDeals@listVoucher']);
