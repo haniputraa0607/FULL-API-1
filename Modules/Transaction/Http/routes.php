@@ -134,7 +134,7 @@ Route::group(['prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction
     Route::any('callback/cimb', 'ApiTransactionCIMB@callback');
 });
 
-Route::group(['prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function() {
+Route::group(['middleware' => ['auth:api', 'scopes:apps'], 'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function() {
     Route::any('/web/view/detail', 'ApiWebviewController@detail');
     Route::any('/web/view/detail/check', 'ApiWebviewController@check');
     Route::any('/web/view/detail/point', 'ApiWebviewController@detailPoint');

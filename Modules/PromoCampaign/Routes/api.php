@@ -52,7 +52,7 @@ Route::group(['middleware' => ['auth:api', 'scopes:be','feature_control:228'], '
 });
 
 //APPS Referral
-Route::group(['prefix' => 'referral'], function () {
+Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'prefix' => 'referral'], function () {
     Route::any('/', 'ApiReferralController@index');
     Route::any('webview', 'ApiReferralController@webview');
 });
