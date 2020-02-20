@@ -23,6 +23,7 @@ class PromoCampaignTools{
     function __construct()
     {
         $this->user     = "Modules\Users\Http\Controllers\ApiUser";
+        $this->promo_campaign     = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
     }
 	/**
 	 * validate transaction to use promo campaign
@@ -184,7 +185,6 @@ class PromoCampaignTools{
 							$item_group_get_promo[$value['id_product_group']] = $value['qty'];
 						}
 					}
-
 					// count modifier for each item
 					$mod_price_qty_per_item[$value[$id]][$key] = [];
 					$mod_price_qty_per_item[$value[$id]][$key]['qty'] = $value['qty'];
@@ -196,7 +196,6 @@ class PromoCampaignTools{
 						$mod_price_qty_per_item[$value[$id]][$key]['price'] += ($mod_price[$value2['id_product_modifier']??$value2]??0)*($value2['qty']??1);
 						$mod_price_per_item[$value[$id]][$key] += ($mod_price[$value2['id_product_modifier']??$value2]??0)*($value2['qty']??1);
 					}
-
 				}
 
 				// sort mod price qty ascending
@@ -246,8 +245,8 @@ class PromoCampaignTools{
 					}
 				}
 
+				$promo_detail = [];
 				foreach ($trxs as  $id_trx => &$trx) {
-
 					// continue if qty promo for same product is all used 
 					if ($trx['promo_qty'] == 0) {
 						continue;
@@ -257,6 +256,7 @@ class PromoCampaignTools{
 					{
 						$modifier += ($mod_price[$value2['id_product_modifier']??$value2]??0) * ($value2['qty']??1);
 					}
+
 					// is all product get promo
 					if($promo_rules->is_all_product){
 						// get product data
@@ -272,6 +272,7 @@ class PromoCampaignTools{
 							$errors[]='Product could not be found';
 							continue;
 						}
+
 						// add discount
 						$discount+=$this->discount_product($product,$promo_rules,$trx, $modifier);
 					}else{
@@ -297,6 +298,13 @@ class PromoCampaignTools{
 							  ->where('product_stock_status', '=', 'Available')
 							  ->where('product_visibility', '=', 'Visible');
 						} ])->find($trx['id_product']);
+
+						if ( empty($promo_detail[$product['id_product']]) ) {
+							$promo_detail[$product['id_product']]['name'] = $product['product_name'];
+							$promo_detail[$product['id_product']]['promo_qty'] = $trx['promo_qty'];
+						}else{
+							$promo_detail[$product['id_product']]['promo_qty'] = $promo_detail[$product['id_product']]['promo_qty'] + $trx['promo_qty'];
+						}
 						//is product available
 						if(!$product){
 							// product not available
@@ -315,8 +323,35 @@ class PromoCampaignTools{
 					$errors[]= $message;
 					return false;
 				}
-				break;
 
+
+				/** add new description & promo detail **/
+				$product = app($this->promo_campaign)->getProduct($source, $promo);
+				if ($promo_rules->discount_type == 'Percent') {
+	        		$discount_benefit = ($promo_rules['discount_value']??0).'%';
+	        	}else{
+	        		$discount_benefit = 'Rp '.number_format($promo_rules['discount_value']??0);
+	        	}
+
+				if($promo_rules->is_all_product || count($promo_detail) > 3)
+				{
+					$new_description = 'You get discount of IDR '.number_format($discount).' for '.$product['product'];
+				}
+				else
+				{
+					$new_description = "";
+					foreach ($promo_detail as $key => $value) {
+						$new_description .= $value['name'].' ('.$value['promo_qty'].'x)\n';
+					}
+
+					if ($new_description != "") {
+						$new_description = 'You get discount of IDR '.number_format($discount).' for '.substr($new_description, 0);
+					}
+				}
+				$promo_detail_message = 'Discount '.$discount_benefit;
+				/** end add new description & promo detail **/
+
+				break;
 			case 'Tier discount':
 
 				// load requirement relationship
@@ -432,6 +467,17 @@ class PromoCampaignTools{
 						$discount+=$this->discount_product($promo_product->product,$promo_rule,$trx, $modifier);
 					}
 				}
+
+				$product = app($this->promo_campaign)->getProduct($source, $promo);
+
+				if ($promo_rule->discount_type == 'Percent') {
+	        		$discount_benefit = ($promo_rule['discount_value']??0).'%';
+	        	}else{
+	        		$discount_benefit = 'Rp '.number_format($promo_rule['discount_value']??0);
+	        	}
+
+				$new_description = 'You get discount of IDR '.number_format($discount).' for '.$product['product'];
+				$promo_detail_message = 'Discount '.$discount_benefit;
 
 				break;
 
@@ -583,6 +629,23 @@ class PromoCampaignTools{
 
 				array_push($trxs, $benefit_item);
 
+				$product['product'] = $benefit_product->product_name;
+				if ($promo_rule->discount_type == 'Percent' || $promo_rule->discount_type == 'percent') {
+					if ($promo_rule->discount_value == 100) {
+						$new_description = 'You get '.$promo_rule['benefit_qty'].' '.$product['product'].' Free';
+						$promo_detail_message = 'Free '.$product['product'].' ('.$promo_rule['benefit_qty'].'x)';
+					}else{
+		        		$discount_benefit = ($promo_rule['discount_value']??0).'%';
+		        		$new_description = 'You get discount of IDR '.number_format($discount).' for '.$product['product'];
+						$promo_detail_message = 'Discount '.$discount_benefit;
+					}
+
+	        	}else{
+	        		$discount_benefit = 'Rp '.number_format($promo_rule['discount_value']??0);
+					$new_description = 'You get discount of IDR '.number_format($discount).' for '.$product['product'];
+					$promo_detail_message = 'Discount '.$discount_benefit;
+	        	}
+
 				break;
 
 			case 'Discount global':
@@ -657,8 +720,10 @@ class PromoCampaignTools{
 		// 	return false;
 		// }
 		return [
-			'item'=>$trxs,
-			'discount'=>$discount
+			'item'				=> $trxs,
+			'discount'			=> $discount,
+			'new_description'	=> $new_description,
+			'promo_detail'		=> $promo_detail_message
 		];
 	}
 
