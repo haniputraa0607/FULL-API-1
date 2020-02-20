@@ -1,5 +1,5 @@
 <?php
-Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth:api', 'user_agent', 'scopes:apps'], 'namespace' => 'Modules\Outlet\Http\Controllers'], function()
+Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth:api', 'scopes:apps'], 'namespace' => 'Modules\Outlet\Http\Controllers'], function()
 {
     Route::any('list', 'ApiOutletController@listOutlet');
     Route::any('list/ordernow', 'ApiOutletController@listOutletOrderNow');
@@ -7,19 +7,16 @@ Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth
     Route::any('filter', 'ApiOutletController@filter');
     Route::any('filter/gofood', 'ApiOutletController@filter');
 
+    /*WEBVIEW*/
+    Route::any('webview/{id}', 'ApiOutletWebview@detailWebview');
+    Route::any('webview/gofood/list', 'ApiOutletWebview@listOutletGofood');
+    Route::any('webview/gofood/list/v2', 'ApiOutletWebview@listOutletGofood');
+
     Route::get('city', 'ApiOutletController@cityOutlet');
     // Route::any('filter', 'ApiOutletController@filter');
     Route::any('nearme/geolocation', 'ApiOutletController@nearMeGeolocation');
     Route::any('filter/geolocation', 'ApiOutletController@filterGeolocation');
     Route::any('sync', 'ApiSyncOutletController@sync');//SYNC
-});
-
-Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth:api', 'scopes:apps'], 'namespace' => 'Modules\Outlet\Http\Controllers'], function()
-{
-    /*WEBVIEW*/
-    Route::any('webview/{id}', 'ApiOutletWebview@detailWebview');
-    Route::any('webview/gofood/list', 'ApiOutletWebview@listOutletGofood');
-    Route::any('webview/gofood/list/v2', 'ApiOutletWebview@listOutletGofood');
 });
 
 Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth_client'],'namespace' => 'Modules\Outlet\Http\Controllers'], function()
