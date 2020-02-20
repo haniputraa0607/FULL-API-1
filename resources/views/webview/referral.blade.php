@@ -79,7 +79,7 @@
             <span class="code">{{$promo_code}}</span>
         </div>
         <div class="col-12 space-top-30 text-black text-21-7px Ubuntu-Bold">
-            <button onclick="location.href='{{url()->current()}}#share_now'" class="btn btn-custom"><i class="fas fa-share-alt"></i> Share Now</button>
+            <a href="{{url()->current()}}#share_now" class="btn btn-custom"><i class="fas fa-share-alt"></i> Share Now</a>
         </div>
     </div>
 @stop
