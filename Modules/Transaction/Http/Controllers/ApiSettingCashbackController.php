@@ -16,7 +16,12 @@ class ApiSettingCashbackController extends Controller
     public function list(Request $request)
     {
         $getlist = TransactionSetting::get()->toArray();
-        return response()->json(MyHelper::checkGet($getlist));
+
+        $result = [
+            'status' => 'success',
+            'result' => $getlist
+        ];
+        return response()->json($result);
     }
 
     public function update(Request $request)
