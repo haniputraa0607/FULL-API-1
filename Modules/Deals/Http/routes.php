@@ -31,7 +31,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'pr
 });
 
 /* Webview */
-Route::group(['middleware' => ['auth:api','web', 'scopes:apps'], 'prefix' => 'api/webview', 'namespace' => 'Modules\Deals\Http\Controllers'], function () {
+Route::group(['prefix' => 'api/webview', 'namespace' => 'Modules\Deals\Http\Controllers'], function () {
     Route::any('deals/{id_deals}/{deals_type}', 'ApiDealsWebview@webviewDealsDetail');
     Route::any('mydeals/{id_deals_user}', 'ApiDealsWebview@dealsClaim');
     Route::any('voucher/{id_deals_user}', 'ApiDealsVoucherWebviewController@voucherDetail');
