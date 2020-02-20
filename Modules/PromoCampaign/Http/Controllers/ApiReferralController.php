@@ -14,7 +14,6 @@ use \Modules\PromoCampaign\Entities\PromoCampaignReferral;
 use \Modules\PromoCampaign\Entities\PromoCampaign;
 use \Modules\PromoCampaign\Entities\UserReferralCode;
 use App\Http\Models\Setting;
-use \Modules\PromoCampaign\Entities\UserReferralCashback;
 use Modules\PromoCampaign\Entities\PromoCampaignReferralTransaction;
 
 class ApiReferralController extends Controller
@@ -76,7 +75,7 @@ class ApiReferralController extends Controller
     public function report(Request $request)
     {
         $perpage = 20;
-        $data['user'] = UserReferralCashback::select('users.name','users.phone','user_referral_cashbacks.*')
+        $data['user'] = UserReferralCode::select('users.name','users.phone','user_referral_cashbacks.*')
             ->join('users','user_referral_cashbacks.id_user','=','users.id')
             ->paginate(20);
         $data['transaction'] = PromoCampaignReferralTransaction::join('transactions','promo_campaign_referral_transactions.id_transaction','=','transactions.id_transaction')
