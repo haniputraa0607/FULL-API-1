@@ -1789,7 +1789,6 @@ class ApiOnlineTransaction extends Controller
             $product['qty'] = $item['qty'];
             $product['note'] = $item['note']??'';
             $product['promo_discount'] = $item['discount']??0;
-            isset($item['new_price']) ? $product['new_price']=$item['new_price'] : '';
             $product['is_promo'] = $item['is_promo']??0;
             $product['is_free'] = $item['is_free']??0;
             // get modifier
@@ -1854,7 +1853,7 @@ class ApiOnlineTransaction extends Controller
                 $tree[$product['id_brand']] = Brand::select('name_brand','id_brand')->find($product['id_brand'])->toArray();
             }
 
-            $product_price_total = $product['qty'] * ($product['product_price']+$mod_price) - $product['promo_discount'];
+            $product_price_total = $product['qty'] * ($product['product_price']+$mod_price);
             $product['product_price_total'] = MyHelper::requestNumber($product_price_total,$rn);
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],$rn);
 
@@ -1924,7 +1923,7 @@ class ApiOnlineTransaction extends Controller
                 $post[$valueTotal] = app($this->setting_trx)->countTransaction($valueTotal, $post);
             }
         }
-
+        $post['discount'] = $post['discount'] + $promo_discount;
         $result['outlet'] = [
             'id_outlet' => $outlet['id_outlet'],
             'outlet_code' => $outlet['outlet_code'],
