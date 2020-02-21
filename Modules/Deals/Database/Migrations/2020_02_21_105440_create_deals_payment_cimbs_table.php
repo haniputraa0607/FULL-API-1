@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateTransactionPaymentCimbsTable extends Migration
+class CreateDealsPaymentCimbsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,9 +13,10 @@ class CreateTransactionPaymentCimbsTable extends Migration
      */
     public function up()
     {
-        Schema::create('transaction_payment_cimbs', function (Blueprint $table) {
-            $table->bigIncrements('id_transaction_payment_cimb');
-            $table->unsignedInteger('id_transaction');
+        Schema::create('deals_payment_cimbs', function (Blueprint $table) {
+            $table->bigIncrements('id_deals_payment_cimb');
+            $table->unsignedInteger('id_deals');
+            $table->unsignedInteger('id_deals_user');
             $table->bigInteger('transaction_id');
             $table->char('txn_status');
             $table->string('txn_signature');
@@ -30,7 +31,8 @@ class CreateTransactionPaymentCimbsTable extends Migration
             $table->float('fr_score');
             $table->timestamps();
 
-            $table->foreign('id_transaction', 'fk_transaction_payment_cimbs_transactions')->references('id_transaction')->on('transactions')->onUpdate('CASCADE')->onDelete('CASCADE');
+            $table->foreign('id_deals', 'fk_deals_payment_cimbs_deals')->references('id_deals')->on('deals')->onUpdate('CASCADE')->onDelete('CASCADE');
+            $table->foreign('id_deals_user', 'fk_deals_payment_cimbs_deals_users')->references('id_deals_user')->on('deals_users')->onUpdate('CASCADE')->onDelete('CASCADE');
         });
     }
 
@@ -41,6 +43,6 @@ class CreateTransactionPaymentCimbsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('transaction_payment_cimbs');
+        Schema::dropIfExists('deals_payment_cimbs');
     }
 }
