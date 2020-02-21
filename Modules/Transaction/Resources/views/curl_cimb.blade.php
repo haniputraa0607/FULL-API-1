@@ -200,11 +200,15 @@
 <form action="https://ipg.cimbniaga.co.id/BPG/admin/payment/PaymentWindow.jsp" method="post">
     <input type="hidden" id="MERCHANT_ACC_NO" name="MERCHANT_ACC_NO" value="{{env('CIMB_ACC_NO')}}">
     <input type="hidden" id="TXN_PASSWORD" name="TXN_PASSWORD" value="{{env('CIMB_TXN_PASSWORD')}}">
-    <input type="hidden" id="AMOUNT" name="AMOUNT" value="10.00">
+    <input type="hidden" id="AMOUNT" name="AMOUNT" value="{{implode('.', [$AMOUNT, '00'])}}">
     <input type="hidden" name="TRANSACTION_TYPE" value="2">
     <input type="hidden" id="MERCHANT_TRANID" name="MERCHANT_TRANID" value="{{$MERCHANT_TRANID}}">
     <input type="hidden" name="RESPONSE_TYPE" value="HTTP">
-    <input type="hidden" name="RETURN_URL" value="{{env('API_URL')}}api/transaction/callback/cimb">
+    @if (isset($deals) && $deals == 1)
+        <input type="hidden" name="RETURN_URL" value="{{env('API_URL')}}api/transaction/callback/cimb/deals">
+    @else
+        <input type="hidden" name="RETURN_URL" value="{{env('API_URL')}}api/transaction/callback/cimb">
+    @endif
     <input type="hidden" name="TXN_DESC" value="Order from Merchant Store">
     <input type="hidden" id="TXN_SIGNATURE" name="TXN_SIGNATURE" value="">
     <button type="submit" id="btn" style="display: none;">submit</button>
