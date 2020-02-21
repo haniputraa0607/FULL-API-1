@@ -1884,8 +1884,8 @@ class ApiPromoCampaign extends Controller
         }
         else
         {
-        	$applied_product = [];
-        	$product = [];
+        	$applied_product = "";
+        	$product = "";
         }
 
         $result = [
