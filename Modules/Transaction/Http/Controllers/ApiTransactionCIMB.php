@@ -4,6 +4,7 @@ namespace Modules\Transaction\Http\Controllers;
 
 use App\Http\Models\LogBackendError;
 use App\Http\Models\Transaction;
+use App\Http\Models\TransactionMultiplePayment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -12,10 +13,16 @@ use Modules\Transaction\Entities\TransactionPaymentCimb;
 
 class ApiTransactionCIMB extends Controller
 {
+    function __construct()
+    {
+        date_default_timezone_set('Asia/Jakarta');
+        $this->autocrm       = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
+    }
+
     public function callback(Request $request)
     {
         if ($request['RESPONSE_CODE'] == 0) {
-            $transaction = Transaction::where('transaction_receipt_number', $request['MERCHANT_TRANID'])->first();
+            $transaction = Transaction::with('user.memberships', 'outlet', 'productTransaction')->where('transaction_receipt_number', $request['MERCHANT_TRANID'])->first();
 
             DB::beginTransaction();
             try {
@@ -59,7 +66,49 @@ class ApiTransactionCIMB extends Controller
                     ]
                 ]);
             }
+
+            $dataMultiple = [
+                'id_transaction' => $transaction->id_transaction,
+                'type'           => 'Cimb',
+                'id_payment'     => $addCimb->id_transaction_payment_cimb
+            ];
+
+            $saveMultiple = TransactionMultiplePayment::create($dataMultiple);
+            if (!$saveMultiple) {
+                DB::rollback();
+                return response()->json([
+                    'status'   => 'fail',
+                    'messages' => [
+                        'fail to confirm transaction'
+                    ]
+                ]);
+            }
+
+            // apply cashback to referrer
+            \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($transaction);
+
+            $mid = [
+                'order_id' => $transaction->transaction_receipt_number,
+                'gross_amount' => $transaction->transaction_subtotal
+            ];
+
+            $notif = app($this->notif)->notification($mid, $transaction);
+            if (!$notif) {
+                DB::rollBack();
+                return response()->json([
+                    'status'   => 'fail',
+                    'messages' => ['Transaction Notification failed']
+                ]);
+            }
+            $sendNotifOutlet = app($this->trx)->outletNotif($transaction->id_transaction);
+
+            //create geocode location
+            if (isset($transaction->latitude) && isset($transaction->longitude)) {
+                $savelocation = app($this->trx)->saveLocation($transaction->latitude, $transaction->longitude, $transaction->id_user, $transaction->id_transaction, $transaction->id_outlet);
+            }
+
             DB::commit();
+
             $dataEncode = [
                 'transaction_receipt_number'   => $request['MERCHANT_TRANID'],
                 'type' => 'trx',
