@@ -288,6 +288,13 @@ class ApiDealsClaimPay extends Controller
 
             if ($voucher) {
                 $pay = $this->paymentMethod($dataDeals, $voucher, $request);
+                if (isset($pay['payment']) && $pay['payment'] == 'cimb') {
+                    unset($pay['payment']);
+                    $pay['deals'] = 1;
+                    DB::commit();
+                    
+                    return view('transaction::curl_cimb', $pay);
+                }
             }
 
             // if deals subscription and pay completed, update paid_status another user vouchers
@@ -385,6 +392,12 @@ class ApiDealsClaimPay extends Controller
             /* CIMB */
             if ($request->json('payment_deals') && $request->json('payment_deals') == "cimb") {
                 $pay = $this->cimb($dataDeals, $voucher);
+                $cimb = [
+                    'MERCHANT_TRANID'   => $pay['order_id'],
+                    'AMOUNT'            => $pay['amount'],
+                    'payment'           => 'cimb'
+                ];
+                return $cimb;
             }
 
            /* OVO */
@@ -455,7 +468,7 @@ class ApiDealsClaimPay extends Controller
             'id_deals'      => $deals->id_deals,
             'id_deals_user' => $voucher->id_deals_user,
             'gross_amount'  => $voucher->voucher_price_cash,
-            'order_id'      => time().sprintf("%05d", $voucher->id_deals_user)
+            'order_id'      => time().sprintf("%05d", $voucher->id_deals_user).'-'.$voucher->id_deals_user
         ];
 
         if (is_null($grossAmount)) {
@@ -467,10 +480,10 @@ class ApiDealsClaimPay extends Controller
             $data['gross_amount'] = $grossAmount;
         }
 
-        $cimb['MERCHANT_TRANID']    = $data['order_id'];
-        $cimb['AMOUNT']             = $data['gross_amount'];
-        
-        return view('transaction::curl_cimb', $cimb);
+        return [
+            'order_id'  => $data['order_id'],
+            'amount'    => $data['gross_amount']
+        ];
     }
 
     /* OVO */
