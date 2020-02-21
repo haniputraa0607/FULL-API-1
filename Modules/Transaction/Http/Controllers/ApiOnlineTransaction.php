@@ -1923,7 +1923,7 @@ class ApiOnlineTransaction extends Controller
                 $post[$valueTotal] = app($this->setting_trx)->countTransaction($valueTotal, $post);
             }
         }
-        $post['discount'] = $post['discount'] + $promo_discount;
+        $post['discount'] = $post['discount'] + ($promo_discount??0);
         $result['outlet'] = [
             'id_outlet' => $outlet['id_outlet'],
             'outlet_code' => $outlet['outlet_code'],
