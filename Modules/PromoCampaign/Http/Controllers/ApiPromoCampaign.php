@@ -1782,7 +1782,6 @@ class ApiPromoCampaign extends Controller
 		$result['title'] 			= $query[$source]['promo_title']??$query[$source]['deals_title'];
 		$result['description']		= $desc;
 		$result['promo_detail']		= "";
-		$result['errors'] 			= $errors;
 		$result['promo_code'] 		= $request->promo_code;
 		$result['id_deals_user'] 	= $request->id_deals_user;
 		$result['webview_url'] 		= "";
@@ -1822,6 +1821,8 @@ class ApiPromoCampaign extends Controller
 		        $result['messages'] = $trx['messages'];
 		        $result['promo_error'] = $trx['promo_error'];
 		        $result['result']['description'] = $trx['promo']['description'];
+		        $result['result']['promo_detail'] = $trx['promo']['detail'];
+		        $result['result']['is_free'] = $trx['promo']['is_free'];
 		        $result['promo'] = $trx['promo'];
 	        }else{
 	        	return [

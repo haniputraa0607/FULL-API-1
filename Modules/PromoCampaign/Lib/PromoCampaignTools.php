@@ -41,6 +41,7 @@ class PromoCampaignTools{
 			}
 		 ]
 		 */
+		$is_free = 0;
 		if(!is_numeric($id_promo)){
 			$errors[]='Id promo not valid';
 			return false;
@@ -467,8 +468,7 @@ class PromoCampaignTools{
 						$discount+=$this->discount_product($promo_product->product,$promo_rule,$trx, $modifier);
 					}
 				}
-
-				$product = app($this->promo_campaign)->getProduct($source, $promo);
+				$product_benefit = app($this->promo_campaign)->getProduct($source, $promo);
 
 				if ($promo_rule->discount_type == 'Percent') {
 	        		$discount_benefit = ($promo_rule['discount_value']??0).'%';
@@ -476,7 +476,7 @@ class PromoCampaignTools{
 	        		$discount_benefit = 'Rp '.number_format($promo_rule['discount_value']??0);
 	        	}
 
-				$new_description = 'You get discount of IDR '.number_format($discount).' for '.$product['product'];
+				$new_description = 'You get discount of IDR '.number_format($discount).' for '.$product_benefit['product'];
 				$promo_detail_message = 'Discount '.$discount_benefit;
 
 				break;
@@ -634,6 +634,7 @@ class PromoCampaignTools{
 					if ($promo_rule->discount_value == 100) {
 						$new_description = 'You get '.$promo_rule['benefit_qty'].' '.$product['product'].' Free';
 						$promo_detail_message = 'Free '.$product['product'].' ('.$promo_rule['benefit_qty'].'x)';
+						$is_free = 1;
 					}else{
 		        		$discount_benefit = ($promo_rule['discount_value']??0).'%';
 		        		$new_description = 'You get discount of IDR '.number_format($discount).' for '.$product['product'];
@@ -722,8 +723,9 @@ class PromoCampaignTools{
 		return [
 			'item'				=> $trxs,
 			'discount'			=> $discount,
-			'new_description'	=> $new_description,
-			'promo_detail'		=> $promo_detail_message
+			'new_description'	=> $new_description??'',
+			'promo_detail'		=> $promo_detail_message,
+			'is_free'			=> $is_free
 		];
 	}
 

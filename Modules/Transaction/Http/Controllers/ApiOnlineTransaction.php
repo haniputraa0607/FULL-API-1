@@ -1663,6 +1663,7 @@ class ApiOnlineTransaction extends Controller
 		            $promo['description'] = $discount_promo['new_description'];
 		            $promo['detail'] = $discount_promo['promo_detail'];
 		            $promo['discount'] = $discount_promo['discount'];
+		            $promo['is_free'] = $discount_promo['is_free'];
 
 		            if ( !empty($errore) || !empty($errors)) {
 
@@ -1687,9 +1688,10 @@ class ApiOnlineTransaction extends Controller
 			{
 				$pct=new PromoCampaignTools();
 				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals');
-				$promo_description = $discount_promo['new_description'];
-	            $promo_detail = $discount_promo['promo_detail'];
-	            $promo_discount_total = $discount_promo['discount'];
+				$promo['description'] = $discount_promo['new_description'];
+	            $promo['detail'] = $discount_promo['promo_detail'];
+	            $promo['discount'] = $discount_promo['discount'];
+	            $promo['is_free'] = $discount_promo['is_free'];
 
 				if ( !empty($errors) ) {
 					$code = $deals->toArray();
@@ -1728,6 +1730,7 @@ class ApiOnlineTransaction extends Controller
                     'brand_product.id_product_category','brand_product.id_brand'
                 ];
             }
+
             $product = Product::select($select)
             ->join('brand_product','brand_product.id_product','=','products.id_product')
             // produk tersedia di outlet
