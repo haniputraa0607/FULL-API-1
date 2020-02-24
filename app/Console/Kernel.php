@@ -88,13 +88,7 @@ class Kernel extends ConsoleKernel
          * To process sync menu price from the POS
          * Run every day at 00:05
          */
-        $schedule->call('Modules\POS\Http\Controllers\ApiPOS@cronProductPrice);')->dailyAt('00:05');
-
-        /**
-         * To process product price updates according to period
-         * Run every 10 minute
-         */
-        $schedule->call('Modules\POS\Http\Controllers\ApiPOS@cronProductPrice')->dailyAt('00:10');
+        $schedule->call('Modules\POS\Http\Controllers\ApiPOS@cronProductPrice')->dailyAt('00:05');
 
         /**
          * To make daily transaction reports (offline and online transactions)
