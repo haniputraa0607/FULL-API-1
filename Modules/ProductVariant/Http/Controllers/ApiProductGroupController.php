@@ -371,8 +371,9 @@ class ApiProductGroupController extends Controller
         foreach ($products as $product) {
             if($product['product_variant_code']){
                 $varcode = explode(',',$product['product_variant_code']);
-                if(count($varcode) !== 2) continue;
-                $variant_stock[$varcode[0]][$varcode[1]] = [
+                if(count($varcode) < 2) continue;
+                $first = (int) count($varcode)/2;
+                $variant_stock[$varcode[0]][$varcode[$first]] = [
                     'product_variant_code' => $varcode[1],
                     'product_stock_status' => $product['product_stock_status'],
                     'product_price' => $product['product_price']
