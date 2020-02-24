@@ -657,6 +657,17 @@ class ApiPOS extends Controller
                                 'product_status'    => $variance['status'],
                                 'id_product_group'  => $checkGroup->id_product_group
                             ]);
+
+                            //check brand product
+                            $checkBrand = BrandProduct::where('id_product', $product->id_product)->first();
+                            if(!$checkBrand){
+                                $brandProduct = [
+                                    'id_product' => $product->id_product,
+                                    'id_brand'   => $getIdBrand->id_brand
+                                ];
+                                BrandProduct::create($brandProduct);
+                            }
+
                             $countUpdate        = $countUpdate + 1;
                             $updatedProduct[]   = implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
                         } catch (\Exception $e) {
@@ -674,6 +685,14 @@ class ApiPOS extends Controller
                                 'product_name_pos'  => implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]),
                                 'product_status'    => $variance['status']
                             ]);
+
+                            //insert brand
+                            $brandProduct = [
+                                'id_product' => $product->id_product,
+                                'id_brand'   => $getIdBrand->id_brand
+                            ];
+                            BrandProduct::create($brandProduct);
+
                             $countInsert        = $countInsert + 1;
                             $insertProduct[]    = implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
                         } catch (\Exception $e) {
