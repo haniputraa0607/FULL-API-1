@@ -70,14 +70,14 @@ class LogActivitiesMiddleware
                 if(stristr($url, 'gofood')) $module = 'Banner Go-Food';
                 if(stristr($url, 'users')) $module = 'User';
                 if(stristr($url, 'v1/pos')) $module = 'POS';
-				if(stristr($url, 'subscription')) $module = 'Subscription';														   
+				if(stristr($url, 'subscription')) $module = 'Subscription';
 
                 $subject = "Unknown";
 
 				//subscription
                 if(stristr($url, 'subscription')) $subject = 'Subscription';
 
-                //autocrm 
+                //autocrm
                 if(stristr($url, 'autocrm')) $subject = 'Autocrm';
 
                 //balance
@@ -154,7 +154,7 @@ class LogActivitiesMiddleware
                 if(stristr($url, 'voucher')) $subject = 'Voucher';
                 if(stristr($url, 'voucher/me')) $subject = 'My Voucher';
                 if(stristr($url, 'invalidate')) $subject = 'Invalidate Voucher';
-                
+
                 //Order
                 if(stristr($url, 'pos/order')) $subject = 'POS Order';
                 if(stristr($url, 'pos/order/detail')) $subject = 'POS Order Detail';
@@ -232,9 +232,13 @@ class LogActivitiesMiddleware
                 if(!empty($request->header('ip-address-view'))){
                     $ip = $request->header('ip-address-view');
                 }else{
-                    $ip = $request->ip();
+                    $ip = $_SERVER['HTTP_X_FORWARDED_FOR']?$_SERVER['HTTP_X_FORWARDED_FOR']:$_SERVER['REMOTE_ADDR'];
+                    if(strpos($ip,',') !== false) {
+                        $ip = substr($ip,0,strpos($ip,','));
+                    }
                 }
-                
+                }
+
                 $beStatusUserAgent = 0;
                 if(!empty($request->header('user-agent-view'))){
                     $userAgent = $request->header('user-agent-view');
@@ -247,7 +251,7 @@ class LogActivitiesMiddleware
                 }else{
                     $userAgent = $request->header('user-agent');
                 }
-                
+
                 if(!empty($user) && $user != ""){
                 $data = [
                     'module' 			=> ucwords($module),
@@ -279,7 +283,7 @@ class LogActivitiesMiddleware
                         'useragent' 		=> $userAgent
                       ];
                 }
-                
+
                 if($beStatusUserAgent == 1){
                     if (stristr($url, 'activity')) {
                         $data = [
@@ -302,7 +306,7 @@ class LogActivitiesMiddleware
                 }else{
                     $log = LogActivitiesApps::create($data);
                 }
-                
+
             }
 
         }
