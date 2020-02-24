@@ -22,6 +22,7 @@ class Step1PromoCampaignRequest extends FormRequest
             'date_start'            => 'required',
             'date_end'              => 'required',
             'id_promo_campaign'     => 'nullable',
+            'product_type'          => 'required',
 
             'code_type'             => 'required',
             // 'promo_code'            => 'sometimes|required_if:code_type,==,single|max:15|regex:/^[abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789]+$/u',

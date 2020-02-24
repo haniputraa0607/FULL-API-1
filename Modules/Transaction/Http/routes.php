@@ -95,7 +95,7 @@ Route::group(['prefix' => 'api/transaction', 'middleware' => ['log_activities', 
     Route::any('/notif', 'ApiNotification@receiveNotification');
 });
 
-Route::group(['prefix' => 'api/transaction', 'middleware' => ['log_activities', 'auth:api', 'user_agent', 'scopes:apps'], 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
+Route::group(['prefix' => 'api/transaction', 'middleware' => ['log_activities', 'auth:api', 'scopes:apps'], 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
 
     Route::post('/detail/webview/point', 'ApiWebviewController@webviewPoint');
     Route::post('/detail/webview/balance', 'ApiWebviewController@webviewBalance');
@@ -131,6 +131,11 @@ Route::group(['prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction
 });
 
 Route::group(['prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function() {
+    Route::any('callback/cimb', 'ApiTransactionCIMB@callback');
+    Route::any('callback/cimb/deals', 'ApiTransactionCIMB@callbackDeals');
+});
+
+Route::group(['prefix' => 'api/transaction', 'middleware' => ['log_activities', 'auth:api', 'scopes:apps'], 'namespace' => 'Modules\Transaction\Http\Controllers'], function() {
     Route::any('/web/view/detail', 'ApiWebviewController@detail');
     Route::any('/web/view/detail/check', 'ApiWebviewController@check');
     Route::any('/web/view/detail/point', 'ApiWebviewController@detailPoint');

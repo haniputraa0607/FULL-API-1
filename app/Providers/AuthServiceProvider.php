@@ -33,6 +33,7 @@ class AuthServiceProvider extends ServiceProvider
             Passport::tokensCan([
                 'be' => 'Manage admin panel scope',
                 'apps' => 'Manage mobile scope',
+                'pos' => 'Manage pos scope'
             ]);
             Passport::routes(function ($router) {
                 return $router->forAccessTokens();

@@ -21,6 +21,14 @@ use App\Lib\MyHelper;
 
 class ApiProductGroupController extends Controller
 {
+
+	function __construct() {
+        $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+
+        //code of general
+        $this->general = ['general_type','general_size'];
+    }
+
     /**
      * Display a listing of the resource.
      * @return Response
@@ -172,10 +180,10 @@ class ApiProductGroupController extends Controller
             'product_group_name' => $request->json('product_group_name'),
             'product_group_description' => $request->json('product_group_description'),
         ];
-        if($data['product_group_photo']??false){
+        if($post['product_group_photo']??false){
             $data['product_group_photo'] = $post['product_group_photo'];
         }
-        if($data['product_group_photo']??false){
+        if($post['product_group_photo']??false){
             $data['product_group_image_detail'] = $post['product_group_image_detail'];
         }
         $update = $pg->update($data);
@@ -303,106 +311,10 @@ class ApiProductGroupController extends Controller
             return MyHelper::checkGet($data);
         }
 
-        // promo code
-		foreach ($data as $key => $value) {
-			$data[$key]['is_promo'] = 0;
-		}
-        if (isset($post['promo_code'])) {
-        	$code=PromoCampaignPromoCode::where('promo_code',$request->promo_code)
-	                ->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
-	                ->where('step_complete', '=', 1)
-	                ->where( function($q){
-	                	$q->whereColumn('usage','<','limitation_usage')
-	                		->orWhere('code_type','Single');
-	                } )
-	                ->with([
-						'promo_campaign.promo_campaign_product_discount.product' => function($q) {
-							$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
-						},
-						'promo_campaign.promo_campaign_buyxgety_product_requirement.product' => function($q) {
-							$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
-						},
-						'promo_campaign.promo_campaign_tier_discount_product.product' => function($q) {
-							$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
-						},
-						'promo_campaign.promo_campaign_product_discount_rules',
-						'promo_campaign.promo_campaign_tier_discount_rules',
-						'promo_campaign.promo_campaign_buyxgety_rules'
-					])
-	                ->first();
-	        if(!$code){
-	            return [
-	                'status'=>'fail',
-	                'messages'=>['Promo code not valid']
-	            ];
-	        }else{
-
-	        	if ($code['promo_campaign']['date_end'] < date('Y-m-d H:i:s')) {
-	        		return [
-		                'status'=>'fail',
-		                'messages'=>['Promo campaign is ended']
-		            ];
-	        	}
-	        	$code = $code->toArray();
-
-		        if ( ($code['promo_campaign']['promo_campaign_product_discount_rules']['is_all_product']??false) == 1)
-		        {
-		        	$applied_product = '*';
-		        }
-		        elseif ( !empty($code['promo_campaign']['promo_campaign_product_discount']) )
-		        {
-		        	$applied_product = $code['promo_campaign']['promo_campaign_product_discount'];
-		        }
-		        elseif ( !empty($code['promo_campaign']['promo_campaign_tier_discount_product']) )
-		        {
-		        	$applied_product = $code['promo_campaign']['promo_campaign_tier_discount_product'];
-		        }
-		        elseif ( !empty($code['promo_campaign']['promo_campaign_buyxgety_product_requirement']) )
-		        {
-		        	// if buy x get y promo, applied product only for product x
-		        	$applied_product = $code['promo_campaign']['promo_campaign_buyxgety_product_requirement'];
-
-		        }
-		        else
-		        {
-		        	$applied_product = [];
-		        }
-
-        		if ($applied_product == '*') {
-        			foreach ($data as $key => $value) {
-	        			$data[$key]['is_promo'] = 1;
-						unset($data[$key]['products']);
-    				}
-        		}else{
-        			if (isset($applied_product[0])) {
-        				// loop available product
-			        	foreach ($applied_product as $key => $value) {
-			        		// loop product group
-		        			foreach ($data as $key2 => $value2) {
-		        				// loop product
-		        				if (isset($value2['products'])) {
-				        			foreach ($value2['products'] as $key3 => $value3) {
-				        				if ( $value3['id_product'] == $value['id_product'] ) {
-				    						$data[$key2]['is_promo'] = 1;
-				    						break;
-				    					}
-				        			}
-		        				}
-		        			}
-			        	}
-        			}elseif(isset($applied_product['id_product'])){
-        				foreach ($data as $key2 => $value2) {
-	        				foreach ($value2['products'] as $key3 => $value3) {
-								unset($data[$key2]['products']);
-		        				if ( $value3['id_product'] == $applied_product['id_product'] ) {
-		    						$data[$key2]['is_promo'] = 1;
-		    						break;
-		    					}
-	        				}
-	        			}
-        			}
-        		}
-	        }
+        $promo_data = $this->applyPromo($post, $data, $promo_error);
+        
+        if ($promo_data) {
+        	$data = $promo_data;
         }
 
         $result = [];
@@ -419,7 +331,10 @@ class ApiProductGroupController extends Controller
             unset($product['products']);
             $result[$id_product_category]['products'][] = $product;
         }
-        return MyHelper::checkGet(array_values($result));
+        $result = MyHelper::checkGet(array_values($result));
+        $result['promo_error'] = $promo_error;
+
+        return response()->json($result);
     }
     public function product(Request $request) {
         $post = $request->json()->all();
@@ -450,17 +365,22 @@ class ApiProductGroupController extends Controller
             ->join('product_variants as parents','product_variants.parent','=','parents.id_product_variant')
             ->select(\DB::raw('products.id_product,product_prices.product_stock_status,GROUP_CONCAT(product_variants.product_variant_code order by parents.product_variant_position) as product_variant_code,product_prices.product_price'))->groupBy('products.id_product')->get('id_product')->toArray();
         $id_products = array_column($products, 'id_product');
+        $is_visible = 1;
         //get variant stock
         $variant_stock = [];
         foreach ($products as $product) {
             if($product['product_variant_code']){
                 $varcode = explode(',',$product['product_variant_code']);
-                if(count($varcode) !== 2) continue;
-                $variant_stock[$varcode[0]][$varcode[1]] = [
+                if(count($varcode) < 2) continue;
+                $first = (int) count($varcode)/2;
+                $variant_stock[$varcode[0]][$varcode[$first]] = [
                     'product_variant_code' => $varcode[1],
                     'product_stock_status' => $product['product_stock_status'],
                     'product_price' => $product['product_price']
                 ];
+                if(in_array($varcode[0], $this->general)){
+                    $is_visible = 0;
+                }
             }
         }
         // product exists?
@@ -526,17 +446,23 @@ class ApiProductGroupController extends Controller
             return $a['type_position']<=>$b['type_position'];
         });
         $data['variants'] = $arranged_variant[0];
+        $data['variants']['is_visible'] = $is_visible;
         unset($data['variants']['childs']);
         foreach ($variant_stock as $key => $vstock) {
             if($arranged_variant[0]['childs'][$key]??false){
                 $stock = $arranged_variant[0]['childs'][$key];
                 $child = $arranged_variant[1];
                 unset($child['childs']);
+                $is_should_hidden = 1;
                 foreach ($arranged_variant[1]['childs'] as $vrn) {
                     if($variant_stock[$key][$vrn['product_variant_code']]??false){
+                        if(in_array($vrn['product_variant_code'], $this->general)){
+                            $is_should_hidden = 0;
+                        }
                         $child['childs'][] = array_merge($vrn,$variant_stock[$key][$vrn['product_variant_code']]);
                     }
                 }
+                $child['is_visible'] = $is_should_hidden;
                 $stock['childs'] = $child;
                 $data['variants']['childs'][]=$stock;
             }
@@ -584,6 +510,7 @@ class ApiProductGroupController extends Controller
             $val = $newval;
             return $key;
         }));
+        $data['is_visible'] = $is_visible;
         return MyHelper::checkGet($data);
     }
     public function search(Request $request) {
@@ -612,12 +539,24 @@ class ApiProductGroupController extends Controller
                     // order by position
                     ->orderBy('products.position')
                     // group by product_groups
-                    ->groupBy('product_groups.id_product_group')
-                    ->get()
-                    ->toArray();
+                    ->groupBy('product_groups.id_product_group');
+
+        if (isset($post['promo_code'])) {
+        	$data = $data->with('products');
+        }
+
+        $data = $data->get()->toArray();
+
         if(!$data){
             return MyHelper::checkGet($data);
         }
+
+        $promo_data = $this->applyPromo($post, $data, $promo_error);
+
+        if ($promo_data) {
+        	$data = $promo_data;
+        }
+
         $result = [];
         foreach ($data as $product) {
             $product['product_stock_status'] = $this->checkAvailable($product['product_stock_status']);
@@ -625,6 +564,118 @@ class ApiProductGroupController extends Controller
             unset($product['products']);
             $result[] = $product;
         }
-        return MyHelper::checkGet(array_values($result));
+        
+        $result = MyHelper::checkGet(array_values($result));
+        $result['promo_error'] = $promo_error;
+
+        return response()->json($result);
+    }
+
+    public function applyPromo($promo_post, $data_product, &$promo_error)
+    {
+    	$post = $promo_post;
+    	$data = $data_product;
+    	// promo code
+		foreach ($data as $key => $value) {
+			$data[$key]['is_promo'] = 0;
+		}
+		$promo_error = null;
+        if ( (!empty($post['promo_code']) && empty($post['id_deals_user'])) || (empty($post['promo_code']) && !empty($post['id_deals_user'])) ) {
+
+        	if (!empty($post['promo_code'])) 
+        	{
+        		$code = app($this->promo_campaign)->checkPromoCode($post['promo_code'], null, 1);
+        		$source = 'promo_campaign';
+        	}else{
+        		$code = app($this->promo_campaign)->checkVoucher($post['id_deals_user'], null, 1);
+        		$source = 'deals';
+        	}
+
+	        if(!$code){
+	        	$promo_error = 'Promo not valid';
+	        	return false;
+	        }else{
+
+	        	if ( ($code['promo_campaign']['date_end']??$code['voucher_expired_at']) < date('Y-m-d H:i:s') ) {
+	        		$promo_error = 'Promo is ended';
+	        		return false;
+	        	}
+	        	$code = $code->toArray();
+
+	        	$applied_product = app($this->promo_campaign)->getProduct($source,($code['promo_campaign']??$code['deal_voucher']['deals']))['applied_product']??[];
+
+        		if ($applied_product == '*') {
+        			foreach ($data as $key => $value) {
+	        			$data[$key]['is_promo'] = 1;
+						unset($data[$key]['products']);
+    				}
+        		}else{
+        			if ( ($code['product_type']??$code['deal_voucher']['deals']['product_type']) == 'group') 
+        			{
+        				if (isset($applied_product[0])) {
+	        				// loop available product
+				        	foreach ($applied_product as $key => $value) {
+				        		// loop product group
+			        			foreach ($data as $key2 => $value2) {
+			        				if ( $value2['id_product_group'] == $value['id_product'] ) {
+			    						$data[$key2]['is_promo'] = 1;
+			    						break;
+			    					}
+			        			}
+				        	}
+				        	// unset products
+				        	foreach ($data as $key => $value) {
+								unset($data[$key]['products']);
+				        	}
+	        			}elseif(isset($applied_product['id_product'])){
+	        				foreach ($data as $key2 => $value2) {
+		        				if ( $value2['id_product_group'] == $applied_product['id_product'] ) {
+		    						$data[$key2]['is_promo'] = 1;
+		    						break;
+		    					}
+		        			}
+	        			}
+        			}
+        			else
+        			{
+	        			if (isset($applied_product[0])) {
+	        				// loop available product
+				        	foreach ($applied_product as $key => $value) {
+				        		// loop product group
+			        			foreach ($data as $key2 => $value2) {
+			        				// loop product
+			        				if (isset($value2['products'])) {
+					        			foreach ($value2['products'] as $key3 => $value3) {
+					        				if ( $value3['id_product'] == $value['id_product'] ) {
+					    						$data[$key2]['is_promo'] = 1;
+					    						break;
+					    					}
+					        			}
+			        				}
+			        			}
+				        	}
+				        	// unset products
+				        	foreach ($data as $key => $value) {
+								unset($data[$key]['products']);
+				        	}
+	        			}elseif(isset($applied_product['id_product'])){
+	        				foreach ($data as $key2 => $value2) {
+		        				foreach ($value2['products'] as $key3 => $value3) {
+									unset($data[$key2]['products']);
+			        				if ( $value3['id_product'] == $applied_product['id_product'] ) {
+			    						$data[$key2]['is_promo'] = 1;
+			    						break;
+			    					}
+		        				}
+		        			}
+	        			}
+        			}
+        		}
+	        }
+        }else{
+        	$promo_error = 'Can only use either promo code or voucher';
+        }
+        return $data;
+        // end promo code
     }
 }

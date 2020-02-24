@@ -15,6 +15,8 @@ use App\Http\Models\DealsPaymentMidtran;
 use App\Http\Models\DealsUser;
 use App\Http\Models\DealsVoucher;
 use App\Http\Models\Outlet;
+use App\Http\Models\TransactionVoucher;
+use App\Http\Models\Transaction;
 
 use Modules\Deals\Http\Requests\Deals\Voucher;
 use Modules\Deals\Http\Requests\Deals\UseVoucher;
@@ -466,6 +468,8 @@ class ApiDealsVoucher extends Controller
             $voucher[0]['deals_title'] = $voucher[0]['deal_voucher']['deal']['deals_title'];
             $voucher[0]['is_offline'] = $voucher[0]['deal_voucher']['deal']['is_offline'];
             $voucher[0]['is_online'] = $voucher[0]['deal_voucher']['deal']['is_online'];
+            $voucher[0]['popup_message'][] = $voucher[0]['deal_voucher']['deal']['deals_title'];
+            $voucher[0]['popup_message'][] = 'will be used on the next transaction';
             $result['data'] = $voucher;
         }
         else {
@@ -600,17 +604,17 @@ class ApiDealsVoucher extends Controller
         return response()->json(MyHelper::checkGet($voucher));
     }
 
-    public function useVoucher(UseVoucher $request)
+    public function useVoucher($id_deals_user, $use_later=null)
     {
-    	$post = $request->json()->all();
     	$user = auth()->user();
 
 		DB::beginTransaction();
 		// change is used flag to 0
 		$deals_user = DealsUser::where('id_user','=',$user->id)->where('is_used','=',1)->update(['is_used' => 0]);
-
-		// change specific deals user is used to 1
-		$deals_user = DealsUser::where('id_deals_user','=',$post['id_deals_user'])->update(['is_used' => 1]);
+		if (empty($use_later)) {
+			// change specific deals user is used to 1
+			$deals_user = DealsUser::where('id_deals_user','=',$id_deals_user)->update(['is_used' => 1]);
+		}
 		
 		if ($deals_user) {
 			DB::commit();
@@ -618,9 +622,52 @@ class ApiDealsVoucher extends Controller
 			DB::rollback();
 		}
 		$deals_user = MyHelper::checkUpdate($deals_user);
-		$deals_user['webview_url'] = env('API_URL') ."api/webview/voucher/". $post['id_deals_user'];
-		$deals_user['webview_url_v2'] = env('API_URL') ."api/webview/voucher/v2/". $post['id_deals_user'];
-		return response()->json($deals_user);
+		$deals_user['webview_url'] = env('API_URL') ."api/webview/voucher/". $id_deals_user;
+		$deals_user['webview_url_v2'] = env('API_URL') ."api/webview/voucher/v2/". $id_deals_user;
+		return $deals_user;
+
+    }
+
+    public function unuseVoucher(Request $request)
+    {
+    	$post = $request->json()->all();
+    	$unuse = $this->useVoucher($post['id_deals_user'], 1);
+    	if ($unuse) {
+    		return response()->json($unuse);
+    	}else{
+    		return response()->json([
+    			'status' => 'fail',
+    			'messages' => 'Failed to update voucher'
+    		]);
+    	}
+    }
+
+    public function returnVoucher($id_transaction)
+    {
+    	$getVoucher = TransactionVoucher::where('id_transaction','=',$id_transaction)->first();
+
+    	if ($getVoucher) 
+    	{
+	    	$update = DealsUser::where('id_deals_voucher', '=', $getVoucher['id_deals_voucher'])->update(['used_at' => null]);
+
+	    	if ($update) 
+	    	{
+	    		$update = TransactionVoucher::where('id_deals_voucher', '=', $getVoucher['id_deals_voucher'])->update(['status' => 'failed']);
+
+	    		if ($update) 
+	    		{
+	    			return true;		
+	    		}
+	    		else
+	    		{
+	    			return false;
+	    		}
+	    	}
+	    	else
+	    	{
+	    		return false;
+	    	}
+    	}
 
     }
 }

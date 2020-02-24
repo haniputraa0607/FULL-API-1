@@ -62,9 +62,9 @@ class BalanceController extends Controller
         // check balance data from hashed text
         $newTopupController = new NewTopupController();
         $checkHashBefore = $newTopupController->checkHash('log_balances', $id_user);
-        if (!$checkHashBefore) {
-            return false;
-        }
+        // if (!$checkHashBefore) {
+        //     return false;
+        // }
 
         DB::beginTransaction();
         $checkLog = LogBalance::where('source', $source)->where('id_reference', $id_reference)->first();

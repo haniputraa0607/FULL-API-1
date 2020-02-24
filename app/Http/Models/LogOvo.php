@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property User $user
  */
 class LogOvo extends Model
-{
+{	
 	/**
 	 * The database name used by the model.
 	 *
@@ -28,6 +28,7 @@ class LogOvo extends Model
      * 
      * @var string
      */
+	protected $primaryKey = 'id_log_ovo';
     protected $table = 'log_ovos';
 
     /**

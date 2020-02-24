@@ -37,6 +37,7 @@ class ApiConfirm extends Controller
         $this->notif = "Modules\Transaction\Http\Controllers\ApiNotification";
         $this->trx = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
         $this->autocrm  = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
+        $this->voucher  = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
     }
 
     public function confirmTransaction(ConfirmPayment $request) {
@@ -48,7 +49,6 @@ class ApiConfirm extends Controller
         $dataDetailProduct = [];
 
         $check = Transaction::with('transaction_shipments', 'productTransaction.product','outlet_name')->where('id_user',$user->id)->where('id_transaction', $post['id'])->first();
-
         if (empty($check)) {
             DB::rollback();
             return response()->json([
@@ -66,6 +66,7 @@ class ApiConfirm extends Controller
         }
 
         $checkPayment = TransactionMultiplePayment::where('id_transaction', $check['id_transaction'])->first();
+
         $countGrandTotal = $check['transaction_grandtotal'];
 
         if (isset($check['productTransaction'])) {
@@ -323,6 +324,12 @@ class ApiConfirm extends Controller
 
             return $pay;
         }
+        elseif ($post['payment_type'] == 'Cimb') {
+            $cimb['MERCHANT_TRANID']    = $check->transaction_receipt_number;
+            $cimb['AMOUNT']             = $countGrandTotal;
+            
+            return view('transaction::curl_cimb', $cimb);
+        }
         else {
             if (isset($post['id_manual_payment_method'])) {
                 $checkPaymentMethod = ManualPaymentMethod::where('id_manual_payment_method', $post['id_manual_payment_method'])->first();
@@ -569,7 +576,7 @@ class ApiConfirm extends Controller
 
                             $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
                             if($update){
-                                $updatePaymentStatus = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Completed', 'show_rate_popup' => 1]);
+                                $updatePaymentStatus = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Completed']);
                                 if($updatePaymentStatus){
 
                                     $dataTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction')
@@ -658,6 +665,7 @@ class ApiConfirm extends Controller
                     $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
 
                     $updatePaymentStatus = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Cancelled', 'void_date' => date('Y-m-d H:i:s')]);
+                    $updateVoucher = app($this->voucher)->returnVoucher($trx['id_transaction']);
 
                     //return balance
                     $payBalance = TransactionMultiplePayment::where('id_transaction', $trx['id_transaction'])->where('type', 'Balance')->first();
@@ -678,7 +686,7 @@ class ApiConfirm extends Controller
                                     "outlet_name"       => $trx['outlet_name']['outlet_name']??'',
                                     "transaction_date"  => $trx['transaction_date'],
                                     'receipt_number'    => $trx['transaction_receipt_number'],
-                                    'id_transaction'    => $trx['id_transaction'], 
+                                    'id_transaction'    => $trx['id_transaction'],
                                     'received_point'    => (string) $checkBalance['balance_nominal']
                                 ]
                             );
@@ -717,10 +725,7 @@ class ApiConfirm extends Controller
                             $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
                         }
                     }
-
                 }
-
-
             }
 
             $trx = Transaction::where('id_transaction', $trx['id_transaction'])->first();
@@ -771,6 +776,8 @@ class ApiConfirm extends Controller
         }
 
         $updatePaymentStatus = Transaction::where('id_transaction', $payment['id_transaction'])->update(['transaction_payment_status' => 'Cancelled']);
+        
+        $updateVoucher = app($this->voucher)->returnVoucher($payment['id_transaction']);
 
         //return balance
         $payBalance = TransactionMultiplePayment::where('id_transaction', $trx['id_transaction'])->where('type', 'Balance')->first();
@@ -790,7 +797,7 @@ class ApiConfirm extends Controller
                     [
                         "outlet_name"       => $trx['outlet_name']['outlet_name']??'',
                         "transaction_date"  => $trx['transaction_date'],
-                        'id_transaction'    => $trx['id_transaction'], 
+                        'id_transaction'    => $trx['id_transaction'],
                         'receipt_number'    => $trx['transaction_receipt_number'],
                         'received_point'    => (string) $checkBalance['balance_nominal']
                     ]
