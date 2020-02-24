@@ -6,6 +6,8 @@ use App\Http\Models\DealsUser;
 use App\Http\Models\LogBackendError;
 use App\Http\Models\Transaction;
 use App\Http\Models\TransactionMultiplePayment;
+use App\Http\Models\User;
+use App\Lib\MyHelper;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -159,7 +161,10 @@ class ApiTransactionCIMB extends Controller
                     'sales_date'        => $request['SALES_DATE'],
                     'fr_score'          => $request['FR_SCORE']
                 ]);
+
+                DealsUser::where('id_deals_user', $idVoucher)->update(['paid_status' => 'Completed']);
             } catch (\Exception $e) {
+                dd($e);
                 LogBackendError::logExceptionMessage("ApiTransactionCIMB/callbackDeals=>" . $e->getMessage(), $e);
                 DB::rollback();
                 return response()->json([
@@ -170,63 +175,35 @@ class ApiTransactionCIMB extends Controller
                 ]);
             }
 
-            if ($voucher->deal_voucher->id_deals_subscription != null && $voucher->paid_status == "Completed") {
-                $total_voucher_subs = $voucher->deals->total_voucher_subscription;
-                $voucher_subs_ids = DealsUser::with(['userMid', 'dealVoucher'])
-                    ->where('id_deals', $voucher->id_deals)
-                    ->where('id_user', $voucher->id_user)
-                    ->latest()
-                    ->take($total_voucher_subs)
-                    ->pluck('id_deals_user')->toArray();
-
-                $update = DealsUser::whereIn('id_deals_user', $voucher_subs_ids)->update(['paid_status' => "Completed"]);
-                // update voucher to multi vouchers
-                $pay['voucher'] = DealsUser::whereIn('id_deals_user', $voucher_subs_ids)->get();
-
-                if ($pay && $update) {
-                    DB::commit();
-                    return response()->json(MyHelper::checkCreate($pay));
-                }
-            } elseif ($pay) {
-                DB::commit();
-                $return = MyHelper::checkCreate($pay);
-                if (isset($return['status']) && $return['status'] == 'success') {
-                    if (\Module::collections()->has('Autocrm')) {
-                        $phone = User::where('id', $voucher->id_user)->pluck('phone')->first();
-                        $voucher->load('dealVoucher.deals');
-                        $autocrm = app($this->autocrm)->SendAutoCRM(
-                            'Claim Paid Deals Success',
-                            $phone,
-                            [
-                                'claimed_at'                => $voucher->claimed_at,
-                                'deals_title'               => $voucher->dealVoucher->deals->deals_title,
-                                'id_deals_user'             => $return['result']['voucher']['id_deals_user'],
-                                'deals_voucher_price_point' => (string) $voucher->voucher_price_point,
-                                'id_deals'                  => $voucher->dealVoucher->deals->id_deals,
-                                'id_brand'                  => $voucher->dealVoucher->deals->id_brand
-                            ]
-                        );
-                    }
-                    $result = [
-                        'id_deals_user' => $return['result']['voucher']['id_deals_user'],
-                        'id_deals_voucher' => $return['result']['voucher']['id_deals_voucher'],
-                        'paid_status' => $return['result']['voucher']['paid_status'],
-                    ];
-                    if (isset($return['result']['midtrans'])) {
-                        $result['redirect'] = true;
-                        $result['midtrans'] = $return['result']['midtrans'];
-                    } elseif (isset($return['result']['ovo'])) {
-                        $result['redirect'] = true;
-                        $result['ovo'] = $return['result']['ovo'];
-                    } else {
-                        $result['redirect'] = false;
-                    }
-                    $result['webview_later'] = env('API_URL') . 'api/webview/mydeals/' . $return['result']['voucher']['id_deals_user'];
-                    unset($return['result']);
-                    $return['result'] = $result;
-                }
-                return response()->json($return);
+            DB::commit();
+            
+            $voucher = DealsUser::with(['userMid', 'dealVoucher'])->where('id_deals_user', $idVoucher)->first();
+            if (\Module::collections()->has('Autocrm')) {
+                $phone = User::where('id', $voucher->id_user)->pluck('phone')->first();
+                $voucher->load('dealVoucher.deals');
+                
+                $autocrm = app($this->autocrm)->SendAutoCRM(
+                    'Claim Paid Deals Success',
+                    $phone,
+                    [
+                        'claimed_at'                => $voucher->claimed_at,
+                        'deals_title'               => $voucher->dealVoucher->deals->deals_title,
+                        'id_deals_user'             => $idVoucher,
+                        'deals_voucher_price_point' => (string) $voucher->voucher_price_point,
+                        'id_deals'                  => $voucher->dealVoucher->deals->id_deals,
+                        'id_brand'                  => $voucher->dealVoucher->deals->id_brand
+                    ]
+                );
             }
+            
+            $result = [
+                'id_deals_user' => $idVoucher,
+                'id_deals_voucher' => $voucher->dealVoucher->id_deals_voucher,
+                'paid_status' => $voucher->paid_status,
+                'webview_later' => env('API_URL') . 'api/webview/mydeals/' . $idVoucher
+            ];
+
+            return response()->json($result);
         }
     }
 }
