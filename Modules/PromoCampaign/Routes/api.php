@@ -49,6 +49,8 @@ Route::group(['middleware' => ['auth:api', 'scopes:apps'], 'prefix' => 'promo-ca
 Route::group(['middleware' => ['auth:api', 'scopes:be','feature_control:228'], 'prefix' => 'referral'], function () {
     Route::get('setting', 'ApiReferralController@setting');
     Route::post('settingUpdate', 'ApiReferralController@settingUpdate');
+    Route::post('report', 'ApiReferralController@report');
+    Route::post('report/{key}', 'ApiReferralController@reportAjax');
 });
 
 //APPS Referral
