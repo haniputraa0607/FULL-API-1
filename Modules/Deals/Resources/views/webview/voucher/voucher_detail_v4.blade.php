@@ -19,10 +19,11 @@ $title = "Deals Detail";
 			width: 100%;
 		}
 		.title-wrapper{
-			background-color: #f8f8f8;
-			position: relative;
-			display: flex;
-		}
+    		background-color: #ffffff;
+    		position: relative;
+    		display: flex;
+    		align-items: center;
+    	}
 		.col-left{
 			flex: 70%;
 		}
@@ -30,7 +31,7 @@ $title = "Deals Detail";
 			flex: 30%;
 		}
 		.title-wrapper > div{
-			padding: 10px 5px;
+			padding: 10px 15px;
 		}
 		.title{
 			font-size: 18px;
@@ -65,6 +66,7 @@ $title = "Deals Detail";
 		}
 		.description-wrapper{
 			padding: 20px;
+    		background-color: #ffffff;
 		}
 		.outlet-wrapper{
 			padding: 0 20px;
@@ -227,63 +229,50 @@ $title = "Deals Detail";
 			@php
 				$voucher = $voucher['data'][0];
 			@endphp
-			<div class="col-md-4 col-md-offset-4" style="background-color: #f8f9fb;">
+			<div class="col-md-4 col-md-offset-4" style="background-color: #eeeeee;">
 				<!-- Modal QR Code -->
 				@if(isset($voucher['redeemed_at']) && $voucher['redeemed_at'] != null || isset($voucher['used_at']) && $voucher['used_at'] == null)
-					<div style="background-color: rgb(255, 255, 255);" class="col-md-12 title-wrapper clearfix Ubuntu">
-						@php $bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', "Jul", 'Agu', 'Sep', 'Okt', 'Nov', 'Des']; @endphp
-						<div style="font-size: 13px; color: rgb(128,0,0);padding-bottom: 0px;" class="text-right Ubuntu"></i> Masa berlaku hingga {{date('d', strtotime($voucher['voucher_expired_at']))}} {{$bulan[date('m', strtotime($voucher['voucher_expired_at']))-1]}} {{ date('Y', strtotime($voucher['voucher_expired_at'])) }} &nbsp; {{ date('H:i', strtotime($voucher['voucher_expired_at'])) }}</div>
-					</div>
-
-					<div style="background-color: rgb(255, 255, 255);" class="title-wrapper col-md-12 clearfix Ubuntu">
-						<div class="title" style="padding-top: 5px; padding-bottom: 0px;">
+					<img class="deals-img center-block" src="{{ env('S3_URL_API').$voucher['deal_voucher']['deal']['deals_image'] }}" alt="">
+					<div class="title-wrapper clearfix Ubuntu-Bold">
+						<div class="title" style="color: #3d3935;font-size: 20px;">
 							{{ $voucher['deal_voucher']['deal']['deals_title'] }}
 							@if($voucher['deal_voucher']['deal']['deals_second_title'] != null)
-								<br>
-								{{ $voucher['deal_voucher']['deal']['deals_second_title'] }}
+							<br>
+							<p style="color: #3d3935;font-size: 15px;" class="Ubuntu-Regular">{{ $voucher['deal_voucher']['deal']['deals_second_title'] }}</p>
 							@endif
 						</div>
 					</div>
 
-					<div style="background-color: rgb(255, 255, 255);" class="title-wrapper col-md-12 clearfix Ubuntu">
-						<div class="title" style="padding-top: 0px; padding-bottom: 5px;">
-							@if (isset($voucher['deal_voucher']['deal']['deals_voucher_price_point']))
-								{{number_format($voucher['deal_voucher']['deal']['deals_voucher_price_point'],0,",",".")}} points
-							@elseif (isset($voucher['deal_voucher']['deal']['deals_voucher_price_cash']))
-								{{number_format($voucher['deal_voucher']['deal']['deals_voucher_price_cash'],0,",",".")}}
-							@else
-								Gratis
-							@endif
-						</div>
+					@if($voucher['deal_voucher']['deal']['deals_description'] != "")
+					<div class="title-wrapper Ubuntu-Regular">
+						<div class="description" style="font-size: 12.7px;color: #3d3935;">{!! $voucher['deal_voucher']['deal']['deals_description'] !!}</div>
+					</div>
+					@endif
+					<div class="title-wrapper clearfix" style="padding-bottom: 15px;">
+						<p class="Ubuntu" style="font-size: 10.7px;color: #3d3935;margin-left: 15px;padding: 5px 10px;background-color: #f0f3f7;border-radius: 100px;">Valid until {{date('d F Y', strtotime($voucher['deal_voucher']['deal']['deals_end']))}}</p>
 					</div>
 
-					<hr style="border-top: 1px dashed #aaaaaa; margin-top: 0px; margin-bottom: 15px;">
-
-					<a id="qr-code-modal" href="#">
+					{{-- <a id="qr-code-modal" href="#">
 						<div id="qr-code-modal-content">
 							<img class="img-responsive" src="{{ $voucher['voucher_hash'] }}">
 						</div>
-					</a>
+					</a> --}}
+					<div style="height: 10px;margin: 0px;padding: 0px;"></div>
 
 					<div class="description-wrapper Ubuntu">
-						<div class="subtitle2 text-center Ubuntu" style="font-size: 18px;">Pindai QR Code ini untuk validasi voucher</div>
+						<div class="subtitle2 text-center Ubuntu-Medium" style="font-size: 12.7px;color: #b72126;">
+							<span> QR Code below </span>
+							<br>
+							<span> must be scanned by our Cashier </span>
+						</div>
 
-						<div class="deals-qr">
+						<div class="deals-qr" style="margin-top: 10px;">
 							<img class="img-responsive" style="display: block; max-width: 100%;" src="{{ $voucher['voucher_hash'] }}">
 						</div>
 
-						<center class="kode-text">Kode Voucher</center>
-						<center class="voucher-code font-red Ubuntu" style="color: rgba(32, 32, 32);">{{ $voucher['deal_voucher']['voucher_code'] }}</center>
-						<center class="kode-text" style="margin-top: 8px;">Atau input kode ini ke dalam POS</center>
+						<center class="kode-text Ubuntu" style="color: #666666;font-size: 12.7px;">Kode Voucher</center>
+						<center class="voucher-code font-red Ubuntu-Medium" style="color: #202020;font-size: 17.3px;">{{ $voucher['deal_voucher']['voucher_code'] }}</center>
 						<div class="line"></div>
-					</div>
-
-					<hr style="width:80%;border-top: 1px dashed #aaaaaa;margin-top: 0px;margin-bottom: 10px;">
-
-					<div style="background-color: rgb(255, 255, 255);" class="title-wrapper col-md-12 clearfix Ubuntu">
-						<div class="text-center" style="padding-top: 0px; padding-bottom: 5px;">
-							Pastikan langkah ini dilakukan oleh kasir. Jangan terima voucher apabila sudah dalam keadaan terbuka
-						</div>
 					</div>
 				@else
 					<div style="background: url('{{env('API_URL')}}img/asset/bg_card_membership.png');background-size: contain;padding: 10px;height: 190px;" class="col-md-12 clearfix Ubuntu">
