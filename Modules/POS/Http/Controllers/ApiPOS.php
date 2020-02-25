@@ -1103,7 +1103,8 @@ class ApiPOS extends Controller
                 if ($getProductPrice && $price != 0) {
                     try {
                         ProductPrice::where('id_product_price', $getProductPrice->id_product_price)->update([
-                            'product_price' => $price
+                            'product_price' => $price,
+                            'product_status'=> 'Active',
                         ]);
                     } catch (\Exception $e) {
                         LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
