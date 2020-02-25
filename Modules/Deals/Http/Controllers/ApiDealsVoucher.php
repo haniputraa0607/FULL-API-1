@@ -284,6 +284,20 @@ class ApiDealsVoucher extends Controller
 
         }
 
+        if ( isset($post['online']) ) {
+        	if(!MyHelper::isJoined($voucher,'deals_vouchers')){
+                $voucher->leftJoin('deals_vouchers', 'deals_users.id_deals_voucher', 'deals_vouchers.id_deals_voucher');
+            }
+        	if(!MyHelper::isJoined($voucher,'deals')){
+                $voucher->leftJoin('deals', 'deals.id_deals', 'deals_vouchers.id_deals');
+            }
+
+            $voucher->where(function ($query) {
+                                    $query->where('deals.is_online', '=', 1)
+                                    		->whereNull('deals_users.redeemed_at');
+                                });
+        }
+
         if(isset($post['key_free']) && $post['key_free'] != null){
             if(!MyHelper::isJoined($voucher,'deals_vouchers')){
                 $voucher->leftJoin('deals_vouchers', 'deals_users.id_deals_voucher', 'deals_vouchers.id_deals_voucher');
