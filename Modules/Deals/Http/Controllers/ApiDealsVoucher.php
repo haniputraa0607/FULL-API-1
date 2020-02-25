@@ -284,6 +284,29 @@ class ApiDealsVoucher extends Controller
 
         }
 
+        if (isset($post['is_online']) || isset($post['is_offline'])) {
+        	if(!MyHelper::isJoined($voucher,'deals_vouchers')){
+                $voucher->leftJoin('deals_vouchers', 'deals_users.id_deals_voucher', 'deals_vouchers.id_deals_voucher');
+            }
+        	if(!MyHelper::isJoined($voucher,'deals')){
+                $voucher->leftJoin('deals', 'deals.id_deals', 'deals_vouchers.id_deals');
+            }
+            $voucher->addselect('deals.is_online', 'deals.is_offline');
+            if ( !isset($post['is_online']) && isset($post['is_offline'])) 
+            {
+	            $voucher->where(function ($query) {
+	                                    $query->where('deals.is_offline', '=', 1)
+	                                    		->whereNull('deals_users.redeemed_at');
+	                                });
+            }
+            elseif ( isset($post['is_online']) && !isset($post['is_offline'])) 
+            {
+	            $voucher->where(function ($query) {
+	                                    $query->where('deals.is_online', '=', 1);
+	                                });
+            }
+        }
+
         if(isset($post['key_free']) && $post['key_free'] != null){
             if(!MyHelper::isJoined($voucher,'deals_vouchers')){
                 $voucher->leftJoin('deals_vouchers', 'deals_users.id_deals_voucher', 'deals_vouchers.id_deals_voucher');
