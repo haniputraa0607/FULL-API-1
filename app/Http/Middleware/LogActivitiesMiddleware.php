@@ -237,7 +237,6 @@ class LogActivitiesMiddleware
                         $ip = substr($ip,0,strpos($ip,','));
                     }
                 }
-                }
 
                 $beStatusUserAgent = 0;
                 if(!empty($request->header('user-agent-view'))){
