@@ -261,6 +261,10 @@ class ApiDealsVoucher extends Controller
             }
         });
 
+        $voucher->leftJoin('deals_vouchers', 'deals_users.id_deals_voucher', 'deals_vouchers.id_deals_voucher');
+        $voucher->leftJoin('deals', 'deals.id_deals', 'deals_vouchers.id_deals');
+    	$voucher->addselect('deals.is_online', 'deals.is_offline');
+
         if (isset($post['expired_start'])) {
             $voucher->whereDate('voucher_expired_at', '>=',date('Y-m-d', strtotime($post['expired_start'])));
         }
@@ -490,6 +494,13 @@ class ApiDealsVoucher extends Controller
             // add pagination attributes
             // $result['data'] = $voucher;
             $result['data'] = array_map(function($var){
+            	if ($var['is_online'] == 1 && $var['is_offline'] == 1) {
+            		$redeem_info = "App & Outlet";
+            	}elseif($var['is_online'] == 1){
+            		$redeem_info = "App only";
+            	}else{
+            		$redeem_info = "Outlet only";
+            	}
                 return [
                     'id_deals'=> $var['deal_voucher']['id_deals']??null,
                     'voucher_expired_at'=> $var['voucher_expired_at'],
@@ -504,7 +515,10 @@ class ApiDealsVoucher extends Controller
                     'label'=>$var['label'],
                     'status_text'=>$var['status_text'],
                     'voucher_status_text'=>$var['voucher_status_text'],
-                    'is_used'=>$var['is_used']
+                    'is_used'=>$var['is_used'],
+                    'is_online'=>$var['is_online'],
+                    'is_offline'=>$var['is_offline'],
+                    'redeem_info'=>$redeem_info
                 ];
             },$voucher);
             $result['current_page'] = $current_page;
