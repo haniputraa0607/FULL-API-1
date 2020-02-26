@@ -937,52 +937,57 @@ class ApiPOS extends Controller
         $failedProduct  = [];
 
         foreach ($post['add_on'] as $keyMenu => $menu) {
-            if (!isset($menu['menu_id'])) {
-                $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because menu_id not set';
+            if (!isset($menu['sap_matnr'])) {
+                $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because sap_matnr not set';
                 continue;
             }
             if (!isset($menu['menu'])) {
-                $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because menu not set';
+                $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because menu not set';
                 continue;
             }
 
             DB::beginTransaction();
-            $productModifier = ProductModifier::where('code', $menu['menu_id'])->first();
+            $productModifier = ProductModifier::where('code', $menu['sap_matnr'])->first();
             if ($productModifier) {
                 try {
-                    ProductModifier::where('code', $menu['menu_id'])->update([
-                        'text'      => $menu['menu_name'],
+                    ProductModifier::where('code', $menu['sap_matnr'])->update([
+                        'text'      => $menu['name'],
                         'type'      => $menu['group'],
+                        'modifier_type' => 'Specific',
                         'status'    => $menu['status'] = ($menu['status'] == 'Active') ? 1 : 0,
                     ]);
                 } catch (\Exception $e) {
                     DB::rollback();
-                    LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
-                    $failedProduct[] = 'fail to sync, product ' . $menu['menu_name'];
+                    LogBackendError::logExceptionMessage("ApiPOS/syncAddOn=>" . $e->getMessage(), $e);
+                    $failedProduct[] = 'fail to sync, add on ' . $menu['name'];
                     continue;
                 }
 
                 foreach ($menu['menu'] as $keyVariance => $variance) {
-                    $product = Product::where('product_code', $variance)->first();
-                    if (!$product) {
+                    $productGroup = ProductGroup::with('products')->where('product_group_code', $variance)->first();
+                    if (!$productGroup) {
                         $failedProduct[] = 'fail to sync, product modifier ' . $productModifier->text;
                         continue;
                     }
 
-                    try {
-                        ProductModifierProduct::updateOrCreate([
-                            'id_product'            => $product->id_product,
-                            'id_product_modifier'   => $productModifier->id_product_modifier
-                        ], [
-                            'id_product'            => $product->id_product,
-                            'id_product_modifier'   => $productModifier->id_product_modifier
-                        ]);
-                        $countUpdate = $countUpdate + 1;
-                    } catch (\Exception $e) {
-                        DB::rollback();
-                        LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
-                        $failedProduct[] = 'fail to sync, product ' . $productModifier->text;
-                        continue;
+                    if(isset($productGroup['products'])){
+                        foreach($productGroup['products'] as $product){
+                            try {
+                                ProductModifierProduct::updateOrCreate([
+                                    'id_product'            => $product->id_product,
+                                    'id_product_modifier'   => $productModifier->id_product_modifier
+                                ], [
+                                    'id_product'            => $product->id_product,
+                                    'id_product_modifier'   => $productModifier->id_product_modifier
+                                ]);
+                                $countUpdate = $countUpdate + 1;
+                            } catch (\Exception $e) {
+                                DB::rollback();
+                                LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                                $failedProduct[] = 'fail to sync, product ' . $productModifier->text;
+                                continue;
+                            }
+                        }
                     }
                 }
             } else {
@@ -991,6 +996,7 @@ class ApiPOS extends Controller
                         'code'      => $menu['menu_id'],
                         'text'      => $menu['menu_name'],
                         'type'      => $menu['group'],
+                        'modifier_type' => 'Specific',
                         'status'    => $menu['status'] = ($menu['status'] == 'Active') ? 1 : 0,
                     ]);
                 } catch (\Exception $e) {
@@ -1001,26 +1007,30 @@ class ApiPOS extends Controller
                 }
 
                 foreach ($menu['menu'] as $keyVariance => $variance) {
-                    $product = Product::where('product_code', $variance)->first();
-                    if (!$product) {
+                    $productGroup = ProductGroup::with('products')->where('product_group_code', $variance)->first();
+                    if (!$productGroup) {
                         $failedProduct[] = 'fail to sync, product modifier ' . $productModifier->text;
                         continue;
                     }
 
-                    try {
-                        ProductModifierProduct::updateOrCreate([
-                            'id_product'            => $product->id_product,
-                            'id_product_modifier'   => $productModifier->id_product_modifier
-                        ], [
-                            'id_product'            => $product->id_product,
-                            'id_product_modifier'   => $productModifier->id_product_modifier
-                        ]);
-                        $countInsert = $countInsert + 1;
-                    } catch (\Exception $e) {
-                        DB::rollback();
-                        LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
-                        $failedProduct[] = 'fail to sync, product ' . $productModifier->text;
-                        continue;
+                    if(isset($productGroup['products'])){
+                        foreach($productGroup['products'] as $product){
+                            try {
+                                ProductModifierProduct::updateOrCreate([
+                                    'id_product'            => $product->id_product,
+                                    'id_product_modifier'   => $productModifier->id_product_modifier
+                                ], [
+                                    'id_product'            => $product->id_product,
+                                    'id_product_modifier'   => $productModifier->id_product_modifier
+                                ]);
+                                $countUpdate = $countUpdate + 1;
+                            } catch (\Exception $e) {
+                                DB::rollback();
+                                LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                                $failedProduct[] = 'fail to sync, product ' . $productModifier->text;
+                                continue;
+                            }
+                        }
                     }
                 }
             }
@@ -1028,6 +1038,7 @@ class ApiPOS extends Controller
         }
         $hasil['inserted']  = $countInsert;
         $hasil['updated']   = $countUpdate;
+        $hasil['failed']   = $failedProduct;
         return [
             'status'    => 'success',
             'result'    => $hasil,
@@ -1047,18 +1058,18 @@ class ApiPOS extends Controller
         $failedProduct  = [];
         $dataJob        = [];
         foreach ($post['add_on'] as $keyMenu => $menu) {
-            $checkProduct = ProductModifier::where('code', $menu['menu_id'])->first();
+            $checkProduct = ProductModifier::where('code', $menu['sap_matnr'])->first();
             if ($checkProduct) {
-                $dataJob[$keyMenu]['menu_id'] = $menu['menu_id'];
+                $dataJob[$keyMenu]['menu_id'] = $menu['sap_matnr'];
                 foreach ($menu['price_detail'] as $keyPrice => $price) {
                     $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
                     if ($checkOutlet) {
                         $dataJob[$keyMenu]['price_detail'][$keyPrice]  = $price;
                         $countInsert     = $countInsert + 1;
-                        $insertProduct[] = 'Success to sync, product modifier ' . $menu['menu_id'] . ' at outlet ' . $price['store_code'];
+                        $insertProduct[] = 'Success to sync, product modifier ' . $menu['sap_matnr'] . ' at outlet ' . $price['store_code'];
                     } else {
                         $countfailed     = $countfailed + 1;
-                        $failedProduct[] = 'Fail to sync, product modifier ' . $menu['menu_id'] . ' at outlet ' . $price['store_code'] . ', outlet not found';
+                        $failedProduct[] = 'Fail to sync, product modifier ' . $menu['sap_matnr'] . ' at outlet ' . $price['store_code'] . ', outlet not found';
                         continue;
                     }
                 }
@@ -1067,7 +1078,7 @@ class ApiPOS extends Controller
                 }
             } else {
                 $countfailed     = $countfailed + 1;
-                $failedProduct[] = 'Fail to sync, menu ' . $menu['menu_id'] . ', menu not found';
+                $failedProduct[] = 'Fail to sync, menu ' . $menu['sap_matnr'] . ', menu not found';
                 continue;
             }
         }
