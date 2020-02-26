@@ -329,8 +329,11 @@ class ApiConfirm extends Controller
             $cimb['AMOUNT']             = $countGrandTotal;
             
             return [
-                'data' => $cimb,
-                'url'  => env('API_URL').'api/transaction/curl_cimb'
+                'status'    => 'success',
+                'result'    => [
+                    'data' => $cimb,
+                    'url'  => env('API_URL').'api/transaction/curl_cimb'
+                ]
             ];
         }
         else {
