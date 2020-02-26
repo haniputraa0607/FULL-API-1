@@ -42,6 +42,7 @@ class SyncAddOnPrice implements ShouldQueue
 
         $productModifier = ProductModifier::where('code', $this->data['menu_id'])->first();
         foreach ($this->data['price_detail'] as $price) {
+            $price = (array)$price;
             $outlet = Outlet::where('outlet_code', $price['store_code'])->first();
             if (!Schema::connection('mysql3')->hasTable('outlet_' . $price['store_code'] . '_modifier_' . $this->data['menu_id'])) {
                 Schema::connection('mysql3')->create('outlet_' . $price['store_code'] . '_modifier_' . $this->data['menu_id'], function ($table) {
