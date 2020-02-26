@@ -206,4 +206,9 @@ class ApiTransactionCIMB extends Controller
             return response()->json($result);
         }
     }
+
+    public function curlCimb(Request $request)
+    {
+        return view('transaction::curl_cimb', $request);
+    }
 }
