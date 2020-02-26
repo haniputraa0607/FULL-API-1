@@ -294,8 +294,11 @@ class ApiDealsClaimPay extends Controller
                     DB::commit();
                     
                     return [
-                        'data' => $pay,
-                        'url'  => env('API_URL').'api/transaction/curl_cimb'
+                        'status'    => 'success',
+                        'result'    => [
+                            'data' => $pay,
+                            'url'  => env('API_URL').'api/transaction/curl_cimb'
+                        ]
                     ];
                 }
             }
