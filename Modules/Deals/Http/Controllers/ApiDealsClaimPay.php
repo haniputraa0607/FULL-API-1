@@ -293,7 +293,10 @@ class ApiDealsClaimPay extends Controller
                     $pay['deals'] = 1;
                     DB::commit();
                     
-                    return view('transaction::curl_cimb', $pay);
+                    return [
+                        'data' => $pay,
+                        'url'  => env('API_URL').'api/transaction/curl_cimb'
+                    ];
                 }
             }
 
