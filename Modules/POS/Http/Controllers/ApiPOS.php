@@ -993,8 +993,8 @@ class ApiPOS extends Controller
             } else {
                 try {
                     $productModifier = ProductModifier::create([
-                        'code'      => $menu['menu_id'],
-                        'text'      => $menu['menu_name'],
+                        'code'      => $menu['sap_matnr'],
+                        'text'      => $menu['name'],
                         'type'      => $menu['group'],
                         'modifier_type' => 'Specific',
                         'status'    => $menu['status'] = ($menu['status'] == 'Active') ? 1 : 0,
@@ -1002,7 +1002,7 @@ class ApiPOS extends Controller
                 } catch (\Exception $e) {
                     DB::rollback();
                     LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
-                    $failedProduct[] = 'fail to sync, product modifier ' . $menu['menu_id'];
+                    $failedProduct[] = 'fail to sync, product modifier ' . $menu['sap_matnr'];
                     continue;
                 }
 
