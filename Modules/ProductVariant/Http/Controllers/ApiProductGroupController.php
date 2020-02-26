@@ -113,7 +113,52 @@ class ApiProductGroupController extends Controller
             'product_group_photo' => $post['product_group_photo'],
             'product_group_image_detail' => $post['product_group_image_detail']
         ];
+        \DB::beginTransaction();
         $create = ProductGroup::create($data);
+        if($create && $request->json('variant_type') == 'single'){
+            $id_product = $post['id_product'];
+            ProductProductVariant::where('id_product',$id_product)->delete();
+            $variant1 = ProductVariant::where('product_variant_code','general_type')->first();
+            if(!$variant1){
+                $variant1 = ProductVariant::create([
+                    'product_variant_code' => 'general_type',
+                    'product_variant_subtitle' => 'General Type',
+                    'product_variant_title' => 'General Type',
+                    'product_variant_name' => 'General Type',
+                    'parent' => 2
+                ]);
+            }
+            $variant2 = ProductVariant::where('product_variant_code','general_size')->first();
+            if(!$variant2){
+                $variant2 = ProductVariant::create([
+                    'product_variant_code' => 'general_size',
+                    'product_variant_subtitle' => 'General Size',
+                    'product_variant_title' => 'General Size',
+                    'product_variant_name' => 'General Size',
+                    'parent' => 1
+                ]);
+            }
+            $insertData = [];
+            $insertData[] = [
+                'id_product'=>$id_product,
+                'id_product_variant'=>$variant1->id_product_variant
+            ];
+            $insertData[] = [
+                'id_product'=>$id_product,
+                'id_product_variant'=>$variant2->id_product_variant
+            ];
+            $insert = ProductProductVariant::insert($insertData);
+            if(!$insert){
+                \DB::rollback();
+                return MyHelper::checkCreate($insert);
+            }
+            $update = Product::where('id_product',$id_product)->update(['id_product_group'=>$create['id_product_group']]);
+            if(!$update){
+                \DB::rollback();
+                return MyHelper::checkUpdate($update);
+            }
+        }
+        \DB::commit();
         return MyHelper::checkCreate($create);
     }
 
@@ -187,6 +232,64 @@ class ApiProductGroupController extends Controller
             $data['product_group_image_detail'] = $post['product_group_image_detail'];
         }
         $update = $pg->update($data);
+        $append = [];
+        if($update && $request->json('variant_type') == 'single'){
+            $id_product = $post['id_product'];
+            ProductProductVariant::where('id_product',$id_product)->delete();
+            $variant1 = ProductVariant::where('product_variant_code','general_type')->first();
+            if(!$variant1){
+                $variant1 = ProductVariant::create([
+                    'product_variant_code' => 'general_type',
+                    'product_variant_subtitle' => 'General Type',
+                    'product_variant_title' => 'General Type',
+                    'product_variant_name' => 'General Type',
+                    'parent' => 2
+                ]);
+            }
+            $variant2 = ProductVariant::where('product_variant_code','general_size')->first();
+            if(!$variant2){
+                $variant2 = ProductVariant::create([
+                    'product_variant_code' => 'general_size',
+                    'product_variant_subtitle' => 'General Size',
+                    'product_variant_title' => 'General Size',
+                    'product_variant_name' => 'General Size',
+                    'parent' => 1
+                ]);
+            }
+            $insertData = [];
+            $insertData[] = [
+                'id_product'=>$id_product,
+                'id_product_variant'=>$variant1->id_product_variant
+            ];
+            $insertData[] = [
+                'id_product'=>$id_product,
+                'id_product_variant'=>$variant2->id_product_variant
+            ];
+            $insert = ProductProductVariant::insert($insertData);
+            if(!$insert){
+                \DB::rollback();
+                return MyHelper::checkCreate($insert);
+            }
+            $update = Product::where('id_product',$id_product)->update(['id_product_group'=>$pg->id_product_group]);
+            if(!$update){
+                \DB::rollback();
+                return MyHelper::checkUpdate($update);
+            }
+        }else{
+            // check if previously was single
+            $pv = Product::where('id_product_group',$pg->id_product_group)->get();
+            if(count($pv) == 1){
+                $pv[0]->load(['product_variants'=>function($query){
+                    $query->whereIn('product_variant_code',['general_type','general_size']);
+                }]);
+                if(count($pv[0]->product_variants) == 2){
+                    // delete record
+                    ProductProductVariant::where('id_product',$pv[0]->id_product)->delete();
+                    $pv[0]->update(['id_product_group'=>null]);
+                    $append = ['switch'=>true];
+                }
+            }
+        }
         if($update){
             if($pg_old['product_group_photo']??false){
                 MyHelper::deletePhoto($pg_old['product_group_photo']);
@@ -195,7 +298,8 @@ class ApiProductGroupController extends Controller
                 MyHelper::deletePhoto($pg_old['product_group_image_detail']);
             }
         }
-        return MyHelper::checkUpdate($update);
+        \DB::commit();
+        return MyHelper::checkUpdate($update)+$append;
     }
 
     /**
