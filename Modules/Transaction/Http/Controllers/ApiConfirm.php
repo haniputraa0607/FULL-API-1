@@ -328,7 +328,10 @@ class ApiConfirm extends Controller
             $cimb['MERCHANT_TRANID']    = $check->transaction_receipt_number;
             $cimb['AMOUNT']             = $countGrandTotal;
             
-            return view('transaction::curl_cimb', $cimb);
+            return [
+                'data' => $cimb,
+                'url'  => env('API_URL').'api/transaction/curl_cimb'
+            ];
         }
         else {
             if (isset($post['id_manual_payment_method'])) {

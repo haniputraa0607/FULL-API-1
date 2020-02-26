@@ -133,6 +133,9 @@ Route::group(['prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction
 Route::group(['prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function() {
     Route::any('callback/cimb', 'ApiTransactionCIMB@callback');
     Route::any('callback/cimb/deals', 'ApiTransactionCIMB@callbackDeals');
+    Route::post('curl_cimb', function ($data) {
+        return $data;
+    });
 });
 
 Route::group(['prefix' => 'api/transaction', 'middleware' => ['log_activities', 'auth:api', 'scopes:apps'], 'namespace' => 'Modules\Transaction\Http\Controllers'], function() {
