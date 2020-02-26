@@ -91,6 +91,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::post('/level/edit', 'ApiSetting@levelEdit');
     Route::post('/level/update', 'ApiSetting@levelUpdate');
     Route::any('/level/delete', 'ApiSetting@levelDelete');
+    Route::any('/promo-warning-image', 'ApiSetting@promoWarningImage');
 
     Route::get('/holiday', ['middleware' => 'feature_control:34', 'uses' => 'ApiSetting@holidayList']);
     Route::post('/holiday/create', ['middleware' => 'feature_control:36', 'uses' => 'ApiSetting@holidayCreate']);

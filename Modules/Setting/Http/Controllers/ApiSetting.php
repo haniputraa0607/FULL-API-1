@@ -1487,4 +1487,32 @@ class ApiSetting extends Controller
         }
     }
     /* ============== End Phone Setting ============== */
+
+    public function promoWarningImage(Request $request) {
+		$post = $request->json()->all();
+
+		if (isset($post['promo_warning_image'])) {
+			$image = Setting::where('key', 'promo_warning_image')->first();
+
+			if(isset($image['value']) && file_exists($image['value'])){
+				unlink($image['value']);
+			}
+			$upload = MyHelper::uploadPhotoStrict($post['promo_warning_image'], $this->saveImage, 100, 100,'promo-warning-image','.png');
+
+			if (isset($upload['status']) && $upload['status'] == "success") {
+				$post['promo_warning_image'] = $upload['path'];
+			}
+			else {
+				$result = [
+					'error'    => 1,
+					'status'   => 'fail',
+					'messages' => ['fail upload image']
+				];
+
+				return $result;
+			}
+		}
+
+		return response()->json(['status'   => 'success']);
+	}
 }

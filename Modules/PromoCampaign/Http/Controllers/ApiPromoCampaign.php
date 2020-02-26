@@ -868,7 +868,9 @@ class ApiPromoCampaign extends Controller
     public function step2(Step2PromoCampaignRequest $request)
     {
         $post = $request->json()->all();
+        $post['promo_type'] = $post['promo_type']??null;
         $user = $request->user();
+        // return $post;
         if (!empty($post['id_deals'])) {
         	$source = 'deals';
         	$table = new Deal;
@@ -908,6 +910,12 @@ class ApiPromoCampaign extends Controller
 	            DB::rollBack();
 	            return response()->json($createFilterOutlet);
 	        }
+        }
+        else
+        {
+        	$dataPromoCampaign['deals_promo_id_type']	= $post['deals_promo_id_type']??null;
+        	$dataPromoCampaign['deals_promo_id']	= $post['deals_promo_id_promoid']??$post['deals_promo_id_nominal']??null;
+        	$dataPromoCampaign['step_complete']	= 0;
         }
 
         $update = $table::where($id_table, $id_post)->update($dataPromoCampaign);
@@ -951,6 +959,18 @@ class ApiPromoCampaign extends Controller
                 DB::rollBack();
                 return response()->json($createFilterProduct);
             }
+        }else {
+        	$createFilterProduct = $this->deleteAllProductRule($source, $id_post);
+        	if ($createFilterProduct) {
+    	    	$createFilterProduct = ['status' => 'success'];
+    	    }else{
+    	    	$createFilterProduct = [
+                    'status'  => 'fail',
+                    'messages' => 'Create Promo Type Failed'
+                ];
+                DB::rollBack();
+                return response()->json($createFilterProduct);
+    	    }    
         }
 
 // return $createFilterProduct;
