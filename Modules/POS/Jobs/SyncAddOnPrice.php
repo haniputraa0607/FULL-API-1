@@ -36,6 +36,10 @@ class SyncAddOnPrice implements ShouldQueue
     public function handle()
     {
         DB::beginTransaction();
+        if(is_string($this->data)){
+            $this->data = (array)json_decode($this->data);
+        }
+
         $productModifier = ProductModifier::where('code', $this->data['menu_id'])->first();
         foreach ($this->data['price_detail'] as $price) {
             $outlet = Outlet::where('outlet_code', $price['store_code'])->first();

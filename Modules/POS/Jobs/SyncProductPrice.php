@@ -37,6 +37,9 @@ class SyncProductPrice implements ShouldQueue
     public function handle()
     {
         DB::beginTransaction();
+        if(is_string($this->data)){
+            $this->data = (array)json_decode($this->data);
+        }
         $product = Product::where('product_code', $this->data['sap_matnr'])->first();
         foreach ($this->data['price_detail'] as $price) {
             $outlet = Outlet::where('outlet_code', $price['store_code'])->first();
