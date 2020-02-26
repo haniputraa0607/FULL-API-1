@@ -42,6 +42,7 @@ class SyncProductPrice implements ShouldQueue
         }
         $product = Product::where('product_code', $this->data['sap_matnr'])->first();
         foreach ($this->data['price_detail'] as $price) {
+            $price = (array)$price;
             $outlet = Outlet::where('outlet_code', $price['store_code'])->first();
 
             if (!Schema::connection('mysql3')->hasTable('outlet_' . $price['store_code'])) {
