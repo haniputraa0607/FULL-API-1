@@ -1930,6 +1930,58 @@ class ApiOnlineTransaction extends Controller
             }
         }
         $post['discount'] = $post['discount'] + ($promo_discount??0);
+
+        $post['cashback'] = app($this->setting_trx)->countTransaction('cashback', $post);
+
+        //count some trx user
+        $countUserTrx = Transaction::where('id_user', $user->id)->where('transaction_payment_status', 'Completed')->count();
+
+        $countSettingCashback = TransactionSetting::get();
+
+        // return $countSettingCashback;
+        if ($countUserTrx < count($countSettingCashback)) {
+            // return $countUserTrx;
+            $post['cashback'] = $post['cashback'] * $countSettingCashback[$countUserTrx]['cashback_percent'] / 100;
+
+            if ($post['cashback'] > $countSettingCashback[$countUserTrx]['cashback_maximum']) {
+                $post['cashback'] = $countSettingCashback[$countUserTrx]['cashback_maximum'];
+            }
+        } else {
+
+            $maxCash = Setting::where('key', 'cashback_maximum')->first();
+
+            if (count($user['memberships']) > 0) {
+                $post['cashback'] = $post['cashback'] * ($user['memberships'][0]['benefit_cashback_multiplier']) / 100;
+
+                if($user['memberships'][0]['cashback_maximum']){
+                    $maxCash['value'] = $user['memberships'][0]['cashback_maximum'];
+                }
+            }
+
+            $statusCashMax = 'no';
+
+            if (!empty($maxCash) && !empty($maxCash['value'])) {
+                $statusCashMax = 'yes';
+                $totalCashMax = $maxCash['value'];
+            }
+
+            if ($statusCashMax == 'yes') {
+                if ($totalCashMax < $post['cashback']) {
+                    $post['cashback'] = $totalCashMax;
+                }
+            } else {
+                $post['cashback'] = $post['cashback'];
+            }
+        }
+
+        $cashback_text = explode('%earned_cashback%',Setting::select('value_text')->where('key', 'earned_cashback_text')->pluck('value_text')->first()?:'You\'ll receive %earned_cashback% for this transaction');
+        $cashback_earned = (int) $post['cashback'];
+        $cashback_text_array = [
+            $cashback_text[0],
+            count($cashback_text) >= 2?number_format($cashback_earned,0,',','.').' Point':'',
+            $cashback_text[1]??''
+        ];
+
         $result['outlet'] = [
             'id_outlet' => $outlet['id_outlet'],
             'outlet_code' => $outlet['outlet_code'],
@@ -1949,6 +2001,7 @@ class ApiOnlineTransaction extends Controller
         $result['used_point'] = MyHelper::requestNumber(0,$rn);
         $balance = app($this->balance)->balanceNow($user->id);
         $result['points'] = MyHelper::requestNumber($balance,$rn);
+        $result['earned_cashback_text'] = $cashback_text_array;
         if (isset($post['payment_type'])&&$post['payment_type'] == 'Balance') {
             if($balance>=$grandtotal){
                 $used_point = $grandtotal;
