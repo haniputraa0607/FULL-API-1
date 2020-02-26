@@ -246,6 +246,7 @@
         .level-progress-container {
             position: relative;
             height: 8px;
+            width: 100%;
             border-radius: 8px;
             margin: 8px 0px;
             background-color: #d7d2cb;
@@ -266,173 +267,162 @@
             content: "";
             width: 15px;
             height: 15px;
-            top: 25px;
+            top: 24px;
             z-index: 10;
             border-radius: 50%;
             position: absolute;
-            background: #10704e;
+            background: #333333;
             box-shadow: 0px 1.7px 5px 0 #8fd6bd;
         }
-        .medium {
-            height: 115px;
-            top: 5px;
-            width: 245px;
-            -webkit-transition-property: top height;
-            -webkit-transition-duration: 0.4s;
-            -webkit-transition-timing-function: linear;
-            transition-property: top height;
-            transition-duration: 0.4s;
-            transition-timing-function: linear;
+        .owl-next {
+            position: absolute;
+            top: 38%;
+            right: 20%;
+            width: 21px;
+            height: 21px;
+            background: #9ad5c3;
+            border-radius: 100%;
         }
-        .medium > div {
-            margin-top: -5px;
-            -webkit-transition-property: margin-top;
-            -webkit-transition-duration: 0.4s;
-            -webkit-transition-timing-function: linear;
-            transition-property: margin-top;
-            transition-duration: 0.4s;
-            transition-timing-function: linear;
-        }
-        .big {
-            height: 130px;
-            top: 0px;
-            width: 245px;
-            -webkit-transition-property: top height;
-            -webkit-transition-duration: 0.4s;
-            -webkit-transition-timing-function: linear;
-            transition-property: top height;
-            transition-duration: 0.4s;
-            transition-timing-function: linear;
-        }
-        .big > div {
-            -webkit-transition-property: margin-top;
-            -webkit-transition-duration: 0.4s;
-            -webkit-transition-timing-function: linear;
-            transition-property: margin-top;
-            transition-duration: 0.4s;
-            transition-timing-function: linear;
+        .owl-prev {
+            position: absolute;
+            top: 38%;
+            left: 20%;
+            width: 21px;
+            height: 21px;
+            background: #9ad5c3;
+            border-radius: 100%;
         }
         </style>
 	</head>
 	<body style="background: #f8f9fb;">
-        <div id="carouselExampleFade" style="background: url('{{env('API_URL')}}img/asset/bg_card_membership.png');background-size: contain;" class="loop owl-carousel slide carousel-fade" data-ride="carousel" data-interval="false">
+        <div style="background: url('{{env('API_URL')}}img/asset/bg_card_membership.png');background-size: contain;" >
             @foreach ($result['all_membership'] as $key => $member)
+                @if ($member['membership_name'] == $result['user_membership']['membership_name'])
                 <div data-id="desc{{$key}}" class="item @if($member['membership_name'] == $result['user_membership']['membership_name']) active @endif">
                     <div style="padding: 20px 0px 20px 0px;">
-                        <div class="card" style="margin: auto;background: url('{{$member['membership_bg_image']}}');border: #aaaaaa;border-radius: 15px;background-size: cover;">
+                        <div class="card" style="margin: auto;background: url('{{$member['membership_bg_image']}}');width: 245px;height: 135px;border: #aaaaaa;border-radius: 15px;background-size: cover;">
                             <div class="card-body" style="display: flex;flex-wrap: wrap;padding: 15px;">
-                                <div class="col-9 text-left" style="margin-top: 10px;margin-bottom: 20px;">
-                                    <p class="Ubuntu-Bold" style="margin-bottom: 0px;font-size: 15px;color: #ffffff;">{{$result['user_membership']['user']['name']}}</p>
+                                <div class="col-7 text-left" style="padding-left: 0px;padding-top: 5px;margin-bottom: 35px;">
+                                    <p class="Ubuntu-Bold" style="margin-bottom: 0px;font-size: 12px;color: #ffffff;">{{$result['user_membership']['user']['name']}}</p>
                                 </div>
-                                <div class="col-3">
-                                    <img src="{{$member['membership_image']}}" style="margin-top: 5px;width: 40px;float: right;"/>
+                                <div class="col-5" style="padding-right: 0px;">
+                                    <img src="{{$member['membership_image']}}" style="margin-top: 5px;width: 60px;float: right;"/>
                                 </div>
-                                <div class="col-7 text-left">
-                                    <p class="Ubuntu-Regular" style="font-size: 11.7px;color: #ffffff;margin-bottom: 10px;">Your Points</p>
-                                    <p class="Ubuntu-Medium" style="font-size: 16.7px;color: #ffffff;margin-bottom: 5px;">{{number_format($result['user_membership']['user']['progress_now'] , 0, ',', '.')}}</p>
+                                <div class="col-7 text-left" style="padding-left: 0px;">
+                                    <p class="Ubuntu-Regular" style="font-size: 10.7px;color: #ffffff;margin-bottom: 0px;">Your Points</p>
+                                    <p class="Ubuntu-Medium" style="font-size: 12.7px;font-size: 16.7pxIDR ;color: #ffffff;">{{number_format($result['user_membership']['user']['progress_now'] , 0, ',', '.')}}</p>
                                 </div>
-                                <div class="col-5 text-right">
-                                    <p class="Ubuntu-Bold" style="font-size: 13.3px;color: #ffffff;margin-top: 10px;">{{$member['membership_name']}}</p>
+                                <div class="col-5 text-center" style="padding-right: 0px;right: -7px;">
+                                    <p class="Ubuntu-Medium" style="font-size: 12.7px;font-size: 14px;color: #ffffff;margin-top: 5px;">{{$member['membership_name']}}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                <div style="position: relative;left: auto;right: auto;padding: 10px;background: #ffffff;top: 0px;margin-bottom: 0px;" class="carousel-caption">
+                    <div class="col-12">
+                        <p class="Ubuntu-Medium text-left" style="font-size: 14px;color: #3d3935;margin-bottom: 0px;">Transaction Progress</p>
+                        @if (isset($result['all_membership'][$key+1]))
+                            @php
+                                $trx_total = $result['all_membership'][$key+1]['min_value'] - $result['user_membership']['user']['progress_now']
+                            @endphp
+                            <div class="level-container Ubuntu-Regular">
+                                <div class="level-wrapper">
+                                    @if ($trx_total <= 0)
+                                        <div class="current-level-info">
+                                            <div style="width:100%"></div>
+                                            <div class="Ubuntu-Medium" style="font-size: 12.7px;color: #3d3935;">IDR {{number_format($result['user_membership']['user']['progress_now'] , 0, ',', '.')}}</div>
+                                            <div class="dotted" style="left: 100%;"></div>
+                                        </div>
+                                        <div class="level-progress-container" style="margin-right: 10px; height: 9px;">
+                                            <div class="level-progress" style="width:100%; height: 9px;"></div>
+                                        </div>
+                                    @else
+                                        <div class="current-level-info">
+                                                @if ((($result['user_membership']['user']['progress_now'] - $result['all_membership'][$key]['min_value']) / ($result['all_membership'][$key+1]['min_value'] - $result['all_membership'][$key]['min_value']) * 100) <= 0)
+                                                    <div style="width:0%;">
+                                                        <div class="dotted" style="left: 3%;"></div>
+                                                    </div>
+                                                @else
+                                                    <div style="width:{{(($result['user_membership']['user']['progress_now'] - $result['all_membership'][$key]['min_value']) / ($result['all_membership'][$key+1]['min_value'] - $result['all_membership'][$key]['min_value']) * 100)}}%;">
+                                                        <div class="dotted" style="left: {{(($result['user_membership']['user']['progress_now'] - $result['all_membership'][$key]['min_value']) / ($result['all_membership'][$key+1]['min_value'] - $result['all_membership'][$key]['min_value']) * 100) + 3}}%;"></div>
+                                                    </div>
+                                                @endif
+                                            <div class="Ubuntu-Medium" style="font-size: 12.7px;color: #3d3935;">IDR {{number_format($result['user_membership']['user']['progress_now'] , 0, ',', '.')}}</div>
+                                        </div>
+                                        <div class="level-progress-container" style="margin-right: 10px; height: 9px;">
+                                                @if ((($result['user_membership']['user']['progress_now'] - $result['all_membership'][$key]['min_value']) / ($result['all_membership'][$key+1]['min_value'] - $result['all_membership'][$key]['min_value']) * 100) <= 0)
+                                                    <div style="width:0%;"></div>
+                                                @else
+                                                    <div class="level-progress" style="width:{{ (($result['user_membership']['user']['progress_now'] - $result['all_membership'][$key]['min_value']) / ($result['all_membership'][$key+1]['min_value'] - $result['all_membership'][$key]['min_value']) * 100) }}%; height: 9px;"></div>
+                                                @endif
+                                        </div>
+                                    @endif
+                                    <div class="level-info">
+                                        <div class="font-regular-black">{{number_format($result['all_membership'][$key]['min_value'] , 0, ',', '.')}}</div>
+                                        <div class="font-regular-black">IDR {{number_format($result['all_membership'][$key+1]['min_value'] , 0, ',', '.')}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            @php
+                                $trx_total = 15000000 - $result['user_membership']['user']['progress_now'];
+                                $dataNext = end($result['all_membership'])['min_value'];
+                            @endphp
+                            <div class="level-container Ubuntu-Regular">
+                                <div class="level-wrapper">
+                                <div class="current-level-info">
+                                        @if (($result['user_membership']['user']['progress_now'] - end($result['all_membership'])['min_value']) <= 0)
+                                            <div style="width:0%;">
+                                                <div class="dotted" style="left: 3%;"></div>
+                                            </div>
+                                        @else
+                                            <div style="width:{{ ($result['user_membership']['user']['progress_now'] / 15000000) * 100 }}%;">
+                                                <div class="dotted" style="left: {{ (($result['user_membership']['user']['progress_now'] / 15000000) * 100) + 3 }}%;"></div>
+                                            </div>
+                                        @endif
+                                    <div class="Ubuntu-Medium" style="font-size: 12.7px;color: #3d3935;">IDR {{number_format($result['user_membership']['user']['progress_now'] , 0, ',', '.')}}</div>
+                                </div>
+                                <div class="level-progress-container" style="margin-right: 10px; height: 9px;">
+                                        @if (($result['user_membership']['user']['progress_now'] - end($result['all_membership'])['min_value']) <= 0)
+                                            <div class="level-progress" style="width:0%; height: 9px;"></div>
+                                        @else
+                                            <div class="level-progress" style="width:{{ ($result['user_membership']['user']['progress_now'] / 15000000) * 100 }}%; height: 9px;"></div>
+                                        @endif
+                                </div>
+                                    <div class="level-info">
+                                        <div class="font-regular-black">IDR {{number_format($result['all_membership'][$key]['min_value'] , 0, ',', '.')}}</div>
+                                        <div class="font-regular-black">IDR {{number_format(15000000 , 0, ',', '.')}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                        <div class="font-regular-gray text-center" style="font-size: 11.7px;">Get more transaction!</div>
+                        @if (isset($result['all_membership'][$key+1]))
+                            <div class="font-title text-center" style="font-size: 11.7px;">IDR {{number_format($result['all_membership'][$key+1]['min_value'] - $result['user_membership']['user']['progress_now'] , 0, ',', '.')}} to go to become <span class="Ubuntu-Medium">{{$result['all_membership'][$key+1]['membership_name']}} Member</span></div>
+                        @else
+                            <div class="font-title text-center" style="font-size: 11.7px;">IDR {{number_format(15000000 - $result['user_membership']['user']['progress_now'] , 0, ',', '.')}} passed <span class="Ubuntu-Medium">{{$member['membership_name']}} Member</span></div>
+                        @endif
+                    </div>
+                </div>
+                @endif
+            @endforeach
+        </div>
+        <div style="background-size: contain;" class="loop owl-carousel owl-theme carousel-fade">
+            @foreach ($result['all_membership'] as $key => $member)
+            <div data-id="desc{{$key}}" class="item @if($member['membership_name'] == $result['user_membership']['membership_name']) active @endif">
+                <div class="text-center" style="width: 135px;margin: auto;margin-top: 30px;">
+                    <p class="Ubuntu-Medium" style="box-shadow: 0px 3.3px 6.7px 0px #eeeeee; @if($member['membership_name'] == $result['user_membership']['membership_name']) background-color: #ffffff; @else background-color: #eeeeee; @endif border-radius: 100px;font-size: 13.3px;font-size: 14px;color: #333333;margin-top: 5px;padding: 1px;">{{$member['membership_name']}}</p>
+                </div>
+            </div>
             @endforeach
         </div>
         @foreach ($result['all_membership'] as $key => $member)
-        <div id="desc{{$key}}" class="eksekusi">
-            <div style="position: relative;left: auto;right: auto;padding: 10px;background: #ffffff;top: 0px;margin-bottom: 0px;" class="carousel-caption">
-                <div class="col-12">
-                    <p class="Ubuntu-Medium text-left" style="font-size: 14px;color: #3d3935;margin-bottom: 0px;">Transaction Progress</p>
-                    @if (isset($result['all_membership'][$key+1]))
-                        @php
-                            $trx_total = $result['all_membership'][$key+1]['min_value'] - $result['user_membership']['user']['progress_now']
-                        @endphp
-                        <div class="level-container Ubuntu-Regular">
-                            <div class="level-wrapper">
-                                @if ($trx_total <= 0)
-                                    <div class="current-level-info">
-                                        <div style="width:100%"></div>
-                                        <div class="Ubuntu-Medium" style="color: #3d3935;">{{number_format($result['user_membership']['user']['progress_now'] , 0, ',', '.')}}</div>
-                                        <div class="dotted" style="left: 100%;"></div>
-                                    </div>
-                                    <div class="level-progress-container" style="margin-right: 10px; height: 9px;">
-                                        <div class="level-progress" style="width:100%; height: 9px;"></div>
-                                    </div>
-                                @else
-                                    <div class="current-level-info">
-                                            @if ((($result['user_membership']['user']['progress_now'] - $result['all_membership'][$key]['min_value']) / ($result['all_membership'][$key+1]['min_value'] - $result['all_membership'][$key]['min_value']) * 100) <= 0)
-                                                <div style="width:0%;">
-                                                    <div class="dotted" style="left: 3%;"></div>
-                                                </div>
-                                            @else
-                                                <div style="width:{{(($result['user_membership']['user']['progress_now'] - $result['all_membership'][$key]['min_value']) / ($result['all_membership'][$key+1]['min_value'] - $result['all_membership'][$key]['min_value']) * 100)}}%;padding: 10px;">
-                                                    <div class="dotted" style="left: {{(($result['user_membership']['user']['progress_now'] - $result['all_membership'][$key]['min_value']) / ($result['all_membership'][$key+1]['min_value'] - $result['all_membership'][$key]['min_value']) * 100) + 3}}%;"></div>
-                                                </div>
-                                            @endif
-                                        <div class="Ubuntu-Medium" style="color: #3d3935;">{{number_format($result['user_membership']['user']['progress_now'] , 0, ',', '.')}}</div>
-                                    </div>
-                                    <div class="level-progress-container" style="margin-right: 10px; height: 9px;">
-                                            @if ((($result['user_membership']['user']['progress_now'] - $result['all_membership'][$key]['min_value']) / ($result['all_membership'][$key+1]['min_value'] - $result['all_membership'][$key]['min_value']) * 100) <= 0)
-                                                <div style="width:0%;"></div>
-                                            @else
-                                                <div class="level-progress" style="width:{{ (($result['user_membership']['user']['progress_now'] - $result['all_membership'][$key]['min_value']) / ($result['all_membership'][$key+1]['min_value'] - $result['all_membership'][$key]['min_value']) * 100) }}%; height: 9px;"></div>
-                                            @endif
-                                    </div>
-                                @endif
-                                <div class="level-info">
-                                    <div class="font-regular-black">{{number_format($result['all_membership'][$key]['min_value'] , 0, ',', '.')}}</div>
-                                    <div class="font-regular-black">{{number_format($result['all_membership'][$key+1]['min_value'] , 0, ',', '.')}}</div>
-                                </div>
-                            </div>
-                        </div>
-                    @else
-                        @php
-                            $trx_total = 15000000 - $result['user_membership']['user']['progress_now'];
-                            $dataNext = end($result['all_membership'])['min_value'];
-                        @endphp
-                        <div class="level-container Ubuntu-Regular">
-                            <div class="level-wrapper">
-                            <div class="current-level-info">
-                                    @if (($result['user_membership']['user']['progress_now'] - end($result['all_membership'])['min_value']) <= 0)
-                                        <div style="width:0%;">
-                                            <div class="dotted" style="left: 3%;"></div>
-                                        </div>
-                                    @else
-                                        <div style="width:{{ ($result['user_membership']['user']['progress_now'] / 15000000) * 100 }}%;padding: 10px;">
-                                            <div class="dotted" style="left: {{ (($result['user_membership']['user']['progress_now'] / 15000000) * 100) + 3 }}%;"></div>
-                                        </div>
-                                    @endif
-                                <div class="Ubuntu-Medium" style="color: #3d3935;">{{number_format($result['user_membership']['user']['progress_now'] , 0, ',', '.')}}</div>
-                            </div>
-                            <div class="level-progress-container" style="margin-right: 10px; height: 9px;">
-                                    @if (($result['user_membership']['user']['progress_now'] - end($result['all_membership'])['min_value']) <= 0)
-                                        <div class="level-progress" style="width:0%; height: 9px;"></div>
-                                    @else
-                                        <div class="level-progress" style="width:{{ ($result['user_membership']['user']['progress_now'] / 15000000) * 100 }}%; height: 9px;"></div>
-                                    @endif
-                            </div>
-                                <div class="level-info">
-                                    <div class="font-regular-black">{{number_format($result['all_membership'][$key]['min_value'] , 0, ',', '.')}}</div>
-                                    <div class="font-regular-black">{{number_format(15000000 , 0, ',', '.')}}</div>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-                    <div class="font-regular-gray" style="font-size: 11.7px;">Tingkatkan transaksimu!</div>
-                    @if (isset($result['all_membership'][$key+1]))
-                        <div class="font-title" style="font-size: 11.7px;">IDR {{number_format($result['all_membership'][$key+1]['min_value'] - $result['user_membership']['user']['progress_now'] , 0, ',', '.')}} menuju <span class="Ubuntu-Medium">{{$result['all_membership'][$key+1]['membership_name']}} Member</span></div>
-                    @else
-                        <div class="font-title" style="font-size: 11.7px;">IDR {{number_format(15000000 - $result['user_membership']['user']['progress_now'] , 0, ',', '.')}} menyelesaikan <span class="Ubuntu-Medium">{{$member['membership_name']}} Member</span></div>
-                    @endif
+            <div id="desc{{$key}}" class="eksekusi">
+                <div class="text-center" style="font-size: 12.7px;border-radius: 6.7px;box-shadow: 0px 3.3px 6.7px 0px #eeeeee;margin-left: 20px;margin-right: 20px;position: relative;left: auto;right: auto;padding: 20px;background: #ffffff;top: 10px;margin-bottom: 0px;" class="Ubuntu-Medium carousel-caption">
+                    Benefit as {{$member['membership_name']}} Member
                 </div>
-                
             </div>
-            <div style="position: relative;left: auto;right: auto;padding: 20px;background: #ffffff;top: 10px;margin-bottom: 0px;margin-left: 5px;" class="Ubuntu-Medium carousel-caption">
-                Keuntungan {{$member['membership_name']}} member : 
-            </div>
-        </div>
         @endforeach
 
         <script src="{{env('API_URL')}}js/jquery.js"></script>
@@ -442,28 +432,30 @@
         $(function(){
             $('.loop').on('initialized.owl.carousel translate.owl.carousel', function(e){
                 idx = e.item.index;
-                $('.owl-item').eq(idx).children().children().children().addClass('big');
-                $('.owl-item').eq(idx).children().children().children().removeClass('medium');
-
-                $('.owl-item').eq(idx-1).children().children().children().addClass('medium');
-                $('.owl-item').eq(idx-1).children().children().children().removeClass('big');
-
-                $('.owl-item').eq(idx+1).children().children().children().addClass('medium');
-                $('.owl-item').eq(idx+1).children().children().children().removeClass('big');
-
                 var getID = e.relatedTarget.$stage.children()[e.item.index]
                 var iddata = $(getID).children().data('id')
                 $('.eksekusi').hide()
                 $("#"+iddata).show()
             });
             $('.loop').owlCarousel({
-                center: true,
-                items:3,
-                autoWidth:true,
-                margin:15,
+                center:true,
+                items:1,
+                nav:true,
+                dots:false,
+                loop:true,
+                mouseDrag:false,
+                touchDrag:false,
+                pullDrag:false,
+                freeDrag:false
             })
             $(document).ready(function() {
                 $('.ui-page').css('background', 'white')
+                $('.owl-next').css('background', '#9ad5c3')
+                $('.owl-next').css('border-radius', '100%')
+                $('.owl-next').css('outline', 'none')
+                $('.owl-prev').css('background', '#9ad5c3')
+                $('.owl-prev').css('border-radius', '100%')
+                $('.owl-prev').css('outline', 'none')
             })
         });  
         </script>

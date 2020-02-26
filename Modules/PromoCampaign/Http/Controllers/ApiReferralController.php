@@ -10,6 +10,7 @@ use \App\Lib\MyHelper;
 use Modules\PromoCampaign\Lib\PromoCampaignTools;
 
 use \App\Http\Models\User;
+use \App\Http\Models\Setting;
 use \Modules\PromoCampaign\Entities\PromoCampaignReferral;
 use \Modules\PromoCampaign\Entities\PromoCampaign;
 use \Modules\PromoCampaign\Entities\UserReferralCode;
@@ -194,7 +195,10 @@ class ApiReferralController extends Controller
      * @return Response
      */
     public function setting(Request $request) {
-        $referral = PromoCampaignReferral::with('promo_campaign')->first();
+        $referral = PromoCampaignReferral::with('promo_campaign')->first()->toArray();
+        if($referral){
+            $referral['referral_messages'] = Setting::select('value_text')->where('key','referral_messages')->pluck('value_text')->first()?:'Get %value% discount on your first purchase. By using the %code% promo code';
+        }
         return MyHelper::checkGet($referral);
     }
 
@@ -224,7 +228,8 @@ class ApiReferralController extends Controller
         \DB::beginTransaction();
         $update = $referral->update($dataPromoCampaignReferral);
         $update2 = PromoCampaign::where('id_promo_campaign',$referral->id_promo_campaign)->update($dataPromoCampaign);
-        if(!$update || !$update2){
+        $update3 = Setting::updateOrCreate(['key'=>'referral_messages'],['value_text'=>$post['referral_messages']]);
+        if(!$update || !$update2 || !$update3){
             \DB::rollback();
             return MyHelper::checkUpdate([]);
         }
