@@ -317,7 +317,7 @@ $title = "Deals Detail";
 							</div>
 							<div class="tab-pane fade" id="outlet" role="tabpanel" aria-labelledby="outlet-tab">
 								@foreach($voucher['deal_voucher']['deal']['outlet_by_city'] as $key => $outlet_city)
-									<div class="outlet-city">{{ $outlet_city['city_name'] }}</div>
+									<div class="outlet-city">@if(isset($outlet_city['city_name'])){{ $outlet_city['city_name'] }}@else - @endif</div>
 									<ul class="nav">
 										@foreach($outlet_city['outlet'] as $key => $outlet)
 											<li>- {{ $outlet['outlet_name'] }}</li>
