@@ -8,6 +8,7 @@ Route::group(['middleware' => ['api', 'log_activities', 'user_agent'], 'prefix' 
 Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'prefix' => 'api/setting', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
 {
     Route::any('/faq', 'ApiSetting@faqList');
+    Route::post('webview', 'ApiSetting@settingWebview');
 });
 
 Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scopes:apps'], 'prefix' => 'api/setting', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
@@ -17,7 +18,6 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::any('whatsapp', 'ApiSetting@settingWhatsApp');
     Route::any('jobs_list', 'ApiSetting@jobsList');
     Route::any('celebrate_list', 'ApiSetting@celebrateList');
-    Route::post('webview', 'ApiSetting@settingWebview');
 
     // complete profile
     Route::group(['prefix' => 'complete-profile'], function()
