@@ -115,14 +115,6 @@ class ApiTransactionCIMB extends Controller
 
             DB::commit();
 
-            $dataEncode = [
-                'transaction_receipt_number'   => $request['MERCHANT_TRANID'],
-                'type' => 'trx',
-                'trx_success' => 1
-            ];
-            $encode = json_encode($dataEncode);
-            $base = base64_encode($encode);
-
             $data = Transaction::with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->where('transaction_receipt_number', $request['MERCHANT_TRANID'])->get()->toArray()[0];
             if ($data['trasaction_type'] == 'Pickup Order') {
                 $detail = TransactionPickup::where('id_transaction', $data['id_transaction'])->with('transaction_pickup_go_send')->first();
