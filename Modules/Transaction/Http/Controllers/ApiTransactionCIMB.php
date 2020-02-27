@@ -127,6 +127,52 @@ class ApiTransactionCIMB extends Controller
 
             ]);
         } else {
+            $transaction = Transaction::with('user.memberships', 'outlet', 'productTransaction')->where('transaction_receipt_number', $request['MERCHANT_TRANID'])->first();
+
+            DB::beginTransaction();
+            try {
+                $addCimb = TransactionPaymentCimb::create([
+                    'id_transaction'    => $transaction->id_transaction,
+                    'transaction_id'    => 0,
+                    'txn_status'        => $request['TXN_STATUS'],
+                    'txn_signature'     => $request['TXN_SIGNATURE'],
+                    'secure_signature'  => $request['SECURE_SIGNATURE'],
+                    'tran_date'         => date('Y-m-d H:i:s'),
+                    'merchant_tranid'   => $request['MERCHANT_TRANID'],
+                    'response_code'     => $request['RESPONSE_CODE'],
+                    'response_desc'     => $request['RESPONSE_DESC'],
+                    'auth_id'           => 0,
+                    'fr_level'          => $request['FR_LEVEL'],
+                    'sales_date'        => date('Y-m-d H:i:s'),
+                    'fr_score'          => 0
+                ]);
+            } catch (\Exception $e) {
+                LogBackendError::logExceptionMessage("ApiTransactionCIMB/callback=>" . $e->getMessage(), $e);
+                DB::rollback();
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => [
+                        'Something when wrong!. Contact Admin Support.'
+                    ]
+                ]);
+            }
+
+            try {
+                Transaction::where('transaction_receipt_number', $request['MERCHANT_TRANID'])->update([
+                    'transaction_payment_status'    => 'Cancelled'
+                ]);
+            } catch (\Exception $e) {
+                LogBackendError::logExceptionMessage("ApiTransactionCIMB/callback=>" . $e->getMessage(), $e);
+                DB::rollback();
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => [
+                        'Something when wrong!. Contact Admin Support.'
+                    ]
+                ]);
+            }
+            DB::commit();
+
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => [
