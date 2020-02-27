@@ -1578,14 +1578,15 @@ class ApiOnlineTransaction extends Controller
         } else {
             $post['transaction_date'] = date('Y-m-d H:i:s');
         }
-
+        $outlet_status = 1;
         //cek outlet active
         if(isset($outlet['outlet_status']) && $outlet['outlet_status'] == 'Inactive'){
-            DB::rollback();
-            return response()->json([
-                'status'    => 'fail',
-                'messages'  => ['Outlet tutup']
-            ]);
+            // DB::rollback();
+            // return response()->json([
+            //     'status'    => 'fail',
+            //     'messages'  => ['Outlet tutup']
+            // ]);
+            $outlet_status = 0;
         }
 
         //cek outlet holiday
@@ -1596,28 +1597,31 @@ class ApiOnlineTransaction extends Controller
                 foreach($holiday as $i => $holi){
                     if($holi['yearly'] == '0'){
                         if($holi['date'] == date('Y-m-d')){
-                            DB::rollback();
-                            return response()->json([
-                                'status'    => 'fail',
-                                'messages'  => ['Outlet tutup']
-                            ]);
+                            // DB::rollback();
+                            // return response()->json([
+                            //     'status'    => 'fail',
+                            //     'messages'  => ['Outlet tutup']
+                            // ]);
+                            $outlet_status = 0;
                         }
                     }else{
-                        DB::rollback();
-                        return response()->json([
-                            'status'    => 'fail',
-                            'messages'  => ['Outlet tutup']
-                        ]);
+                        // DB::rollback();
+                        // return response()->json([
+                        //     'status'    => 'fail',
+                        //     'messages'  => ['Outlet tutup']
+                        // ]);
+                        $outlet_status = 0;
                     }
                 }
             }
 
             if($outlet['today']['is_closed'] == '1'){
-                DB::rollback();
-                return response()->json([
-                    'status'    => 'fail',
-                    'messages'  => ['Outlet tutup']
-                ]);
+                // DB::rollback();
+                // return response()->json([
+                //     'status'    => 'fail',
+                //     'messages'  => ['Outlet tutup']
+                // ]);
+                $outlet_status = 0;
             }
 
              if($outlet['today']['close'] && $outlet['today']['close'] != "00:00" && $outlet['today']['open'] && $outlet['today']['open'] != '00:00'){
@@ -1625,21 +1629,23 @@ class ApiOnlineTransaction extends Controller
                 $settingTime = Setting::where('key', 'processing_time')->first();
                 if($settingTime && $settingTime->value){
                     if($outlet['today']['close'] && date('H:i') > date('H:i', strtotime('-'.$settingTime->value.' minutes' ,strtotime($outlet['today']['close'])))){
-                        DB::rollback();
-                        return response()->json([
-                            'status'    => 'fail',
-                            'messages'  => ['Outlet tutup']
-                        ]);
+                        // DB::rollback();
+                        // return response()->json([
+                        //     'status'    => 'fail',
+                        //     'messages'  => ['Outlet tutup']
+                        // ]);
+                        $outlet_status = 0;
                     }
                 }
 
                 //cek outlet open - close hour
                 if(($outlet['today']['open'] && date('H:i') < date('H:i', strtotime($outlet['today']['open']))) || ($outlet['today']['close'] && date('H:i') > date('H:i', strtotime($outlet['today']['close'])))){
-                    DB::rollback();
-                    return response()->json([
-                        'status'    => 'fail',
-                        'messages'  => ['Outlet tutup']
-                    ]);
+                    // DB::rollback();
+                    // return response()->json([
+                    //     'status'    => 'fail',
+                    //     'messages'  => ['Outlet tutup']
+                    // ]);
+                    $outlet_status = 0;
                 }
             }
         }
@@ -2017,6 +2023,7 @@ class ApiOnlineTransaction extends Controller
             $cashback_text[1]??''
         ];
 
+        $outlet['today']['status'] = $outlet_status?'open':'closed';
         $result['outlet'] = [
             'id_outlet' => $outlet['id_outlet'],
             'outlet_code' => $outlet['outlet_code'],
