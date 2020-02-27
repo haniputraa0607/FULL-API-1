@@ -7,13 +7,6 @@
     <title>Document</title>
     
     <script>
-        window.onload = function() {
-            var str = document.getElementById("TXN_PASSWORD").value + document.getElementById("MERCHANT_ACC_NO").value + document.getElementById("MERCHANT_TRANID").value + document.getElementById("AMOUNT").value
-            document.getElementById("TXN_SIGNATURE").value = md5(str)
-            document.getElementById("btn").click()
-        };
-    </script>
-    <script>
         function md5cycle(x, k) {
             var a = x[0],
                 b = x[1],
@@ -205,30 +198,50 @@
             }
         }
     </script>
+    @if (isset($deals) && $deals == 1)
+        @php
+            $url = env('API_URL') . 'api/transaction/callback/cimb/deals';
+        @endphp
+    @else
+        @php
+            $url = env('API_URL') . 'api/transaction/callback/cimb';
+        @endphp
+    @endif
+    <script>
+        window.onload = function() {
+            var hashTxn = md5('{{env("CIMB_TXN_PASSWORD")}}'+'{{env("CIMB_ACC_NO")}}'+'{{$MERCHANT_TRANID}}'+'{{implode(".", [$AMOUNT, "00"])}}')
+            var iframe = document.getElementById("iframe")
+            document.getElementById("MERCHANT_TRANID").value = '{{$MERCHANT_TRANID}}';
+            document.getElementById("AMOUNT").value = '{{implode(".", [$AMOUNT, "00"])}}';
+            document.getElementById("MERCHANT_ACC_NO").value = '{{env("CIMB_ACC_NO")}}';
+            document.getElementById("TXN_PASSWORD").value = '{{env("CIMB_TXN_PASSWORD")}}';
+            document.getElementById("RETURN_URL").value = '{{$url}}';
+            document.getElementById("TXN_SIGNATURE").value = hashTxn;
+            setTimeout(() => {
+                window.document.getElementById("btn").click()
+            }, 500);
+        }
+    </script>
 </head>
 <body>
-    <form action="https://ipg.cimbniaga.co.id/BPG/admin/payment/PaymentWindow.jsp" method="post">
-        <input type="hidden" id="MERCHANT_ACC_NO" name="MERCHANT_ACC_NO" value="{{env('CIMB_ACC_NO')}}">
-        <input type="hidden" id="TXN_PASSWORD" name="TXN_PASSWORD" value="{{env('CIMB_TXN_PASSWORD')}}">
-        <input type="hidden" id="AMOUNT" name="AMOUNT" value="{{implode('.', [$AMOUNT, '00'])}}">
+    <form id="clickForm" action="https://ipg.cimbniaga.co.id/BPG/admin/payment/PaymentWindow.jsp" method="post">
+        <input type="hidden" id="MERCHANT_ACC_NO" name="MERCHANT_ACC_NO">
+        <input type="hidden" id="TXN_PASSWORD" name="TXN_PASSWORD">
+        <input type="hidden" id="AMOUNT" name="AMOUNT">
         <input type="hidden" name="TRANSACTION_TYPE" value="2">
-        <input type="hidden" id="MERCHANT_TRANID" name="MERCHANT_TRANID" value="{{$MERCHANT_TRANID}}">
+        <input type="hidden" id="MERCHANT_TRANID" name="MERCHANT_TRANID">
         <input type="hidden" name="RESPONSE_TYPE" value="HTTP">
-        @if (isset($deals) && $deals == 1)
-            <input type="hidden" name="RETURN_URL" value="{{env('API_URL')}}api/transaction/callback/cimb/deals">
-        @else
-            <input type="hidden" name="RETURN_URL" value="{{env('API_URL')}}api/transaction/callback/cimb">
-        @endif
+        <input type="hidden" id="RETURN_URL" name="RETURN_URL">
         <input type="hidden" name="TXN_DESC" value="Order from Merchant Store">
-        <input type="hidden" id="TXN_SIGNATURE" name="TXN_SIGNATURE" value="">
-        <button type="submit" id="btn" style="display: none;">submit</button>
+        <input type="hidden" id="TXN_SIGNATURE" name="TXN_SIGNATURE">
+        <button type="submit" style="display: none;" id="btn">submit</button>
     </form>
 
     <p style="position: fixed; /* or absolute */
-    top: 50%;
+    top: 45%;
     left: 50%;
     /* bring your own prefixes */
     transform: translate(-50%, -50%);
-    font-size: 50px;">Mohon Tunggu...</p>
+    font-size: 20px;">Please Wait...</p>
 </body>
 </html>
