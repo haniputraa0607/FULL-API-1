@@ -6,6 +6,8 @@ use App\Http\Models\DealsUser;
 use App\Http\Models\LogBackendError;
 use App\Http\Models\Transaction;
 use App\Http\Models\TransactionMultiplePayment;
+use App\Http\Models\TransactionPickup;
+use App\Http\Models\TransactionShipment;
 use App\Http\Models\User;
 use App\Lib\MyHelper;
 use Illuminate\Http\Request;
@@ -121,15 +123,25 @@ class ApiTransactionCIMB extends Controller
             $encode = json_encode($dataEncode);
             $base = base64_encode($encode);
 
-            return response()->json([
-                'status'           => 'success',
-                'url'              => env('API_URL') . 'api/transaction/web/view/detail?data=' . $base
-
-            ]);
-        } else {
-            $transaction = Transaction::with('user.memberships', 'outlet', 'productTransaction')->where('transaction_receipt_number', $request['MERCHANT_TRANID'])->first();
+            $data = Transaction::with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->where('transaction_receipt_number', $request['MERCHANT_TRANID'])->get()->toArray()[0];
+            if ($data['trasaction_type'] == 'Pickup Order') {
+                $detail = TransactionPickup::where('id_transaction', $data['id_transaction'])->with('transaction_pickup_go_send')->first();
+                $qrTest = $detail['order_id'];
+            } elseif ($data['trasaction_type'] == 'Delivery') {
+                $detail = TransactionShipment::with('city.province')->where('id_transaction', $data['id_transaction'])->first();
+            }
+            
+            $qrCode = 'https://chart.googleapis.com/chart?chl='.$qrTest.'&chs=250x250&cht=qr&chld=H%7C0';
+            $qrCode = html_entity_decode($qrCode);
+            $data['qr'] = $qrCode;
+            $data['detail'] = $detail;
+            
+            return view('transaction::webview.detail_transaction_pickup')->with(compact('data'));
+        } else {            
+            $transaction = Transaction::with('user')->where('transaction_receipt_number', $request['MERCHANT_TRANID'])->first();
 
             DB::beginTransaction();
+
             try {
                 $addCimb = TransactionPaymentCimb::create([
                     'id_transaction'    => $transaction->id_transaction,
@@ -171,14 +183,19 @@ class ApiTransactionCIMB extends Controller
                     ]
                 ]);
             }
-            DB::commit();
 
-            return response()->json([
-                'status'    => 'fail',
-                'messages'  => [
-                    'Payment via CIMB failed.'
-                ]
-            ]);
+            DB::commit();
+            
+            $data = Transaction::with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->where('transaction_receipt_number', $request['MERCHANT_TRANID'])->get()->toArray()[0];
+            if ($data['trasaction_type'] == 'Pickup Order') {
+                $detail = TransactionPickup::where('id_transaction', $data['id_transaction'])->with('transaction_pickup_go_send')->first();
+            } elseif ($data['trasaction_type'] == 'Delivery') {
+                $detail = TransactionShipment::with('city.province')->where('id_transaction', $data['id_transaction'])->first();
+            }
+            
+            $data['detail'] = $detail;
+            
+            return view('transaction::webview.detail_transaction_pickup')->with(compact('data'));
         }
     }
 
