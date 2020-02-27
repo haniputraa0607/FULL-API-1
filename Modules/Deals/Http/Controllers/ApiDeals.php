@@ -234,7 +234,7 @@ class ApiDeals extends Controller
     function create($data)
     {
         $data = $this->checkInputan($data);
-
+        $data['created_by'] = auth()->user()->id;
         // error
         if (isset($data['error'])) {
             unset($data['error']);
@@ -843,6 +843,7 @@ class ApiDeals extends Controller
     {
         $data = $this->checkInputan($data);
         $data['step_complete'] = 0;
+        $data['last_updated_by'] = auth()->user()->id;
         if ( $data['is_online'] == 0 ) {
         	app($this->promo_campaign)->deleteAllProductRule('deals', $id);
         }
@@ -1196,6 +1197,10 @@ class ApiDeals extends Controller
         if ($post['step'] == 3 || $post['step'] == 'all') {
 			$deals = $deals->with(['deals_content.deals_content_details']);
         }
+
+        if ($post['step'] == 'all') {
+			$deals = $deals->with(['created_by_user']);
+        }
         
         $deals = $deals->first();
 
@@ -1211,7 +1216,7 @@ class ApiDeals extends Controller
 
     	if ($update) 
     	{
-			$update = Deal::where('id_deals','=',$post['id_deals'])->update(['deals_description' => $post['deals_description'], 'step_complete' => 0]);
+			$update = Deal::where('id_deals','=',$post['id_deals'])->update(['deals_description' => $post['deals_description'], 'step_complete' => 0, 'last_updated_by' => auth()->user()->id]);
             if ($update) 
 			{
 		        DB::commit();
@@ -1244,7 +1249,7 @@ class ApiDeals extends Controller
 
 		if ($check) 
 		{
-			$update = Deal::where('id_deals','=',$post['id_deals'])->update(['step_complete' => 1]);
+			$update = Deal::where('id_deals','=',$post['id_deals'])->update(['step_complete' => 1, 'last_updated_by' => auth()->user()->id]);
 
 			if ($update) 
 			{
@@ -1266,12 +1271,12 @@ class ApiDeals extends Controller
     public function checkComplete($id, &$step, &$errors)
     {
     	$deals = $this->getDealsData($id, 'all');
-
     	if (!$deals) {
     		$errors = 'Deals not found';
     		return false;
     	}
 
+    	$deals = $deals->toArray();
     	if ( $deals['is_online'] == 1) 
     	{
 	    	if ( empty($deals['deals_product_discount_rules']) && empty($deals['deals_tier_discount_rules']) && empty($deals['deals_buyxgety_rules']) ) 

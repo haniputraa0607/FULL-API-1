@@ -914,8 +914,9 @@ class ApiPromoCampaign extends Controller
         else
         {
         	$dataPromoCampaign['deals_promo_id_type']	= $post['deals_promo_id_type']??null;
-        	$dataPromoCampaign['deals_promo_id']	= $post['deals_promo_id_promoid']??$post['deals_promo_id_nominal']??null;
-        	$dataPromoCampaign['step_complete']	= 0;
+        	$dataPromoCampaign['deals_promo_id']		= $post['deals_promo_id_promoid']??$post['deals_promo_id_nominal']??null;
+        	$dataPromoCampaign['last_updated_by'] 		= auth()->user()->id;
+        	$dataPromoCampaign['step_complete']			= 0;
         }
 
         $update = $table::where($id_table, $id_post)->update($dataPromoCampaign);
@@ -1783,7 +1784,6 @@ class ApiPromoCampaign extends Controller
             ];
         }
         
-        // return $query;
     	$getProduct = $this->getProduct($source,$query[$source]);
     	$desc = $this->getPromoDescription($source, $query[$source], $getProduct['product']??'');
 
@@ -2020,10 +2020,20 @@ class ApiPromoCampaign extends Controller
         return $code;
     }
 
-	public function checkVoucher($id_deals_user, $outlet=null, $product=null)
+	public function checkVoucher($id_deals_user=null, $outlet=null, $product=null)
     {
-        $deals = DealsUser::where('id_deals_user', '=', $id_deals_user)
-        			->whereIn('paid_status', ['Free', 'Completed'])
+    	$deals = new DealsUser;
+
+    	if (!empty($id_deals_user)) 
+    	{
+    		$deals = $deals->where('id_deals_user', '=', $id_deals_user);
+    	}
+    	else
+    	{
+    		$deals = $deals->where('id_user', '=', auth()->user()->id)->where('is_used','=',1);
+    	}
+
+        $deals = $deals->whereIn('paid_status', ['Free', 'Completed'])
         			->whereNull('used_at')
         			->where('voucher_expired_at','>=',date('Y-m-d H:i:s'))
         			->where(function($q) {
@@ -2088,5 +2098,27 @@ class ApiPromoCampaign extends Controller
 		}
 
 	    return $result;	
+    }
+
+    public function checkUsedVoucher(Request $request)
+    {
+    	$deals = $this->checkVoucher(null, null, 1);
+
+    	if (!$deals) {
+    		return response()->json(['status' => 'fail']);
+    	}
+
+    	$deals = $deals->toArray();
+
+    	$getProduct = $this->getProduct('deals',$deals['deal_voucher']['deals']);
+    	$desc = $this->getPromoDescription('deals', $deals['deal_voucher']['deals'], $getProduct['product']??'');
+
+    	$result = [
+    		'title'			=> $deals['deal_voucher']['deals']['deals_title'],
+    		'description'	=> $desc,
+    		'id_deals_user'	=> $deals['id_deals_user']
+    	];
+    	return response()->json(MyHelper::checkGet($result));
+
     }
 }
