@@ -645,14 +645,14 @@ class ApiWebviewController extends Controller
         }
 
         if (isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Cancelled') {
-            $view = 'transaction_failed';
+            $view = 'detail_transaction_pickup';
         }
 
         if (isset($data['order_label_v2'])) {
             $data['order_label_v2'] = explode(',', $data['order_label_v2']);
             $data['order_v2'] = explode(',', $data['order_v2']);
         }
-        // dd($data);
+        // dd($view);
         return view('transaction::webview.' . $view . '')->with(compact('data'));
     }
 
@@ -715,7 +715,7 @@ class ApiWebviewController extends Controller
         }
 
         if (isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Cancelled') {
-            $view = 'transaction_failed';
+            $view = 'detail_transaction_pickup';
         }
 
         if (isset($data['order_label_v2'])) {

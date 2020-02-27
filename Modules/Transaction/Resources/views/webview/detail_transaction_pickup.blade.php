@@ -420,7 +420,11 @@
             <div class="kotak-biasa">
                 <div class="container">
                 <div class="row text-center">
-                    @if($data['detail']['reject_at'] != null)
+                    @if(isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Cancelled')
+                    <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #b72126;">
+                        Order Canceled
+                    </div>
+                    @elseif($data['detail']['reject_at'] != null)
                     <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #b72126;">
                         Order Rejected
                     </div>
@@ -470,7 +474,11 @@
                     <div class="kotak-full" style="background-color: #ffffff;margin-bottom: 0px;">
                         <div class="container">
                             <div class="row text-center">
-                                @if($data['detail']['reject_at'] != null)
+                                @if(isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Cancelled')
+                                <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #b72126;">
+                                    Order Canceled
+                                </div>
+                                @elseif($data['detail']['reject_at'] != null)
                                 <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #b72126;">
                                     Order Rejected
                                 </div>
@@ -622,7 +630,7 @@
             <div class="col-12 text-14px Ubuntu-Medium text-black">Order Status</div>
         </div>
         <div class="row" style="margin-top: 5px;">
-            @php $top = 5; $bg = true; @endphp
+            @php $top = 6; $bg = true; @endphp
             @if($data['detail']['reject_at'] != null)
                 <div class="col-12 text-13-3px Ubuntu-Medium text-black">
                     <div class="round-black bg-black"></div>
@@ -642,14 +650,14 @@
                         </div>
                     </div>
                 </div>
-                @php $top += 5; $bg = false; @endphp
+                @php $top += 6; $bg = false; @endphp
             @endif
             @if($data['detail']['taken_at'] != null)
                 <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
                     <div class="round-black @if($bg) bg-black @endif"></div>
                     Your order has been taken
                 </div>
-                @php $top += 5; $bg = false; @endphp
+                @php $top += 6; $bg = false; @endphp
                 <div class="col-12 top-{{$top}}px">
                     <div class="inline text-center">
                         <div class="line-vertical text-grey-medium-light">|</div>
@@ -664,14 +672,14 @@
                         </div>
                     </div>
                 </div>
-                @php $top += 5; @endphp
+                @php $top += 6; @endphp
             @endif
             @if($data['detail']['ready_at'] != null)
                 <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
                     <div class="round-black @if($bg) bg-black @endif"></div>
                     Your order is ready
                 </div>
-                @php $top += 5; $bg = false; @endphp
+                @php $top += 6; $bg = false; @endphp
                 <div class="col-12 top-{{$top}}px">
                     <div class="inline text-center">
                         <div class="line-vertical text-grey-medium-light">|</div>
@@ -686,14 +694,14 @@
                         </div>
                     </div>
                 </div>
-                @php $top += 5; @endphp
+                @php $top += 6; @endphp
             @endif
             @if($data['detail']['receive_at'] != null)
                 <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
                     <div class="round-black @if($bg) bg-black @endif"></div>
                     Your order has been received
                 </div>
-                @php $top += 5; $bg = false; @endphp
+                @php $top += 6; $bg = false; @endphp
                 <div class="col-12 top-{{$top}}px">
                     <div class="inline text-center">
                         <div class="line-vertical text-grey-medium-light">|</div>
@@ -708,7 +716,29 @@
                         </div>
                     </div>
                 </div>
-                @php $top += 5; @endphp
+                @php $top += 6; @endphp
+            @endif
+            @if(isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Cancelled')
+                <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
+                    <div class="round-black @if($bg) bg-black @endif"></div>
+                    Your order has been canceled
+                </div>
+                @php $top += 6; $bg = false; @endphp
+                <div class="col-12 top-{{$top}}px">
+                    <div class="inline text-center">
+                        <div class="line-vertical text-grey-medium-light">|</div>
+                        <div class="line-vertical text-grey-medium-light">|</div>
+                        <div class="line-vertical text-grey-medium-light">|</div>
+                        <div class="line-vertical text-grey-medium-light">|</div>
+                        <div class="line-vertical text-grey-medium-light">|</div>
+                    </div>
+                    <div class="inline vertical-top">
+                        <div class="text-11-7px Ubuntu text-black space-bottom">
+                            {{ date('d F Y H:i', strtotime($data['detail']['receive_at'])) }}
+                        </div>
+                    </div>
+                </div>
+                @php $top += 6; @endphp
             @endif
             <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
                 <div class="round-black @if($bg) bg-black @endif"></div>
