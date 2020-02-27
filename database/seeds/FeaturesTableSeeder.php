@@ -1835,6 +1835,46 @@ class FeaturesTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
                 ),
+            228 =>
+                array(
+                    'id_feature' => 229,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud Transaction Point',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            229 =>
+                array(
+                    'id_feature' => 230,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud In Between Transaction',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            230 =>
+                array(
+                    'id_feature' => 231,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud Referral User',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            231 =>
+                array(
+                    'id_feature' => 232,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud Referral',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            232 =>
+                array(
+                    'id_feature' => 233,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud Promo Code',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                )
         ));
     }
 }

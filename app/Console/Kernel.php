@@ -107,7 +107,10 @@ class Kernel extends ConsoleKernel
          * Run every 10 minute
          */
         $schedule->call('Modules\Transaction\Http\Controllers\ApiOvoReversal@processReversal')->cron('*/10 * * * *');
-
+        /**
+         * To process fraud
+         */
+        $schedule->call('Modules\SettingFraud\Http\Controllers\ApiFraud@fraudCron')->cron('*/59 * * * *');
     }
 
     /**
