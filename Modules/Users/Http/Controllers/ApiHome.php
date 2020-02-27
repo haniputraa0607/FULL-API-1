@@ -39,7 +39,7 @@ class ApiHome extends Controller
 		$this->balance  = "Modules\Balance\Http\Controllers\BalanceController";
 		$this->point  = "Modules\Deals\Http\Controllers\ApiDealsClaim";
 		$this->autocrm  = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
-        $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiSettingFraud";
+        $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiFraud";
 		$this->endPoint  = env('S3_URL_API');
         $this->deals = "Modules\Deals\Http\Controllers\ApiDeals";
     }
@@ -546,24 +546,6 @@ class ApiHome extends Controller
             $result = [
                 'status' => 'fail'
             ];
-        }
-
-        //check fraud
-        if($user->new_login == '1'){
-            $deviceCus = UserDevice::where('device_type','=',$device_type)
-            ->where('device_id','=',$device_id)
-            // ->where('device_token','=',$device_token)
-            ->orderBy('id_device_user', 'ASC')
-            ->first();
-
-            $lastDevice = UserDevice::where('id_user','=',$user->id)->orderBy('id_device_user', 'desc')->first();
-            if($deviceCus && $deviceCus['id_user'] != $user->id){
-                // send notif fraud detection
-                $fraud = FraudSetting::where('parameter', 'LIKE', '%device ID%')->first();
-                if($fraud){
-                    $sendFraud = app($this->setting_fraud)->SendFraudDetection($fraud['id_fraud_setting'], $user, null, $lastDevice);
-                }
-            }
         }
 
         return $result;
