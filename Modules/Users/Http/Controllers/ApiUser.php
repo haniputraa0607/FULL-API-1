@@ -1016,7 +1016,10 @@ class ApiUser extends Controller
             if(!empty($request->header('ip-address-view'))){
                 $ip = $request->header('ip-address-view');
             }else{
-                $ip = $_SERVER["REMOTE_ADDR"];
+                $ip = isset($_SERVER['HTTP_X_FORWARDED_FOR'])?$_SERVER['HTTP_X_FORWARDED_FOR']:$_SERVER['REMOTE_ADDR'];
+                if(strpos($ip,',') !== false) {
+                    $ip = substr($ip,0,strpos($ip,','));
+                }
             }
         }
 
