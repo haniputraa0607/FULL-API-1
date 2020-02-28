@@ -298,10 +298,10 @@
 					}else{
 						document.getElementById("timer").innerHTML = "<p style='font-size: 11.7px;' class='dark-sea-green Ubuntu-Medium'>End in</p>";
 					}
-                    document.getElementById('timer').innerHTML += timer_text;
+                    document.getElementById('timer').innerHTML += "<p style='font-size: 11.7px;' class='dark-sea-green Ubuntu-Medium'>" + timer_text + "</p>";
                     @elseif($deals['deals_status'] == 'soon')
                     document.getElementById("timer").innerHTML = "<p style='font-size: 11.7px;' class='dark-sea-green Ubuntu-Medium'>Start at</p>";
-                    document.getElementById('timer').innerHTML += "<p style='font-size: 12.7px;' class='dark-sea-green Ubuntu-Bold'>{{ date('d', strtotime($deals['deals_start'])) }} {{$month[date('m', strtotime($deals['deals_start']))-1]}} {{ date('Y', strtotime($deals['deals_start'])) }} jam {{ date('H:i', strtotime($deals['deals_start'])) }}</p>";
+                    document.getElementById('timer').innerHTML += "<p style='font-size: 11.7px;' class='dark-sea-green Ubuntu-Medium'>{{ date('d', strtotime($deals['deals_start'])) }} {{$month[date('m', strtotime($deals['deals_start']))-1]}} {{ date('Y', strtotime($deals['deals_start'])) }} hour {{ date('H:i', strtotime($deals['deals_start'])) }}</p>";
                     @endif
 
                     difference--;
@@ -333,9 +333,8 @@
                 // countdown
                 daysDifference = Math.floor(difference/60/60/24);
                 if (daysDifference > 0) {
-					timer = "<p style='font-size: 12.7px;' class='dark-sea-green Ubuntu-Bold'>{{ date('d', strtotime($deals['deals_end'])) }} {{$month[ date('m', strtotime($deals['deals_end']))-1]}} {{ date('Y', strtotime($deals['deals_end'])) }}</p>";
+					timer = "<p style='font-size: 11.7px;' class='dark-sea-green Ubuntu-Bold'>{{ date('d', strtotime($deals['deals_end'])) }} {{$month[ date('m', strtotime($deals['deals_end']))-1]}} {{ date('Y', strtotime($deals['deals_end'])) }}</p>";
                   //  timer = daysDifference + " hari";
-                    console.log('timer d', timer);
                 }
                 else {
                     difference -= daysDifference*60*60*24;
@@ -357,12 +356,8 @@
                         secondsDifference = secondsDifference-1;
                         secondsDifference = ("0" + secondsDifference).slice(-2);
                     }
-                    console.log('timer h', hoursDifference);
-                    console.log('timer m', minutesDifference);
-                    console.log('timer s', secondsDifference);
 
-                    timer = hoursDifference + ": jam " + minutesDifference + " menit lagi";
-                    console.log('timer', timer);
+                    timer = hoursDifference + " hour " + minutesDifference + " minutes";
                 }
 
                 return timer;
