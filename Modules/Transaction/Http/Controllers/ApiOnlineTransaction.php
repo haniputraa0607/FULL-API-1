@@ -35,6 +35,7 @@ use App\Http\Models\Holiday;
 use App\Http\Models\OutletToken;
 use App\Http\Models\UserLocationDetail;
 use App\Http\Models\TransactionVoucher;
+use App\Http\Models\Deal;
 use App\Http\Models\DealsUser;
 use Modules\ProductVariant\Entities\ProductVariant;
 use Modules\PromoCampaign\Entities\PromoCampaign;
@@ -701,10 +702,10 @@ class ApiOnlineTransaction extends Controller
             app($this->setting_fraud)->fraudCheckReferralUser($data);
             //======= End Check Fraud Referral User =======//
         }
-
         // add transaction voucher
         if($request->json('id_deals_user')){
         	$update_voucher = DealsUser::where('id_deals_user','=',$request->id_deals_user)->update(['used_at' => date('Y-m-d H:i:s')]);
+        	$update_deals = Deal::where('id_deals','=',$deals->dealVoucher['deals']['id_deals'])->update(['deals_total_used' => $deals->dealVoucher['deals']['deals_total_used']+1]);
         	
             $addTransactionVoucher = TransactionVoucher::create([
                 'id_deals_voucher' => $deals['id_deals_voucher'],

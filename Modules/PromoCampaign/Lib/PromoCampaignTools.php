@@ -1171,7 +1171,7 @@ class PromoCampaignTools{
 
     }
 
-    public function getOneProduct($id_product, $id_outlet, $brand=null)
+    public function getOneProduct($id_outlet, $id_product, $brand=null)
     {
     	$product = Product::join('product_prices','product_prices.id_product','=','products.id_product')
 	                ->where('product_prices.id_outlet','=',$id_outlet)
@@ -1194,7 +1194,6 @@ class PromoCampaignTools{
 		$product = $product->first();
 
 		return $product;
-
     }
 
     /**

@@ -35,6 +35,7 @@ use Modules\Deals\Http\Requests\Deals\Delete;
 use Modules\Deals\Http\Requests\Deals\ListDeal;
 use Modules\Deals\Http\Requests\Deals\DetailDealsRequest;
 use Modules\Deals\Http\Requests\Deals\UpdateContentRequest;
+use Modules\Deals\Http\Requests\Deals\UpdateComplete;
 
 use Illuminate\Support\Facades\Schema;
 
@@ -48,6 +49,7 @@ class ApiDeals extends Controller
         $this->hidden_deals     = "Modules\Deals\Http\Controllers\ApiHiddenDeals";
         $this->autocrm = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
         $this->subscription = "Modules\Subscription\Http\Controllers\ApiSubscription";
+        $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
     }
 
     public $saveImage = "img/deals/";
@@ -221,6 +223,8 @@ class ApiDeals extends Controller
             $data['is_offline'] = 1;
         } else {
             $data['is_offline'] = 0;
+            $data['deals_promo_id_type'] = null;
+            $data['deals_promo_id'] = null;
         }
 
         return $data;
@@ -230,7 +234,7 @@ class ApiDeals extends Controller
     function create($data)
     {
         $data = $this->checkInputan($data);
-
+        $data['created_by'] = auth()->user()->id;
         // error
         if (isset($data['error'])) {
             unset($data['error']);
@@ -305,7 +309,7 @@ class ApiDeals extends Controller
                 // 'deals_vouchers.deals_user.user'
             ])->where('id_deals', $request->json('id_deals'))->with(['outlets', 'outlets.city', 'product','brand']);
         }else{
-            $deals->addSelect('id_deals','deals_title','deals_second_title','deals_voucher_price_point','deals_voucher_price_cash','deals_total_voucher','deals_total_claimed','deals_voucher_type','deals_image','deals_start','deals_end','deals_type','is_offline','is_online','product_type');
+            $deals->addSelect('id_deals','deals_title','deals_second_title','deals_voucher_price_point','deals_voucher_price_cash','deals_total_voucher','deals_total_claimed','deals_voucher_type','deals_image','deals_start','deals_end','deals_type','is_offline','is_online','product_type','step_complete','deals_total_used');
             if(strpos($request->user()->level,'Admin')>=0){
                 $deals->addSelect('deals_promo_id','deals_publish_start','deals_publish_end','created_at');
             }
@@ -801,7 +805,21 @@ class ApiDeals extends Controller
             $deals->where('deals_vouchers.id_deals', $request->json('id_deals'));
         }
 
-        $deals = $deals->with(['user', 'outlet'])->orderBy('claimed_at', "ASC")->paginate(10);
+        $deals = $deals->with([
+        			'user', 
+        			'outlet',
+        			'dealVoucher.transaction_voucher' => function($q) {
+        				$q->where('status','=','success');
+        			}, 
+        			'dealVoucher.transaction_voucher.transaction' => function($q) {
+        				$q->select(
+        					'id_transaction',
+        					'transaction_receipt_number',
+        					'trasaction_type',
+        					'transaction_grandtotal'
+        				);
+        			}
+        		])->orderBy('claimed_at', "ASC")->paginate(10);
 
         return response()->json(MyHelper::checkGet($deals));
     }
@@ -824,7 +842,11 @@ class ApiDeals extends Controller
     function update($id, $data)
     {
         $data = $this->checkInputan($data);
-    	// return $data;
+        $data['step_complete'] = 0;
+        $data['last_updated_by'] = auth()->user()->id;
+        if ( $data['is_online'] == 0 ) {
+        	app($this->promo_campaign)->deleteAllProductRule('deals', $id);
+        }
 
         // error
         if (isset($data['error'])) {
@@ -872,7 +894,6 @@ class ApiDeals extends Controller
 
         DB::beginTransaction();
         $save = $this->update($request->json('id_deals'), $request->json()->all());
-        // return $save;
 
         if ($save) {
             DB::commit();
@@ -1130,27 +1151,7 @@ class ApiDeals extends Controller
         $post = $request->json()->all();
         $user = $request->user();
 
-        $deals = Deal::where('id_deals', '=', $post['id_deals']);
-        if ($post['step'] == 1 || $post['step'] == 'all') {
-			$deals = $deals->with(['outlets']);
-        }
-
-        if ($post['step'] == 2 || $post['step'] == 'all') {
-			$deals = $deals->where('is_online', '=', 1)->with([  
-                'deals_product_discount', 
-                'deals_product_discount_rules', 
-                'deals_tier_discount_product', 
-                'deals_tier_discount_rules', 
-                'deals_buyxgety_product_requirement', 
-                'deals_buyxgety_rules'
-            ]);
-        }
-
-        if ($post['step'] == 3 || $post['step'] == 'all') {
-			$deals = $deals->with(['deals_content.deals_content_details']);
-        }
-        
-        $deals = $deals->first();
+        $deals = $this->getDealsData($post['id_deals'], $post['step']);
 
         if (isset($deals)) {
             $deals = $deals->toArray();
@@ -1173,16 +1174,49 @@ class ApiDeals extends Controller
         return response()->json($result);
     }
 
+    function getDealsData($id_deals, $step)
+    {
+    	$post['id_deals'] = $id_deals;
+    	$post['step'] = $step;
+    	$deals = Deal::where('id_deals', '=', $post['id_deals']);
+        if ($post['step'] == 1 || $post['step'] == 'all') {
+			$deals = $deals->with(['outlets']);
+        }
+
+        if ($post['step'] == 2 || $post['step'] == 'all') {
+			$deals = $deals->with([  
+                'deals_product_discount', 
+                'deals_product_discount_rules', 
+                'deals_tier_discount_product', 
+                'deals_tier_discount_rules', 
+                'deals_buyxgety_product_requirement', 
+                'deals_buyxgety_rules'
+            ]);
+        }
+
+        if ($post['step'] == 3 || $post['step'] == 'all') {
+			$deals = $deals->with(['deals_content.deals_content_details']);
+        }
+
+        if ($post['step'] == 'all') {
+			$deals = $deals->with(['created_by_user']);
+        }
+        
+        $deals = $deals->first();
+
+        return $deals;
+    }
+
     public function updateContent(UpdateContentRequest $request)
     {
     	$post = $request->json()->all();
-// return $post;    	
+
     	db::beginTransaction();
     	$update = app($this->subscription)->createOrUpdateContent($post, 'deals');
-// return [$update];
+
     	if ($update) 
     	{
-			$update = Deal::where('id_deals','=',$post['id_deals'])->update(['deals_description' => $post['deals_description'], 'step_complete' => 1]);
+			$update = Deal::where('id_deals','=',$post['id_deals'])->update(['deals_description' => $post['deals_description'], 'step_complete' => 0, 'last_updated_by' => auth()->user()->id]);
             if ($update) 
 			{
 		        DB::commit();
@@ -1206,5 +1240,69 @@ class ApiDeals extends Controller
         }
 
          return response()->json(MyHelper::checkUpdate($update));
+    }
+
+    public function updateComplete(UpdateComplete $request)
+    {
+    	$post = $request->json()->all();
+    	$check = $this->checkComplete($post['id_deals'], $step, $errors);
+
+		if ($check) 
+		{
+			$update = Deal::where('id_deals','=',$post['id_deals'])->update(['step_complete' => 1, 'last_updated_by' => auth()->user()->id]);
+
+			if ($update) 
+			{
+				return ['status' => 'success'];
+			}else{
+				return ['status'=> 'fail', 'messages' => ['Update deals failed']];
+			}
+		}
+		else
+		{
+			return [
+				'status'	=> 'fail',
+				'step' 		=> $step,
+				'messages' 	=> [$errors]
+			];
+		}
+    }
+
+    public function checkComplete($id, &$step, &$errors)
+    {
+    	$deals = $this->getDealsData($id, 'all');
+    	if (!$deals) {
+    		$errors = 'Deals not found';
+    		return false;
+    	}
+
+    	$deals = $deals->toArray();
+    	if ( $deals['is_online'] == 1) 
+    	{
+	    	if ( empty($deals['deals_product_discount_rules']) && empty($deals['deals_tier_discount_rules']) && empty($deals['deals_buyxgety_rules']) ) 
+	    	{
+	    		$step = 2;
+	    		$errors = 'Deals not complete';
+	    		return false;
+	    	}
+    	}
+
+    	if ( $deals['is_offline'] == 1) 
+    	{
+    		if ( empty($deals['deals_promo_id_type']) && empty($deals['deals_promo_id']) ) 
+	    	{
+	    		$step = 2;
+	    		$errors = 'Deals not complete';
+	    		return false;
+	    	}
+    	}
+
+    	if ( empty($deals['deals_content']) ) {
+    		$step = 3;
+	    	$errors = 'Deals not complete';
+    		return false;
+    	}
+
+    	return true;
     }
 }

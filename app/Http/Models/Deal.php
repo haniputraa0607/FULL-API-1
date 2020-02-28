@@ -72,6 +72,8 @@ class Deal extends Model
 
 	protected $fillable = [
 		'deals_type',
+		'created_by',
+		'last_updated_by',
 		'deals_voucher_type',
 		'deals_promo_id_type',
 		'deals_promo_id',
@@ -225,5 +227,10 @@ class Deal extends Model
     public function deals_content()
     {
         return $this->hasMany(\Modules\Deals\Entities\DealsContent::class, 'id_deals', 'id_deals');
+    }
+
+    public function created_by_user()
+    {
+        return $this->belongsTo(\App\Http\Models\User::class, 'created_by');
     }
 }
