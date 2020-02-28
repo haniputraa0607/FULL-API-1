@@ -76,7 +76,8 @@ class PromoCampaign extends Eloquent
 		'used_code',
 		'limitation_usage',
 		'step_complete',
-		'product_type'
+		'product_type',
+		'promo_campaign_warning_image'
 	];
 
 	public function user()
