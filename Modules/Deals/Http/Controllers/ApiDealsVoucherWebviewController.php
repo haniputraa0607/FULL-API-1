@@ -55,11 +55,13 @@ class ApiDealsVoucherWebviewController extends Controller
         } else {
             $data['voucher'] = $action['result'];
         }
-        
+
         usort($data['voucher']['data'][0]['deal_voucher']['deal']['outlet_by_city'], function($a, $b) {
-            return $a['city_name'] <=> $b['city_name'];
+            if(isset($a['city_name']) && isset($b['city_name'])){
+                return $a['city_name'] <=> $b['city_name'];
+            }
         });
-        
+
         for ($i = 0; $i < count($data['voucher']['data'][0]['deal_voucher']['deal']['outlet_by_city']); $i++) {
             usort($data['voucher']['data'][0]['deal_voucher']['deal']['outlet_by_city'][$i]['outlet'] ,function($a, $b) {
                 return $a['outlet_name'] <=> $b['outlet_name'];

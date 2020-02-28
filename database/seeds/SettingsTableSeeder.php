@@ -613,6 +613,15 @@ class SettingsTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
+            81 =>
+	            array(
+	                'id_setting' => 82,
+	                'key' => 'promo_warning_image',
+	                'value' => 'promo-warning-image.png',
+	                'value_text' => null,
+	                'created_at' => date('Y-m-d H:i:s'),
+	                'updated_at' => date('Y-m-d H:i:s'),
+	            ),
         ));
     }
 }
