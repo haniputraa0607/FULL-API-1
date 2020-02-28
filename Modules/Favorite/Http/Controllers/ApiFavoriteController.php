@@ -129,11 +129,11 @@ class ApiFavoriteController extends Controller
             }
             $data['product_price_total'] = $total_price;
         }
-        return MyHelper::checkGet($data,'empty');
+        return MyHelper::checkGet($data,"You don't have any favorite item");
     }
 
     /**
-     * Add user favorite 
+     * Add user favorite
      * @param Request $request
      * {
      *     'id_outlet'=>'',
