@@ -842,9 +842,11 @@ class ApiDeals extends Controller
     function update($id, $data)
     {
         $data = $this->checkInputan($data);
+        $deals = Deal::find($id);
         $data['step_complete'] = 0;
         $data['last_updated_by'] = auth()->user()->id;
-        if ( $data['is_online'] == 0 ) {
+
+        if ($deals['product_type'] != $data['product_type'] || $data['is_online'] == 0) {
         	app($this->promo_campaign)->deleteAllProductRule('deals', $id);
         }
 
@@ -865,7 +867,6 @@ class ApiDeals extends Controller
             $this->deleteOutlet($id);
 
             // SAVE
-            $deals=Deal::find($id);
             $saveOutlet = $this->saveOutlet($deals, $data['id_outlet']);
             unset($data['id_outlet']);
         }
@@ -1190,7 +1191,7 @@ class ApiDeals extends Controller
                 'deals_tier_discount_product', 
                 'deals_tier_discount_rules', 
                 'deals_buyxgety_product_requirement', 
-                'deals_buyxgety_rules'
+                'deals_buyxgety_rules.product'
             ]);
         }
 

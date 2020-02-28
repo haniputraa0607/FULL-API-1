@@ -13,7 +13,7 @@ class AddWarningImageDealsTable extends Migration
      */
     public function up()
     {
-        Schema::table('Deals', function (Blueprint $table) {
+        Schema::table('deals', function (Blueprint $table) {
         	$table->string('deals_warning_image', 200)->after('deals_image')->nullable();
         });
     }
@@ -25,7 +25,7 @@ class AddWarningImageDealsTable extends Migration
      */
     public function down()
     {
-        Schema::table('Deals', function (Blueprint $table) {
+        Schema::table('deals', function (Blueprint $table) {
         	$table->dropColumn('deals_warning_image');
         });
     }
