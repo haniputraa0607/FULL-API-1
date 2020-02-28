@@ -261,8 +261,7 @@
 	<script src="{{env('API_URL')}}js/deals.js"></script>
 	<script>
 		function replaceHtml(params) {
-			var x = location.href;
-			location.replace(x + params)
+			location.replace(window.location.origin + window.location.pathname + params)
 		}
 	</script>
     @if(!empty($deals))
