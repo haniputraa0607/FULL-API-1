@@ -9,6 +9,7 @@ use Illuminate\Routing\Controller;
 use Modules\ProductVariant\Entities\ProductGroup;
 use Modules\ProductVariant\Entities\ProductProductVariant;
 use Modules\ProductVariant\Entities\ProductVariant;
+use App\Http\Models\Outlet;
 use App\Http\Models\Setting;
 use App\Http\Models\Product;
 use App\Http\Models\ProductModifier;
@@ -448,6 +449,7 @@ class ApiProductGroupController extends Controller
                     ->join('product_prices','product_prices.id_product','=','products.id_product')
                     ->where('product_prices.id_outlet','=',$post['id_outlet']) // filter outlet
                     ->join('brand_product','brand_product.id_product','=','products.id_product')
+                    ->where('brand_product.id_brand',$post['id_brand'])
                     // brand produk ada di outlet
                     ->where('brand_outlet.id_outlet','=',$post['id_outlet'])
                     ->join('brand_outlet','brand_outlet.id_brand','=','brand_product.id_brand')
@@ -502,6 +504,13 @@ class ApiProductGroupController extends Controller
             ->first();
         // get product group detail
         $data = ProductGroup::select('id_product_group','product_group_name','product_group_image_detail','product_group_code','product_group_description')->find($post['id_product_group'])->toArray();
+
+        // add id_brand, outlet_name,outlet_code
+        $data['id_brand'] = $post['id_brand'];
+        $outlet = Outlet::select('outlet_name','outlet_code')->where('id_outlet',$post['id_outlet'])->first();
+        $data['outlet_name'] = $outlet->outlet_name;
+        $data['outlet_code'] = $outlet->outlet_code;
+
         // get list product variant
         $variants = ProductProductVariant::select(
             'product_variants.id_product_variant',
