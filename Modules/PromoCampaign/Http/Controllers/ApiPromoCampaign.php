@@ -888,6 +888,7 @@ class ApiPromoCampaign extends Controller
         DB::beginTransaction();
         $dataPromoCampaign['promo_type'] = $post['promo_type'];
         if ($source == 'promo_campaign') {
+        	$saveImagePath = 'img/promo-campaign/warning-image/';
         	$dataPromoCampaign['step_complete'] = 1;
 	        $dataPromoCampaign['last_updated_by'] = $user['id'];
 	        $dataPromoCampaign['user_type'] = $post['filter_user'];
@@ -913,13 +914,41 @@ class ApiPromoCampaign extends Controller
         }
         else
         {
+        	$saveImagePath = 'img/deals/warning-image/';
         	$dataPromoCampaign['deals_promo_id_type']	= $post['deals_promo_id_type']??null;
         	$dataPromoCampaign['deals_promo_id']		= $post['deals_promo_id_promoid']??$post['deals_promo_id_nominal']??null;
         	$dataPromoCampaign['last_updated_by'] 		= auth()->user()->id;
         	$dataPromoCampaign['step_complete']			= 0;
         }
 
+		$image = $table::where($id_table, $id_post)->first();
+
+		if(isset($image[$source.'_warning_image']) && file_exists($image[$source.'_warning_image'])){
+			unlink($image[$source.'_warning_image']);
+		}
+
+        if (isset($post['promo_warning_image']) && empty($post['use_global'])) {
+			$img_name = rand(10,99).$id_post.rand(10,99).'-'.time();
+			$upload = MyHelper::uploadPhotoStrict($post['promo_warning_image'], $saveImagePath, 100, 100, $img_name, '.png');
+
+			if (isset($upload['status']) && $upload['status'] == "success") {
+				$dataPromoCampaign[$source.'_warning_image'] = $upload['path'];
+			}
+			else {
+				$result = [
+					'error'    => 1,
+					'status'   => 'fail',
+					'messages' => ['fail upload image']
+				];
+
+				return $result;
+			}
+		}else{
+			$dataPromoCampaign[$source.'_warning_image'] = null;
+		}
+
         $update = $table::where($id_table, $id_post)->update($dataPromoCampaign);
+
 
         if ($post['promo_type'] == 'Product Discount') {
 
@@ -2068,16 +2097,17 @@ class ApiPromoCampaign extends Controller
     {
     	if ($source == 'transaction') 
     	{
-    		$setting = ['promo_error_title', 'promo_error_ok_button', 'promo_error_cancel_button'];
+    		$setting = ['promo_error_title', 'promo_error_ok_button', 'promo_error_cancel_button', 'promo_warning_image'];
 	    	$getData = Setting::whereIn('key',$setting)->get()->toArray();
 	    	$data = [];
 	    	foreach ($getData as $key => $value) {
-	    		$data[$key] = $value;
+	    		$data[$value['key']] = $value['value'];
 	    	}
 
 	    	$result['title'] = $data['promo_error_title']??'Promo tidak berlaku';
 	        $result['button_ok'] = $data['promo_error_ok_button']??'Tambah item';
 	        $result['button_cancel'] = $data['promo_error_cancel_button']??'Tidak';
+	        $result['warning_image'] = $data['promo_warning_image']??'';
 
     	}
     	else

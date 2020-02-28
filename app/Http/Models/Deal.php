@@ -105,7 +105,8 @@ class Deal extends Model
 		'is_online',
 		'is_offline',
 		'promo_type',
-		'product_type'
+		'product_type',
+		'deals_warning_image'
 	];
 
 	protected $appends  = ['url_deals_image', 'deals_status', 'deals_voucher_price_type', 'url_webview'];
