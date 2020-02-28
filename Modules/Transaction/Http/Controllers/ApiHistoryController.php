@@ -587,7 +587,7 @@ class ApiHistoryController extends Controller
             if ($value['trasaction_payment_type']) {
                 $found = false;
 
-                if ($value['transaction_payment_status'] == 'Completed') {
+                if ($value['transaction_payment_status'] = 'Completed') {
                     $found = true;
                 } else {
                     $pay = TransactionMultiplePayment::where('id_transaction', $value['id_transaction'])->first();
