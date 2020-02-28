@@ -399,6 +399,7 @@
   <div class="@if(isset($data['admin'])) body-admin @endif">
 {{ csrf_field() }}
     <!-- Modal -->
+    @if(isset($data['transaction_payment_status']) && $data['transaction_payment_status'] != 'Cancelled')
     <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
             <div class="modal-content" style="border-radius: 42.3px; border: 0;">
@@ -408,19 +409,18 @@
             </div>
         </div>
     </div>
-
-    <!-- <div id="modal-usaha">
-        <div class="modal-usaha-content">
-            <img class="img-responsive" style="display: block; max-width: 100%; padding-top: 10px" src="{{ $data['qr'] }}">
-        </div>
-    </div> -->
+    @endif
 
     @if ($data['trasaction_type'] != 'Offline')
         @if(isset($data['detail']['pickup_by']) && $data['detail']['pickup_by'] == 'GO-SEND')
             <div class="kotak-biasa">
                 <div class="container">
                 <div class="row text-center">
-                    @if($data['detail']['reject_at'] != null)
+                    @if(isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Cancelled')
+                    <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #b72126;">
+                        Order Canceled
+                    </div>
+                    @elseif($data['detail']['reject_at'] != null)
                     <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #b72126;">
                         Order Rejected
                     </div>
@@ -470,7 +470,11 @@
                     <div class="kotak-full" style="background-color: #ffffff;margin-bottom: 0px;">
                         <div class="container">
                             <div class="row text-center">
-                                @if($data['detail']['reject_at'] != null)
+                                @if(isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Cancelled')
+                                <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #b72126;">
+                                    Order Canceled
+                                </div>
+                                @elseif($data['detail']['reject_at'] != null)
                                 <div class="col-12 text-16-7px Ubuntu-Bold" style="font-size: 16.7px;color: #b72126;">
                                     Order Rejected
                                 </div>
@@ -503,12 +507,13 @@
                         <div class="kotak-inside col-12">
                             <div class="col-12 text-11-7px text-grey-white space-nice text-center Ubuntu">{{ $data['outlet']['outlet_address'] }}</div>
                         </div>
+                        @if(isset($data['transaction_payment_status']) && $data['transaction_payment_status'] != 'Cancelled')
                         <div class="col-12 Ubuntu-Medium space-text text-black" style="font-size: 15px;">Your Pick Up Code</div>
-
                         <div style="width: 135px;height: 135px;margin: 0 auto;" data-toggle="modal" data-target="#exampleModal">
                             <div class="col-12 text-14-3px space-top"><img class="img-responsive" style="display: block;max-width: 100%;padding-top: 10px" src="{{ $data['qr'] }}"></div>
                         </div>
                         <div class="col-12 text-black Ubuntu-Medium" style="color: #333333;font-size: 21.7px;padding-bottom: 5px;">{{ $data['detail']['order_id'] }}</div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -519,6 +524,12 @@
                         <div class="col-12 text-16-7px text-black space-text Ubuntu">{{ strtoupper($data['user']['name']) }}</div>
                         <div class="col-12 text-16-7px text-black Ubuntu space-nice">{{ $data['user']['phone'] }}</div>
                         @endif
+                        @if (isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Cancelled')
+                        <div class="col-12 space-nice text-black Ubuntu" style="padding-bottom: 10px;">
+                            Your order cancelled on
+                        </div>
+                        <div class="col-12 text-14px space-text text-black Ubuntu-Medium">{{ date('d F Y', strtotime($data['transaction_date'])) }}</div>
+                        @else
                         <div class="col-12 space-nice text-black Ubuntu" style="padding-bottom: 10px;">
                             Your order will be ready on
                         </div>
@@ -532,6 +543,7 @@
                                 RIGHT NOW
                             @endif
                         </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -622,7 +634,7 @@
             <div class="col-12 text-14px Ubuntu-Medium text-black">Order Status</div>
         </div>
         <div class="row" style="margin-top: 5px;">
-            @php $top = 5; $bg = true; @endphp
+            @php $top = 6; $bg = true; @endphp
             @if($data['detail']['reject_at'] != null)
                 <div class="col-12 text-13-3px Ubuntu-Medium text-black">
                     <div class="round-black bg-black"></div>
@@ -642,14 +654,14 @@
                         </div>
                     </div>
                 </div>
-                @php $top += 5; $bg = false; @endphp
+                @php $top += 6; $bg = false; @endphp
             @endif
             @if($data['detail']['taken_at'] != null)
                 <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
                     <div class="round-black @if($bg) bg-black @endif"></div>
                     Your order has been taken
                 </div>
-                @php $top += 5; $bg = false; @endphp
+                @php $top += 6; $bg = false; @endphp
                 <div class="col-12 top-{{$top}}px">
                     <div class="inline text-center">
                         <div class="line-vertical text-grey-medium-light">|</div>
@@ -664,14 +676,14 @@
                         </div>
                     </div>
                 </div>
-                @php $top += 5; @endphp
+                @php $top += 6; @endphp
             @endif
             @if($data['detail']['ready_at'] != null)
                 <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
                     <div class="round-black @if($bg) bg-black @endif"></div>
                     Your order is ready
                 </div>
-                @php $top += 5; $bg = false; @endphp
+                @php $top += 6; $bg = false; @endphp
                 <div class="col-12 top-{{$top}}px">
                     <div class="inline text-center">
                         <div class="line-vertical text-grey-medium-light">|</div>
@@ -686,14 +698,14 @@
                         </div>
                     </div>
                 </div>
-                @php $top += 5; @endphp
+                @php $top += 6; @endphp
             @endif
             @if($data['detail']['receive_at'] != null)
                 <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
                     <div class="round-black @if($bg) bg-black @endif"></div>
                     Your order has been received
                 </div>
-                @php $top += 5; $bg = false; @endphp
+                @php $top += 6; $bg = false; @endphp
                 <div class="col-12 top-{{$top}}px">
                     <div class="inline text-center">
                         <div class="line-vertical text-grey-medium-light">|</div>
@@ -708,7 +720,29 @@
                         </div>
                     </div>
                 </div>
-                @php $top += 5; @endphp
+                @php $top += 6; @endphp
+            @endif
+            @if(isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Cancelled')
+                <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
+                    <div class="round-black @if($bg) bg-black @endif"></div>
+                    Your order has been canceled
+                </div>
+                @php $top += 6; $bg = false; @endphp
+                <div class="col-12 top-{{$top}}px">
+                    <div class="inline text-center">
+                        <div class="line-vertical text-grey-medium-light">|</div>
+                        <div class="line-vertical text-grey-medium-light">|</div>
+                        <div class="line-vertical text-grey-medium-light">|</div>
+                        <div class="line-vertical text-grey-medium-light">|</div>
+                        <div class="line-vertical text-grey-medium-light">|</div>
+                    </div>
+                    <div class="inline vertical-top">
+                        <div class="text-11-7px Ubuntu text-black space-bottom">
+                            {{ date('d F Y H:i', strtotime($data['detail']['receive_at'])) }}
+                        </div>
+                    </div>
+                </div>
+                @php $top += 6; @endphp
             @endif
             <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
                 <div class="round-black @if($bg) bg-black @endif"></div>

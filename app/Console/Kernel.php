@@ -88,7 +88,7 @@ class Kernel extends ConsoleKernel
          * To process sync menu price from the POS
          * Run every day at 00:05
          */
-        $schedule->call('Modules\POS\Http\Controllers\ApiPOS@cronProductPrice);')->dailyAt('00:05');
+        $schedule->call('Modules\POS\Http\Controllers\ApiPOS@cronProductPrice')->dailyAt('00:05');
 
         /**
          * To make daily transaction reports (offline and online transactions)
@@ -107,7 +107,10 @@ class Kernel extends ConsoleKernel
          * Run every 10 minute
          */
         $schedule->call('Modules\Transaction\Http\Controllers\ApiOvoReversal@processReversal')->cron('*/10 * * * *');
-
+        /**
+         * To process fraud
+         */
+        $schedule->call('Modules\SettingFraud\Http\Controllers\ApiFraud@fraudCron')->cron('*/59 * * * *');
     }
 
     /**

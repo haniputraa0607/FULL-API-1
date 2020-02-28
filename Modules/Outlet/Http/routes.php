@@ -1,5 +1,5 @@
 <?php
-Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth:api', 'user_agent', 'scopes:apps'], 'namespace' => 'Modules\Outlet\Http\Controllers'], function()
+Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth:api', 'scopes:apps'], 'namespace' => 'Modules\Outlet\Http\Controllers'], function()
 {
     Route::any('list', 'ApiOutletController@listOutlet');
     Route::any('list/ordernow', 'ApiOutletController@listOutletOrderNow');

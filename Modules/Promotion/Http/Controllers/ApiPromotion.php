@@ -32,11 +32,12 @@ use App\Http\Models\News;
 use App\Lib\MyHelper;
 use App\Lib\PushNotificationHelper;
 use App\Lib\classMaskingJson;
+use App\Lib\classJatisSMS;
 use App\Lib\apiwha;
 use Validator;
 use Hash;
 use DB;
-use Mailgun;
+use Mail;
 use Image;
 
 class ApiPromotion extends Controller
@@ -49,6 +50,7 @@ class ApiPromotion extends Controller
 		$this->dealsClaim  = "Modules\Deals\Http\Controllers\ApiDealsClaim";
 		$this->deals  = "Modules\Deals\Http\Controllers\ApiDeals";
 		$this->rajasms = new classMaskingJson();
+		$this->jatissms = new classJatisSMS();
 		$this->apiwha = new apiwha();
     }
 
@@ -1738,13 +1740,56 @@ class ApiPromotion extends Controller
 
 			$content 	= app($this->autocrm)->TextReplace($promotionContent['promotion_sms_content'], $user['id'], null, 'id');
 
-			array_push($senddata['datapacket'],array(
-					'number' => trim($user['phone']),
-					'message' => urlencode(stripslashes(utf8_encode($content))),
-					'sendingdatetime' => ""));
+			switch (env('SMS_GATEWAY')) {
+				case 'Jatis':
+					$senddata = [
+						'userid'	=> env('SMS_USER'),
+						'password'	=> env('SMS_PASSWORD'),
+						'msisdn'	=> '62'.substr($user['phone'],1),
+						'sender'	=> env('SMS_SENDER'),
+						'division'	=> env('SMS_DIVISION'),
+						'batchname'	=> env('SMS_BATCHNAME'),
+						'uploadby'	=> env('SMS_UPLOADBY'),
+						'channel'   => env('SMS_CHANNEL')
+					];
 
-			$this->rajasms->setData($senddata);
-			$send = $this->rajasms->send();
+					$senddata['message'] = $content;
+
+					$this->jatissms->setData($senddata);
+					$send = $this->jatissms->send();
+
+					break;
+				case 'RajaSMS':
+					$senddata = array(
+						'apikey' => env('SMS_KEY'),
+						'callbackurl' => env('APP_URL'),
+						'datapacket'=>array()
+					);
+
+					array_push($senddata['datapacket'],array(
+						'number' => trim($user['phone']),
+						'message' => urlencode(stripslashes(utf8_encode($content))),
+						'sendingdatetime' => ""));
+
+					$this->rajasms->setData($senddata);
+					$send = $this->rajasms->send();
+					break;
+				default:
+					$senddata = array(
+						'apikey' => env('SMS_KEY'),
+						'callbackurl' => env('APP_URL'),
+						'datapacket'=>array()
+					);
+
+					array_push($senddata['datapacket'],array(
+						'number' => trim($user['phone']),
+						'message' => urlencode(stripslashes(utf8_encode($content))),
+						'sendingdatetime' => ""));
+
+					$this->rajasms->setData($senddata);
+					$send = $this->rajasms->send();
+					break;
+			}
 
 			$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->update(['promotion_count_sms_sent' => $promotionContent['promotion_count_sms_sent']+1]);
 

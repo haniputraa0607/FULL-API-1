@@ -24,6 +24,9 @@ class ApiProductGroupController extends Controller
 
 	function __construct() {
         $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+
+        //code of general
+        $this->general = ['general_type','general_size'];
     }
 
     /**
@@ -110,7 +113,52 @@ class ApiProductGroupController extends Controller
             'product_group_photo' => $post['product_group_photo'],
             'product_group_image_detail' => $post['product_group_image_detail']
         ];
+        \DB::beginTransaction();
         $create = ProductGroup::create($data);
+        if($create && $request->json('variant_type') == 'single'){
+            $id_product = $post['id_product'];
+            ProductProductVariant::where('id_product',$id_product)->delete();
+            $variant1 = ProductVariant::where('product_variant_code','general_type')->first();
+            if(!$variant1){
+                $variant1 = ProductVariant::create([
+                    'product_variant_code' => 'general_type',
+                    'product_variant_subtitle' => 'General Type',
+                    'product_variant_title' => 'General Type',
+                    'product_variant_name' => 'General Type',
+                    'parent' => 2
+                ]);
+            }
+            $variant2 = ProductVariant::where('product_variant_code','general_size')->first();
+            if(!$variant2){
+                $variant2 = ProductVariant::create([
+                    'product_variant_code' => 'general_size',
+                    'product_variant_subtitle' => 'General Size',
+                    'product_variant_title' => 'General Size',
+                    'product_variant_name' => 'General Size',
+                    'parent' => 1
+                ]);
+            }
+            $insertData = [];
+            $insertData[] = [
+                'id_product'=>$id_product,
+                'id_product_variant'=>$variant1->id_product_variant
+            ];
+            $insertData[] = [
+                'id_product'=>$id_product,
+                'id_product_variant'=>$variant2->id_product_variant
+            ];
+            $insert = ProductProductVariant::insert($insertData);
+            if(!$insert){
+                \DB::rollback();
+                return MyHelper::checkCreate($insert);
+            }
+            $update = Product::where('id_product',$id_product)->update(['id_product_group'=>$create['id_product_group']]);
+            if(!$update){
+                \DB::rollback();
+                return MyHelper::checkUpdate($update);
+            }
+        }
+        \DB::commit();
         return MyHelper::checkCreate($create);
     }
 
@@ -184,6 +232,64 @@ class ApiProductGroupController extends Controller
             $data['product_group_image_detail'] = $post['product_group_image_detail'];
         }
         $update = $pg->update($data);
+        $append = [];
+        if($update && $request->json('variant_type') == 'single'){
+            $id_product = $post['id_product'];
+            ProductProductVariant::where('id_product',$id_product)->delete();
+            $variant1 = ProductVariant::where('product_variant_code','general_type')->first();
+            if(!$variant1){
+                $variant1 = ProductVariant::create([
+                    'product_variant_code' => 'general_type',
+                    'product_variant_subtitle' => 'General Type',
+                    'product_variant_title' => 'General Type',
+                    'product_variant_name' => 'General Type',
+                    'parent' => 2
+                ]);
+            }
+            $variant2 = ProductVariant::where('product_variant_code','general_size')->first();
+            if(!$variant2){
+                $variant2 = ProductVariant::create([
+                    'product_variant_code' => 'general_size',
+                    'product_variant_subtitle' => 'General Size',
+                    'product_variant_title' => 'General Size',
+                    'product_variant_name' => 'General Size',
+                    'parent' => 1
+                ]);
+            }
+            $insertData = [];
+            $insertData[] = [
+                'id_product'=>$id_product,
+                'id_product_variant'=>$variant1->id_product_variant
+            ];
+            $insertData[] = [
+                'id_product'=>$id_product,
+                'id_product_variant'=>$variant2->id_product_variant
+            ];
+            $insert = ProductProductVariant::insert($insertData);
+            if(!$insert){
+                \DB::rollback();
+                return MyHelper::checkCreate($insert);
+            }
+            $update = Product::where('id_product',$id_product)->update(['id_product_group'=>$pg->id_product_group]);
+            if(!$update){
+                \DB::rollback();
+                return MyHelper::checkUpdate($update);
+            }
+        }else{
+            // check if previously was single
+            $pv = Product::where('id_product_group',$pg->id_product_group)->get();
+            if(count($pv) == 1){
+                $pv[0]->load(['product_variants'=>function($query){
+                    $query->whereIn('product_variant_code',['general_type','general_size']);
+                }]);
+                if(count($pv[0]->product_variants) == 2){
+                    // delete record
+                    ProductProductVariant::where('id_product',$pv[0]->id_product)->delete();
+                    $pv[0]->update(['id_product_group'=>null]);
+                    $append = ['switch'=>true];
+                }
+            }
+        }
         if($update){
             if($pg_old['product_group_photo']??false){
                 MyHelper::deletePhoto($pg_old['product_group_photo']);
@@ -192,7 +298,8 @@ class ApiProductGroupController extends Controller
                 MyHelper::deletePhoto($pg_old['product_group_image_detail']);
             }
         }
-        return MyHelper::checkUpdate($update);
+        \DB::commit();
+        return MyHelper::checkUpdate($update)+$append;
     }
 
     /**
@@ -362,17 +469,22 @@ class ApiProductGroupController extends Controller
             ->join('product_variants as parents','product_variants.parent','=','parents.id_product_variant')
             ->select(\DB::raw('products.id_product,product_prices.product_stock_status,GROUP_CONCAT(product_variants.product_variant_code order by parents.product_variant_position) as product_variant_code,product_prices.product_price'))->groupBy('products.id_product')->get('id_product')->toArray();
         $id_products = array_column($products, 'id_product');
+        $is_visible = 1;
         //get variant stock
         $variant_stock = [];
         foreach ($products as $product) {
             if($product['product_variant_code']){
                 $varcode = explode(',',$product['product_variant_code']);
-                if(count($varcode) !== 2) continue;
-                $variant_stock[$varcode[0]][$varcode[1]] = [
+                if(count($varcode) < 2) continue;
+                $first = (int) count($varcode)/2;
+                $variant_stock[$varcode[0]][$varcode[$first]] = [
                     'product_variant_code' => $varcode[1],
                     'product_stock_status' => $product['product_stock_status'],
                     'product_price' => $product['product_price']
                 ];
+                if(in_array($varcode[0], $this->general)){
+                    $is_visible = 0;
+                }
             }
         }
         // product exists?
@@ -438,17 +550,23 @@ class ApiProductGroupController extends Controller
             return $a['type_position']<=>$b['type_position'];
         });
         $data['variants'] = $arranged_variant[0];
+        $data['variants']['is_visible'] = $is_visible;
         unset($data['variants']['childs']);
         foreach ($variant_stock as $key => $vstock) {
             if($arranged_variant[0]['childs'][$key]??false){
                 $stock = $arranged_variant[0]['childs'][$key];
                 $child = $arranged_variant[1];
                 unset($child['childs']);
+                $is_should_hidden = 1;
                 foreach ($arranged_variant[1]['childs'] as $vrn) {
                     if($variant_stock[$key][$vrn['product_variant_code']]??false){
+                        if(in_array($vrn['product_variant_code'], $this->general)){
+                            $is_should_hidden = 0;
+                        }
                         $child['childs'][] = array_merge($vrn,$variant_stock[$key][$vrn['product_variant_code']]);
                     }
                 }
+                $child['is_visible'] = $is_should_hidden;
                 $stock['childs'] = $child;
                 $data['variants']['childs'][]=$stock;
             }
@@ -496,6 +614,7 @@ class ApiProductGroupController extends Controller
             $val = $newval;
             return $key;
         }));
+        $data['is_visible'] = $is_visible;
         return MyHelper::checkGet($data);
     }
     public function search(Request $request) {

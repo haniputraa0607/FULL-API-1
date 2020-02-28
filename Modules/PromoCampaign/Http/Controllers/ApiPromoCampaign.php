@@ -60,7 +60,7 @@ class ApiPromoCampaign extends Controller
 
         $this->online_transaction   = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
         $this->voucher   = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
-        // $this->fraud   = "Modules\SettingFraud\Http\Controllers\ApiFraud";
+        $this->fraud   = "Modules\SettingFraud\Http\Controllers\ApiFraud";
     }
 
     public function index(Request $request)
@@ -1680,18 +1680,18 @@ class ApiPromoCampaign extends Controller
 
         if ($request->promo_code && !$request->id_deals_user) 
         {
-	        /* Check promo code*/
-	        $dataCheckPromoCode = [
-	            'id_user'    => $id_user,
-	            'device_id'  => $device_id,
-	            'promo_code' => $request->promo_code,
-	            'ip'         => $ip
-	        ];
-	        // $checkFraud = app($this->fraud)->fraudCheckPromoCode($dataCheckPromoCode);
-	        // if($checkFraud['status'] == 'fail'){
-	        //     return $checkFraud;
-	        // }
-	        /* End check promo code */
+            /* Check promo code*/
+            $dataCheckPromoCode = [
+                'id_user'    => $id_user,
+                'device_id'  => $device_id,
+                'promo_code' => $request->promo_code,
+                'ip'         => $ip
+            ];
+            $checkFraud = app($this->fraud)->fraudCheckPromoCode($dataCheckPromoCode);
+            if($checkFraud['status'] == 'fail'){
+                return $checkFraud;
+            }
+            /* End check promo code */
 
 	        // get data promo code, promo campaign, outlet, rule, and product
 	        $code=PromoCampaignPromoCode::where('promo_code',$request->promo_code)

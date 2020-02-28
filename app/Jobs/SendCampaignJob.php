@@ -25,8 +25,9 @@ use App\Http\Models\OauthAccessToken;
 
 use App\Lib\PushNotificationHelper;
 use App\Lib\classMaskingJson;
+use App\Lib\classJatisSMS;
 use DB;
-use Mailgun;
+use Mail;
 
 class SendCampaignJob implements ShouldQueue
 {
@@ -54,6 +55,7 @@ class SendCampaignJob implements ShouldQueue
         $userr     = "Modules\Users\Http\Controllers\ApiUser";
         $autocrm  = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
         $rajasms = new classMaskingJson();
+		$this->jatissms = new classJatisSMS();
         $campaign=$this->data['campaign'];
         $type=$this->data['type'];
         $recipient=$this->data['recipient'];
@@ -211,13 +213,56 @@ class SendCampaignJob implements ShouldQueue
                 foreach($recipient as $key => $receipient){
                     $content    = app($autocrm)->TextReplace($campaign['campaign_sms_content'], $receipient);
 
-                    array_push($senddata['datapacket'],array(
-                            'number' => trim($receipient),
-                            'message' => urlencode(stripslashes(utf8_encode($content))),
-                            'sendingdatetime' => ""));
+                    switch (env('SMS_GATEWAY')) {
+						case 'Jatis':
+							$senddata = [
+								'userid'	=> env('SMS_USER'),
+								'password'	=> env('SMS_PASSWORD'),
+								'msisdn'	=> '62'.substr($receipient,1),
+								'sender'	=> env('SMS_SENDER'),
+								'division'	=> env('SMS_DIVISION'),
+								'batchname'	=> env('SMS_BATCHNAME'),
+                                'uploadby'	=> env('SMS_UPLOADBY'),
+                                'channel'   => env('SMS_CHANNEL')
+							];
 
-                    $rajasms->setData($senddata);
-                    $send = $rajasms->send();
+                            $senddata['message'] = $content;
+
+							$this->jatissms->setData($senddata);
+							$send = $this->jatissms->send();
+
+							break;
+						case 'RajaSMS':
+							$senddata = array(
+								'apikey' => env('SMS_KEY'),
+								'callbackurl' => env('APP_URL'),
+								'datapacket'=>array()
+							);
+
+                            array_push($senddata['datapacket'],array(
+                                'number' => trim($receipient),
+                                'message' => urlencode(stripslashes(utf8_encode($content))),
+                                'sendingdatetime' => ""));
+
+							$this->rajasms->setData($senddata);
+							$send = $this->rajasms->send();
+							break;
+						default:
+							$senddata = array(
+								'apikey' => env('SMS_KEY'),
+								'callbackurl' => env('APP_URL'),
+								'datapacket'=>array()
+							);
+
+                            array_push($senddata['datapacket'],array(
+                                'number' => trim($receipient),
+                                'message' => urlencode(stripslashes(utf8_encode($content))),
+                                'sendingdatetime' => ""));
+
+							$this->rajasms->setData($senddata);
+							$send = $this->rajasms->send();
+							break;
+					}
 
                     $outbox = [];
                     $outbox['id_campaign'] = $campaign['id_campaign'];
