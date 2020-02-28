@@ -87,7 +87,7 @@ class ApiWebviewController extends Controller
                         'button'                     => $button,
                         'title'                      => $title,
                         'payment_status'             => $list['transaction_payment_status'],
-                        'transaction_receipt_number' => $list['transaction_receipt_number'],
+                        'id_transaction'             => $list['transaction_receipt_number'],
                         'transaction_grandtotal'     => $list['transaction_grandtotal'],
                         'type'                       => $type,
                         'url'                        => env('API_URL').'api/transaction/web/view/detail?data='.$base
@@ -103,8 +103,8 @@ class ApiWebviewController extends Controller
                 }
 
                 $dataEncode = [
-                    'transaction_receipt_number'   => $id,
-                    'type' => $type
+                    'id_transaction'    => $id,
+                    'type'              => $type
                 ];
 
                 $encode = json_encode($dataEncode);
@@ -114,7 +114,7 @@ class ApiWebviewController extends Controller
                     'status'         => 'success',
                     'result'         => [
                         'payment_status'             => $list['paid_status'],
-                        'transaction_receipt_number' => $list['id_deals_user'],
+                        'id_transaction'             => $list['id_deals_user'],
                         'transaction_grandtotal'     => $list['voucher_price_cash'],
                         'type'                       => $type,
                         'url'                        => env('API_URL').'api/transaction/web/view/detail?data='.$base
@@ -125,12 +125,11 @@ class ApiWebviewController extends Controller
                 return response()->json($send);
             }
         }
-
+        
         if ($type == 'trx') {
             if($request->json('id_transaction')){
                 if($use_product_variant){
-                    $list = Transaction::where([['id_transaction', $id],
-                        ['id_user',$request->user()->id]])->with(
+                    $list = Transaction::where([['id_transaction', $id]])->with(
                             'user.city.province',
                             'productTransaction.product.product_group',
                             'productTransaction.product.product_variants',
@@ -601,6 +600,7 @@ class ApiWebviewController extends Controller
         $data = json_decode(base64_decode($request->get('data')), true);
         $data['check'] = 1;
         $check = MyHelper::postCURLWithBearer('api/transaction/detail/webview?log_save=0', $data, $bearer);
+        
         if (isset($check['status']) && $check['status'] == 'success') {
             $data = $check['result'];
         } elseif (isset($check['status']) && $check['status'] == 'fail') {
@@ -645,14 +645,14 @@ class ApiWebviewController extends Controller
         }
 
         if (isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Cancelled') {
-            $view = 'transaction_failed';
+            $view = 'detail_transaction_pickup';
         }
 
         if (isset($data['order_label_v2'])) {
             $data['order_label_v2'] = explode(',', $data['order_label_v2']);
             $data['order_v2'] = explode(',', $data['order_v2']);
         }
-        // dd($data);
+        // dd($view);
         return view('transaction::webview.' . $view . '')->with(compact('data'));
     }
 
@@ -715,7 +715,7 @@ class ApiWebviewController extends Controller
         }
 
         if (isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Cancelled') {
-            $view = 'transaction_failed';
+            $view = 'detail_transaction_pickup';
         }
 
         if (isset($data['order_label_v2'])) {

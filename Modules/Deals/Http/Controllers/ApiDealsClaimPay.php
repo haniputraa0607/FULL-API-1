@@ -288,6 +288,19 @@ class ApiDealsClaimPay extends Controller
 
             if ($voucher) {
                 $pay = $this->paymentMethod($dataDeals, $voucher, $request);
+                if (isset($pay['payment']) && $pay['payment'] == 'cimb') {
+                    unset($pay['payment']);
+                    $pay['deals'] = 1;
+                    DB::commit();
+                    
+                    return [
+                        'status'    => 'success',
+                        'result'    => [
+                            'data' => $pay,
+                            'url'  => env('API_URL').'api/transaction/curl_cimb'
+                        ]
+                    ];
+                }
             }
 
             // if deals subscription and pay completed, update paid_status another user vouchers
@@ -378,8 +391,19 @@ class ApiDealsClaimPay extends Controller
             }
 
            /* MIDTRANS */
-            if ($request->get('payment_deals') && $request->get('payment_deals') == "midtrans") {
+            if ($request->json('payment_deals') && $request->json('payment_deals') == "midtrans") {
                 $pay = $this->midtrans($dataDeals, $voucher);
+            }
+
+            /* CIMB */
+            if ($request->json('payment_deals') && $request->json('payment_deals') == "cimb") {
+                $pay = $this->cimb($dataDeals, $voucher);
+                $cimb = [
+                    'MERCHANT_TRANID'   => $pay['order_id'],
+                    'AMOUNT'            => $pay['amount'],
+                    'payment'           => 'cimb'
+                ];
+                return $cimb;
             }
 
            /* OVO */
@@ -388,7 +412,7 @@ class ApiDealsClaimPay extends Controller
             }
 
             /* MANUAL */
-            if ($request->get('payment_deals') && $request->get('payment_deals') == "manual") {
+            if ($request->json('payment_deals') && $request->json('payment_deals') == "manual") {
                 $post             = $request->json()->all();
                 $post['id_deals'] = $dataDeals->id_deals;
 
@@ -440,6 +464,32 @@ class ApiDealsClaimPay extends Controller
         }
 
         return false;
+    }
+
+    /* CIMB */
+    function cimb($deals, $voucher, $grossAmount=null)
+    {
+        // simpan dulu di deals payment midtrans
+        $data = [
+            'id_deals'      => $deals->id_deals,
+            'id_deals_user' => $voucher->id_deals_user,
+            'gross_amount'  => $voucher->voucher_price_cash,
+            'order_id'      => time().sprintf("%05d", $voucher->id_deals_user).'-'.$voucher->id_deals_user
+        ];
+
+        if (is_null($grossAmount)) {
+            if (!$this->updateInfoDealUsers($voucher->id_deals_user, ['payment_method' => 'Cimb'])) {
+                 return false;
+            }
+        }
+        else {
+            $data['gross_amount'] = $grossAmount;
+        }
+
+        return [
+            'order_id'  => $data['order_id'],
+            'amount'    => $data['gross_amount']
+        ];
     }
 
     /* OVO */
@@ -817,9 +867,11 @@ class ApiDealsClaimPay extends Controller
             if ($this->updateLogPoint(- $myBalance, $voucher)) {
                 if ($this->updateInfoDealUsers($voucher->id_deals_user, $dataDealsUserUpdate)) {
                     if($paymentMethod == 'midtrans'){
-                        return $this->midtrans($deals, $voucher, $dataDealsUserUpdate['balance_nominal']);
+                        return $this->midtrans($deals, $voucher, -$kurangBayar);
                     }elseif($paymentMethod == 'ovo'){
-                        return $this->ovo($deals, $voucher, $dataDealsUserUpdate['balance_nominal']);
+                        return $this->ovo($deals, $voucher, -$kurangBayar);
+                    }elseif($paymentMethod == 'cimb'){
+                        return $this->cimb($deals, $voucher, -$kurangBayar);
                     }
                 }
             }

@@ -2,6 +2,7 @@
 
 namespace Modules\Transaction\Http\Controllers;
 
+use App\Http\Models\DailyTransactions;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -78,7 +79,7 @@ class ApiOnlineTransaction extends Controller
         $this->autocrm       = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
         $this->transaction   = "Modules\Transaction\Http\Controllers\ApiTransaction";
         $this->notif         = "Modules\Transaction\Http\Controllers\ApiNotification";
-        $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiSettingFraud";
+        $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiFraud";
         $this->setting_trx   = "Modules\Transaction\Http\Controllers\ApiSettingTransactionV2";
         $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
     }
@@ -111,6 +112,7 @@ class ApiOnlineTransaction extends Controller
         $grandTotal = app($this->setting_trx)->grandTotal();
         $order_id = null;
         $id_pickup_go_send = null;
+        $promo_code_ref = null;
 
         if (isset($post['headers'])) {
             unset($post['headers']);
@@ -284,6 +286,7 @@ class ApiOnlineTransaction extends Controller
             {
                 $post['id_promo_campaign_promo_code'] = $code->id_promo_campaign_promo_code;
                 if($code->promo_type = "Referral"){
+                    $promo_code_ref = $request->json('promo_code');
                     $use_referral = true;
                 }
                 $pct=new PromoCampaignTools();
@@ -676,7 +679,10 @@ class ApiOnlineTransaction extends Controller
             $addPromoCounter = PromoCampaignReferralTransaction::create([
                 'id_promo_campaign_promo_code' =>$code->id_promo_campaign_promo_code,
                 'id_user' => $insertTransaction['id_user'],
-                'id_transaction' => $insertTransaction['id_transaction']
+                'id_referrer' => UserReferralCode::select('id_user')->where('id_promo_campaign_promo_code',$code->id_promo_campaign_promo_code)->pluck('id_user')->first(),
+                'id_transaction' => $insertTransaction['id_transaction'],
+                'referred_bonus_type' => $promo_discount?'Product Discount':'Cashback',
+                'referred_bonus' => $promo_discount?:$insertTransaction['transaction_cashback_earned']
             ]);
             if(!$addPromoCounter){
                 DB::rollback();
@@ -685,6 +691,16 @@ class ApiOnlineTransaction extends Controller
                     'messages'  => ['Insert Transaction Failed']
                 ]);
             }
+
+            //======= Start Check Fraud Referral User =======//
+            $data = [
+                'id_user' => $insertTransaction['id_user'],
+                'referral_code' => $request->promo_code,
+                'referral_code_use_date' => $insertTransaction['transaction_date'],
+                'id_transaction' => $insertTransaction['id_transaction']
+            ];
+            app($this->setting_fraud)->fraudCheckReferralUser($data);
+            //======= End Check Fraud Referral User =======//
         }
         // add transaction voucher
         if($request->json('id_deals_user')){
@@ -799,7 +815,7 @@ class ApiOnlineTransaction extends Controller
             foreach ($valueProduct['modifiers'] as $modifier) {
                 $id_product_modifier = is_numeric($modifier)?$modifier:$modifier['id_product_modifier'];
                 $qty_product_modifier = is_numeric($modifier)?1:$modifier['qty'];
-                $mod = ProductModifier::select('product_modifiers.id_product_modifier','text','product_modifier_stock_status','product_modifier_price')
+                $mod = ProductModifier::select('product_modifiers.id_product_modifier','code','type','text','product_modifier_stock_status','product_modifier_price')
                     // produk modifier yang tersedia di outlet
                     ->join('product_modifier_prices','product_modifiers.id_product_modifier','=','product_modifier_prices.id_product_modifier')
                     ->where('product_modifier_prices.id_outlet',$post['id_outlet'])
@@ -1484,6 +1500,28 @@ class ApiOnlineTransaction extends Controller
         // if($post['latitude'] && $post['longitude']){
         //    $savelocation = $this->saveLocation($post['latitude'], $post['longitude'], $insertTransaction['id_user'], $insertTransaction['id_transaction']);
         // }
+        /* Add to daily trasaction*/
+        $dataDailyTrx = [
+            'id_transaction'    => $insertTransaction['id_transaction'],
+            'id_outlet'         => $outlet['id_outlet'],
+            'transaction_date'  => date('Y-m-d H:i:s', strtotime($insertTransaction['transaction_date'])),
+            'id_user'           => $user['id'],
+            'referral_code'     => $promo_code_ref
+        ];
+        $createDailyTrx = DailyTransactions::create($dataDailyTrx);
+
+        if($promo_code_ref){
+            //======= Start Check Fraud Referral User =======//
+            $data = [
+                'id_user' => $insertTransaction['id_user'],
+                'referral_code' => $promo_code_ref,
+                'referral_code_use_date' => $insertTransaction['transaction_date'],
+                'id_transaction' => $insertTransaction['id_transaction']
+            ];
+            app($this->setting_fraud)->fraudCheckReferralUser($data);
+            //======= End Check Fraud Referral User =======//
+        }
+
         DB::commit();
         return response()->json([
             'status'   => 'success',
@@ -1541,14 +1579,15 @@ class ApiOnlineTransaction extends Controller
         } else {
             $post['transaction_date'] = date('Y-m-d H:i:s');
         }
-
+        $outlet_status = 1;
         //cek outlet active
         if(isset($outlet['outlet_status']) && $outlet['outlet_status'] == 'Inactive'){
-            DB::rollback();
-            return response()->json([
-                'status'    => 'fail',
-                'messages'  => ['Outlet tutup']
-            ]);
+            // DB::rollback();
+            // return response()->json([
+            //     'status'    => 'fail',
+            //     'messages'  => ['Outlet tutup']
+            // ]);
+            $outlet_status = 0;
         }
 
         //cek outlet holiday
@@ -1559,28 +1598,31 @@ class ApiOnlineTransaction extends Controller
                 foreach($holiday as $i => $holi){
                     if($holi['yearly'] == '0'){
                         if($holi['date'] == date('Y-m-d')){
-                            DB::rollback();
-                            return response()->json([
-                                'status'    => 'fail',
-                                'messages'  => ['Outlet tutup']
-                            ]);
+                            // DB::rollback();
+                            // return response()->json([
+                            //     'status'    => 'fail',
+                            //     'messages'  => ['Outlet tutup']
+                            // ]);
+                            $outlet_status = 0;
                         }
                     }else{
-                        DB::rollback();
-                        return response()->json([
-                            'status'    => 'fail',
-                            'messages'  => ['Outlet tutup']
-                        ]);
+                        // DB::rollback();
+                        // return response()->json([
+                        //     'status'    => 'fail',
+                        //     'messages'  => ['Outlet tutup']
+                        // ]);
+                        $outlet_status = 0;
                     }
                 }
             }
 
             if($outlet['today']['is_closed'] == '1'){
-                DB::rollback();
-                return response()->json([
-                    'status'    => 'fail',
-                    'messages'  => ['Outlet tutup']
-                ]);
+                // DB::rollback();
+                // return response()->json([
+                //     'status'    => 'fail',
+                //     'messages'  => ['Outlet tutup']
+                // ]);
+                $outlet_status = 0;
             }
 
              if($outlet['today']['close'] && $outlet['today']['close'] != "00:00" && $outlet['today']['open'] && $outlet['today']['open'] != '00:00'){
@@ -1588,21 +1630,23 @@ class ApiOnlineTransaction extends Controller
                 $settingTime = Setting::where('key', 'processing_time')->first();
                 if($settingTime && $settingTime->value){
                     if($outlet['today']['close'] && date('H:i') > date('H:i', strtotime('-'.$settingTime->value.' minutes' ,strtotime($outlet['today']['close'])))){
-                        DB::rollback();
-                        return response()->json([
-                            'status'    => 'fail',
-                            'messages'  => ['Outlet tutup']
-                        ]);
+                        // DB::rollback();
+                        // return response()->json([
+                        //     'status'    => 'fail',
+                        //     'messages'  => ['Outlet tutup']
+                        // ]);
+                        $outlet_status = 0;
                     }
                 }
 
                 //cek outlet open - close hour
                 if(($outlet['today']['open'] && date('H:i') < date('H:i', strtotime($outlet['today']['open']))) || ($outlet['today']['close'] && date('H:i') > date('H:i', strtotime($outlet['today']['close'])))){
-                    DB::rollback();
-                    return response()->json([
-                        'status'    => 'fail',
-                        'messages'  => ['Outlet tutup']
-                    ]);
+                    // DB::rollback();
+                    // return response()->json([
+                    //     'status'    => 'fail',
+                    //     'messages'  => ['Outlet tutup']
+                    // ]);
+                    $outlet_status = 0;
                 }
             }
         }
@@ -1929,11 +1973,65 @@ class ApiOnlineTransaction extends Controller
             }
         }
         $post['discount'] = $post['discount'] + ($promo_discount??0);
+
+        $post['cashback'] = app($this->setting_trx)->countTransaction('cashback', $post);
+
+        //count some trx user
+        $countUserTrx = Transaction::where('id_user', $user->id)->where('transaction_payment_status', 'Completed')->count();
+
+        $countSettingCashback = TransactionSetting::get();
+
+        // return $countSettingCashback;
+        if ($countUserTrx < count($countSettingCashback)) {
+            // return $countUserTrx;
+            $post['cashback'] = $post['cashback'] * $countSettingCashback[$countUserTrx]['cashback_percent'] / 100;
+
+            if ($post['cashback'] > $countSettingCashback[$countUserTrx]['cashback_maximum']) {
+                $post['cashback'] = $countSettingCashback[$countUserTrx]['cashback_maximum'];
+            }
+        } else {
+
+            $maxCash = Setting::where('key', 'cashback_maximum')->first();
+
+            if (count($user['memberships']) > 0) {
+                $post['cashback'] = $post['cashback'] * ($user['memberships'][0]['benefit_cashback_multiplier']) / 100;
+
+                if($user['memberships'][0]['cashback_maximum']){
+                    $maxCash['value'] = $user['memberships'][0]['cashback_maximum'];
+                }
+            }
+
+            $statusCashMax = 'no';
+
+            if (!empty($maxCash) && !empty($maxCash['value'])) {
+                $statusCashMax = 'yes';
+                $totalCashMax = $maxCash['value'];
+            }
+
+            if ($statusCashMax == 'yes') {
+                if ($totalCashMax < $post['cashback']) {
+                    $post['cashback'] = $totalCashMax;
+                }
+            } else {
+                $post['cashback'] = $post['cashback'];
+            }
+        }
+
+        $cashback_text = explode('%earned_cashback%',Setting::select('value_text')->where('key', 'earned_cashback_text')->pluck('value_text')->first()?:'You\'ll receive %earned_cashback% for this transaction');
+        $cashback_earned = (int) $post['cashback'];
+        $cashback_text_array = [
+            $cashback_text[0],
+            count($cashback_text) >= 2?number_format($cashback_earned,0,',','.').' Point':'',
+            $cashback_text[1]??''
+        ];
+
+        $outlet['today']['status'] = $outlet_status?'open':'closed';
         $result['outlet'] = [
             'id_outlet' => $outlet['id_outlet'],
             'outlet_code' => $outlet['outlet_code'],
             'outlet_name' => $outlet['outlet_name'],
-            'outlet_address' => $outlet['outlet_address']
+            'outlet_address' => $outlet['outlet_address'],
+            'today' => $outlet['today']
         ];
         $result['item'] = array_values($tree);
         $result['subtotal'] = MyHelper::requestNumber($subtotal,$rn);
@@ -1947,6 +2045,7 @@ class ApiOnlineTransaction extends Controller
         $result['used_point'] = MyHelper::requestNumber(0,$rn);
         $balance = app($this->balance)->balanceNow($user->id);
         $result['points'] = MyHelper::requestNumber($balance,$rn);
+        $result['earned_cashback_text'] = $cashback_text_array;
         if (isset($post['payment_type'])&&$post['payment_type'] == 'Balance') {
             if($balance>=$grandtotal){
                 $used_point = $grandtotal;

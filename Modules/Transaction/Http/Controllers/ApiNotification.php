@@ -52,7 +52,7 @@ class ApiNotification extends Controller {
         $this->balance       = "Modules\Balance\Http\Controllers\BalanceController";
         $this->autocrm       = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
         $this->membership    = "Modules\Membership\Http\Controllers\ApiMembership";
-        $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiSettingFraud";
+        $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiFraud";
         $this->trx = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
         $this->url_oauth  = env('URL_OUTLET_OAUTH');
         $this->oauth_id  = env('OUTLET_OAUTH_ID');
