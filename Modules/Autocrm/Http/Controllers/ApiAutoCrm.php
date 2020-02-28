@@ -246,7 +246,7 @@ class ApiAutoCrm extends Controller
 								'batchname'	=> env('SMS_BATCHNAME'),
 								'uploadby'	=> env('SMS_UPLOADBY')
 							];
-							
+
 							if($crm['autocrm_title'] == 'Pin Sent' || $crm['autocrm_title'] == 'Pin Forgot'){
 								if($useragent && $useragent == "Android"){
 									$crm['autocrm_sms_content'] = '<#> '.$crm['autocrm_sms_content'].' '.ENV('HASH_KEY_'.ENV('HASH_KEY_TYPE'));
@@ -255,12 +255,12 @@ class ApiAutoCrm extends Controller
 								$senddata['channel']	= 2;
 							} else {
 								$senddata['message'] 	= $this->TextReplace($crm['autocrm_sms_content'], $user['phone'], $variables);
-								$senddata['channel']	= 0;
+								$senddata['channel']	= env('SMS_CHANNEL');
 							}
-							
+
 							$this->jatissms->setData($senddata);
 							$send = $this->jatissms->send();
-							
+
 							break;
 						case 'RajaSMS':
 							$senddata = array(
@@ -280,7 +280,7 @@ class ApiAutoCrm extends Controller
 									'number' => trim($user['phone']),
 									'message' => urlencode(stripslashes(utf8_encode($content))),
 									'sendingdatetime' => ""));
-									
+
 							$this->rajasms->setData($senddata);
 							$send = $this->rajasms->send();
 							break;
@@ -302,7 +302,7 @@ class ApiAutoCrm extends Controller
 									'number' => trim($user['phone']),
 									'message' => urlencode(stripslashes(utf8_encode($content))),
 									'sendingdatetime' => ""));
-									
+
 							$this->rajasms->setData($senddata);
 							$send = $this->rajasms->send();
 							break;
