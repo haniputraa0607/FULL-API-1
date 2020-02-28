@@ -14,7 +14,6 @@ use \App\Http\Models\Setting;
 use \Modules\PromoCampaign\Entities\PromoCampaignReferral;
 use \Modules\PromoCampaign\Entities\PromoCampaign;
 use \Modules\PromoCampaign\Entities\UserReferralCode;
-use App\Http\Models\Setting;
 use Modules\PromoCampaign\Entities\PromoCampaignReferralTransaction;
 
 class ApiReferralController extends Controller
