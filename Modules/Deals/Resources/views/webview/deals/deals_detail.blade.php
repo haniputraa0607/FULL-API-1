@@ -214,13 +214,13 @@
 				<div class="col-12" style="padding: 10px 15px;padding-bottom: 0px;">
 					<ul class="nav nav-tabs Ubuntu-Bold" id="myTab" role="tablist" style="font-size: 14px;">
 						<li class="nav-item">
-							<a class="nav-link active" id="ketentuan-tab" data-toggle="tab" href="#ketentuan" role="tab" aria-controls="ketentuan" aria-selected="true">Terms</a>
+							<a class="nav-link active" id="ketentuan-tab" data-toggle="tab" href="#ketentuan" onclick="replaceHtml('#ketentuan')" role="tab" aria-controls="ketentuan" aria-selected="true">Terms</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" id="howuse-tab" data-toggle="tab" href="#howuse" role="tab" aria-controls="howuse" aria-selected="false">How to Use</a>
+							<a class="nav-link" id="howuse-tab" data-toggle="tab" href="#howuse" onclick="replaceHtml('#howuse')" role="tab" aria-controls="howuse" aria-selected="false">How to Use</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" id="outlet-tab" data-toggle="tab" href="#outlet" role="tab" aria-controls="outlet" aria-selected="false">Available at</a>
+							<a class="nav-link" id="outlet-tab" data-toggle="tab" href="#outlet" onclick="replaceHtml('#outlet')" role="tab" aria-controls="outlet" aria-selected="false">Available at</a>
 						</li>
 					</ul>
 				</div>
@@ -258,7 +258,12 @@
 
     <script src="{{env('API_URL')}}js/jquery.js"></script>
     <script src="{{env('API_URL')}}js/popper.js"></script>
-    <script src="{{env('API_URL')}}js/deals.js"></script>
+	<script src="{{env('API_URL')}}js/deals.js"></script>
+	<script>
+		function replaceHtml(params) {
+			location.replace(window.location.origin + window.location.pathname + params)
+		}
+	</script>
     @if(!empty($deals))
         <script type="text/javascript">
             @php $month = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', "Juli", 'Agustus', 'September', 'Oktober', 'November', 'Desember']; @endphp
