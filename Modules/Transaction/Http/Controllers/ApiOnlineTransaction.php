@@ -1711,9 +1711,9 @@ class ApiOnlineTransaction extends Controller
 		            $promo['is_free'] = $discount_promo['is_free'];
 
 		            if ( !empty($errore) || !empty($errors)) {
-
 		            	$promo_error = app($this->promo_campaign)->promoError('transaction', $errore, $errors);
 		            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('promo_campaign', $code['promo_campaign'])['product']??'';
+		            	$promo_error['warning_image'] = env('S3_URL_API').($code['promo_campaign_warning_image']??$promo_error['warning_image']);
 				        $promo_error['product'] = $pct->getRequiredProduct($code->id_promo_campaign)??null;
 		                
 		            }
@@ -1728,7 +1728,6 @@ class ApiOnlineTransaction extends Controller
         elseif($request->json('id_deals_user'))
         {
         	$deals = app($this->promo_campaign)->checkVoucher($request->id_deals_user, 1, 1);
-
 			if($deals)
 			{
 				$pct=new PromoCampaignTools();
@@ -1740,8 +1739,10 @@ class ApiOnlineTransaction extends Controller
 
 				if ( !empty($errors) ) {
 					$code = $deals->toArray();
+
 	            	$promo_error = app($this->promo_campaign)->promoError('transaction', null, $errors);
 	            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('deals', $code['deal_voucher']['deals'])['product']??'';
+	            	$promo_error['warning_image'] = env('S3_URL_API').($code['deal_voucher']['deals']['deals_warning_image']??$promo_error['warning_image']);
 		        	$promo_error['product'] = $pct->getRequiredProduct($deals->dealVoucher->id_deals, 'deals')??null;
 	            }
 	            $promo_discount=$discount_promo['discount'];
