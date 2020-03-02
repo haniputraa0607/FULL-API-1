@@ -217,9 +217,7 @@
             document.getElementById("TXN_PASSWORD").value = '{{env("CIMB_TXN_PASSWORD")}}';
             document.getElementById("RETURN_URL").value = '{{$url}}';
             document.getElementById("TXN_SIGNATURE").value = hashTxn;
-            setTimeout(() => {
-                window.document.getElementById("btn").click()
-            }, 500);
+            window.document.getElementById("btn").click()
         }
     </script>
 </head>
@@ -236,12 +234,5 @@
         <input type="hidden" id="TXN_SIGNATURE" name="TXN_SIGNATURE">
         <button type="submit" style="display: none;" id="btn">submit</button>
     </form>
-
-    <p style="position: fixed; /* or absolute */
-    top: 45%;
-    left: 50%;
-    /* bring your own prefixes */
-    transform: translate(-50%, -50%);
-    font-size: 20px;">Please Wait...</p>
 </body>
 </html>
