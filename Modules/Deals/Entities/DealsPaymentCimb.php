@@ -12,6 +12,7 @@ class DealsPaymentCimb extends Model
         'id_deals',
         'id_deals_user',
         'transaction_id',
+        'amount',
         'txn_status',
         'txn_signature',
         'secure_signature',
