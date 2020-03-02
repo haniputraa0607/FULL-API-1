@@ -644,8 +644,9 @@ class ApiDealsVoucher extends Controller
 			$deals_user = DealsUser::where('id_deals_user','=',$id_deals_user)->update(['is_used' => 1]);
 		}
 		
-		if ($deals_user) {
+		if (is_int($deals_user) || $deals_user) {
 			DB::commit();
+			$deals_user = 1;
 		}else{
 			DB::rollback();
 		}
