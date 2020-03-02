@@ -425,6 +425,7 @@ class ApiProductGroupController extends Controller
         foreach ($data as $product) {
             $product['product_stock_status'] = $this->checkAvailable($product['product_stock_status']);
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],$request->json('request_number'));
+            $product['product_price_pretty'] = MyHelper::requestNumber($product['product_price'],'_CURRENCY');
             $id_product_category = $product['id_product_category'];
             if(!isset($result[$id_product_category]['product_category_name'])){
                 $category = ProductCategory::select('product_category_name','id_product_category')->find($id_product_category)->toArray();
@@ -480,7 +481,8 @@ class ApiProductGroupController extends Controller
                 $variant_stock[$varcode[0]][$varcode[$first]] = [
                     'product_variant_code' => $varcode[1],
                     'product_stock_status' => $product['product_stock_status'],
-                    'product_price' => $product['product_price']
+                    'product_price' => $product['product_price'],
+                    'product_price_pretty' => MyHelper::requestNumber($product['product_price'],'_CURRENCY')
                 ];
                 if(in_array($varcode[0], $this->general)){
                     $is_visible = 0;
@@ -517,6 +519,7 @@ class ApiProductGroupController extends Controller
             ->whereIn('product_product_variants.id_product',$id_products)->orderBy('product_variants.product_variant_position')->groupBy('product_variant_code')->get()->toArray();
         // set price to response
         $data['product_price'] = MyHelper::requestNumber($default['product_price'],$request->json('request_number'));
+        $data['product_price_pretty'] = MyHelper::requestNumber($default['product_price'],'_CURRENCY');
         // arrange default variant
         if($default['defaults']??false){
             $default['defaults'] = explode(';',$default['defaults']);
@@ -607,6 +610,7 @@ class ApiProductGroupController extends Controller
             ->get()->toArray();
         $data['modifiers'] = array_values(MyHelper::groupIt($modifiers,'type',function($key,&$val) use ($request){
             $val['price'] = MyHelper::requestNumber($val['price'],$request->json('request_number'));
+            $val['price_pretty'] = MyHelper::requestNumber($val['price'],'_CURRENCY');
             return $key;
         },function($key,&$val){
             $newval['type'] = $key;
@@ -664,6 +668,7 @@ class ApiProductGroupController extends Controller
         $result = [];
         foreach ($data as $product) {
             $product['product_stock_status'] = $this->checkAvailable($product['product_stock_status']);
+            $product['product_price_pretty'] = MyHelper::requestNumber($product['product_price'],'_CURRENCY');
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],$request->json('request_number'));
             unset($product['products']);
             $result[] = $product;

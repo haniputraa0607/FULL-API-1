@@ -7,6 +7,7 @@
 
 namespace App\Http\Models;
 
+use \App\Lib\MyHelper;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -106,7 +107,7 @@ class Deal extends Model
 		'product_type'
 	];
 
-	protected $appends  = ['url_deals_image', 'deals_status', 'deals_voucher_price_type', 'url_webview'];
+	protected $appends  = ['url_deals_image', 'deals_status', 'deals_voucher_price_type', 'deals_voucher_price_pretty', 'url_webview'];
 
 	public function getUrlWebviewAttribute() {
 		return env('API_URL') ."api/webview/deals/". $this->id_deals ."/". $this->deals_type;
@@ -121,6 +122,17 @@ class Deal extends Model
             $type = "nominal";
         }
         return $type;
+	}
+
+	public function getDealsVoucherPricePrettyAttribute() {
+	    $pretty = "Free";
+		if ($this->dealsVoucherPriceType == 'point') {
+            $pretty = MyHelper::requestNumber($this->deals_voucher_price_point,'_POINT');
+        }
+        elseif ($this->dealsVoucherPriceType == 'nominal') {
+            $pretty = MyHelper::requestNumber($this->deals_voucher_price_cash,'_CURRENCY');
+        }
+        return $pretty;
 	}
 
 	public function getDealsStatusAttribute() {
