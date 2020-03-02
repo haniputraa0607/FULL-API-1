@@ -448,6 +448,7 @@ class ApiProductGroupController extends Controller
                     // join product_price (product_outlet pivot and product price data)
                     ->join('product_prices','product_prices.id_product','=','products.id_product')
                     ->where('product_prices.id_outlet','=',$post['id_outlet']) // filter outlet
+                    ->where('product_prices.product_stock_status','=','Available') // filter stock available
                     ->join('brand_product','brand_product.id_product','=','products.id_product')
                     ->where('brand_product.id_brand',$post['id_brand'])
                     // brand produk ada di outlet
