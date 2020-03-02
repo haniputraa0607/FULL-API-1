@@ -19,6 +19,8 @@ use App\Http\Models\TransactionPaymentOffline;
 use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionPaymentBalance;
+use App\Http\Models\TransactionPaymentOvo;
+use App\Http\Models\TransactionPaymentCimb;
 use App\Http\Models\TransactionVoucher;
 use App\Http\Models\TransactionSetting;
 use App\Http\Models\User;
@@ -103,7 +105,9 @@ class ApiPOS extends Controller
         }
 
         $check = Transaction::join('transaction_pickups', 'transactions.id_transaction', '=', 'transaction_pickups.id_transaction')
-            ->with(['products', 'product_detail', 'vouchers', 'productTransaction.modifiers'])
+            ->with(['products','products.product_variants'=>function($query){
+                $query->orderBy('parent');
+            }, 'product_detail', 'vouchers', 'productTransaction.modifiers','promo_campaign_promo_code'])
             ->where('order_id', '=', $post['order_id'])
             ->where('transactions.transaction_date', '>=', date("Y-m-d") . " 00:00:00")
             ->where('transactions.transaction_date', '<=', date("Y-m-d") . " 23:59:59")
@@ -125,25 +129,37 @@ class ApiPOS extends Controller
 
             $timestamp = strtotime('+' . $expired . ' minutes');
             $memberUid = MyHelper::createQR($timestamp, $user['phone']);
-
-            $transactions = [];
-            $transactions['member_uid'] = $memberUid;
-            $transactions['trx_id_behave'] = $check['transaction_receipt_number'];
-            $transactions['trx_date_time'] = $check['created_at'];
-            $transactions['qrcode'] = $qrCode;
-            $transactions['order_id'] = $check['order_id'];
-            $transactions['process_at'] = $check['pickup_type'];
-            $transactions['process_date_time'] = $check['pickup_at'];
-            $transactions['accepted_date_time'] = $check['receive_at'];
-            $transactions['ready_date_time'] = $check['ready_at'];
-            $transactions['taken_date_time'] = $check['taken_at'];
-            $transactions['total'] = $check['transaction_subtotal'];
-            $transactions['sevice'] = $check['transaction_service'];
-            $transactions['tax'] = $check['transaction_tax'];
-            $transactions['discount'] = $check['transaction_discount'];
-            $transactions['grand_total'] = $check['transaction_grandtotal'];
-
-            $transactions['payments'] = [];
+            $header['order_number'] = $check['transaction_receipt_number'];
+            $header['order_id'] = $check['order_id'];
+            $header['posting_date'] = date('Ymd',strtotime($check['transaction_date']));
+            $header['trx_date'] = date('Ymd',strtotime($check['transaction_date']));
+            $header['trx_start_time'] = date('Ymd His',strtotime($check['transaction_date']));
+            $header['trx_end_time'] = $check['completed_at']?date('Ymd His',strtotime($check['completed_at'])):'';
+            $header['process_at'] = $check['pickup_type']??'';
+            $header['process_date_time'] = $check['pickup_at']??'';
+            $header['status_order'] = '';
+            $header['accepted_date_time'] = date('Ymd His',strtotime($check['receive_at']));
+            $header['ready_date_time'] = date('Ymd His',strtotime($check['ready_at']));
+            $header['taken_date_time'] = date('Ymd His',strtotime($check['taken_at']));
+            $header['reject_date_time'] = date('Ymd His',strtotime($check['reject_at']));
+            $header['pax'] = count($check['products']);
+            $header['order_type'] = 'take away';
+            $header['total_order'] = (float) $check['transaction_grandtotal'];
+            $header['notes'] = '';
+            $header['applied_promo'] = $check['id_promo_campaign_promo_code']?'MOBILE APPS PROMO':'';
+            $header['pos'] = [
+                'id'=>1,
+                'cash_drawer'=>2,
+                'cashier_id'=>'M1907123'
+            ];
+            $header['customer'] = [
+                'id'=>$memberUid,
+                'phone'=>$user['phone'],
+                'name'=>$user['name'],
+                'gender'=>$user['gender']??'',
+                'age'=>($user['birthday']??false)?(date_diff(date_create($user['birthday']), date_create('now'))->y):''
+            ];
+            $payment = [];
             //cek di multi payment
             $multi = TransactionMultiplePayment::where('id_transaction', $check['id_transaction'])->get();
             if (!$multi) {
@@ -151,35 +167,86 @@ class ApiPOS extends Controller
                 $balance = TransactionPaymentBalance::where('id_transaction', $check['id_transaction'])->get();
                 if ($balance) {
                     foreach ($balance as $payBalance) {
-                        $pay['payment_type'] = 'Kenangan Points';
-                        $pay['payment_nominal'] = (int) $payBalance['balance_nominal'];
-                        $transactions['payments'][] = $pay;
+                        $pay = [
+                            'number'        => 1,
+                            'type'          => 'Points',
+                            'amount'        => (float) $payBalance['balance_nominal'],
+                            'change_amount' => 0,
+                            'card_number'   => 0,
+                            'card_owner'    => $user['name']
+                        ];
+                        $payment[] = $pay;
                     }
                 } else {
                     $midtrans = TransactionPaymentMidtran::where('id_transaction', $check['id_transaction'])->get();
                     if ($midtrans) {
                         foreach ($midtrans as $payMidtrans) {
-                            $pay['payment_type'] = 'Midtrans';
-                            $pay['payment_nominal'] = (int) $payMidtrans['gross_amount'];
-                            $transactions['payments'][] = $pay;
+                            $pay = [
+                                'number'        => 1,
+                                'type'          => 'Midtrans',
+                                'amount'        => (float) $payMidtrans['gross_amount'],
+                                'change_amount' => 0,
+                                'card_number'   => 0,
+                                'card_owner'    => $user['name']
+                            ];
+                            $payment[] = $pay;
                         }
                     }
                 }
             } else {
-                foreach ($multi as $payMulti) {
+                foreach ($multi as $key => $payMulti) {
                     if ($payMulti['type'] == 'Balance') {
                         $balance = TransactionPaymentBalance::find($payMulti['id_payment']);
                         if ($balance) {
-                            $pay['payment_type'] = 'Kenangan Points';
-                            $pay['payment_nominal'] = (int) $balance['balance_nominal'];
-                            $transactions['payments'][] = $pay;
+                            $pay = [
+                                'number'        => $key + 1,
+                                'type'          => 'Points',
+                                'amount'        => (float) $balance['balance_nominal'],
+                                'change_amount' => 0,
+                                'card_number'   => 0,
+                                'card_owner'    => $user['name']
+                            ];
+                            $payment[] = $pay;
                         }
                     } elseif ($payMulti['type'] == 'Midtrans') {
-                        $midtrans = TransactionPaymentmidtran::find($payMulti['id_payment']);
+                        $midtrans = TransactionPaymentMidtran::find($payMulti['id_payment']);
                         if ($midtrans) {
-                            $pay['payment_type'] = 'Midtrans';
-                            $pay['payment_nominal'] = (int) $midtrans['gross_amount'];
-                            $transactions['payments'][] = $pay;
+                            $pay = [
+                                'number'        => $key + 1,
+                                'type'          => 'Midtrans',
+                                'amount'        => (float) $midtrans['gross_amount'],
+                                'change_amount' => 0,
+                                'card_number'   => '',
+                                'card_owner'    => ''
+                            ];
+                            $payment[] = $pay;
+                        }
+                    } elseif ($payMulti['type'] == 'Ovo') {
+                        $ovo = TransactionPaymentOvo::find($payMulti['id_payment']);
+                        if ($ovo) {
+                            $pay = [
+                                'number'            => $key + 1,
+                                'type'              => 'Ovo',
+                                'amount'            => (float) $ovo['amount'],
+                                'change_amount'     => 0,
+                                'card_number'       => '',
+                                'card_owner'        => '',
+                                'reference_number'  => $ovo['approval_code']
+                            ];
+                            $payment[] = $pay;
+                        }
+                    } elseif ($payMulti['type'] == 'Cimb') {
+                        $cimb = TransactionPaymentCimb::find($payMulti['id_payment']);
+                        if ($cimb) {
+                            $pay = [
+                                'number'            => $key + 1,
+                                'type'              => 'Cimb',
+                                'amount'            => (float) $cimb['amount']??$check['transaction_grandtotal'],
+                                'change_amount'     => 0,
+                                'card_number'       => '',
+                                'card_owner'        => ''
+                            ];
+                            $payment[] = $pay;
                         }
                     }
                 }
@@ -191,23 +258,27 @@ class ApiPOS extends Controller
             $transactions['menu'] = [];
             $transactions['tax'] = 0;
             $transactions['total'] = 0;
+            $item = [];
             foreach ($check['products'] as $key => $menu) {
-                $val = [];
-                $val['plu_id'] = $menu['product_code'];
-                $val['name'] = $menu['product_name'];
-                $val['price'] = (int) $menu['pivot']['transaction_product_price'];
-                $val['qty'] = $menu['pivot']['transaction_product_qty'];
-                $val['category'] = $menu['product_category_name'];
-                if ($menu['pivot']['transaction_product_note'] != null) {
-                    $val['open_modifier'] = $menu['pivot']['transaction_product_note'];
-                }
-                $val['modifiers'] = $check['product_transaction'][$key]['modifiers'];
-
-                array_push($transactions['menu'], $val);
-
-                $transactions['tax'] = $transactions['tax'] + ($menu['pivot']['transaction_product_qty'] * $menu['pivot']['transaction_product_price_tax']);
-                $transactions['total'] = $transactions['total'] + ($menu['pivot']['transaction_product_qty'] * $menu['pivot']['transaction_product_price_base']);
+                $val = [
+                    'number' => $key + 1,
+                    'sap_matnr' => $menu['product_code'],
+                    'qty' => (int) $menu['pivot']['transaction_product_qty'],
+                    'price' => (float) $menu['pivot']['transaction_product_price'],
+                    'type' => $menu['product_variants'][1]['product_variant_code'] == 'general_type'?null:$menu['product_variants'][1]['product_variant_code'], 
+                    'size' => $menu['product_variants'][0]['product_variant_code'] == 'general_type'?null:$menu['product_variants'][0]['product_variant_code'], 
+                    'discount' => (float) $menu['pivot']['transaction_product_discount'],
+                    'promo_number' => $check['id_promo_campaign_promo_code']?$check['promo_campaign_promo_code']['promo_code']:'',
+                    'promo_type' => '5',
+                    'amount' => (float) $menu['pivot']['transaction_product_subtotal']
+                ];
+                $item[] = $val;
             }
+            return [
+                'header'=>$header,
+                'item'=>$item,
+                'payment'=>$payment
+            ];
             $transactions['tax'] = round($transactions['tax']);
             $transactions['total'] = round($transactions['total']);
 

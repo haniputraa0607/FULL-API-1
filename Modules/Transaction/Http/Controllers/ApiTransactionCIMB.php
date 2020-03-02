@@ -58,7 +58,8 @@ class ApiTransactionCIMB extends Controller
 
             try {
                 Transaction::where('transaction_receipt_number', $request['MERCHANT_TRANID'])->update([
-                    'transaction_payment_status'    => 'Completed'
+                    'transaction_payment_status'    => 'Completed',
+                    'completed_at'                  => date('Y-m-d H:i:s')
                 ]);
             } catch (\Exception $e) {
                 LogBackendError::logExceptionMessage("ApiTransactionCIMB/callback=>" . $e->getMessage(), $e);
