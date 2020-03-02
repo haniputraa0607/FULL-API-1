@@ -16,7 +16,6 @@ class UpdateTransactionPaymentCimbsTable extends Migration
         Schema::table('transaction_payment_cimbs', function (Blueprint $table) {
             $table->unsignedInteger('id_transaction')->nullable()->change();
             $table->bigInteger('transaction_id')->nullable()->change();
-            $table->bigInteger('amount')->after('transaction_id');
             $table->string('txn_status')->nullable()->change();
             $table->string('txn_signature')->nullable()->change();
             $table->text('secure_signature')->nullable()->change();
