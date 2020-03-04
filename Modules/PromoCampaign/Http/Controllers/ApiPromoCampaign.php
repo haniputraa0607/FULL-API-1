@@ -59,8 +59,9 @@ class ApiPromoCampaign extends Controller
         date_default_timezone_set('Asia/Jakarta');
 
         $this->online_transaction   = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
-        $this->voucher   = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
-        $this->fraud   = "Modules\SettingFraud\Http\Controllers\ApiFraud";
+        $this->voucher   	= "Modules\Deals\Http\Controllers\ApiDealsVoucher";
+        $this->fraud   		= "Modules\SettingFraud\Http\Controllers\ApiFraud";
+        $this->promo       	= "Modules\PromoCampaign\Http\Controllers\ApiPromo";
     }
 
     public function index(Request $request)
@@ -1886,7 +1887,7 @@ class ApiPromoCampaign extends Controller
         }
 
         if ($source == 'deals') {
-        	$change_used_voucher = app($this->voucher)->useVoucher($request->id_deals_user);
+        	$change_used_voucher = app($this->promo)->usePromo($source, $request->id_deals_user);
         	if (($change_used_voucher['status']??false) == 'success') {
 	        	$result['result']['webview_url'] = $change_used_voucher['webview_url'];
 	        	$result['result']['webview_url_v2'] = $change_used_voucher['webview_url_v2'];
@@ -1897,7 +1898,7 @@ class ApiPromoCampaign extends Controller
 	            ];
         	}
         }else{
-        	$change_used_voucher = app($this->voucher)->useVoucher($request->id_deals_user, 1);
+        	$change_used_voucher = app($this->promo)->usePromo($source, $query['id_promo_campaign_promo_code']);
         	if (!$change_used_voucher) {
         		return [
 	                'status'=>'fail',
@@ -2022,16 +2023,24 @@ class ApiPromoCampaign extends Controller
     	return $desc;
     }
 
-    public function checkPromoCode($promo_code, $outlet=null, $product=null)
+    public function checkPromoCode($promo_code=null, $outlet=null, $product=null, $id_promo_campaign_promo_code=null)
     {
-    	$code = PromoCampaignPromoCode::where('promo_code',$promo_code)
-	            ->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
-	            ->where('step_complete', '=', 1)
-	            ->where( function($q){
-	            	$q->whereColumn('usage','<','limitation_usage')
-	            		->orWhere('code_type','Single')
-	            		->orWhere('limitation_usage',0);
-	            } );
+    	if (!empty($id_promo_campaign_promo_code)) 
+    	{
+    		$code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code',$id_promo_campaign_promo_code);
+    	}
+    	else
+    	{
+    		$code = PromoCampaignPromoCode::where('promo_code',$promo_code);
+    	}
+    	
+        $code = $code->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
+		            ->where('step_complete', '=', 1)
+		            ->where( function($q){
+		            	$q->whereColumn('usage','<','limitation_usage')
+		            		->orWhere('code_type','Single')
+		            		->orWhere('limitation_usage',0);
+		            } );
 
 	    if (!empty($outlet)) {
 	    	$code = $code->with(['promo_campaign.promo_campaign_outlets']);
@@ -2132,27 +2141,5 @@ class ApiPromoCampaign extends Controller
 		}
 
 	    return $result;
-    }
-
-    public function checkUsedVoucher(Request $request)
-    {
-    	$deals = $this->checkVoucher(null, null, 1);
-
-    	if (!$deals) {
-    		return response()->json(['status' => 'fail']);
-    	}
-
-    	$deals = $deals->toArray();
-
-    	$getProduct = $this->getProduct('deals',$deals['deal_voucher']['deals']);
-    	$desc = $this->getPromoDescription('deals', $deals['deal_voucher']['deals'], $getProduct['product']??'');
-
-    	$result = [
-    		'title'			=> $deals['deal_voucher']['deals']['deals_title'],
-    		'description'	=> $desc,
-    		'id_deals_user'	=> $deals['id_deals_user']
-    	];
-    	return response()->json(MyHelper::checkGet($result));
-
     }
 }
