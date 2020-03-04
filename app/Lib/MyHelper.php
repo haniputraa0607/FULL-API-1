@@ -2175,6 +2175,8 @@ class MyHelper{
 	 * @return float/int    converted number
 	 */
 	public static function requestNumber($number,$type='int',$custom=[]) {
+		if($type === '_CURRENCY'){$type = env('CURRENCY_FORMAT');}
+		elseif($type === '_POINT'){$type = env('POINT_FORMAT');}
 		switch ($type) {
 			case 'int':
 				return (int) $number;
@@ -2188,6 +2190,22 @@ class MyHelper{
 				return (double) $number;
 				break;
 			
+			case 'rupiah':
+				return 'Rp'.number_format($number,0,',','.');
+				break;
+			
+			case 'dollar':
+				return '$'.number_format($number,2,'.',',');
+				break;
+
+			case 'thousand_id':
+				return number_format($number,0,',','.');
+				break;
+
+			case 'thousand_sg':
+				return number_format($number,2,'.',',');
+				break;
+						
 			case 'custom':
 				return number_format($number,...$custom);
 

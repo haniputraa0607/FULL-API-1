@@ -9,6 +9,7 @@ use Illuminate\Routing\Controller;
 use Modules\ProductVariant\Entities\ProductGroup;
 use Modules\ProductVariant\Entities\ProductProductVariant;
 use Modules\ProductVariant\Entities\ProductVariant;
+use App\Http\Models\Outlet;
 use App\Http\Models\Setting;
 use App\Http\Models\Product;
 use App\Http\Models\ProductModifier;
@@ -425,6 +426,7 @@ class ApiProductGroupController extends Controller
         foreach ($data as $product) {
             $product['product_stock_status'] = $this->checkAvailable($product['product_stock_status']);
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],$request->json('request_number'));
+            $product['product_price_pretty'] = MyHelper::requestNumber($product['product_price'],'_CURRENCY');
             $id_product_category = $product['id_product_category'];
             if(!isset($result[$id_product_category]['product_category_name'])){
                 $category = ProductCategory::select('product_category_name','id_product_category')->find($id_product_category)->toArray();
@@ -447,7 +449,9 @@ class ApiProductGroupController extends Controller
                     // join product_price (product_outlet pivot and product price data)
                     ->join('product_prices','product_prices.id_product','=','products.id_product')
                     ->where('product_prices.id_outlet','=',$post['id_outlet']) // filter outlet
+                    ->where('product_prices.product_stock_status','=','Available') // filter stock available
                     ->join('brand_product','brand_product.id_product','=','products.id_product')
+                    ->where('brand_product.id_brand',$post['id_brand'])
                     // brand produk ada di outlet
                     ->where('brand_outlet.id_outlet','=',$post['id_outlet'])
                     ->join('brand_outlet','brand_outlet.id_brand','=','brand_product.id_brand')
@@ -480,7 +484,8 @@ class ApiProductGroupController extends Controller
                 $variant_stock[$varcode[0]][$varcode[$first]] = [
                     'product_variant_code' => $varcode[1],
                     'product_stock_status' => $product['product_stock_status'],
-                    'product_price' => $product['product_price']
+                    'product_price' => $product['product_price'],
+                    'product_price_pretty' => MyHelper::requestNumber($product['product_price'],'_CURRENCY')
                 ];
                 if(in_array($varcode[0], $this->general)){
                     $is_visible = 0;
@@ -502,6 +507,13 @@ class ApiProductGroupController extends Controller
             ->first();
         // get product group detail
         $data = ProductGroup::select('id_product_group','product_group_name','product_group_image_detail','product_group_code','product_group_description')->find($post['id_product_group'])->toArray();
+
+        // add id_brand, outlet_name,outlet_code
+        $data['id_brand'] = $post['id_brand'];
+        $outlet = Outlet::select('outlet_name','outlet_code')->where('id_outlet',$post['id_outlet'])->first();
+        $data['outlet_name'] = $outlet->outlet_name;
+        $data['outlet_code'] = $outlet->outlet_code;
+
         // get list product variant
         $variants = ProductProductVariant::select(
             'product_variants.id_product_variant',
@@ -517,6 +529,7 @@ class ApiProductGroupController extends Controller
             ->whereIn('product_product_variants.id_product',$id_products)->orderBy('product_variants.product_variant_position')->groupBy('product_variant_code')->get()->toArray();
         // set price to response
         $data['product_price'] = MyHelper::requestNumber($default['product_price'],$request->json('request_number'));
+        $data['product_price_pretty'] = MyHelper::requestNumber($default['product_price'],'_CURRENCY');
         // arrange default variant
         if($default['defaults']??false){
             $default['defaults'] = explode(';',$default['defaults']);
@@ -607,6 +620,7 @@ class ApiProductGroupController extends Controller
             ->get()->toArray();
         $data['modifiers'] = array_values(MyHelper::groupIt($modifiers,'type',function($key,&$val) use ($request){
             $val['price'] = MyHelper::requestNumber($val['price'],$request->json('request_number'));
+            $val['price_pretty'] = MyHelper::requestNumber($val['price'],'_CURRENCY');
             return $key;
         },function($key,&$val){
             $newval['type'] = $key;
@@ -664,6 +678,7 @@ class ApiProductGroupController extends Controller
         $result = [];
         foreach ($data as $product) {
             $product['product_stock_status'] = $this->checkAvailable($product['product_stock_status']);
+            $product['product_price_pretty'] = MyHelper::requestNumber($product['product_price'],'_CURRENCY');
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],$request->json('request_number'));
             unset($product['products']);
             $result[] = $product;

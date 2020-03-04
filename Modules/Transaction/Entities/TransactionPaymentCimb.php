@@ -15,6 +15,7 @@ class TransactionPaymentCimb extends Model
     protected $fillable = [
         'id_transaction',
         'transaction_id',
+        'amount',
         'txn_status',
         'txn_signature',
         'secure_signature',

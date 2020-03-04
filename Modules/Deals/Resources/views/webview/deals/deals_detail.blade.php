@@ -214,13 +214,13 @@
 				<div class="col-12" style="padding: 10px 15px;padding-bottom: 0px;">
 					<ul class="nav nav-tabs Ubuntu-Bold" id="myTab" role="tablist" style="font-size: 14px;">
 						<li class="nav-item">
-							<a class="nav-link active" id="ketentuan-tab" data-toggle="tab" href="#ketentuan" role="tab" aria-controls="ketentuan" aria-selected="true">Terms</a>
+							<a class="nav-link active" id="ketentuan-tab" data-toggle="tab" href="#ketentuan" onclick="replaceHtml('#ketentuan')" role="tab" aria-controls="ketentuan" aria-selected="true">Terms</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" id="howuse-tab" data-toggle="tab" href="#howuse" role="tab" aria-controls="howuse" aria-selected="false">How to Use</a>
+							<a class="nav-link" id="howuse-tab" data-toggle="tab" href="#howuse" onclick="replaceHtml('#howuse')" role="tab" aria-controls="howuse" aria-selected="false">How to Use</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" id="outlet-tab" data-toggle="tab" href="#outlet" role="tab" aria-controls="outlet" aria-selected="false">Available at</a>
+							<a class="nav-link" id="outlet-tab" data-toggle="tab" href="#outlet" onclick="replaceHtml('#outlet')" role="tab" aria-controls="outlet" aria-selected="false">Available at</a>
 						</li>
 					</ul>
 				</div>
@@ -258,7 +258,12 @@
 
     <script src="{{env('API_URL')}}js/jquery.js"></script>
     <script src="{{env('API_URL')}}js/popper.js"></script>
-    <script src="{{env('API_URL')}}js/deals.js"></script>
+	<script src="{{env('API_URL')}}js/deals.js"></script>
+	<script>
+		function replaceHtml(params) {
+			location.replace(window.location.origin + window.location.pathname + params)
+		}
+	</script>
     @if(!empty($deals))
         <script type="text/javascript">
             @php $month = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', "Juli", 'Agustus', 'September', 'Oktober', 'November', 'Desember']; @endphp
@@ -293,10 +298,10 @@
 					}else{
 						document.getElementById("timer").innerHTML = "<p style='font-size: 11.7px;' class='dark-sea-green Ubuntu-Medium'>End in</p>";
 					}
-                    document.getElementById('timer').innerHTML += timer_text;
+                    document.getElementById('timer').innerHTML += "<p style='font-size: 11.7px;' class='dark-sea-green Ubuntu-Medium'>" + timer_text + "</p>";
                     @elseif($deals['deals_status'] == 'soon')
                     document.getElementById("timer").innerHTML = "<p style='font-size: 11.7px;' class='dark-sea-green Ubuntu-Medium'>Start at</p>";
-                    document.getElementById('timer').innerHTML += "<p style='font-size: 12.7px;' class='dark-sea-green Ubuntu-Bold'>{{ date('d', strtotime($deals['deals_start'])) }} {{$month[date('m', strtotime($deals['deals_start']))-1]}} {{ date('Y', strtotime($deals['deals_start'])) }} jam {{ date('H:i', strtotime($deals['deals_start'])) }}</p>";
+                    document.getElementById('timer').innerHTML += "<p style='font-size: 11.7px;' class='dark-sea-green Ubuntu-Medium'>{{ date('d', strtotime($deals['deals_start'])) }} {{$month[date('m', strtotime($deals['deals_start']))-1]}} {{ date('Y', strtotime($deals['deals_start'])) }} hour {{ date('H:i', strtotime($deals['deals_start'])) }}</p>";
                     @endif
 
                     difference--;
@@ -328,9 +333,8 @@
                 // countdown
                 daysDifference = Math.floor(difference/60/60/24);
                 if (daysDifference > 0) {
-					timer = "<p style='font-size: 12.7px;' class='dark-sea-green Ubuntu-Bold'>{{ date('d', strtotime($deals['deals_end'])) }} {{$month[ date('m', strtotime($deals['deals_end']))-1]}} {{ date('Y', strtotime($deals['deals_end'])) }}</p>";
+					timer = "<p style='font-size: 11.7px;' class='dark-sea-green Ubuntu-Bold'>{{ date('d', strtotime($deals['deals_end'])) }} {{$month[ date('m', strtotime($deals['deals_end']))-1]}} {{ date('Y', strtotime($deals['deals_end'])) }}</p>";
                   //  timer = daysDifference + " hari";
-                    console.log('timer d', timer);
                 }
                 else {
                     difference -= daysDifference*60*60*24;
@@ -352,12 +356,8 @@
                         secondsDifference = secondsDifference-1;
                         secondsDifference = ("0" + secondsDifference).slice(-2);
                     }
-                    console.log('timer h', hoursDifference);
-                    console.log('timer m', minutesDifference);
-                    console.log('timer s', secondsDifference);
 
-                    timer = hoursDifference + ": jam " + minutesDifference + " menit lagi";
-                    console.log('timer', timer);
+                    timer = hoursDifference + " hour " + minutesDifference + " minutes";
                 }
 
                 return timer;

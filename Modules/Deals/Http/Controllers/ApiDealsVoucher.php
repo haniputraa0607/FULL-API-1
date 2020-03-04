@@ -543,9 +543,9 @@ class ApiDealsVoucher extends Controller
             $request->json('expired_end') ||
             $request->json('key_free')
         ){
-            $resultMessage = 'The Voucher You Are Looking For Is Not Available';
+            $resultMessage = 'The voucher you are looking for is not available';
         }else{
-            $resultMessage = "You Don't Have A Voucher at This Time";
+            $resultMessage = "You don't have any voucher";
         }
 
         return response()->json(MyHelper::checkGet($result, $resultMessage));
@@ -680,21 +680,21 @@ class ApiDealsVoucher extends Controller
     {
     	$getVoucher = TransactionVoucher::where('id_transaction','=',$id_transaction)->with('deals_voucher.deals')->first();
 
-    	if ($getVoucher) 
+    	if ($getVoucher)
     	{
 	    	$update = DealsUser::where('id_deals_voucher', '=', $getVoucher['id_deals_voucher'])->update(['used_at' => null]);
 
-	    	if ($update) 
+	    	if ($update)
 	    	{
 	    		$update = TransactionVoucher::where('id_deals_voucher', '=', $getVoucher['id_deals_voucher'])->update(['status' => 'failed']);
 
-	    		if ($update) 
+	    		if ($update)
 	    		{
 	    			$update = Deal::where('id_deals','=',$getVoucher['deals_voucher']['deals']['id_deals'])->update(['deals_total_used' => $getVoucher['deals_voucher']['deals']['deals_total_used']-1]);
 
-	    			if ($update) 
+	    			if ($update)
 		    		{
-		    			return true;		
+		    			return true;
 		    		}
 		    		else
 		    		{
