@@ -39,6 +39,7 @@ class ApiProductGroupController extends Controller
         $pg = ProductGroup::select(\DB::raw('product_groups.*,count(id_product) as products_count'))
             ->leftJoin('products','products.id_product_group','=','product_groups.id_product_group')
             ->groupBy('product_groups.id_product_group')
+            ->orderBy('product_groups.product_group_position')
             ->with('product_category');
         if($request->json('rule')){
             $this->filterList($pg,$request->post('rule'),$request->post('operator'));
@@ -301,6 +302,14 @@ class ApiProductGroupController extends Controller
         }
         \DB::commit();
         return MyHelper::checkUpdate($update)+$append;
+    }
+
+    public function reorder(Request $request) {
+        $post = $request->json()->all();
+        foreach ($post['id_product_group']??[] as $key => $id_product_group) {
+            $update = ProductGroup::where('id_product_group',$id_product_group)->update(['product_group_position'=>$key+1]);
+        }
+        return MyHelper::checkUpdate(1);
     }
 
     /**
