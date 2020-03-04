@@ -66,7 +66,8 @@ class ApiTransactionCIMB extends Controller
 
             try {
                 Transaction::where('transaction_receipt_number', $request['MERCHANT_TRANID'])->update([
-                    'transaction_payment_status'    => 'Completed'
+                    'transaction_payment_status'    => 'Completed',
+                    'completed_at'                  => date('Y-m-d H:i:s')
                 ]);
             } catch (\Exception $e) {
                 LogBackendError::logExceptionMessage("ApiTransactionCIMB/callback=>" . $e->getMessage(), $e);
@@ -229,34 +230,28 @@ class ApiTransactionCIMB extends Controller
             DB::beginTransaction();
 
             try {
-                DealsPaymentCimb::create([
-                    'id_deals'          => $voucher->id_deals,
-                    'id_deals_user'     => $voucher->id_deals_user,
-                    'transaction_id'    => $request['TRANSACTION_ID'],
-                    'txn_status'        => $request['TXN_STATUS'],
-                    'txn_signature'     => $request['TXN_SIGNATURE'],
-                    'secure_signature'  => $request['SECURE_SIGNATURE'],
-                    'tran_date'         => $request['TRAN_DATE'],
-                    'merchant_tranid'   => $request['MERCHANT_TRANID'],
-                    'response_code'     => $request['RESPONSE_CODE'],
-                    'response_desc'     => $request['RESPONSE_DESC'],
-                    'auth_id'           => $request['AUTH_ID'],
-                    'fr_level'          => $request['FR_LEVEL'],
-                    'sales_date'        => $request['SALES_DATE'],
-                    'fr_score'          => $request['FR_SCORE']
-                ]);
+                DealsPaymentCimb::where('merchant_tranid', $request['MERCHANT_TRANID'])
+                    ->update([
+                        'id_deals'          => $voucher->id_deals,
+                        'id_deals_user'     => $voucher->id_deals_user,
+                        'transaction_id'    => $request['TRANSACTION_ID'],
+                        'txn_status'        => $request['TXN_STATUS'],
+                        'txn_signature'     => $request['TXN_SIGNATURE'],
+                        'secure_signature'  => $request['SECURE_SIGNATURE'],
+                        'tran_date'         => $request['TRAN_DATE'],
+                        'response_code'     => $request['RESPONSE_CODE'],
+                        'response_desc'     => $request['RESPONSE_DESC'],
+                        'auth_id'           => $request['AUTH_ID'],
+                        'fr_level'          => $request['FR_LEVEL'],
+                        'sales_date'        => $request['SALES_DATE'],
+                        'fr_score'          => $request['FR_SCORE']
+                    ]);
 
                 DealsUser::where('id_deals_user', $idVoucher)->update(['paid_status' => 'Completed']);
             } catch (\Exception $e) {
-                dd($e);
                 LogBackendError::logExceptionMessage("ApiTransactionCIMB/callbackDeals=>" . $e->getMessage(), $e);
                 DB::rollback();
-                return response()->json([
-                    'status'    => 'fail',
-                    'messages'  => [
-                        'Something when wrong!. Contact Admin Support.'
-                    ]
-                ]);
+                return redirect('#transaction_fail');
             }
 
             DB::commit();
@@ -280,14 +275,60 @@ class ApiTransactionCIMB extends Controller
                 );
             }
 
-            $result = [
-                'id_deals_user' => $idVoucher,
-                'id_deals_voucher' => $voucher->dealVoucher->id_deals_voucher,
-                'paid_status' => $voucher->paid_status,
-                'webview_later' => env('API_URL') . 'api/webview/mydeals/' . $idVoucher
-            ];
+            return redirect('#transaction_success');
+        } else {
+            $idVoucher = explode('-', $request['MERCHANT_TRANID'])[1];
+            $voucher = DealsUser::with(['userMid', 'dealVoucher'])->where('id_deals_user', $idVoucher)->first();
 
-            return response()->json($result);
+            DB::beginTransaction();
+
+            try {
+                DealsPaymentCimb::where('merchant_tranid', $request['MERCHANT_TRANID'])
+                    ->update([
+                        'id_deals'          => $voucher->id_deals,
+                        'id_deals_user'     => $voucher->id_deals_user,
+                        'transaction_id'    => $request['TRANSACTION_ID'],
+                        'txn_status'        => $request['TXN_STATUS'],
+                        'txn_signature'     => $request['TXN_SIGNATURE'],
+                        'secure_signature'  => $request['SECURE_SIGNATURE'],
+                        'tran_date'         => $request['TRAN_DATE'],
+                        'response_code'     => $request['RESPONSE_CODE'],
+                        'response_desc'     => $request['RESPONSE_DESC'],
+                        'auth_id'           => $request['AUTH_ID'],
+                        'fr_level'          => $request['FR_LEVEL'],
+                        'sales_date'        => $request['SALES_DATE'],
+                        'fr_score'          => $request['FR_SCORE']
+                    ]);
+
+                DealsUser::where('id_deals_user', $idVoucher)->update(['paid_status' => 'Cancelled']);
+            } catch (\Exception $e) {
+                LogBackendError::logExceptionMessage("ApiTransactionCIMB/callbackDeals=>" . $e->getMessage(), $e);
+                DB::rollback();
+                return redirect('#transaction_fail');
+            }
+
+            DB::commit();
+
+            $voucher = DealsUser::with(['userMid', 'dealVoucher'])->where('id_deals_user', $idVoucher)->first();
+            if (\Module::collections()->has('Autocrm')) {
+                $phone = User::where('id', $voucher->id_user)->pluck('phone')->first();
+                $voucher->load('dealVoucher.deals');
+
+                $autocrm = app($this->autocrm)->SendAutoCRM(
+                    'Claim Paid Deals Cancelled',
+                    $phone,
+                    [
+                        'claimed_at'                => $voucher->claimed_at,
+                        'deals_title'               => $voucher->dealVoucher->deals->deals_title,
+                        'id_deals_user'             => $idVoucher,
+                        'deals_voucher_price_point' => (string) $voucher->voucher_price_point,
+                        'id_deals'                  => $voucher->dealVoucher->deals->id_deals,
+                        'id_brand'                  => $voucher->dealVoucher->deals->id_brand
+                    ]
+                );
+            }
+
+            return redirect('#transaction_fail');
         }
     }
 
@@ -302,7 +343,7 @@ class ApiTransactionCIMB extends Controller
                     'merchant_tranid'   => $request['MERCHANT_TRANID']
                 ]);
             } else {
-                $transaction = TransactionPaymentCimb::create([
+                TransactionPaymentCimb::create([
                     'amount'            => $request['AMOUNT'],
                     'merchant_tranid'   => $request['MERCHANT_TRANID']
                 ]);

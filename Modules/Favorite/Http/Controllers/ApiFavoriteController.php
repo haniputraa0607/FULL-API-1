@@ -83,6 +83,7 @@ class ApiFavoriteController extends Controller
                         $total_price+=$price*$modifier['qty'];
                     }
                     $val['product_price_total'] = MyHelper::requestNumber($total_price,$nf);
+                    $val['product_price_total_pretty'] = MyHelper::requestNumber($total_price,'_CURRENCY');
                     return $key;
                 },function($key,&$val) use ($latitude,$longitude){
                     $outlet = Outlet::select('id_outlet','outlet_code','outlet_name','outlet_address','outlet_latitude','outlet_longitude')->with('today')->find($key)->toArray();
@@ -127,7 +128,8 @@ class ApiFavoriteController extends Controller
                 $modifier['product_modifier_price'] = MyHelper::requestNumber($price,$nf);
                 $total_price += $price*$modifier['qty'];
             }
-            $data['product_price_total'] = $total_price;
+            $data['product_price_total'] = MyHelper::requestNumber($total_price,$nf);
+            $data['product_price_total_pretty'] = MyHelper::requestNumber($total_price,'_CURRENCY');
         }
         return MyHelper::checkGet($data,"You don't have any favorite item");
     }
