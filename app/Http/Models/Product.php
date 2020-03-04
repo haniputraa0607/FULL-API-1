@@ -8,7 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Modules\ProductVariant\Entities\ProductGroup;
 /**
  * Class Product
  *
@@ -69,6 +69,10 @@ class Product extends Model
 
 	 public function category()
     {
+    	$use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
+    	if($use_product_variant){
+	        return $this->hasMany(ProductGroup::class,'id_product_group', 'id_product_group')->join('product_categories','product_groups.id_product_category','=','product_categories.id_product_category')->select('product_groups.id_product_group','product_categories.*');
+    	}
         return $this->belongsToMany(ProductCategory::class,'brand_product', 'id_product', 'id_product_category');
     }
 
