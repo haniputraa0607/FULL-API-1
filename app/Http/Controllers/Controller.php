@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Models\Setting;
 use Illuminate\Http\Request;
 
 use App\Http\Models\Feature;
@@ -151,5 +152,20 @@ class Controller extends BaseController
         }
 
         return response()->json($result);
+    }
+
+    function maintenance(){
+        $get = Setting::where('key', 'maintenance_mode')->first();
+        if($get){
+            $dt = (array)json_decode($get['value_text']);
+            $data['status'] = $get['value'];
+            $data['message'] = $dt['message'];
+            if($dt['image'] != ""){
+                $data['image'] = env('S3_URL_API').$dt['image'];
+            }else{
+                $data['image'] = env('S3_URL_API').'img/maintenance/default.png';
+            }
+        }
+        return view('webview.maintenance_mode', $data);
     }
 }
