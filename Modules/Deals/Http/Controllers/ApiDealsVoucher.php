@@ -261,9 +261,6 @@ class ApiDealsVoucher extends Controller
             }
         });
 
-        $voucher->leftJoin('deals_vouchers', 'deals_users.id_deals_voucher', 'deals_vouchers.id_deals_voucher');
-        $voucher->leftJoin('deals', 'deals.id_deals', 'deals_vouchers.id_deals');
-    	$voucher->addselect('deals.is_online', 'deals.is_offline');
 
         if (isset($post['expired_start'])) {
             $voucher->whereDate('voucher_expired_at', '>=',date('Y-m-d', strtotime($post['expired_start'])));
@@ -272,7 +269,6 @@ class ApiDealsVoucher extends Controller
         if (isset($post['expired_end'])) {
             $voucher->whereDate('voucher_expired_at', '<=',date('Y-m-d', strtotime($post['expired_end'])));
         }
-
 
          //search by outlet
         if(isset($post['id_outlet']) && is_numeric($post['id_outlet'])){
@@ -287,6 +283,15 @@ class ApiDealsVoucher extends Controller
 
 
         }
+
+        if(!MyHelper::isJoined($voucher,'deals_vouchers')){
+            $voucher->leftJoin('deals_vouchers', 'deals_users.id_deals_voucher', 'deals_vouchers.id_deals_voucher');
+        }
+    	if(!MyHelper::isJoined($voucher,'deals')){
+            $voucher->leftJoin('deals', 'deals.id_deals', 'deals_vouchers.id_deals');
+        }
+        
+    	$voucher->addselect('deals.is_online', 'deals.is_offline');
 
         if ( isset($post['online']) ) {
         	if(!MyHelper::isJoined($voucher,'deals_vouchers')){
