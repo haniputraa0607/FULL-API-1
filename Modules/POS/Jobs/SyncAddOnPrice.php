@@ -53,7 +53,7 @@ class SyncAddOnPrice implements ShouldQueue
                     $table->dateTime('date')->nullable();
                     $table->timestamps();
 
-                    $table->index(['id_product_modifier', 'id_outlet', 'date']);
+                    $table->index(['id_product_modifier', 'id_outlet', 'date'], 'index_modifier_price');
                 });
             }
 
