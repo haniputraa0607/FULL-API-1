@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Http\Models\OauthAccessToken;
+use App\Http\Models\Setting;
 use Closure;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Passport\Passport;
@@ -20,6 +21,18 @@ class CheckScopes extends AddCustomProvider
      */
     public function handle($request, Closure $next, $scope = null)
     {
+        /*check status maintenance mode for apps*/
+        if($scope == 'apps'){
+            $getMaintenance = Setting::where('key', 'maintenance_mode')->first();
+            if($getMaintenance && $getMaintenance['value'] == 1){
+                return response()->json([
+                    'status' => 'fail',
+                    'messages' => ['maintenance'],
+                    'url_maintenance' =>  env('API_URL') ."api/maintenance-mode"
+                ], 200);
+            }
+        }
+
         if($request->user()){
             $dataToken = json_decode($request->user()->token());
             $scopeUser = $dataToken->scopes[0];
@@ -40,6 +53,6 @@ class CheckScopes extends AddCustomProvider
                 return $next($request);
             }
         }
-        return response()->json(['error' => 'Invalid scope'], 403);
+        return response()->json(['error' => 'Unauthenticated.'], 401);
     }
 }
