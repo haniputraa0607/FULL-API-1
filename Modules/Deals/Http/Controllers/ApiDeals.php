@@ -1152,7 +1152,7 @@ class ApiDeals extends Controller
         $post = $request->json()->all();
         $user = $request->user();
 
-        $deals = $this->getDealsData($post['id_deals'], $post['step']);
+        $deals = $this->getDealsData($post['id_deals'], $post['step'], $post['deals_type']);
 
         if (isset($deals)) {
             $deals = $deals->toArray();
@@ -1175,11 +1175,13 @@ class ApiDeals extends Controller
         return response()->json($result);
     }
 
-    function getDealsData($id_deals, $step)
+    function getDealsData($id_deals, $step, $deals_type='Deals')
     {
     	$post['id_deals'] = $id_deals;
     	$post['step'] = $step;
-    	$deals = Deal::where('id_deals', '=', $post['id_deals']);
+    	$post['deals_type'] = $deals_type;
+
+    	$deals = Deal::where('id_deals', '=', $post['id_deals'])->where('deals_type','=',$post['deals_type']);
         if ($post['step'] == 1 || $post['step'] == 'all') {
 			$deals = $deals->with(['outlets']);
         }
@@ -1246,7 +1248,8 @@ class ApiDeals extends Controller
     public function updateComplete(UpdateComplete $request)
     {
     	$post = $request->json()->all();
-    	$check = $this->checkComplete($post['id_deals'], $step, $errors);
+
+    	$check = $this->checkComplete($post['id_deals'], $step, $errors, $post['deals_type']);
 
 		if ($check) 
 		{
@@ -1269,9 +1272,9 @@ class ApiDeals extends Controller
 		}
     }
 
-    public function checkComplete($id, &$step, &$errors)
+    public function checkComplete($id, &$step, &$errors, $promo_type)
     {
-    	$deals = $this->getDealsData($id, 'all');
+    	$deals = $this->getDealsData($id, 'all', $promo_type);
     	if (!$deals) {
     		$errors = 'Deals not found';
     		return false;

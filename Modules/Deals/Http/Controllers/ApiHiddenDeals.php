@@ -148,6 +148,9 @@ class ApiHiddenDeals extends Controller
             return response()->json(MyHelper::checkGet($deals));
         }
         else {
+        	if ($deals['step_complete'] != 1) {
+            	return response()->json(['status' => 'fail', 'messages' => 'Deals is not complete']);
+        	}
             $countUser = 0;
             $countVoucher = 0;
             foreach($users as $datauser){
