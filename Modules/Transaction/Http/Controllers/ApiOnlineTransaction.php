@@ -1874,6 +1874,7 @@ class ApiOnlineTransaction extends Controller
                     continue;
                 }
                 $mod = $mod->toArray();
+                $mod['product_modifier_price_pretty'] = MyHelper::requestNumber($mod['product_modifier_price'],'_CURRENCY');
                 $mod['product_modifier_price'] = (float) $mod['product_modifier_price'];
                 $mod['qty'] = $qty_product_modifier;
                 $mod_price+=$mod['qty']*$mod['product_modifier_price'];
@@ -1903,6 +1904,8 @@ class ApiOnlineTransaction extends Controller
             }
 
             $product_price_total = $product['qty'] * ($product['product_price']+$mod_price);
+            $product['product_price_total_pretty'] = MyHelper::requestNumber($product_price_total,'_CURRENCY');
+            $product['product_price_pretty'] = MyHelper::requestNumber($product['product_price'],'_CURRENCY');
             $product['product_price_total'] = MyHelper::requestNumber($product_price_total,$rn);
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],$rn);
 
@@ -2034,16 +2037,24 @@ class ApiOnlineTransaction extends Controller
             'today' => $outlet['today']
         ];
         $result['item'] = array_values($tree);
+        $result['subtotal_pretty'] = MyHelper::requestNumber($subtotal,'_CURRENCY');
+        $result['shipping_pretty'] = MyHelper::requestNumber($post['shipping'],'_CURRENCY');
+        $result['discount_pretty'] = MyHelper::requestNumber($post['discount'],'_CURRENCY');
+        $result['service_pretty'] = MyHelper::requestNumber($post['service'],'_CURRENCY');
+        $result['tax_pretty'] = MyHelper::requestNumber($post['tax'],'_CURRENCY');
         $result['subtotal'] = MyHelper::requestNumber($subtotal,$rn);
         $result['shipping'] = MyHelper::requestNumber($post['shipping'],$rn);
         $result['discount'] = MyHelper::requestNumber($post['discount'],$rn);
         $result['service'] = MyHelper::requestNumber($post['service'],$rn);
         $result['tax'] = MyHelper::requestNumber($post['tax'],$rn);
         $grandtotal = $post['subtotal'] + (-$post['discount']) + $post['service'] + $post['tax'] + $post['shipping'];
+        $result['grandtotal_pretty'] = MyHelper::requestNumber($grandtotal,'_CURRENCY');
         $result['grandtotal'] = MyHelper::requestNumber($grandtotal,$rn);
         $used_point = 0;
+        $result['used_point_pretty'] = MyHelper::requestNumber(0,'_POINT');
         $result['used_point'] = MyHelper::requestNumber(0,$rn);
         $balance = app($this->balance)->balanceNow($user->id);
+        $result['points_pretty'] = MyHelper::requestNumber($balance,'_POINT');
         $result['points'] = MyHelper::requestNumber($balance,$rn);
         $result['earned_cashback_text'] = $cashback_text_array;
         if (isset($post['payment_type'])&&$post['payment_type'] == 'Balance') {
@@ -2051,12 +2062,15 @@ class ApiOnlineTransaction extends Controller
                 $used_point = $grandtotal;
             }else{
                 $used_point = $balance;
+                $result['used_point_pretty'] = MyHelper::requestNumber($balance,'_POINT');
                 $result['used_point'] = MyHelper::requestNumber($balance,$rn);
             }
+            $result['used_point_pretty'] = MyHelper::requestNumber($used_point,'_POINT');
             $result['used_point'] = MyHelper::requestNumber($used_point,$rn);
             $result['points'] = MyHelper::requestNumber(($balance - $used_point),$rn);
         }
 
+        $result['total_payment_pretty'] = MyHelper::requestNumber(($grandtotal-$used_point),'_CURRENCY');
         $result['total_payment'] = MyHelper::requestNumber(($grandtotal-$used_point),$rn);
         return MyHelper::checkGet($result)+['messages'=>$error_msg, 'promo_error'=>$promo_error, 'promo'=>$promo];
     }
