@@ -631,6 +631,15 @@ class SettingsTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
+           83 =>
+	            array(
+	                'id_setting' => 84,
+	                'key' => 'promo_error_product_list',
+	                'value' => 'Promo not available at this outlet',
+	                'value_text' => null,
+	                'created_at' => date('Y-m-d H:i:s'),
+	                'updated_at' => date('Y-m-d H:i:s'),
+	            ),
         ));
     }
 }

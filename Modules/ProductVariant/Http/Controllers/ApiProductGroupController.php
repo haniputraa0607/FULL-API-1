@@ -17,6 +17,7 @@ use App\Http\Models\ProductCategory;
 
 use Modules\PromoCampaign\Entities\PromoCampaign;
 use Modules\PromoCampaign\Entities\PromoCampaignPromoCode;
+use Modules\PromoCampaign\Lib\PromoCampaignTools;
 
 use App\Lib\MyHelper;
 
@@ -703,10 +704,10 @@ class ApiProductGroupController extends Controller
 
         	if (!empty($post['promo_code'])) 
         	{
-        		$code = app($this->promo_campaign)->checkPromoCode($post['promo_code'], null, 1);
+        		$code = app($this->promo_campaign)->checkPromoCode($post['promo_code'], 1, 1);
         		$source = 'promo_campaign';
         	}else{
-        		$code = app($this->promo_campaign)->checkVoucher($post['id_deals_user'], null, 1);
+        		$code = app($this->promo_campaign)->checkVoucher($post['id_deals_user'], 1, 1);
         		$source = 'deals';
         	}
 
@@ -720,6 +721,14 @@ class ApiProductGroupController extends Controller
 	        		return false;
 	        	}
 	        	$code = $code->toArray();
+
+				if (isset($post['id_outlet'])) {
+					$pct = new PromoCampaignTools();
+					if (!$pct->checkOutletRule($post['id_outlet'], $code[$source]['is_all_outlet']??0,$code[$source][$source.'_outlets']??$code['deal_voucher'][$source]['outlets_active'])) {
+						$promo_error = Setting::where('key','promo_error_product_list')->first()['value']??'Cannot use promo at this outlet.';
+	        			return false;
+					}
+				}
 
 	        	$applied_product = app($this->promo_campaign)->getProduct($source,($code['promo_campaign']??$code['deal_voucher']['deals']))['applied_product']??[];
 
