@@ -59,10 +59,18 @@ class ApiProductGroupController extends Controller
     	$data = [];
         $checkCode = ProductGroup::where('product_group_code', $post['name'])->first();
     	if ($checkCode) {
-            $upload = MyHelper::uploadPhotoStrict($post['photo'], $this->saveImage, 200, 200);
+            if ($post['detail'] == 1) {
+                $upload = MyHelper::uploadPhotoStrict($post['photo'], $this->saveImage, 720, 360);
+            } else {
+                $upload = MyHelper::uploadPhotoStrict($post['photo'], $this->saveImage, 200, 200);
+            }
             
     	    if (isset($upload['status']) && $upload['status'] == "success") {
-    	        $data['product_group_photo'] = $upload['path'];
+                if ($post['detail'] == 1) {
+                    $data['product_group_image_detail'] = $upload['path'];
+                } else {
+                    $data['product_group_photo'] = $upload['path'];
+                }
     	    }
     	    else {
     	        $result = [
