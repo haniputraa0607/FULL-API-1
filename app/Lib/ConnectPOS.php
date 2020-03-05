@@ -7,6 +7,7 @@ use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionPaymentCimb;
 use App\Http\Models\TransactionPaymentOvo;
+use App\Http\Models\LogActivitiesPosTransactionsOnline;
 
 class ConnectPOS{
 	public static $obj = null;
@@ -55,10 +56,11 @@ class ConnectPOS{
 
 	/**
 	 * send transaction to POS
-	 * @param  Array<Integer> $id_transaction array of id_transaction
+	 * @param  Integer $id_transactions one or more id_transaction separated by comma
 	 * @return boolean          true if success, otherwise false
 	 */
 	public function sendTransaction(...$id_transactions) {
+		$module_url = '/MobileReceiver/transaction';
 		$trxDatas = Transaction::whereIn('transactions.id_transaction',$id_transactions)
 		->join('transaction_pickups','transactions.id_transaction','=','transaction_pickups.id_transaction')
 		->with(['user','products','products.product_group','products.product_variants'=>function($query){
@@ -67,8 +69,12 @@ class ConnectPOS{
 		// return $trxData;
 		if(!$trxDatas){return false;}
 		$item = [];
+		$users = [];
+		$outlets = [];
 		foreach ($trxDatas as $trxData) {
 			$user = $trxData['user'];
+			$users[] = $user->phone;
+			$outlets[] = env('POS_OUTLET_OVERWRITE')?:$trxData->outlet->outlet_code;
 			$body = [
 				'header' => [
 					'orderNumber'=> $trxData->transaction_receipt_number, //receipt number
@@ -218,11 +224,23 @@ class ConnectPOS{
 			$item[] = $body;
 		}
 		$sendData = [
-			'head' => $this->getHead(),
+			'head' => $this->getHead($module_url),
 			'body' => $item
 		];
 		$this->sign($sendData);
-		$response = MyHelper::post($this->url,null,$sendData);
+		$response = MyHelper::postWithTimeout($this->url.$module_url,null,$sendData,0,null,65,false);
+        $dataLog = [
+            'url' 		        => $this->url.$module_url,
+            'subject' 		    => 'POS Send Transaction',
+            'outlet_code' 	    => implode(',',$outlets),
+            'user' 		        => implode(',',$users),
+            'request' 		    => json_encode($sendData),
+            'response_status'   => $response['status_code'],
+            'response'   		=> $response['response'],
+            'ip' 		        => \Request::ip(),
+            'useragent' 	    => \Request::header('user-agent')
+        ];
+        LogActivitiesPosTransactionsOnline::create($dataLog);
 		return $response;
 	}
 }
