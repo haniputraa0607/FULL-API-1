@@ -82,6 +82,7 @@ class ApiOnlineTransaction extends Controller
         $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiFraud";
         $this->setting_trx   = "Modules\Transaction\Http\Controllers\ApiSettingTransactionV2";
         $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+        $this->promo       = "Modules\PromoCampaign\Http\Controllers\ApiPromo";
     }
 
     public function newTransaction(NewTransaction $request) {
@@ -273,7 +274,8 @@ class ApiOnlineTransaction extends Controller
         $use_referral = false;
         $discount_promo = [];
         $promo_discount = 0;
-        if($request->json('promo_code')){
+        $promo_source = null;
+        if($request->json('promo_code') && !$request->json('id_deals_user')){
             $code=PromoCampaignPromoCode::where('promo_code',$request->promo_code)
                 ->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
                 ->where( function($q){
@@ -285,7 +287,7 @@ class ApiOnlineTransaction extends Controller
             if ($code)
             {
                 $post['id_promo_campaign_promo_code'] = $code->id_promo_campaign_promo_code;
-                if($code->promo_type = "Referral"){
+                if($code->promo_type == "Referral"){
                     $promo_code_ref = $request->json('promo_code');
                     $use_referral = true;
                 }
@@ -301,6 +303,7 @@ class ApiOnlineTransaction extends Controller
                         'messages'=>['Promo code not valid']
                     ];
                 }
+                $promo_source = 'promo_code';
                 $promo_discount=$discount_promo['discount'];
             }
             else
@@ -311,7 +314,7 @@ class ApiOnlineTransaction extends Controller
                 ];
             }
         }
-        elseif($request->json('id_deals_user'))
+        elseif($request->json('id_deals_user') && !$request->json('promo_code'))
         {
         	$deals = app($this->promo_campaign)->checkVoucher($request->id_deals_user, 1);
 
@@ -328,6 +331,7 @@ class ApiOnlineTransaction extends Controller
                     ];
 	            }
 	            
+                $promo_source = 'voucher_online';
 	            $promo_discount=$discount_promo['discount'];
 	        }
 	        else
@@ -337,6 +341,13 @@ class ApiOnlineTransaction extends Controller
                     'messages'=>['Voucher is not valid']
                 ];
 	        }
+        }
+        elseif($request->json('id_deals_user') && $request->json('promo_code'))
+        {
+        	return [
+                'status'=>'fail',
+                'messages'=>['Voucher is not valid']
+            ];
         }
         // end check promo
 
@@ -526,6 +537,14 @@ class ApiOnlineTransaction extends Controller
         if (isset($post['payment_type']) && $post['payment_type'] == 'Balance') {
             $post['cashback'] = 0;
             $post['point']    = 0;
+        }
+
+        if ($request->json('promo_code') || $request->json('id_deals_user')) {
+        	$check = $this->checkPromoGetPoint($promo_source);
+        	if ( $check == 0 ) {
+        		$post['cashback'] = 0;
+            	$post['point']    = 0;
+        	}
         }
 
         $detailPayment = [
@@ -1690,6 +1709,7 @@ class ApiOnlineTransaction extends Controller
         $promo['description']=null;
         $promo['detail']=null;
         $promo['discount']=0;
+        $promo_source = null;
         if($request->json('promo_code'))
         {
         	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1, 1);
@@ -1709,12 +1729,14 @@ class ApiOnlineTransaction extends Controller
 		            $promo['detail'] = $discount_promo['promo_detail'];
 		            $promo['discount'] = $discount_promo['discount'];
 		            $promo['is_free'] = $discount_promo['is_free'];
+		            $promo_source = 'promo_code';
 
 		            if ( !empty($errore) || !empty($errors)) {
 		            	$promo_error = app($this->promo_campaign)->promoError('transaction', $errore, $errors);
 		            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('promo_campaign', $code['promo_campaign'])['product']??'';
 		            	$promo_error['warning_image'] = env('S3_URL_API').($code['promo_campaign_warning_image']??$promo_error['warning_image']);
 				        $promo_error['product'] = $pct->getRequiredProduct($code->id_promo_campaign)??null;
+		            	$promo_source = null;
 		                
 		            }
 		            $promo_discount=$discount_promo['discount'];
@@ -1736,6 +1758,7 @@ class ApiOnlineTransaction extends Controller
 	            $promo['detail'] = $discount_promo['promo_detail'];
 	            $promo['discount'] = $discount_promo['discount'];
 	            $promo['is_free'] = $discount_promo['is_free'];
+		        $promo_source = 'voucher_online';
 
 				if ( !empty($errors) ) {
 					$code = $deals->toArray();
@@ -1744,6 +1767,7 @@ class ApiOnlineTransaction extends Controller
 	            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('deals', $code['deal_voucher']['deals'])['product']??'';
 	            	$promo_error['warning_image'] = env('S3_URL_API').($code['deal_voucher']['deals']['deals_warning_image']??$promo_error['warning_image']);
 		        	$promo_error['product'] = $pct->getRequiredProduct($deals->dealVoucher->id_deals, 'deals')??null;
+		        	$promo_source = null;
 	            }
 	            $promo_discount=$discount_promo['discount'];
 	        }
@@ -2019,16 +2043,17 @@ class ApiOnlineTransaction extends Controller
                 $post['cashback'] = $post['cashback'];
             }
         }
-
         $cashback_text = explode('%earned_cashback%',Setting::select('value_text')->where('key', 'earned_cashback_text')->pluck('value_text')->first()?:'You\'ll receive %earned_cashback% for this transaction');
         $cashback_earned = (int) $post['cashback'];
+
         $cashback_text_array = [
             $cashback_text[0],
             count($cashback_text) >= 2?number_format($cashback_earned,0,',','.').' Point':'',
             $cashback_text[1]??''
         ];
 
-        $outlet['today']['status'] = $outlet_status?'open':'closed';
+        $outlet = $outlet->toArray();
+        $outlet['today']['status'] = $outlet_status ? 'open' : 'closed';
         $result['outlet'] = [
             'id_outlet' => $outlet['id_outlet'],
             'outlet_code' => $outlet['outlet_code'],
@@ -2056,6 +2081,7 @@ class ApiOnlineTransaction extends Controller
         $balance = app($this->balance)->balanceNow($user->id);
         $result['points_pretty'] = MyHelper::requestNumber($balance,'_POINT');
         $result['points'] = MyHelper::requestNumber($balance,$rn);
+        $result['get_point'] = ($post['payment_type'] != 'Balance') ? $this->checkPromoGetPoint($promo_source) : 0;
         $result['earned_cashback_text'] = $cashback_text_array;
         if (isset($post['payment_type'])&&$post['payment_type'] == 'Balance') {
             if($balance>=$grandtotal){
@@ -2366,5 +2392,45 @@ class ApiOnlineTransaction extends Controller
        }
 
        return $rndstring;
+    }
+
+    public function checkPromoGetPoint($promo_source)
+    {
+    	if ($promo_source != 'promo_code' && $promo_source != 'voucher_online' && $promo_source != 'voucher_offline') {
+    		return 0;
+    	}
+
+    	$config = app($this->promo)->promoGetCashbackRule();
+    	$getData = Configs::whereIn('config_name',['promo code get point','voucher offline get point','voucher online get point'])->get()->toArray();
+
+    	foreach ($getData as $key => $value) {
+    		$config[$value['config_name']] = $value['is_active'];
+    	}
+
+    	if ($promo_source == 'promo_code') {
+    		if ($config['promo code get point'] == 1) {
+    			return 1;
+    		}else{
+    			return 0;
+    		}
+    	}
+
+    	if ($promo_source == 'voucher_online') {
+    		if ($config['voucher online get point'] == 1) {
+    			return 1;
+    		}else{
+    			return 0;
+    		}
+    	}
+
+    	if ($promo_source == 'voucher_offline') {
+    		if ($config['voucher offline get point'] == 1) {
+    			return 1;
+    		}else{
+    			return 0;
+    		}
+    	}
+
+    	return 0;
     }
 }
