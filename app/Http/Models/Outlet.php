@@ -153,31 +153,31 @@ class Outlet extends Authenticatable
 
 		switch($hari){
 			case 'Sun':
-				$hari_ini = "Minggu";
+				$hari_ini = "Sunday";
 			break;
 
 			case 'Mon':
-				$hari_ini = "Senin";
+				$hari_ini = "Monday";
 			break;
 
 			case 'Tue':
-				$hari_ini = "Selasa";
+				$hari_ini = "Tuesday";
 			break;
 
 			case 'Wed':
-				$hari_ini = "Rabu";
+				$hari_ini = "Wednesday";
 			break;
 
 			case 'Thu':
-				$hari_ini = "Kamis";
+				$hari_ini = "Thursday";
 			break;
 
 			case 'Fri':
-				$hari_ini = "Jumat";
+				$hari_ini = "Friday";
 			break;
 
 			default:
-				$hari_ini = "Sabtu";
+				$hari_ini = "Saturday";
 			break;
 		}
 

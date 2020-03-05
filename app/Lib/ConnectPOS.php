@@ -2,6 +2,11 @@
 namespace App\Lib;
 
 use App\Http\Models\Transaction;
+use App\Http\Models\TransactionMultiplePayment;
+use App\Http\Models\TransactionPaymentBalance;
+use App\Http\Models\TransactionPaymentMidtran;
+use App\Http\Models\TransactionPaymentCimb;
+use App\Http\Models\TransactionPaymentOvo;
 
 class ConnectPOS{
 	public static $obj = null;
@@ -28,7 +33,7 @@ class ConnectPOS{
 	 * @param  string $destination 	Function end point name
 	 * @return Array              	array of head section
 	 */
-	public function getHead($destination='/pos/transactionReceiver') {
+	public function getHead($destination='/MobileReceiver/transaction') {
 		return [
 			'requestId'			=> 0,
 			'requestName'		=> 'Mobile Apps',
@@ -54,15 +59,20 @@ class ConnectPOS{
 	 * @return boolean          true if success, otherwise false
 	 */
 	public function sendTransaction($id_transaction) {
-		$trxData = Transaction::where('id_transaction',$id_transaction)->with(['user','products','products.product_variants'=>function($query){
+		$trxData = Transaction::where('transactions.id_transaction',$id_transaction)
+		->join('transaction_pickups','transactions.id_transaction','=','transaction_pickups.id_transaction')
+		->with(['user','products','products.product_group','products.product_variants'=>function($query){
 			$query->orderBy('parent');
 		},'outlet'])->first();
 		// return $trxData;
 		if(!$trxData){return false;}
+		$user = $trxData['user'];
 		$body = [
 			'header' => [
 				'orderNumber'=> $trxData->transaction_receipt_number, //receipt number
-				'outletId'=> $trxData->outlet->outlet_code, //outlet code
+				'outletId'=> env('POS_OUTLET_OVERWRITE')?:$trxData->outlet->outlet_code, //outlet code
+				// 'outletId'=> 'M030', //outlet code
+				'bookingCode'=> $trxData->order_id,
 				'businessDate'=> date('Ymd',strtotime($trxData->transaction_date)), //tgl trx
 				'trxDate'=> date('Ymd',strtotime($trxData->transaction_date)), // tgl trx
 				'trxStartTime'=> date('Ymd His',strtotime($trxData->transaction_date)), //created at
@@ -90,9 +100,11 @@ class ConnectPOS{
 			'item' => []
 		];
 		foreach ($trxData->products as $key => $product) {
-			$tax = (10/100) * $product->pivot->transaction_product_subtotal;
+			// $tax = (10/100) * $product->pivot->transaction_product_subtotal;
+			$tax = 0;
 			$body['item'][] = [
 				"number"=> $key+1, // key+1
+				"menuId"=> $product->product_group->product_group_code, // product code
 				"sapMatnr"=> $product->product_code, // product code
 				// "categoryId"=> 0, // ga ada / 0
 				"qty"=> $product->pivot->transaction_product_qty, // qty
@@ -108,17 +120,99 @@ class ConnectPOS{
 				"status"=> "ACTIVE" // hardcode
 			];
 		}
-		foreach ($trxData->transaction_payments?:[] as $key => $payment) {
-			$body['payment'][] = [
-				"number"=> 1,
-				"type"=> "CASH", //cimb/ovo/point
-				"amount"=> 50000, //jumlah
-				"changeAmount"=> 4000,//0
-				"cardNumber"=> "", // ovo no hp // cimb ? // point “”
-				"cardOwner"=> "", // ovo=> fullname, point nama customer
-				"referenceNumber"=> "" // approval code ovo
-			];
-		}
+        $payment = [];
+        //cek di multi payment
+        $multi = TransactionMultiplePayment::where('id_transaction', $trxData->id_transaction)->get();
+        if (!$multi) {
+            //cek di balance
+            $balance = TransactionPaymentBalance::where('id_transaction', $trxData->id_transaction)->get();
+            if ($balance) {
+                foreach ($balance as $payBalance) {
+                    $pay = [
+                        'number'        => 1,
+                        'type'          => 'Points',
+                        'amount'        => (float) $payBalance['balance_nominal'],
+                        'change_amount' => 0,
+                        'card_number'   => 0,
+                        'card_owner'    => $user['name']
+                    ];
+                    $payment[] = $pay;
+                }
+            } else {
+                $midtrans = TransactionPaymentMidtran::where('id_transaction', $check['id_transaction'])->get();
+                if ($midtrans) {
+                    foreach ($midtrans as $payMidtrans) {
+                        $pay = [
+                            'number'        => 1,
+                            'type'          => 'Midtrans',
+                            'amount'        => (float) $payMidtrans['gross_amount'],
+                            'change_amount' => 0,
+                            'card_number'   => 0,
+                            'card_owner'    => $user['name']
+                        ];
+                        $payment[] = $pay;
+                    }
+                }
+            }
+        } else {
+            foreach ($multi as $key => $payMulti) {
+                if ($payMulti['type'] == 'Balance') {
+                    $balance = TransactionPaymentBalance::find($payMulti['id_payment']);
+                    if ($balance) {
+                        $pay = [
+                            'number'        => $key + 1,
+                            'type'          => 'Points',
+                            'amount'        => (float) $balance['balance_nominal'],
+                            'change_amount' => 0,
+                            'card_number'   => 0,
+                            'card_owner'    => $user['name']
+                        ];
+                        $payment[] = $pay;
+                    }
+                } elseif ($payMulti['type'] == 'Midtrans') {
+                    $midtrans = TransactionPaymentMidtran::find($payMulti['id_payment']);
+                    if ($midtrans) {
+                        $pay = [
+                            'number'        => $key + 1,
+                            'type'          => 'Midtrans',
+                            'amount'        => (float) $midtrans['gross_amount'],
+                            'change_amount' => 0,
+                            'card_number'   => '',
+                            'card_owner'    => ''
+                        ];
+                        $payment[] = $pay;
+                    }
+                } elseif ($payMulti['type'] == 'Ovo') {
+                    $ovo = TransactionPaymentOvo::find($payMulti['id_payment']);
+                    if ($ovo) {
+                        $pay = [
+                            'number'            => $key + 1,
+                            'type'              => 'Ovo',
+                            'amount'            => (float) $ovo['amount'],
+                            'change_amount'     => 0,
+                            'card_number'       => '',
+                            'card_owner'        => '',
+                            'reference_number'  => $ovo['approval_code']??''
+                        ];
+                        $payment[] = $pay;
+                    }
+                } elseif ($payMulti['type'] == 'Cimb') {
+                    $cimb = TransactionPaymentCimb::find($payMulti['id_payment']);
+                    if ($cimb) {
+                        $pay = [
+                            'number'            => $key + 1,
+                            'type'              => 'Cimb',
+                            'amount'            => (float) $cimb['amount']??$check['transaction_grandtotal'],
+                            'change_amount'     => 0,
+                            'card_number'       => '',
+                            'card_owner'        => ''
+                        ];
+                        $payment[] = $pay;
+                    }
+                }
+            }
+        }
+        $body['payment'] = $payment;
 		$sendData = [
 			'head' => $this->getHead(),
 			'body' => $body

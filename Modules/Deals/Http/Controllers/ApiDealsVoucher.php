@@ -290,7 +290,7 @@ class ApiDealsVoucher extends Controller
     	if(!MyHelper::isJoined($voucher,'deals')){
             $voucher->leftJoin('deals', 'deals.id_deals', 'deals_vouchers.id_deals');
         }
-        
+
     	$voucher->addselect('deals.is_online', 'deals.is_offline');
 
         if ( isset($post['online']) ) {
@@ -648,7 +648,7 @@ class ApiDealsVoucher extends Controller
 			// change specific deals user is used to 1
 			$deals_user = DealsUser::where('id_deals_user','=',$id_deals_user)->update(['is_used' => 1]);
 		}
-		
+
 		if (is_int($deals_user) || $deals_user) {
 			DB::commit();
 			$deals_user = 1;
@@ -706,7 +706,9 @@ class ApiDealsVoucher extends Controller
 	    	{
 	    		return false;
 	    	}
-    	}
+        }
+
+        return true;
 
     }
 }
