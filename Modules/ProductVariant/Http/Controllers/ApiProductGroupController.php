@@ -237,6 +237,7 @@ class ApiProductGroupController extends Controller
         $append = [];
         if($update && $request->json('variant_type') == 'single'){
             $id_product = $post['id_product'];
+            Product::where('id_product_group',$pg->id_product_group)->update(['id_product_group'=>null]);
             ProductProductVariant::where('id_product',$id_product)->delete();
             $variant1 = ProductVariant::where('product_variant_code','general_type')->first();
             if(!$variant1){
