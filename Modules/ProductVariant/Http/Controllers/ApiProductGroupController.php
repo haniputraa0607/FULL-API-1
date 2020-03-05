@@ -31,6 +31,8 @@ class ApiProductGroupController extends Controller
         $this->general = ['general_type','general_size'];
     }
 
+    public $saveImage = "img/product/item/";
+
     /**
      * Display a listing of the resource.
      * @return Response
@@ -50,6 +52,45 @@ class ApiProductGroupController extends Controller
             $pg = $pg->get();
         }
         return MyHelper::checkGet($pg->toArray());
+    }
+
+    
+    function photoAjax(Request $request) {
+    	$post = $request->json()->all();
+    	$data = [];
+        $checkCode = ProductGroup::where('product_group_code', $post['name'])->first();
+    	if ($checkCode) {
+            if ($post['detail'] == 1) {
+                $upload = MyHelper::uploadPhotoStrict($post['photo'], $this->saveImage, 720, 360);
+            } else {
+                $upload = MyHelper::uploadPhotoStrict($post['photo'], $this->saveImage, 200, 200);
+            }
+            
+    	    if (isset($upload['status']) && $upload['status'] == "success") {
+                if ($post['detail'] == 1) {
+                    $data['product_group_image_detail'] = $upload['path'];
+                } else {
+                    $data['product_group_photo'] = $upload['path'];
+                }
+    	    }
+    	    else {
+    	        $result = [
+    	            'status'   => 'fail',
+    	            'messages' => ['fail upload image']
+    	        ];
+    	        return response()->json($result);
+    	    }
+    	}
+    	if (empty($data)) {
+    		return reponse()->json([
+    			'status' => 'fail',
+    			'messages' => ['fail save to database']
+    		]);
+    	} else {
+            $data['id_product_group']       = $checkCode->id_product_group;
+            $save                           = ProductGroup::updateOrCreate(['id_product_group' => $checkCode->id_product_group], $data);
+    		return response()->json(MyHelper::checkCreate($save));
+    	}
     }
 
     public function filterList($model,$rule,$operator='and')
