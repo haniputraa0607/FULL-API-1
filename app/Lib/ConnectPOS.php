@@ -8,6 +8,7 @@ use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionPaymentCimb;
 use App\Http\Models\TransactionPaymentOvo;
 use App\Http\Models\LogActivitiesPosTransactionsOnline;
+use App\Http\Models\TransactionOnlinePos;
 
 class ConnectPOS{
 	public static $obj = null;
@@ -71,9 +72,12 @@ class ConnectPOS{
 		$item = [];
 		$users = [];
 		$outlets = [];
+		$transactions = [];
 		foreach ($trxDatas as $trxData) {
 			$user = $trxData['user'];
 			$users[] = $user->phone;
+			$transactions[$user->phone] = $trxData->toArray();
+			$transactions[$user->phone]['outlet_name'] = $trxData->outlet->outlet_name;
 			$outlets[] = env('POS_OUTLET_OVERWRITE')?:$trxData->outlet->outlet_code;
 			$body = [
 				'header' => [
@@ -240,6 +244,18 @@ class ConnectPOS{
             'ip' 		        => \Request::ip(),
             'useragent' 	    => \Request::header('user-agent')
         ];
+        $is_success = $response['status_code'] == 200;
+        if(!$is_success){
+        	foreach ($users as $phone) {
+        		$variables = $transactions[$phone];
+	        	app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Transaction Online Failed Pos', $phone, $variables,null,true);
+                TransactionOnlinePos::create([
+                	'request' => json_encode($sendData), 
+                	'response' => $response['response'],
+                    'id_transaction' => $variables['id_transaction']
+                ]);
+        	}
+        }
         LogActivitiesPosTransactionsOnline::create($dataLog);
 		return $response;
 	}

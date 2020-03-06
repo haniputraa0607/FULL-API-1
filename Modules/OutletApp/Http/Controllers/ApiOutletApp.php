@@ -816,6 +816,7 @@ class ApiOutletApp extends Controller
         DB::beginTransaction();
 
         $pickup = TransactionPickup::where('id_transaction', $order->id_transaction)->update(['taken_at' => date('Y-m-d H:i:s')]);
+        \App\Lib\ConnectPOS::create()->sendTransaction($order->id_transaction);
         if($pickup){
             //send notif to customer
             $user = User::find($order->id_user);

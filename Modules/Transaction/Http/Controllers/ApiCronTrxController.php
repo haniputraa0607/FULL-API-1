@@ -331,7 +331,7 @@ class ApiCronTrxController extends Controller
                                     ->whereNull('reject_at')
                                     ->whereNull('taken_by_system_at')
                                     ->update(['taken_by_system_at' => date('Y-m-d 00:00:00')]);
-
+        \App\Lib\ConnectPOS::create()->sendTransaction($idTrx);
         return response()->json(['status' => 'success']);
 
     }
