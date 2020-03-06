@@ -30,6 +30,7 @@ use Modules\Deals\Entities\DealsBuyxgetyRule;
 use Modules\ProductVariant\Entities\ProductGroup;
 
 use App\Http\Models\User;
+use App\Http\Models\Configs;
 use App\Http\Models\Campaign;
 use App\Http\Models\Outlet;
 use App\Http\Models\Product;
@@ -44,6 +45,7 @@ use Modules\PromoCampaign\Http\Requests\Step1PromoCampaignRequest;
 use Modules\PromoCampaign\Http\Requests\Step2PromoCampaignRequest;
 use Modules\PromoCampaign\Http\Requests\DeletePromoCampaignRequest;
 use Modules\PromoCampaign\Http\Requests\ValidateCode;
+use Modules\PromoCampaign\Http\Requests\UpdateCashBackRule;
 
 use Modules\PromoCampaign\Lib\PromoCampaignTools;
 use App\Lib\MyHelper;
@@ -161,5 +163,41 @@ class ApiPromo extends Controller
     			'messages' => 'Failed to update promo'
     		]);
     	}
+    }
+
+    public function promoGetCashbackRule()
+    {
+    	$getData = Configs::whereIn('config_name',['promo code get point','voucher offline get point','voucher online get point'])->get()->toArray();
+
+    	foreach ($getData as $key => $value) {
+    		$config[$value['config_name']] = $value['is_active'];	
+    	}
+
+    	return $config;
+    }
+
+    public function getDataCashback(Request $request)
+    {
+    	$data = $this->promoGetCashbackRule();
+
+    	return response()->json(myHelper::checkGet($data));
+    }
+
+    public function updateDataCashback(UpdateCashBackRule $request)
+    {
+    	$post = $request->json()->all();
+    	db::beginTransaction();
+    	$update = Configs::where('config_name','promo code get point')->update(['is_active' => $post['promo_code_cashback']??0]);
+    	$update = Configs::where('config_name','voucher online get point')->update(['is_active' => $post['voucher_online_cashback']??0]);
+    	$update = Configs::where('config_name','voucher offline get point')->update(['is_active' => $post['voucher_offline_cashback']??0]);
+
+    	if(is_numeric($update))
+    	{
+    		db::commit();
+    	}else{
+    		db::rollback();
+    	}
+    	
+    	return response()->json(myHelper::checkUpdate($update));
     }
 }
