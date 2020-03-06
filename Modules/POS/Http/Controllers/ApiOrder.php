@@ -572,7 +572,6 @@ class ApiOrder extends Controller
         DB::beginTransaction();
 
         $pickup = TransactionPickup::where('id_transaction', $order->id_transaction)->update(['taken_at' => date('Y-m-d H:i:s')]);
-        \App\Lib\ConnectPOS::create()->sendTransaction($order->id_transaction);
         if($pickup){
             //send notif to customer
             $user = User::find($order->id_user);
@@ -585,6 +584,7 @@ class ApiOrder extends Controller
 
 
             $updatePaymentStatus = Transaction::where('id_transaction', $order->id_transaction)->update(['transaction_payment_status' => 'Completed', 'show_rate_popup' => 1,'completed_at' => date('Y-m-d H:i:s')]);
+            \App\Lib\ConnectPOS::create()->sendTransaction($order->id_transaction);
 
             if($send != true){
                 DB::rollback();
