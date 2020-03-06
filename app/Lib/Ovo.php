@@ -15,6 +15,7 @@ use App\Http\Models\DealsUser;
 use App\Http\Models\DealsVoucher;
 use App\Http\Models\TransactionPaymentOvo;
 use App\Http\Models\DealsPaymentOvo;
+use Modules\Outlet\Entities\OutletOvo;
 
 class Ovo {
 
@@ -33,23 +34,33 @@ class Ovo {
         return hash_hmac('sha256', $app_id.$time, $app_key);
     }
     
+    public static function checkOutletOvo($id_outlet){
+        return OutletOvo::where('id_outlet',$id_outlet)->exists();
+    }
+
     static function PayTransaction($dataTrx, $dataPay, $amount, $env, $type="trx") {
         if($env == 'production'){
             $url = env('OVO_PROD_URL');
-            $tid = env('OVO_PROD_TID');
-            $mid = env('OVO_PROD_MID');
+            // $tid = env('OVO_PROD_TID');
+            // $mid = env('OVO_PROD_MID');
             $merchantId = env('OVO_PROD_MERCHANT_ID');
-            $storeCode = env('OVO_PROD_STORE_CODE');
+            // $storeCode = env('OVO_PROD_STORE_CODE');
             $app_id = env('OVO_PROD_APP_ID');
         }else{
             $url    = env('OVO_STAGING_URL');
-            $tid = env('OVO_STAGING_TID');
-            $mid = env('OVO_STAGING_MID');
+            // $tid = env('OVO_STAGING_TID');
+            // $mid = env('OVO_STAGING_MID');
             $merchantId = env('OVO_STAGING_MERCHANT_ID');
-            $storeCode = env('OVO_STAGING_STORE_CODE');
+            // $storeCode = env('OVO_STAGING_STORE_CODE');
             $app_id = env('OVO_STAGING_APP_ID');
         }
-
+        $outlet_ovo = OutletOvo::where('id_outlet',$dataTrx['id_outlet'])->first();
+        if(!$outlet_ovo){
+            return false;
+        }
+        $tid = $outlet_ovo->tid;
+        $mid = $outlet_ovo->mid;
+        $storeCode = $outlet_ovo->store_code;
         $now = time();
 
         $data['type'] = "0200"; 
