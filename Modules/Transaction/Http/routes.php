@@ -46,6 +46,11 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::post('/be/new', 'ApiOnlineTransaction@newTransaction');
     Route::get('be/{key}', 'ApiTransaction@transactionList');
     Route::post('be/detail/webview/{mode?}', 'ApiWebviewController@webview');
+
+    /*[POS] Transaction online failed*/
+    Route::any('online-pos', 'ApiTransactionOnlinePos@listTransaction');
+    Route::post('online-pos/resend', 'ApiTransactionOnlinePos@resendTransaction');
+    Route::any('online-pos/autoresponse', 'ApiTransactionOnlinePos@autoresponse');
 });
 
 Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {

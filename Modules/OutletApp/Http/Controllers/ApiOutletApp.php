@@ -827,6 +827,7 @@ class ApiOutletApp extends Controller
             ]);
 
             $updatePaymentStatus = Transaction::where('id_transaction', $order->id_transaction)->update(['transaction_payment_status' => 'Completed', 'show_rate_popup' => 1]);
+            \App\Lib\ConnectPOS::create()->sendTransaction($order->id_transaction);
 
             if($send != true){
                 DB::rollback();
