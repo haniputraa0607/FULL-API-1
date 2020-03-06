@@ -15,6 +15,7 @@ use App\Http\Models\DealsUser;
 use App\Http\Models\DealsVoucher;
 use App\Http\Models\TransactionPaymentOvo;
 use App\Http\Models\DealsPaymentOvo;
+use Modules\Outlet\Entities\OutletOvo;
 
 class Ovo {
 
@@ -33,6 +34,10 @@ class Ovo {
         return hash_hmac('sha256', $app_id.$time, $app_key);
     }
     
+    public static function checkOutletOvo($id_outlet){
+        return OutletOvo::where('id_outlet',$id_outlet)->exists();
+    }
+
     static function PayTransaction($dataTrx, $dataPay, $amount, $env, $type="trx") {
         if($env == 'production'){
             $url = env('OVO_PROD_URL');
@@ -49,7 +54,15 @@ class Ovo {
             $storeCode = env('OVO_STAGING_STORE_CODE');
             $app_id = env('OVO_STAGING_APP_ID');
         }
-
+        if($type != 'deals'){
+            $outlet_ovo = OutletOvo::where('id_outlet',$dataTrx['id_outlet']??'')->first();
+            if(!$outlet_ovo){
+                return false;
+            }
+            $tid = $outlet_ovo->tid;
+            $mid = $outlet_ovo->mid;
+            $storeCode = $outlet_ovo->store_code;
+        }
         $now = time();
 
         $data['type'] = "0200"; 

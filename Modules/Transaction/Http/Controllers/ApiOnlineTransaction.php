@@ -58,6 +58,7 @@ use DB;
 use App\Lib\MyHelper;
 use App\Lib\Midtrans;
 use App\Lib\GoSend;
+use App\Lib\Ovo;
 
 use Modules\Transaction\Http\Requests\Transaction\NewTransaction;
 use Modules\Transaction\Http\Requests\Transaction\ConfirmPayment;
@@ -150,6 +151,14 @@ class ApiOnlineTransaction extends Controller
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Outlet tutup']
+            ]);
+        }
+
+        if($post['payment_type'] == 'Ovo' && !Ovo::checkOutletOvo($post['id_outlet'])){
+            DB::rollback();
+            return response()->json([
+                'status'    => 'fail',
+                'messages'  => ['Ovo payment not available at this store']
             ]);
         }
 
@@ -1583,6 +1592,7 @@ class ApiOnlineTransaction extends Controller
         $id_outlet = $post['id_outlet'];
         $outlet = Outlet::where('id_outlet', $id_outlet)->with('today')->first();
         $rn = $request->json('request_number');
+        $ovo_available = Ovo::checkOutletOvo($post['id_outlet']);
         if (empty($outlet)) {
             DB::rollback();
             return response()->json([
@@ -2082,6 +2092,7 @@ class ApiOnlineTransaction extends Controller
         $result['points_pretty'] = MyHelper::requestNumber($balance,'_POINT');
         $result['points'] = MyHelper::requestNumber($balance,$rn);
         $result['get_point'] = ($post['payment_type'] != 'Balance') ? $this->checkPromoGetPoint($promo_source) : 0;
+        $result['ovo_available'] = $ovo_available?1:0;
         $result['earned_cashback_text'] = $cashback_text_array;
         if (isset($post['payment_type'])&&$post['payment_type'] == 'Balance') {
             if($balance>=$grandtotal){
