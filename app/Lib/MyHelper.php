@@ -1348,8 +1348,8 @@ class MyHelper{
 		}
 	}
 
-	public static function postWithTimeout($url, $bearer=null, $post, $form_type=0, $header=null, $timeout = 65){
-		$client = new Client;
+	public static function postWithTimeout($url, $bearer=null, $post, $form_type=0, $header=null, $timeout = 65,$ssl_verify = true){
+		$client = new Client(['verify' => $ssl_verify]);
 
 		$content = array(
 			'headers' => [
@@ -1382,7 +1382,8 @@ class MyHelper{
 
 		try {
 			$response = $client->post($url, $content);
-			$return = json_decode($response->getBody(), true);
+			// return plain response if json_decode fail because response is plain text
+			$return = json_decode($response->getBody()->getContents(), true)?:$response->getBody()->__toString();
 			return [
 				'status_code' => $response->getStatusCode(),
 				'response' => $return

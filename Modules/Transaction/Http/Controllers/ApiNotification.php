@@ -644,7 +644,7 @@ Detail: ".$link['short'],
                         if (!$upTrx) {
                             return false;
                         }
-
+                        \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
                         $fraud = $this->checkFraud($trx);
                         if ($fraud == false) {
                             return false;
@@ -846,7 +846,7 @@ Detail: ".$link['short'],
                 if (!$check) {
                     return false;
                 }
-
+                \App\Lib\ConnectPOS::create()->sendTransaction($trx->id_transaction);
                 $fraud = $this->checkFraud($trx);
                 if (!$fraud) {
                     return false;

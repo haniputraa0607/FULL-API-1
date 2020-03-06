@@ -585,6 +585,7 @@ class ApiConfirm extends Controller
                                 $updatePaymentStatus = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Completed','completed_at' => date('Y-m-d H:i:s')]);
                                 if($updatePaymentStatus){
 
+                                    \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
                                     $dataTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction')
                                     ->where('id_transaction', $payment['id_transaction'])->first();
 

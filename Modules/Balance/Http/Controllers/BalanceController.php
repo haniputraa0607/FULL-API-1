@@ -232,6 +232,7 @@ class BalanceController extends Controller
 
                 if ($balanceNotif) {
                     $update = Transaction::where('id_transaction', $dataTrx['id_transaction'])->update(['transaction_payment_status' => 'Completed','completed_at' => date('Y-m-d H:i:s')]);
+                    \App\Lib\ConnectPOS::create()->sendTransaction($dataTrx['id_transaction']);
 
                     if (!$update) {
                         return [
