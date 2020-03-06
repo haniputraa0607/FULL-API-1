@@ -41,26 +41,28 @@ class Ovo {
     static function PayTransaction($dataTrx, $dataPay, $amount, $env, $type="trx") {
         if($env == 'production'){
             $url = env('OVO_PROD_URL');
-            // $tid = env('OVO_PROD_TID');
-            // $mid = env('OVO_PROD_MID');
+            $tid = env('OVO_PROD_TID');
+            $mid = env('OVO_PROD_MID');
             $merchantId = env('OVO_PROD_MERCHANT_ID');
-            // $storeCode = env('OVO_PROD_STORE_CODE');
+            $storeCode = env('OVO_PROD_STORE_CODE');
             $app_id = env('OVO_PROD_APP_ID');
         }else{
             $url    = env('OVO_STAGING_URL');
-            // $tid = env('OVO_STAGING_TID');
-            // $mid = env('OVO_STAGING_MID');
+            $tid = env('OVO_STAGING_TID');
+            $mid = env('OVO_STAGING_MID');
             $merchantId = env('OVO_STAGING_MERCHANT_ID');
-            // $storeCode = env('OVO_STAGING_STORE_CODE');
+            $storeCode = env('OVO_STAGING_STORE_CODE');
             $app_id = env('OVO_STAGING_APP_ID');
         }
-        $outlet_ovo = OutletOvo::where('id_outlet',$dataTrx['id_outlet'])->first();
-        if(!$outlet_ovo){
-            return false;
+        if($type != 'deals'){
+            $outlet_ovo = OutletOvo::where('id_outlet',$dataTrx['id_outlet']??'')->first();
+            if(!$outlet_ovo){
+                return false;
+            }
+            $tid = $outlet_ovo->tid;
+            $mid = $outlet_ovo->mid;
+            $storeCode = $outlet_ovo->store_code;
         }
-        $tid = $outlet_ovo->tid;
-        $mid = $outlet_ovo->mid;
-        $storeCode = $outlet_ovo->store_code;
         $now = time();
 
         $data['type'] = "0200"; 
