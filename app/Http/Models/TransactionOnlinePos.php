@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class TransactionOnlinePos extends Model
 {
+	public $primaryKey = 'id_transaction_online_pos';
 	protected $table = 'transactions_online_pos';
 
 	protected $fillable = [

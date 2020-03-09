@@ -34,4 +34,8 @@ class TransactionProductModifier extends Model
 		'created_at',
 		'updated_at'
 	];
+
+	public function product_modifier() {
+		return $this->belongsTo(ProductModifier::class, 'id_product_modifier');
+	}
 }

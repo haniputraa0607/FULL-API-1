@@ -2,6 +2,7 @@
 namespace App\Lib;
 
 use App\Http\Models\Transaction;
+use App\Http\Models\TransactionPickup;
 use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\TransactionPaymentMidtran;
@@ -64,9 +65,9 @@ class ConnectPOS{
 		$module_url = '/MobileReceiver/transaction';
 		$trxDatas = Transaction::whereIn('transactions.id_transaction',$id_transactions)
 		->join('transaction_pickups','transactions.id_transaction','=','transaction_pickups.id_transaction')
-		->with(['user','products','products.product_group','products.product_variants'=>function($query){
+		->with(['user','modifiers','modifiers.product_modifier','products','products.product_group','products.product_variants'=>function($query){
 			$query->orderBy('parent');
-		},'outlet'])->get();
+		},'outlet','promo_campaign_promo_code'])->get();
 		// return $trxData;
 		if(!$trxDatas){return false;}
 		$item = [];
@@ -87,8 +88,9 @@ class ConnectPOS{
 					'bookingCode'=> $trxData->order_id,
 					'businessDate'=> date('Ymd',strtotime($trxData->transaction_date)), //tgl trx
 					'trxDate'=> date('Ymd',strtotime($trxData->transaction_date)), // tgl trx
-					'trxStartTime'=> date('Ymd His',strtotime($trxData->transaction_date)), //created at
-					'trxEndTime'=> date('Ymd His',strtotime($trxData->transaction_date)),// completed at
+					'trxStartTime'=> date('Ymd His',strtotime($trxData->receive_at)), //created at
+					'trxEndTime'=> date('Ymd His',strtotime($trxData->completed_at)),// completed at
+					'pickupTime'=> date('Ymd His',strtotime($trxData->pickup_at?:$trxData->completed_at)),// pickup_at
 					'pax'=> count($trxData->products), // total item
 					'orderType'=> 'take away', //take away
 					'grandTotal'=> $trxData->transaction_grandtotal, //grandtotal
@@ -111,6 +113,7 @@ class ConnectPOS{
 				],
 				'item' => []
 			];
+			$last = 0;
 			foreach ($trxData->products as $key => $product) {
 				// $tax = (10/100) * $product->pivot->transaction_product_subtotal;
 				$tax = 0;
@@ -118,113 +121,135 @@ class ConnectPOS{
 					"number"=> $key+1, // key+1
 					"menuId"=> $product->product_group->product_group_code, // product code
 					"sapMatnr"=> $product->product_code, // product code
-					"categoryId"=> 0, // ga ada / 0
+					"categoryId"=> $product->category_id_pos, // ga ada / 0
 					"qty"=> $product->pivot->transaction_product_qty, // qty
 					"price"=> $product->pivot->transaction_product_price, // item price/ item
 					"discount"=> $product->pivot->transaction_product_discount, // udah * qty
-					"grossAmount"=> $product->pivot->transaction_product_subtotal, //grsndtotal /item
+					"grossAmount"=> $product->pivot->transaction_product_subtotal - $product->pivot->transaction_modifier_subtotal, //grsndtotal /item
 					"netAmount"=> $product->pivot->transaction_product_subtotal - $tax, // potong tAX 10%
 					"tax"=> $tax, //10%
 					"type"=> $product->product_variants[1]->product_variant_code == 'general_type'?null:$product->product_variants[1]->product_variant_code, //code variant /null
 					"size"=> $product->product_variants[0]->product_variant_code == 'general_size'?null:$product->product_variants[0]->product_variant_code, // code variant /null
-					"promoNumber"=> "", //kode voucher //null
-					"promoType"=> "5", //hardcode //null
+					"promoNumber"=> $trxData->id_promo_campaign_promo_code?$trxData->promo_campaign_promo_code->promo_code:null, //kode voucher //null
+					"promoType"=> $trxData->id_promo_campaign_promo_code?"5":null, //hardcode //null
 					"status"=> "ACTIVE" // hardcode
 				];
-				$payment = [];
+				$last = $key+1;
+			}
+			foreach ($trxData->modifiers as $key => $modifier) {
+				// $tax = (10/100) * $product->pivot->transaction_product_subtotal;
+				$tax = 0;
+				$body['item'][] = [
+					"number"=> $key+1+$last, // key+1
+					"menuId"=> $modifier->product_modifier->menu_id_pos, // product code
+					"sapMatnr"=> $modifier->code, // product code
+					"categoryId"=> $modifier->product_modifier->category_id_pos, // ga ada / 0
+					"qty"=> $modifier->qty, // qty
+					"price"=> $modifier->transaction_product_modifier_price / $modifier->qty, // item price/ item
+					"discount"=> 0, // udah * qty
+					"grossAmount"=> $modifier->transaction_product_modifier_price, //grsndtotal /item
+					"netAmount"=> $modifier->transaction_product_modifier_price - $tax, // potong tAX 10%
+					"tax"=> $tax, //10%
+					"type"=> null, //code variant /null
+					"size"=> null, // code variant /null
+					"promoNumber"=> $trxData->id_promo_campaign_promo_code?$trxData->promo_campaign_promo_code->promo_code:null, //kode voucher //null
+					"promoType"=> $trxData->id_promo_campaign_promo_code?"5":null, //hardcode //null
+					"status"=> "ACTIVE" // hardcode
+				];
+			}
+			$payment = [];
 		        //cek di multi payment
-				$multi = TransactionMultiplePayment::where('id_transaction', $trxData->id_transaction)->get();
-				if (!$multi) {
+			$multi = TransactionMultiplePayment::where('id_transaction', $trxData->id_transaction)->get();
+			if (!$multi) {
 	            //cek di balance
-					$balance = TransactionPaymentBalance::where('id_transaction', $trxData->id_transaction)->get();
-					if ($balance) {
-						foreach ($balance as $payBalance) {
+				$balance = TransactionPaymentBalance::where('id_transaction', $trxData->id_transaction)->get();
+				if ($balance) {
+					foreach ($balance as $payBalance) {
+						$pay = [
+							'number'        => 1,
+							'type'          => 'Points',
+							'amount'        => (float) $payBalance['balance_nominal'],
+							'changeAmount' => 0,
+							'cardNumber'   => 0,
+							'cardOwner'    => $user['name']
+						];
+						$payment[] = $pay;
+					}
+				} else {
+					$midtrans = TransactionPaymentMidtran::where('id_transaction', $check['id_transaction'])->get();
+					if ($midtrans) {
+						foreach ($midtrans as $payMidtrans) {
 							$pay = [
 								'number'        => 1,
-								'type'          => 'Points',
-								'amount'        => (float) $payBalance['balance_nominal'],
+								'type'          => 'Midtrans',
+								'amount'        => (float) $payMidtrans['gross_amount'],
 								'changeAmount' => 0,
 								'cardNumber'   => 0,
 								'cardOwner'    => $user['name']
 							];
 							$payment[] = $pay;
 						}
-					} else {
-						$midtrans = TransactionPaymentMidtran::where('id_transaction', $check['id_transaction'])->get();
-						if ($midtrans) {
-							foreach ($midtrans as $payMidtrans) {
-								$pay = [
-									'number'        => 1,
-									'type'          => 'Midtrans',
-									'amount'        => (float) $payMidtrans['gross_amount'],
-									'changeAmount' => 0,
-									'cardNumber'   => 0,
-									'cardOwner'    => $user['name']
-								];
-								$payment[] = $pay;
-							}
-						}
 					}
-				} else {
-					foreach ($multi as $key => $payMulti) {
-						if ($payMulti['type'] == 'Balance') {
-							$balance = TransactionPaymentBalance::find($payMulti['id_payment']);
-							if ($balance) {
-								$pay = [
-									'number'        => $key + 1,
-									'type'          => 'Points',
-									'amount'        => (float) $balance['balance_nominal'],
-									'changeAmount' => 0,
-									'cardNumber'   => 0,
-									'cardOwner'    => $user['name']
-								];
-								$payment[] = $pay;
-							}
-						} elseif ($payMulti['type'] == 'Midtrans') {
-							$midtrans = TransactionPaymentMidtran::find($payMulti['id_payment']);
-							if ($midtrans) {
-								$pay = [
-									'number'        => $key + 1,
-									'type'          => 'Midtrans',
-									'amount'        => (float) $midtrans['gross_amount'],
-									'changeAmount' => 0,
-									'cardNumber'   => '',
-									'cardOwner'    => ''
-								];
-								$payment[] = $pay;
-							}
-						} elseif ($payMulti['type'] == 'Ovo') {
-							$ovo = TransactionPaymentOvo::find($payMulti['id_payment']);
-							if ($ovo) {
-								$pay = [
-									'number'            => $key + 1,
-									'type'              => 'Ovo',
-									'amount'            => (float) $ovo['amount'],
-									'changeAmount'     => 0,
-									'cardNumber'       => '',
-									'cardOwner'        => '',
-									'referenceNumber'  => $ovo['approval_code']??''
-								];
-								$payment[] = $pay;
-							}
-						} elseif ($payMulti['type'] == 'Cimb') {
-							$cimb = TransactionPaymentCimb::find($payMulti['id_payment']);
-							if ($cimb) {
-								$pay = [
-									'number'            => $key + 1,
-									'type'              => 'Cimb',
-									'amount'            => (float) $cimb['amount']??$check['transaction_grandtotal'],
-									'changeAmount'     => 0,
-									'cardNumber'       => '',
-									'cardOwner'        => ''
-								];
-								$payment[] = $pay;
-							}
+				}
+			} else {
+				foreach ($multi as $key => $payMulti) {
+					if ($payMulti['type'] == 'Balance') {
+						$balance = TransactionPaymentBalance::find($payMulti['id_payment']);
+						if ($balance) {
+							$pay = [
+								'number'        => $key + 1,
+								'type'          => 'Points',
+								'amount'        => (float) $balance['balance_nominal'],
+								'changeAmount' => 0,
+								'cardNumber'   => 0,
+								'cardOwner'    => $user['name']
+							];
+							$payment[] = $pay;
+						}
+					} elseif ($payMulti['type'] == 'Midtrans') {
+						$midtrans = TransactionPaymentMidtran::find($payMulti['id_payment']);
+						if ($midtrans) {
+							$pay = [
+								'number'        => $key + 1,
+								'type'          => 'Midtrans',
+								'amount'        => (float) $midtrans['gross_amount'],
+								'changeAmount' => 0,
+								'cardNumber'   => '',
+								'cardOwner'    => ''
+							];
+							$payment[] = $pay;
+						}
+					} elseif ($payMulti['type'] == 'Ovo') {
+						$ovo = TransactionPaymentOvo::find($payMulti['id_payment']);
+						if ($ovo) {
+							$pay = [
+								'number'            => $key + 1,
+								'type'              => 'Ovo',
+								'amount'            => (float) $ovo['amount'],
+								'changeAmount'     => 0,
+								'cardNumber'       => '',
+								'cardOwner'        => '',
+								'referenceNumber'  => $ovo['approval_code']??''
+							];
+							$payment[] = $pay;
+						}
+					} elseif ($payMulti['type'] == 'Cimb') {
+						$cimb = TransactionPaymentCimb::find($payMulti['id_payment']);
+						if ($cimb) {
+							$pay = [
+								'number'            => $key + 1,
+								'type'              => 'Cimb',
+								'amount'            => (float) $cimb['amount']??$check['transaction_grandtotal'],
+								'changeAmount'     => 0,
+								'cardNumber'       => '',
+								'cardOwner'        => ''
+							];
+							$payment[] = $pay;
 						}
 					}
 				}
-				$body['payment'] = $payment;
 			}
+			$body['payment'] = $payment;
 			$item[] = $body;
 		}
 		$sendData = [
@@ -233,30 +258,67 @@ class ConnectPOS{
 		];
 		$this->sign($sendData);
 		$response = MyHelper::postWithTimeout($this->url.$module_url,null,$sendData,0,null,65,false);
-        $dataLog = [
-            'url' 		        => $this->url.$module_url,
-            'subject' 		    => 'POS Send Transaction',
-            'outlet_code' 	    => implode(',',$outlets),
-            'user' 		        => implode(',',$users),
-            'request' 		    => json_encode($sendData),
-            'response_status'   => $response['status_code'],
-            'response'   		=> $response['response'],
-            'ip' 		        => \Request::ip(),
-            'useragent' 	    => \Request::header('user-agent')
-        ];
-        $is_success = $response['status_code'] == 200;
-        if(!$is_success){
-        	foreach ($users as $phone) {
-        		$variables = $transactions[$phone];
-	        	app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Transaction Online Failed Pos', $phone, $variables,null,true);
-                TransactionOnlinePos::create([
-                	'request' => json_encode($sendData), 
-                	'response' => $response['response'],
-                    'id_transaction' => $variables['id_transaction']
-                ]);
-        	}
-        }
-        LogActivitiesPosTransactionsOnline::create($dataLog);
-		return $response;
+		$dataLog = [
+			'url' 		        => $this->url.$module_url,
+			'subject' 		    => 'POS Send Transaction',
+			'outlet_code' 	    => implode(',',$outlets),
+			'user' 		        => implode(',',$users),
+			'request' 		    => json_encode($sendData),
+			'response_status'   => ($response['status_code']??null),
+			'response'   		=> $response['response']??json_encode($response),
+			'ip' 		        => \Request::ip(),
+			'useragent' 	    => \Request::header('user-agent')
+		];
+		$is_success = ($response['status_code']??false) == 200;
+		if(!$is_success){
+			foreach ($users as $phone) {
+				$variables = $transactions[$phone];
+				$top = TransactionOnlinePos::where('id_transaction',$trxData['id_transaction'])->first();
+				if($top){
+					$top->update([
+						'request' => json_encode($sendData), 
+						'response' => $response['response']??json_encode($response),
+						'count_retry'=>($top->count_retry+1),
+						'success_retry_status'=>0
+					]);
+				}else{
+					$top = TransactionOnlinePos::create([
+						'request' => json_encode($sendData), 
+						'response' => $response['response']??json_encode($response),
+						'id_transaction' => $variables['id_transaction'],
+						'count_retry' => 1
+					]);
+				}
+				if(app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Transaction Online Failed Pos', $phone, $variables,null,true)){
+					TransactionOnlinePos::where('id_transaction',$variables['id_transaction'])->update(['send_email_status'=>1]);
+				}
+			}
+		}else{
+			foreach ($users as $phone) {
+				$variables = $transactions[$phone];
+				$top = TransactionOnlinePos::where('id_transaction',$trxData['id_transaction'])->first();
+				if($top){
+					$top->update([
+						'request' => json_encode($sendData), 
+						'response' => $response['response']??json_encode($response),
+						'count_retry'=>($top->count_retry+1),
+						'success_retry_status'=>1
+					]);
+				}else{
+					$top = TransactionOnlinePos::create([
+						'request' => json_encode($sendData), 
+						'response' => $response['response']??json_encode($response),
+						'id_transaction' => $variables['id_transaction'],
+						'count_retry' => 1,
+						'success_retry_status'=>1
+					]);
+				}
+			}
+			TransactionPickup::whereIn('id_transaction',$id_transactions)->update([
+				'receive_at' => date('Y-m-d H:i:s')
+			]);
+		}
+		LogActivitiesPosTransactionsOnline::create($dataLog);
+		return $is_success;
 	}
 }

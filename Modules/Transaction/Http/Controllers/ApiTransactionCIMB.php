@@ -69,7 +69,6 @@ class ApiTransactionCIMB extends Controller
                     'transaction_payment_status'    => 'Completed',
                     'completed_at'                  => date('Y-m-d H:i:s')
                 ]);
-                \App\Lib\ConnectPOS::create()->sendTransaction($data['id_transaction']);
             } catch (\Exception $e) {
                 LogBackendError::logExceptionMessage("ApiTransactionCIMB/callback=>" . $e->getMessage(), $e);
                 DB::rollback();
@@ -105,6 +104,7 @@ class ApiTransactionCIMB extends Controller
 
                 return view('transaction::webview.detail_transaction_pickup')->with(compact('data'));
             }
+            \App\Lib\ConnectPOS::create()->sendTransaction($data['id_transaction']);
 
             // apply cashback to referrer
             \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($transaction);
