@@ -14,7 +14,7 @@ class AddCategoryIdPosToProductsTable extends Migration
     public function up()
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->string('category_id_pos')->nullable()->after('id_product_category');
+            $table->string('category_id_pos')->default(0)->after('id_product_category');
         });
     }
 

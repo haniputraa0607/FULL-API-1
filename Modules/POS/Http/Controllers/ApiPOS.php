@@ -1028,6 +1028,7 @@ class ApiPOS extends Controller
                         'type'      => $menu['group'],
                         'modifier_type' => 'Specific',
                         'status'    => $menu['status'] = ($menu['status'] == 'Active') ? 1 : 0,
+                        'category_id_pos'      => $menu['category_id']
                     ]);
                 } catch (\Exception $e) {
                     DB::rollback();
@@ -1071,6 +1072,7 @@ class ApiPOS extends Controller
                         'type'      => $menu['group'],
                         'modifier_type' => 'Specific',
                         'status'    => $menu['status'] = ($menu['status'] == 'Active') ? 1 : 0,
+                        'category_id_pos'      => $menu['category_id']
                     ]);
                 } catch (\Exception $e) {
                     DB::rollback();

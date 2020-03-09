@@ -14,8 +14,8 @@ class AddCategoryIdPosAndMenuIdPosToProductModifiersTable extends Migration
     public function up()
     {
         Schema::table('product_modifiers', function (Blueprint $table) {
-            $table->string('category_id_pos')->nullable()->after('type');
-            $table->string('menu_id_pos')->nullable()->after('id_product_modifier');
+            $table->string('category_id_pos')->default(0)->after('type');
+            $table->string('menu_id_pos')->default(0)->after('id_product_modifier');
         });
     }
 
