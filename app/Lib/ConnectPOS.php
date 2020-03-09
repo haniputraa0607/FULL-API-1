@@ -159,7 +159,6 @@ class ConnectPOS{
 			$payment = [];
 		        //cek di multi payment
 			$multi = TransactionMultiplePayment::where('id_transaction', $trxData->id_transaction)->get();
-						file_put_contents('loggg.txt', json_encode([$trxData->id_transaction,$multi]));
 			if (!$multi) {
 	            //cek di balance
 				$balance = TransactionPaymentBalance::where('id_transaction', $trxData->id_transaction)->get();
@@ -257,11 +256,7 @@ class ConnectPOS{
 			'body' => $item
 		];
 		$this->sign($sendData);
-		// $response = MyHelper::postWithTimeout($this->url.$module_url,null,$sendData,0,null,65,false);
-		$response = [
-			'status_code' => 300,
-			'response' => 'statis'
-		];
+		$response = MyHelper::postWithTimeout($this->url.$module_url,null,$sendData,0,null,65,false);
 		$dataLog = [
 			'url' 		        => $this->url.$module_url,
 			'subject' 		    => 'POS Send Transaction',

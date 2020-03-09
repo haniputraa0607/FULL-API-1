@@ -1022,7 +1022,7 @@ class ApiPOS extends Controller
                 $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because menu_id not set';
                 continue;
             }
-            if (!isset($menu['category'])) {
+            if (!isset($menu['category_id'])) {
                 $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because category_id not set';
                 continue;
             }
