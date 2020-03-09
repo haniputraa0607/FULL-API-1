@@ -583,8 +583,7 @@ class ApiOrder extends Controller
             ]);
 
 
-            $updatePaymentStatus = Transaction::where('id_transaction', $order->id_transaction)->update(['transaction_payment_status' => 'Completed', 'show_rate_popup' => 1,'completed_at' => date('Y-m-d H:i:s')]);
-            \App\Lib\ConnectPOS::create()->sendTransaction($order->id_transaction);
+            $updateRatePopUp = Transaction::where('id_transaction', $order->id_transaction)->update(['show_rate_popup' => 1]);
 
             if($send != true){
                 DB::rollback();
