@@ -58,8 +58,18 @@ class SyncProductPrice implements ShouldQueue
                 });
             }
 
+            if($price['start_date'] < date('Y-m-d')){
+                $price['start_date'] = date('Y-m-d');
+            }
             $interval = date_diff(date_create($price['start_date']), date_create($price['end_date']));
-            for ($i = 0; $i < $interval->format('%a') + 1; $i++) {
+
+            if($interval->format('%a') > 90){
+                $end = 90;
+            }else{
+                $end = $interval->format('%a') + 1;
+            }
+
+            for ($i = 0; $i < $end; $i++) {
                 DB::connection('mysql3')->table('outlet_' . $price['store_code'])->updateOrInsert([
                     'id_product'    => $product->id_product,
                     'id_outlet'     => $outlet->id_outlet,
