@@ -46,6 +46,7 @@ class Product extends Model
 	protected $fillable = [
 		'id_product_category',
 		'id_product_group',
+		'category_id_pos',
 		'product_code',
 		'product_name',
 		'product_name_pos',

@@ -56,9 +56,18 @@ class SyncAddOnPrice implements ShouldQueue
                     $table->index(['id_product_modifier', 'id_outlet', 'date'], 'index_modifier_price');
                 });
             }
-
+            if($price['start_date'] < date('Y-m-d')){
+                $price['start_date'] = date('Y-m-d');
+            }
             $interval = date_diff(date_create($price['start_date']), date_create($price['end_date']));
-            for ($i = 0; $i < $interval->format('%a') + 1; $i++) {
+
+            if($interval->format('%a') > 90){
+                $end = 90;
+            }else{
+                $end = $interval->format('%a') + 1;
+            }
+
+            for ($i = 0; $i < $end; $i++) {
                 DB::connection('mysql3')->table('outlet_' . $price['store_code'] . '_modifier_' . $this->data['menu_id'])->updateOrInsert([
                     'id_product_modifier'   => $productModifier->id_product_modifier,
                     'id_outlet'             => $outlet->id_outlet,

@@ -652,6 +652,10 @@ class ApiPOS extends Controller
                 $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because menu_id not set';
                 continue;
             }
+            if (!isset($menu['category_id'])) {
+                $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because category_id not set';
+                continue;
+            }
             if (!isset($menu['menu_variance'])) {
                 $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because menu_variance not set';
                 continue;
@@ -726,7 +730,8 @@ class ApiPOS extends Controller
                             Product::where('product_code', $variance['sap_matnr'])->update([
                                 'product_name_pos'  => implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]),
                                 'product_status'    => $variance['status'],
-                                'id_product_group'  => $checkGroup->id_product_group
+                                'id_product_group'  => $checkGroup->id_product_group,
+                                'category_id_pos'   => $menu['category_id']
                             ]);
 
                             //check brand product
@@ -754,7 +759,8 @@ class ApiPOS extends Controller
                                 'product_code'      => $variance['sap_matnr'],
                                 'product_name'      => implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]),
                                 'product_name_pos'  => implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]),
-                                'product_status'    => $variance['status']
+                                'product_status'    => $variance['status'],
+                                'category_id_pos'   => $menu['category_id']
                             ]);
 
                             //insert brand
@@ -1012,6 +1018,14 @@ class ApiPOS extends Controller
                 $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because sap_matnr not set';
                 continue;
             }
+            if (!isset($menu['menu_id'])) {
+                $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because menu_id not set';
+                continue;
+            }
+            if (!isset($menu['category_id'])) {
+                $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because category_id not set';
+                continue;
+            }
             if (!isset($menu['menu'])) {
                 $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because menu not set';
                 continue;
@@ -1026,6 +1040,8 @@ class ApiPOS extends Controller
                         'type'      => $menu['group'],
                         'modifier_type' => 'Specific',
                         'status'    => $menu['status'] = ($menu['status'] == 'Active') ? 1 : 0,
+                        'menu_id_pos'          => $menu['menu_id'],
+                        'category_id_pos'      => $menu['category_id']
                     ]);
                 } catch (\Exception $e) {
                     DB::rollback();
@@ -1069,6 +1085,8 @@ class ApiPOS extends Controller
                         'type'      => $menu['group'],
                         'modifier_type' => 'Specific',
                         'status'    => $menu['status'] = ($menu['status'] == 'Active') ? 1 : 0,
+                        'menu_id_pos'          => $menu['menu_id'],
+                        'category_id_pos'      => $menu['category_id']
                     ]);
                 } catch (\Exception $e) {
                     DB::rollback();

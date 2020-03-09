@@ -616,8 +616,8 @@ class ApiHistoryController extends Controller
                     $dataList['id_outlet'] = $value['outlet']['id_outlet'];
                     $dataList['outlet_code'] = $value['outlet']['outlet_code'];
                     $dataList['outlet'] = $value['outlet']['outlet_name'];
-                    $dataList['amount'] = MyHelper::requestNumber($value['transaction_grandtotal'],'_CURRENCY');
-                    $dataList['cashback'] = MyHelper::requestNumber($value['transaction_cashback_earned'], '_POINT');
+                    $dataList['amount'] = number_format($value['transaction_grandtotal'], 0, ',', '.');
+                    $dataList['cashback'] = number_format($value['transaction_cashback_earned'], 0, ',', '.');
                     $dataList['subtitle'] = $value['sum_qty'].($value['sum_qty']>1?' items':' item');
                     $dataList['item_total'] = (int) $value['sum_qty'];
                     if ($dataList['cashback'] >= 0) {
@@ -626,6 +626,7 @@ class ApiHistoryController extends Controller
                         $dataList['status_point'] = 0;
                     }
                     $dataList['rate_status'] = UserRating::where('id_transaction',$value['id_transaction'])->exists()?1:0;
+                    $dataList['payment_status'] = $value['transaction_payment_status'];
 
                     $listTransaction[] = $dataList;
                 }

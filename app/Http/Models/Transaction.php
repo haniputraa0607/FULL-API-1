@@ -134,6 +134,11 @@ class Transaction extends Model
 					->withTimestamps();
 	}
 
+	public function modifiers()
+	{
+		return $this->hasMany(\App\Http\Models\TransactionProductModifier::class,'id_transaction');
+	}
+
 	public function transaction_shipments()
 	{
 		return $this->belongsTo(\App\Http\Models\TransactionShipment::class, 'id_transaction', 'id_transaction');
