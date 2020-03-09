@@ -2,6 +2,7 @@
 namespace App\Lib;
 
 use App\Http\Models\Transaction;
+use App\Http\Models\TransactionPickup;
 use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\TransactionPaymentMidtran;
@@ -133,7 +134,7 @@ class ConnectPOS{
 					"promoType"=> $trxData->id_promo_campaign_promo_code?"5":null, //hardcode //null
 					"status"=> "ACTIVE" // hardcode
 				];
-				$last = $key;
+				$last = $key+1;
 			}
 			foreach ($trxData->modifiers as $key => $modifier) {
 				// $tax = (10/100) * $product->pivot->transaction_product_subtotal;
@@ -279,6 +280,10 @@ class ConnectPOS{
 					'id_transaction' => $variables['id_transaction']
 				]);
 			}
+		}else{
+			TransactionPickup::whereIn('id_transaction',$id_transactions)->update([
+				'receive_at' => date('Y-m-d H:i:s')
+			]);
 		}
 		LogActivitiesPosTransactionsOnline::create($dataLog);
 		return $response;
