@@ -570,7 +570,7 @@ class ApiNews extends Controller
             }
             array_walk($updateNews, function(&$newsItem) use ($post){
                 $newsItem['news_category']=$newsItem['news_category']?:['id_news_category'=>0,'category_name'=>'Uncategories'];
-                $newsItem['news_post_date']=date('l', strtotime($newsItem['news_post_date'])).', '.date('d F Y', strtotime($newsItem['news_post_date']));
+                $newsItem['news_post_date']=date('l', strtotime($newsItem['news_post_date'])).', '.date('d F Y H:i', strtotime($newsItem['news_post_date']));
             });
             if(!$updateNews){
                 return response()->json(MyHelper::checkGet([], 'Empty News'));
