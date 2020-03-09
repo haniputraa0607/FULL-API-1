@@ -273,14 +273,47 @@ class ConnectPOS{
 		if(!$is_success){
 			foreach ($users as $phone) {
 				$variables = $transactions[$phone];
-				app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Transaction Online Failed Pos', $phone, $variables,null,true);
-				TransactionOnlinePos::create([
-					'request' => json_encode($sendData), 
-					'response' => $response['response']??json_encode($response),
-					'id_transaction' => $variables['id_transaction']
-				]);
+				$top = TransactionOnlinePos::where('id_transaction',$trxData['id_transaction'])->first();
+				if($top){
+					$top->update([
+						'request' => json_encode($sendData), 
+						'response' => $response['response']??json_encode($response),
+						'count_retry'=>($top->count_retry+1),
+						'success_retry_status'=>0
+					]);
+				}else{
+					$top = TransactionOnlinePos::create([
+						'request' => json_encode($sendData), 
+						'response' => $response['response']??json_encode($response),
+						'id_transaction' => $variables['id_transaction'],
+						'count_retry' => 1
+					]);
+				}
+				if(app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Transaction Online Failed Pos', $phone, $variables,null,true)){
+					TransactionOnlinePos::where('id_transaction',$variables['id_transaction'])->update(['send_email_status'=>1]);
+				}
 			}
 		}else{
+			foreach ($users as $phone) {
+				$variables = $transactions[$phone];
+				$top = TransactionOnlinePos::where('id_transaction',$trxData['id_transaction'])->first();
+				if($top){
+					$top->update([
+						'request' => json_encode($sendData), 
+						'response' => $response['response']??json_encode($response),
+						'count_retry'=>($top->count_retry+1),
+						'success_retry_status'=>1
+					]);
+				}else{
+					$top = TransactionOnlinePos::create([
+						'request' => json_encode($sendData), 
+						'response' => $response['response']??json_encode($response),
+						'id_transaction' => $variables['id_transaction'],
+						'count_retry' => 1,
+						'success_retry_status'=>1
+					]);
+				}
+			}
 			TransactionPickup::whereIn('id_transaction',$id_transactions)->update([
 				'receive_at' => date('Y-m-d H:i:s')
 			]);
