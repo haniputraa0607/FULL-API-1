@@ -319,6 +319,6 @@ class ConnectPOS{
 			]);
 		}
 		LogActivitiesPosTransactionsOnline::create($dataLog);
-		return $response;
+		return $is_success;
 	}
 }
