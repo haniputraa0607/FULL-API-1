@@ -726,7 +726,8 @@ class ApiPOS extends Controller
                             Product::where('product_code', $variance['sap_matnr'])->update([
                                 'product_name_pos'  => implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]),
                                 'product_status'    => $variance['status'],
-                                'id_product_group'  => $checkGroup->id_product_group
+                                'id_product_group'  => $checkGroup->id_product_group,
+                                'category_id_pos'   => $menu['category_id']
                             ]);
 
                             //check brand product
@@ -754,7 +755,8 @@ class ApiPOS extends Controller
                                 'product_code'      => $variance['sap_matnr'],
                                 'product_name'      => implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]),
                                 'product_name_pos'  => implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]),
-                                'product_status'    => $variance['status']
+                                'product_status'    => $variance['status'],
+                                'category_id_pos'   => $menu['category_id']
                             ]);
 
                             //insert brand
