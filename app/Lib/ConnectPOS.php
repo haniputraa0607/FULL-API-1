@@ -88,7 +88,8 @@ class ConnectPOS{
 					'businessDate'=> date('Ymd',strtotime($trxData->transaction_date)), //tgl trx
 					'trxDate'=> date('Ymd',strtotime($trxData->transaction_date)), // tgl trx
 					'trxStartTime'=> date('Ymd His',strtotime($trxData->transaction_date)), //created at
-					'trxEndTime'=> date('Ymd His',strtotime($trxData->transaction_date)),// completed at
+					'trxEndTime'=> date('Ymd His',strtotime($trxData->completed_at)),// completed at
+					'pickupTime'=> date('Ymd His',strtotime($trxData->pickup_at?:$trxData->completed_at)),// pickup_at
 					'pax'=> count($trxData->products), // total item
 					'orderType'=> 'take away', //take away
 					'grandTotal'=> $trxData->transaction_grandtotal, //grandtotal
@@ -139,7 +140,7 @@ class ConnectPOS{
 				$tax = 0;
 				$body['item'][] = [
 					"number"=> $key+1+$last, // key+1
-					"menuId"=> $modifier->code, // product code
+					"menuId"=> $modifier->product_modifier->menu_id_pos, // product code
 					"sapMatnr"=> $modifier->code, // product code
 					"categoryId"=> $modifier->product_modifier->category_id_pos, // ga ada / 0
 					"qty"=> $modifier->qty, // qty
@@ -158,6 +159,7 @@ class ConnectPOS{
 			$payment = [];
 		        //cek di multi payment
 			$multi = TransactionMultiplePayment::where('id_transaction', $trxData->id_transaction)->get();
+						file_put_contents('loggg.txt', json_encode([$trxData->id_transaction,$multi]));
 			if (!$multi) {
 	            //cek di balance
 				$balance = TransactionPaymentBalance::where('id_transaction', $trxData->id_transaction)->get();

@@ -652,6 +652,10 @@ class ApiPOS extends Controller
                 $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because menu_id not set';
                 continue;
             }
+            if (!isset($menu['category_id'])) {
+                $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because category_id not set';
+                continue;
+            }
             if (!isset($menu['menu_variance'])) {
                 $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because menu_variance not set';
                 continue;
@@ -1014,6 +1018,14 @@ class ApiPOS extends Controller
                 $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because sap_matnr not set';
                 continue;
             }
+            if (!isset($menu['menu_id'])) {
+                $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because menu_id not set';
+                continue;
+            }
+            if (!isset($menu['category'])) {
+                $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because category_id not set';
+                continue;
+            }
             if (!isset($menu['menu'])) {
                 $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because menu not set';
                 continue;
@@ -1028,6 +1040,7 @@ class ApiPOS extends Controller
                         'type'      => $menu['group'],
                         'modifier_type' => 'Specific',
                         'status'    => $menu['status'] = ($menu['status'] == 'Active') ? 1 : 0,
+                        'menu_id_pos'          => $menu['menu_id'],
                         'category_id_pos'      => $menu['category_id']
                     ]);
                 } catch (\Exception $e) {
@@ -1072,6 +1085,7 @@ class ApiPOS extends Controller
                         'type'      => $menu['group'],
                         'modifier_type' => 'Specific',
                         'status'    => $menu['status'] = ($menu['status'] == 'Active') ? 1 : 0,
+                        'menu_id_pos'          => $menu['menu_id'],
                         'category_id_pos'      => $menu['category_id']
                     ]);
                 } catch (\Exception $e) {
