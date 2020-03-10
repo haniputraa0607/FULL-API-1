@@ -265,8 +265,8 @@ class ApiPOS extends Controller
                     'sap_matnr' => $menu['product_code'],
                     'qty' => (int) $menu['pivot']['transaction_product_qty'],
                     'price' => (float) $menu['pivot']['transaction_product_price'],
-                    'type' => $menu['product_variants'][1]['product_variant_code'] == 'general_type'?null:$menu['product_variants'][1]['product_variant_code'], 
-                    'size' => $menu['product_variants'][0]['product_variant_code'] == 'general_type'?null:$menu['product_variants'][0]['product_variant_code'], 
+                    'type' => $menu['product_variants'][1]['product_variant_code'] == 'general_type'?null:$menu['product_variants'][1]['product_variant_code'],
+                    'size' => $menu['product_variants'][0]['product_variant_code'] == 'general_type'?null:$menu['product_variants'][0]['product_variant_code'],
                     'discount' => (float) $menu['pivot']['transaction_product_discount'],
                     'promo_number' => $check['id_promo_campaign_promo_code']?$check['promo_campaign_promo_code']['promo_code']:'',
                     'promo_type' => '5',
@@ -504,6 +504,15 @@ class ApiPOS extends Controller
         if ($api['status'] != 'success') {
             return response()->json($api);
         }
+
+        $getIdBrand = Brand::select('id_brand')->first();
+        if(!$getIdBrand){
+            return [
+                'status'    => 'fail',
+                'messages'  => ['failed get brand']
+            ];
+        }
+
         $successOutlet = [];
         $failedOutlet = [];
         foreach ($post['store'] as $key => $value) {
@@ -563,7 +572,22 @@ class ApiPOS extends Controller
                         }
                     }
                 }
+                $cekOutlet = $save;
             }
+
+            //check brand outlet
+            try {
+                $brandOutlet = BrandOutlet::where('id_outlet', $save->id_outlet)->first();
+                if(!$brandOutlet){
+                    BrandOutlet::create([
+                        'id_brand' => $getIdBrand->id_brand,
+                        'id_outlet' => $save->id_outlet
+                    ]);
+                }
+            } catch (\Exception $e) {
+                LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
+            }
+
             $successOutlet[] = $value['store_name'];
             DB::commit();
         }
@@ -1209,6 +1233,17 @@ class ApiPOS extends Controller
                     } catch (\Exception $e) {
                         LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
                     }
+                } elseif (!$getProductPrice && $price != 0)  {
+                    try {
+                        ProductPrice::create([
+                            'id_product'            => $getProduct[$j]['id_product'],
+                            'id_outlet'             => $getOutlet[$i]['id_outlet'],
+                            'product_price'         => $price,
+                            'product_status'        => 'Active',
+                        ]);
+                    } catch (\Exception $e) {
+                        LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
+                    }
                 } else {
                     try {
                         ProductPrice::updateOrCreate([
@@ -1219,7 +1254,63 @@ class ApiPOS extends Controller
                             'id_outlet'             => $getOutlet[$i]['id_outlet'],
                             'product_price'         => $price,
                             'product_status'        => 'Inactive',
-                            'product_stock_status'  => 'Available'
+                        ]);
+                    } catch (\Exception $e) {
+                        LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
+                    }
+                }
+            }
+        }
+    }
+
+    public function cronAddOnPrice() {
+        $getOutlet = Outlet::select('id_outlet','outlet_code')->get()->toArray();
+        $getAddOn = ProductModifier::select('id_product_modifier', 'code')->get()->toArray();
+        for ($i = 0; $i < count($getOutlet); $i++) {
+            for ($j = 0; $j < count($getAddOn); $j++) {
+                try {
+                    $getPrice = DB::connection('mysql3')
+                    ->table('outlet_'.$getOutlet[$i]['outlet_code'].'_modifier_'.$getAddOn[$j]['code'])
+                    ->where('id_product_modifier', $getAddOn[$j]['id_product_modifier'])
+                    ->where('id_outlet', $getOutlet[$i]['id_outlet'])
+                    ->where('date', date('Y-m-d'))->first();
+
+                    $price = $getPrice->price;
+                } catch (\Exception $e) {
+                    $price = 0;
+                }
+
+                $getProductPrice = ProductModifierPrice::where('id_product', $getAddOn[$j]['id_product_modifier'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
+                if ($getProductPrice && $price != 0) {
+                    try {
+                        ProductModifierPrice::where('id_product_modifier', $getProductPrice->id_product_modifier)->update([
+                            'product_modifier_price' => $price,
+                            'product_modifier_status'=> 'Active',
+                        ]);
+                    } catch (\Exception $e) {
+                        LogBackendError::logExceptionMessage("ApiPOS/cronAddOnPrice=>" . $e->getMessage(), $e);
+                    }
+                } elseif (!$getProductPrice && $price != 0)  {
+                    try {
+                        ProductModifierPrice::create([
+                            'id_product_modifier'            => $getAddOn[$j]['id_product_modifier'],
+                            'id_outlet'                      => $getOutlet[$i]['id_outlet'],
+                            'product_modifier_price'         => $price,
+                            'product_modifier_status'        => 'Active',
+                        ]);
+                    } catch (\Exception $e) {
+                        LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
+                    }
+                } else {
+                    try {
+                        ProductModifierPrice::updateOrCreate([
+                            'id_product_modifier'            => $getAddOn[$j]['id_product'],
+                            'id_outlet'                      => $getOutlet[$i]['id_outlet']
+                        ], [
+                            'id_product_modifier'            => $getAddOn[$j]['id_product_modifier'],
+                            'id_outlet'                      => $getOutlet[$i]['id_outlet'],
+                            'product_modifier_price'         => $price,
+                            'product_modifier_status'        => 'Inactive',
                         ]);
                     } catch (\Exception $e) {
                         LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
@@ -2519,7 +2610,6 @@ class ApiPOS extends Controller
                 }
             }
         }catch (Exception $e) {
-            dd($e);
             DB::rollback();
             return ['status' => 'fail', 'messages' => $e];
         }
@@ -2698,92 +2788,111 @@ class ApiPOS extends Controller
     {
         $post = $request->json()->all();
 
-        DB::beginTransaction();
         $api = $this->checkApi($post['api_key'], $post['api_secret']);
         if ($api['status'] != 'success') {
             DB::rollback();
             return response()->json($api);
         }
 
-        $checkTrx = Transaction::where('transaction_receipt_number', $post['trx_id'])->first();
-        if (empty($checkTrx)) {
-            DB::rollback();
-            return response()->json(['status' => 'fail', 'messages' => 'Transaction not found']);
+        $outlet = Outlet::where('outlet_code', strtoupper($post['store_code']))->first();
+        if (empty($outlet)) {
+            return response()->json(['status' => 'fail', 'messages' => 'Store not found']);
         }
 
-        //if use voucher, cannot refund
-        $trxVou = TransactionVoucher::where('id_transaction', $checkTrx->id_transaction)->first();
-        if ($trxVou) {
-            DB::rollback();
-            return response()->json(['status' => 'fail', 'messages' => 'Transaction cannot be refund. This transaction use voucher']);
-        }
+        $countSuccess    = 0;
+        $countFailed   = 0;
+        $successRefund = [];
+        $failedRefund  = [];
 
-        if ($checkTrx->id_user) {
-            $user = User::where('id', $checkTrx->id_user)->first();
-            if (empty($user)) {
+        foreach($post['transactions'] as $trx){
+            DB::beginTransaction();
+            $checkTrx = Transaction::where('transaction_receipt_number', $trx['trx_id'])->where('id_outlet', $outlet->id_outlet)->first();
+            if (empty($checkTrx)) {
+                $countFailed += 1;
+                $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', transaction not found';
+                continue;
+            }
+
+            //if use voucher, cannot refund
+            $trxVou = TransactionVoucher::where('id_transaction', $checkTrx->id_transaction)->first();
+            if ($trxVou) {
+                $countFailed += 1;
+                $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', This transaction use voucher';
+                continue;
+            }
+
+            $checkTrx->transaction_payment_status = 'Cancelled';
+            $checkTrx->void_date = date('Y-m-d H:i:s');
+            $checkTrx->transaction_notes = $post['reason'];
+            $checkTrx->update();
+            if (!$checkTrx) {
                 DB::rollback();
-                return response()->json(['status' => 'fail', 'messages' => 'User not found']);
-            }
-        }
-
-        $checkTrx->transaction_payment_status = 'Cancelled';
-        $checkTrx->void_date = date('Y-m-d H:i:s');
-        $checkTrx->transaction_notes = $post['reason'];
-        $checkTrx->update();
-        if (!$checkTrx) {
-            DB::rollback();
-            return response()->json(['status' => 'fail', 'messages' => 'Transaction refund sync failed1']);
-        }
-
-        $user = User::where('id', $checkTrx->id_user)->first();
-        if ($user) {
-            $point = LogPoint::where('id_reference', $checkTrx->id_transaction)->where('source', 'Transaction')->first();
-            if (!empty($point)) {
-                $point->delete();
-                if (!$point) {
-                    DB::rollback();
-                    return response()->json(['status' => 'fail', 'messages' => 'Transaction refund sync failed2']);
-                }
-
-                //update user point
-                $sumPoint = LogPoint::where('id_user', $user['id'])->sum('point');
-                $user->points = $sumPoint;
-                $user->update();
-                if (!$user) {
-                    DB::rollback();
-                    return response()->json([
-                        'status'    => 'fail',
-                        'messages'  => 'Update point failed'
-                    ]);
-                }
+                $countFailed += 1;
+                $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update transaction status';
+                continue;
             }
 
-            $balance = LogBalance::where('id_reference', $checkTrx->id_transaction)->where('source', 'Transaction')->first();
-            if (!empty($balance)) {
-                $balance->delete();
-                if (!$balance) {
-                    DB::rollback();
-                    return response()->json(['status' => 'fail', 'messages' => 'Transaction refund sync failed']);
-                }
+            if ($checkTrx->id_user) {
 
-                //update user balance
-                $sumBalance = LogBalance::where('id_user', $user['id'])->sum('balance');
-                $user->balance = $sumBalance;
-                $user->update();
-                if (!$user) {
-                    DB::rollback();
-                    return response()->json([
-                        'status'    => 'fail',
-                        'messages'  => 'Update cashback failed'
-                    ]);
+                $user = User::where('id', $checkTrx->id_user)->first();
+                if ($user) {
+                    $point = LogPoint::where('id_reference', $checkTrx->id_transaction)->where('source', 'Transaction')->first();
+                    if (!empty($point)) {
+                        $point->delete();
+                        if (!$point) {
+                            DB::rollback();
+                            $countFailed += 1;
+                            $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed delete point';
+                            continue;
+                        }
+
+                        //update user point
+                        $sumPoint = LogPoint::where('id_user', $user['id'])->sum('point');
+                        $user->points = $sumPoint;
+                        $user->update();
+                        if (!$user) {
+                            DB::rollback();
+                            $countFailed += 1;
+                            $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update point';
+                            continue;
+                        }
+                    }
+
+                    $balance = LogBalance::where('id_reference', $checkTrx->id_transaction)->where('source', 'Transaction')->first();
+                    if (!empty($balance)) {
+                        $balance->delete();
+                        if (!$balance) {
+                            $countFailed += 1;
+                            $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed delete point';
+                            continue;
+                        }
+
+                        //update user balance
+                        $sumBalance = LogBalance::where('id_user', $user['id'])->sum('balance');
+                        $user->balance = $sumBalance;
+                        $user->update();
+                        if (!$user) {
+                            DB::rollback();
+                            $countFailed += 1;
+                            $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update point';
+                            continue;
+                        }
+                    }
+                    $checkMembership = app($this->membership)->calculateMembership($user['phone']);
+                    $countSuccess += 1;
+                    $successRefund[] = 'success to refund trx_id ' . $trx['trx_id'];
                 }
             }
-            $checkMembership = app($this->membership)->calculateMembership($user['phone']);
+
+            DB::commit();
         }
 
-        DB::commit();
-
-        return response()->json(['status' => 'success']);
+        return response()->json(['status' => 'success',, 'result' => [
+            'count_success' => $countSuccess,
+            'success' => $successRefund,
+            'count_failed' => $countFailed,
+            'failed'  => $failedRefund
+        ]]);
     }
 
     public static function checkApi($key, $secret)
