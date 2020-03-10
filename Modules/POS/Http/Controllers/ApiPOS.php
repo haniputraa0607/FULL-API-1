@@ -1280,7 +1280,7 @@ class ApiPOS extends Controller
                     $price = 0;
                 }
 
-                $getProductPrice = ProductModifierPrice::where('id_product', $getAddOn[$j]['id_product_modifier'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
+                $getProductPrice = ProductModifierPrice::where('id_product_modifier', $getAddOn[$j]['id_product_modifier'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
                 if ($getProductPrice && $price != 0) {
                     try {
                         ProductModifierPrice::where('id_product_modifier', $getProductPrice->id_product_modifier)->update([
