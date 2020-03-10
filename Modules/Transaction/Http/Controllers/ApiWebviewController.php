@@ -125,7 +125,7 @@ class ApiWebviewController extends Controller
                 return response()->json($send);
             }
         }
-        
+
         if ($type == 'trx') {
             if($request->json('id_transaction')){
                 if($use_product_variant){
@@ -600,7 +600,7 @@ class ApiWebviewController extends Controller
         $data = json_decode(base64_decode($request->get('data')), true);
         $data['check'] = 1;
         $check = MyHelper::postCURLWithBearer('api/transaction/detail/webview?log_save=0', $data, $bearer);
-        
+
         if (isset($check['status']) && $check['status'] == 'success') {
             $data = $check['result'];
         } elseif (isset($check['status']) && $check['status'] == 'fail') {
@@ -667,7 +667,8 @@ class ApiWebviewController extends Controller
         //     return view('error', ['msg' => 'Url method is POST']);
         // }
 
-        $data['transaction_receipt_number'] = $receipt;
+        $data['id_transaction'] = $receipt;
+        // $data['transaction_receipt_number'] = $receipt;
         $data['type'] = 'trx';
         $data['check'] = 1;
         $check = MyHelper::postCURLWithBearer('api/transaction/detail/webview?log_save=0', $data, $bearer);

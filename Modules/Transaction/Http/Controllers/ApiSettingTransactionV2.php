@@ -17,7 +17,7 @@ class ApiSettingTransactionV2 extends Controller
 {
     public function setting($value) {
         $setting = Setting::where('key', $value)->first();
-        
+
         if (empty($setting->value)) {
             return response()->json(['Setting Not Found']);
         }
@@ -27,7 +27,7 @@ class ApiSettingTransactionV2 extends Controller
 
     public function grandTotal() {
         $grandTotal = $this->setting('transaction_grand_total_order');
-        
+
         $grandTotal = explode(',', $grandTotal);
         foreach ($grandTotal as $key => $value) {
             if (substr($grandTotal[$key], 0, 5) == 'empty') {
@@ -109,7 +109,7 @@ class ApiSettingTransactionV2 extends Controller
 
     public function convertFormula($value) {
         $convert = $this->$value();
-        
+
         return $convert;
     }
 
@@ -135,11 +135,11 @@ class ApiSettingTransactionV2 extends Controller
                 if (empty($product)) {
                     DB::rollback();
                     return response()->json([
-                        'status' => 'fail', 
+                        'status' => 'fail',
                         'messages' => ['Product Not Found']
                     ]);
                 }
-                
+
                 $productPrice = ProductPrice::where(['id_product' => $valueData['id_product'], 'id_outlet' => $data['id_outlet']])->first();
                 if (empty($productPrice)) {
                     DB::rollback();
@@ -150,7 +150,7 @@ class ApiSettingTransactionV2 extends Controller
                     ]);
                 }
 
-                if($productPrice['product_price'] == null || $productPrice['product_price_base'] == null || $productPrice['product_price_tax'] == null){
+                if($productPrice['product_price'] == null){
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Price Product Not Valid'],
@@ -247,7 +247,7 @@ class ApiSettingTransactionV2 extends Controller
             //             'product' => $checkProduct['product_name']
             //         ]);
             //     }
-    
+
             //     $checkPriceProduct = ProductPrice::where(['id_product' => $checkProduct['id_product'], 'id_outlet' => $data['id_outlet']])->first();
             //     if (empty($checkPriceProduct)) {
             //         return response()->json([
@@ -307,7 +307,7 @@ class ApiSettingTransactionV2 extends Controller
             if (empty($product)) {
                 DB::rollback();
                 return response()->json([
-                    'status' => 'fail', 
+                    'status' => 'fail',
                     'messages' => ['Product Not Found']
                 ]);
             }
@@ -316,7 +316,7 @@ class ApiSettingTransactionV2 extends Controller
             if (empty($priceProduct)) {
                 DB::rollback();
                 return response()->json([
-                    'status' => 'fail', 
+                    'status' => 'fail',
                     'messages' => ['Product Price Not Found']
                 ]);
             }
@@ -378,7 +378,7 @@ class ApiSettingTransactionV2 extends Controller
             if (empty($product)) {
                 DB::rollback();
                 return response()->json([
-                    'status' => 'fail', 
+                    'status' => 'fail',
                     'messages' => ['Product Not Found']
                 ]);
             }
@@ -387,7 +387,7 @@ class ApiSettingTransactionV2 extends Controller
             if (empty($priceProduct)) {
                 DB::rollback();
                 return response()->json([
-                    'status' => 'fail', 
+                    'status' => 'fail',
                     'messages' => ['Product Price Not Found']
                 ]);
             }
@@ -453,7 +453,7 @@ class ApiSettingTransactionV2 extends Controller
                $rndstring .= $template[$b];
        }
 
-       return $rndstring; 
+       return $rndstring;
     }
 
     public function getrandomnumber($length) {
@@ -473,6 +473,6 @@ class ApiSettingTransactionV2 extends Controller
                $rndstring .= $template[$b];
        }
 
-       return $rndstring; 
+       return $rndstring;
     }
 }
