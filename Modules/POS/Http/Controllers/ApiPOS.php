@@ -2784,7 +2784,7 @@ class ApiPOS extends Controller
         }
     }
 
-    public function transactionRefund(reqTransactionRefund $request)
+    public function transactionRefund(Request $request)
     {
         $post = $request->json()->all();
 
@@ -2804,7 +2804,17 @@ class ApiPOS extends Controller
         $successRefund = [];
         $failedRefund  = [];
 
-        foreach($post['transactions'] as $trx){
+        if(!isset($post['data'])){
+            return response()->json(['status' => 'fail', 'messages' => 'field data is required']);
+        }
+
+        foreach($post['data'] as $trx){
+            if(!isset($trx['trx_id']) || !isset($trx['reason'])){
+                $countFailed += 1;
+                $failedRefund[] = 'fail to refund, trx_id and reason is required';
+                continue;
+            }
+
             DB::beginTransaction();
             $checkTrx = Transaction::where('transaction_receipt_number', $trx['trx_id'])->where('id_outlet', $outlet->id_outlet)->first();
             if (empty($checkTrx)) {
@@ -2823,7 +2833,7 @@ class ApiPOS extends Controller
 
             $checkTrx->transaction_payment_status = 'Cancelled';
             $checkTrx->void_date = date('Y-m-d H:i:s');
-            $checkTrx->transaction_notes = $post['reason'];
+            $checkTrx->transaction_notes = $trx['reason'];
             $checkTrx->update();
             if (!$checkTrx) {
                 DB::rollback();
@@ -2880,22 +2890,19 @@ class ApiPOS extends Controller
                     }
                     $checkMembership = app($this->membership)->calculateMembership($user['phone']);
                     $countSuccess += 1;
-                    $successRefund[] = 'success to refund trx_id ' . $trx['trx_id'];
+                    $successRefund[] = 'success to refund ' . $trx['trx_id'];
                 }
             }
 
             DB::commit();
         }
 
-        return response()->json([
-            'status' => 'success',
-            'result' => [
-                'count_success' => $countSuccess,
-                'success' => $successRefund,
-                'count_failed' => $countFailed,
-                'failed'  => $failedRefund
-            ]
-        ]);
+        return response()->json(['status' => 'success', 'result' => [
+            'count_success' => $countSuccess,
+            'success' => $successRefund,
+            'count_failed' => $countFailed,
+            'failed'  => $failedRefund
+        ]]);
     }
 
     public static function checkApi($key, $secret)
