@@ -20,6 +20,7 @@ use App\Http\Models\Transaction;
 
 use Modules\Deals\Http\Requests\Deals\Voucher;
 use Modules\Deals\Http\Requests\Deals\UseVoucher;
+use Modules\Deals\Http\Requests\Deals\MyVoucherStatus;
 use DB;
 
 class ApiDealsVoucher extends Controller
@@ -709,6 +710,22 @@ class ApiDealsVoucher extends Controller
         }
 
         return true;
+    }
 
+    public function checkStatus(MyVoucherStatus $request)
+    {
+    	$post = $request->json()->all();
+    	$getData = DealsUser::where('id_deals_user', '=', $post['id_deals_user'])->first();
+
+		if (!$getData) {
+			return response()->json(['status' => 'fail']);
+		}
+    	$result['payment_status'] = $getData['paid_status']??'';
+    	if ($result['payment_status'] == 'Free') {
+    		$result['payment_status'] = 'Completed';
+    	}
+    	$result['webview_url'] = env('API_URL').'api/webview/mydeals/'.$post['id_deals_user'];
+
+		return response()->json(MyHelper::checkGet($result));
     }
 }
