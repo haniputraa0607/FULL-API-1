@@ -2887,12 +2887,15 @@ class ApiPOS extends Controller
             DB::commit();
         }
 
-        return response()->json(['status' => 'success',, 'result' => [
-            'count_success' => $countSuccess,
-            'success' => $successRefund,
-            'count_failed' => $countFailed,
-            'failed'  => $failedRefund
-        ]]);
+        return response()->json([
+            'status' => 'success',
+            'result' => [
+                'count_success' => $countSuccess,
+                'success' => $successRefund,
+                'count_failed' => $countFailed,
+                'failed'  => $failedRefund
+            ]
+        ]);
     }
 
     public static function checkApi($key, $secret)
