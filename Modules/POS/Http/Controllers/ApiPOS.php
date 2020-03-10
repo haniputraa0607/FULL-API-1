@@ -1805,16 +1805,23 @@ class ApiPOS extends Controller
         return $syncMenu;
     }
 
-    public function transaction(Request $request)
+    public function transaction(Request $request, $post = null, $cek = 1)
     {
-        $post = $request->json()->all();
+        if(!$post){
+            $post = $request->json()->all();
+        }
 
-        if(!empty($post['api_key']) && !empty($post['api_secret']) &&
-            !empty($post['store_code']) && !empty($post['transactions'])){
+        if(( $cek != 1 &&
+            !empty($post['store_code']) && !empty($post['transactions']) ) ||
+            ($cek == 1 && !empty($post['api_key']) && !empty($post['api_secret']) &&
+            !empty($post['store_code']) && !empty($post['transactions']))
+        ){
 
-            $api = $this->checkApi($post['api_key'], $post['api_secret']);
-            if ($api['status'] != 'success') {
-                return response()->json($api);
+            if($cek == 1){
+                $api = $this->checkApi($post['api_key'], $post['api_secret']);
+                if ($api['status'] != 'success') {
+                    return response()->json($api);
+                }
             }
 
             $checkOutlet = Outlet::where('outlet_code', strtoupper($post['store_code']))->first();
@@ -1916,7 +1923,7 @@ class ApiPOS extends Controller
                         isset($trx['menu'])){
 
                         $insertTrx = $this->insertTransaction($getIdBrand, $checkOutlet, $productList, $allProductCode, $groupList, $allGroupCode, $variantList, $allVariantCode, $modList, $allModCode, $trx, $config, $settingPoint, $countSettingCashback, $fraudTrxDay, $fraudTrxWeek);
-                        return $insertTrx;
+
                         if(isset($insertTrx['id_transaction'])){
                                 $countTransactionSuccess++;
                                 $result[] = $insertTrx;
