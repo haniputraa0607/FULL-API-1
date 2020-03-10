@@ -1883,6 +1883,31 @@ class FeaturesTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
                 ),
+            234 =>
+                array(
+                    'id_feature' => 235,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Maintenance Mode Setting',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            235 =>
+                array(
+                    'id_feature' => 236,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Promo Cashback Setting',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            236 =>
+                array (
+                    'id_feature' => 237,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Transaction Online POS',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+
 
         ));
     }

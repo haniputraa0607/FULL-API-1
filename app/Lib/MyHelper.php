@@ -875,10 +875,6 @@ class MyHelper{
 
 	public static function uploadPhotoStrict($foto, $path, $width=800, $height=800, $name=null, $forceextension=null) {
 		// kalo ada foto1
-		if (!file_exists($path)) {
-			mkdir($path, 666, true);
-		}
-		
 		$decoded = base64_decode($foto);
 		if($forceextension != null)
 			$ext = $forceextension;
@@ -910,6 +906,9 @@ class MyHelper{
 					];
 				}
 			}else{
+				if (!file_exists($path)) {
+					mkdir($path, 666, true);
+				}		
 				if (file_put_contents($upload, $decoded)) {
 						$result = [
 							'status' => 'success',
@@ -1349,8 +1348,8 @@ class MyHelper{
 		}
 	}
 
-	public static function postWithTimeout($url, $bearer=null, $post, $form_type=0, $header=null, $timeout = 65){
-		$client = new Client;
+	public static function postWithTimeout($url, $bearer=null, $post, $form_type=0, $header=null, $timeout = 65,$ssl_verify = true){
+		$client = new Client(['verify' => $ssl_verify]);
 
 		$content = array(
 			'headers' => [
@@ -1383,7 +1382,8 @@ class MyHelper{
 
 		try {
 			$response = $client->post($url, $content);
-			$return = json_decode($response->getBody(), true);
+			// return plain response if json_decode fail because response is plain text
+			$return = json_decode($response->getBody()->getContents(), true)?:$response->getBody()->__toString();
 			return [
 				'status_code' => $response->getStatusCode(),
 				'response' => $return
@@ -2175,6 +2175,8 @@ class MyHelper{
 	 * @return float/int    converted number
 	 */
 	public static function requestNumber($number,$type='int',$custom=[]) {
+		if($type === '_CURRENCY'){$type = env('CURRENCY_FORMAT');}
+		elseif($type === '_POINT'){$type = env('POINT_FORMAT');}
 		switch ($type) {
 			case 'int':
 				return (int) $number;
@@ -2188,6 +2190,22 @@ class MyHelper{
 				return (double) $number;
 				break;
 			
+			case 'rupiah':
+				return 'Rp'.number_format($number,0,',','.');
+				break;
+			
+			case 'dollar':
+				return '$'.number_format($number,2,'.',',');
+				break;
+
+			case 'thousand_id':
+				return number_format($number,0,',','.');
+				break;
+
+			case 'thousand_sg':
+				return number_format($number,2,'.',',');
+				break;
+						
 			case 'custom':
 				return number_format($number,...$custom);
 

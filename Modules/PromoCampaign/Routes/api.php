@@ -34,11 +34,16 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:be'], 'pref
     Route::post('show-step2', 'ApiPromoCampaign@showStep2');
 });
 
+Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:be'], 'prefix' => 'promo-setting'], function () {
+    Route::get('cashback', 'ApiPromo@getDataCashback');
+    Route::post('cashback', 'ApiPromo@updateDataCashback');
+});
 
 // APPS
 Route::group(['middleware' => ['auth:api', 'scopes:apps'], 'prefix' => 'promo-campaign'], function () {
     Route::post('check-validation', 'ApiPromoCampaign@checkValid');
-    Route::post('check-used-voucher', 'ApiPromoCampaign@checkUsedVoucher');
+    Route::post('check-used-promo', 'ApiPromo@checkUsedPromo');
+    Route::any('cancel', 'ApiPromo@cancelPromo');
 });
 
 // DEVELOPMENT

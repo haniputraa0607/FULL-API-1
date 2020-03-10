@@ -18,6 +18,8 @@ class ProductModifier extends Model
 		'id_product',
 		'modifier_type',
 		'product_modifier_visibility',
+		'menu_id_pos',
+		'category_id_pos',
 		'type',
 		'code',
 		'text',

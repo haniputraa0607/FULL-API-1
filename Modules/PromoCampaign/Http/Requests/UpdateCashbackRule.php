@@ -1,12 +1,12 @@
 <?php
 
-namespace Modules\Deals\Http\Requests\Deals;
+namespace Modules\PromoCampaign\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class DetailDealsRequest extends FormRequest
+class UpdateCashBackRule extends FormRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -15,11 +15,14 @@ class DetailDealsRequest extends FormRequest
      */
     public function rules()
     {
-        return [
-            'id_deals' 	 => 'nullable|integer',
-            'step' 		 => 'nullable',
-            'deals_type' => 'nullable'
+        $rules=[
+            'promo_code_checkbox'   	=> 'nullable',
+            'voucher_online_checkbox'   => 'nullable',
+            'voucher_offline_checkbox'  => 'nullable',
+            'update'	=> 'required'
         ];
+
+        return $rules;
     }
 
     /**
@@ -30,6 +33,14 @@ class DetailDealsRequest extends FormRequest
     public function authorize()
     {
         return true;
+    }
+
+
+    public function messages()
+    {
+        return [
+            'product.integer' => 'Product is required.'
+        ];
     }
 
     protected function failedValidation(Validator $validator)

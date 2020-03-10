@@ -1,6 +1,7 @@
 <?php
 
 Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scopes:be'], 'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
+    Route::post('testing', 'ApiTransaction@testing2');
     Route::post('/outlet', 'ApiNotification@adminOutlet');
     Route::post('/admin/confirm', 'ApiNotification@adminOutletComfirm');
     Route::get('setting/cashback', 'ApiSettingCashbackController@list');
@@ -45,6 +46,11 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::post('/be/new', 'ApiOnlineTransaction@newTransaction');
     Route::get('be/{key}', 'ApiTransaction@transactionList');
     Route::post('be/detail/webview/{mode?}', 'ApiWebviewController@webview');
+
+    /*[POS] Transaction online failed*/
+    Route::any('online-pos', 'ApiTransactionOnlinePos@listTransaction');
+    Route::post('online-pos/resend', 'ApiTransactionOnlinePos@resendTransaction');
+    Route::any('online-pos/autoresponse', 'ApiTransactionOnlinePos@autoresponse');
 });
 
 Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {

@@ -17,6 +17,7 @@ use App\Http\Models\ProductCategory;
 
 use Modules\PromoCampaign\Entities\PromoCampaign;
 use Modules\PromoCampaign\Entities\PromoCampaignPromoCode;
+use Modules\PromoCampaign\Lib\PromoCampaignTools;
 
 use App\Lib\MyHelper;
 
@@ -29,6 +30,8 @@ class ApiProductGroupController extends Controller
         //code of general
         $this->general = ['general_type','general_size'];
     }
+
+    public $saveImage = "img/product/item/";
 
     /**
      * Display a listing of the resource.
@@ -50,6 +53,45 @@ class ApiProductGroupController extends Controller
             $pg = $pg->get();
         }
         return MyHelper::checkGet($pg->toArray());
+    }
+
+    
+    function photoAjax(Request $request) {
+    	$post = $request->json()->all();
+    	$data = [];
+        $checkCode = ProductGroup::where('product_group_code', $post['name'])->first();
+    	if ($checkCode) {
+            if ($post['detail'] == 1) {
+                $upload = MyHelper::uploadPhotoStrict($post['photo'], $this->saveImage, 720, 360);
+            } else {
+                $upload = MyHelper::uploadPhotoStrict($post['photo'], $this->saveImage, 200, 200);
+            }
+            
+    	    if (isset($upload['status']) && $upload['status'] == "success") {
+                if ($post['detail'] == 1) {
+                    $data['product_group_image_detail'] = $upload['path'];
+                } else {
+                    $data['product_group_photo'] = $upload['path'];
+                }
+    	    }
+    	    else {
+    	        $result = [
+    	            'status'   => 'fail',
+    	            'messages' => ['fail upload image']
+    	        ];
+    	        return response()->json($result);
+    	    }
+    	}
+    	if (empty($data)) {
+    		return reponse()->json([
+    			'status' => 'fail',
+    			'messages' => ['fail save to database']
+    		]);
+    	} else {
+            $data['id_product_group']       = $checkCode->id_product_group;
+            $save                           = ProductGroup::updateOrCreate(['id_product_group' => $checkCode->id_product_group], $data);
+    		return response()->json(MyHelper::checkCreate($save));
+    	}
     }
 
     public function filterList($model,$rule,$operator='and')
@@ -438,6 +480,7 @@ class ApiProductGroupController extends Controller
         foreach ($data as $product) {
             $product['product_stock_status'] = $this->checkAvailable($product['product_stock_status']);
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],$request->json('request_number'));
+            $product['product_price_pretty'] = MyHelper::requestNumber($product['product_price'],'_CURRENCY');
             $id_product_category = $product['id_product_category'];
             if(!isset($result[$id_product_category]['product_category_name'])){
                 $category = ProductCategory::select('product_category_name','id_product_category','product_category_order')->find($id_product_category)->toArray();
@@ -498,7 +541,8 @@ class ApiProductGroupController extends Controller
                 $variant_stock[$varcode[0]][$varcode[$first]] = [
                     'product_variant_code' => $varcode[1],
                     'product_stock_status' => $product['product_stock_status'],
-                    'product_price' => $product['product_price']
+                    'product_price' => $product['product_price'],
+                    'product_price_pretty' => MyHelper::requestNumber($product['product_price'],'_CURRENCY')
                 ];
                 if(in_array($varcode[0], $this->general)){
                     $is_visible = 0;
@@ -542,6 +586,7 @@ class ApiProductGroupController extends Controller
             ->whereIn('product_product_variants.id_product',$id_products)->orderBy('product_variants.product_variant_position')->groupBy('product_variant_code')->get()->toArray();
         // set price to response
         $data['product_price'] = MyHelper::requestNumber($default['product_price'],$request->json('request_number'));
+        $data['product_price_pretty'] = MyHelper::requestNumber($default['product_price'],'_CURRENCY');
         // arrange default variant
         if($default['defaults']??false){
             $default['defaults'] = explode(';',$default['defaults']);
@@ -632,6 +677,7 @@ class ApiProductGroupController extends Controller
             ->get()->toArray();
         $data['modifiers'] = array_values(MyHelper::groupIt($modifiers,'type',function($key,&$val) use ($request){
             $val['price'] = MyHelper::requestNumber($val['price'],$request->json('request_number'));
+            $val['price_pretty'] = MyHelper::requestNumber($val['price'],'_CURRENCY');
             return $key;
         },function($key,&$val){
             $newval['type'] = $key;
@@ -689,6 +735,7 @@ class ApiProductGroupController extends Controller
         $result = [];
         foreach ($data as $product) {
             $product['product_stock_status'] = $this->checkAvailable($product['product_stock_status']);
+            $product['product_price_pretty'] = MyHelper::requestNumber($product['product_price'],'_CURRENCY');
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],$request->json('request_number'));
             unset($product['products']);
             $result[] = $product;
@@ -713,10 +760,10 @@ class ApiProductGroupController extends Controller
 
         	if (!empty($post['promo_code'])) 
         	{
-        		$code = app($this->promo_campaign)->checkPromoCode($post['promo_code'], null, 1);
+        		$code = app($this->promo_campaign)->checkPromoCode($post['promo_code'], 1, 1);
         		$source = 'promo_campaign';
         	}else{
-        		$code = app($this->promo_campaign)->checkVoucher($post['id_deals_user'], null, 1);
+        		$code = app($this->promo_campaign)->checkVoucher($post['id_deals_user'], 1, 1);
         		$source = 'deals';
         	}
 
@@ -730,6 +777,14 @@ class ApiProductGroupController extends Controller
 	        		return false;
 	        	}
 	        	$code = $code->toArray();
+
+				if (isset($post['id_outlet'])) {
+					$pct = new PromoCampaignTools();
+					if (!$pct->checkOutletRule($post['id_outlet'], $code[$source]['is_all_outlet']??0,$code[$source][$source.'_outlets']??$code['deal_voucher'][$source]['outlets_active'])) {
+						$promo_error = Setting::where('key','promo_error_product_list')->first()['value']??'Cannot use promo at this outlet.';
+	        			return false;
+					}
+				}
 
 	        	$applied_product = app($this->promo_campaign)->getProduct($source,($code['promo_campaign']??$code['deal_voucher']['deals']))['applied_product']??[];
 

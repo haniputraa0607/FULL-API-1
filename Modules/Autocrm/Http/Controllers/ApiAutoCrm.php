@@ -45,7 +45,7 @@ class ApiAutoCrm extends Controller
 		$this->apiwha = new apiwha();
     }
 
-	function SendAutoCRM($autocrm_title, $receipient, $variables = null, $useragent = null){
+	function SendAutoCRM($autocrm_title, $receipient, $variables = null, $useragent = null, $forward_only = false){
 		$query = Autocrm::where('autocrm_title','=',$autocrm_title)->with('whatsapp_content')->get()->toArray();
 		$users = User::where('phone','=',$receipient)->get()->toArray();
 		if(empty($users)){
@@ -54,7 +54,7 @@ class ApiAutoCrm extends Controller
 		if($query){
 			$crm 	= $query[0];
 			$user 	= $users[0];
-			if($crm['autocrm_email_toogle'] == 1){
+			if($crm['autocrm_email_toogle'] == 1 && !$forward_only){
 				if(!empty($user['email'])){
 					if($user['name'] != "")
 						$name	 = "";
@@ -233,7 +233,7 @@ class ApiAutoCrm extends Controller
 				}
 			}
 
-			if($crm['autocrm_sms_toogle'] == 1){
+			if($crm['autocrm_sms_toogle'] == 1 && !$forward_only){
 				if(!empty($user['phone'])){
 					switch (env('SMS_GATEWAY')) {
 						case 'Jatis':
@@ -317,7 +317,7 @@ class ApiAutoCrm extends Controller
 				}
 			}
 
-			if($crm['autocrm_whatsapp_toogle'] == 1){
+			if($crm['autocrm_whatsapp_toogle'] == 1 && !$forward_only){
 				if(!empty($user['phone'])){
 					//cek api key whatsapp
 					$api_key = Setting::where('key', 'api_key_whatsapp')->first();
@@ -371,7 +371,7 @@ class ApiAutoCrm extends Controller
 				}
 			}
 
-			if($crm['autocrm_push_toogle'] == 1){
+			if($crm['autocrm_push_toogle'] == 1 && !$forward_only){
 				if(!empty($user['phone'])){
 					try {
 						$dataOptional          = [];
@@ -488,7 +488,7 @@ class ApiAutoCrm extends Controller
 				}
 			}
 
-			if($crm['autocrm_inbox_toogle'] == 1){
+			if($crm['autocrm_inbox_toogle'] == 1 && !$forward_only){
 				if(!empty($user['id'])){
 
 					$inbox['id_user'] 	  	  = $user['id'];

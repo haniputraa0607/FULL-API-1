@@ -480,21 +480,23 @@ class ApiDeals extends Controller
             //url webview
             $deals[0]['webview_url'] = env('APP_URL') . "webview/deals/" . $deals[0]['id_deals'] . "/" . $deals[0]['deals_type'];
             // text tombol beli
-            $deals[0]['button_text'] = $deals[0]['deals_voucher_price_type']=='free'?'Get':'Buy';
             $deals[0]['button_status'] = 0;
             //text konfirmasi pembelian
             if($deals[0]['deals_voucher_price_type']=='free'){
                 //voucher free
+                $deals[0]['button_text'] = 'Get';
                 $payment_message = Setting::where('key', 'payment_messages')->pluck('value_text')->first()??'Kamu yakin ingin mengambil voucher ini?';
                 $payment_message = MyHelper::simpleReplace($payment_message,['deals_title'=>$deals[0]['deals_title']]);
             }
             elseif($deals[0]['deals_voucher_price_type']=='point')
             {
+                $deals[0]['button_text'] = 'Claim';
                 $payment_message = Setting::where('key', 'payment_messages_point')->pluck('value_text')->first()??'Anda akan menukarkan %point% points anda dengan Voucher %deals_title%?';
                 $payment_message = MyHelper::simpleReplace($payment_message,['point'=>$deals[0]['deals_voucher_price_point'],'deals_title'=>$deals[0]['deals_title']]);
             }
             else
             {
+                $deals[0]['button_text'] = 'Buy';
                 $payment_message = Setting::where('key', 'payment_messages_cash')->pluck('value_text')->first()??'Anda akan membeli Voucher %deals_title% dengan harga %cash% ?';
                 $payment_message = MyHelper::simpleReplace($payment_message,['cash'=>$deals[0]['deals_voucher_price_cash'],'deals_title'=>$deals[0]['deals_title']]);
             }
@@ -510,7 +512,6 @@ class ApiDeals extends Controller
                         $deals[0]['payment_fail_message'] = Setting::where('key', 'payment_fail_messages')->pluck('value_text')->first()??'Mohon maaf, point anda tidak cukup';
                     }
                 }else{
-                    $deals[0]['button_text'] = 'Beli';
                     if($deals[0]['deals_status']=='available'){
                         $deals[0]['button_status'] = 1;
                     }
@@ -806,11 +807,11 @@ class ApiDeals extends Controller
         }
 
         $deals = $deals->with([
-        			'user', 
+        			'user',
         			'outlet',
         			'dealVoucher.transaction_voucher' => function($q) {
         				$q->where('status','=','success');
-        			}, 
+        			},
         			'dealVoucher.transaction_voucher.transaction' => function($q) {
         				$q->select(
         					'id_transaction',
@@ -1152,7 +1153,7 @@ class ApiDeals extends Controller
         $post = $request->json()->all();
         $user = $request->user();
 
-        $deals = $this->getDealsData($post['id_deals'], $post['step']);
+        $deals = $this->getDealsData($post['id_deals'], $post['step'], $post['deals_type']);
 
         if (isset($deals)) {
             $deals = $deals->toArray();
@@ -1175,22 +1176,24 @@ class ApiDeals extends Controller
         return response()->json($result);
     }
 
-    function getDealsData($id_deals, $step)
+    function getDealsData($id_deals, $step, $deals_type='Deals')
     {
     	$post['id_deals'] = $id_deals;
     	$post['step'] = $step;
-    	$deals = Deal::where('id_deals', '=', $post['id_deals']);
+    	$post['deals_type'] = $deals_type;
+
+    	$deals = Deal::where('id_deals', '=', $post['id_deals'])->where('deals_type','=',$post['deals_type']);
         if ($post['step'] == 1 || $post['step'] == 'all') {
 			$deals = $deals->with(['outlets']);
         }
 
         if ($post['step'] == 2 || $post['step'] == 'all') {
-			$deals = $deals->with([  
-                'deals_product_discount', 
-                'deals_product_discount_rules', 
-                'deals_tier_discount_product', 
-                'deals_tier_discount_rules', 
-                'deals_buyxgety_product_requirement', 
+			$deals = $deals->with([
+                'deals_product_discount',
+                'deals_product_discount_rules',
+                'deals_tier_discount_product',
+                'deals_tier_discount_rules',
+                'deals_buyxgety_product_requirement',
                 'deals_buyxgety_rules.product'
             ]);
         }
@@ -1202,7 +1205,7 @@ class ApiDeals extends Controller
         if ($post['step'] == 'all') {
 			$deals = $deals->with(['created_by_user']);
         }
-        
+
         $deals = $deals->first();
 
         return $deals;
@@ -1215,14 +1218,14 @@ class ApiDeals extends Controller
     	db::beginTransaction();
     	$update = app($this->subscription)->createOrUpdateContent($post, 'deals');
 
-    	if ($update) 
+    	if ($update)
     	{
 			$update = Deal::where('id_deals','=',$post['id_deals'])->update(['deals_description' => $post['deals_description'], 'step_complete' => 0, 'last_updated_by' => auth()->user()->id]);
-            if ($update) 
+            if ($update)
 			{
 		        DB::commit();
-		    } 
-		    else 
+		    }
+		    else
 		    {
 		        DB::rollback();
 		        return  response()->json([
@@ -1230,8 +1233,8 @@ class ApiDeals extends Controller
 		            'messages' => 'Update Deals failed'
 		        ]);
 		    }
-        } 
-        else 
+        }
+        else
         {
             DB::rollback();
             return  response()->json([
@@ -1246,13 +1249,14 @@ class ApiDeals extends Controller
     public function updateComplete(UpdateComplete $request)
     {
     	$post = $request->json()->all();
-    	$check = $this->checkComplete($post['id_deals'], $step, $errors);
 
-		if ($check) 
+    	$check = $this->checkComplete($post['id_deals'], $step, $errors, $post['deals_type']);
+
+		if ($check)
 		{
 			$update = Deal::where('id_deals','=',$post['id_deals'])->update(['step_complete' => 1, 'last_updated_by' => auth()->user()->id]);
 
-			if ($update) 
+			if ($update)
 			{
 				return ['status' => 'success'];
 			}else{
@@ -1269,18 +1273,18 @@ class ApiDeals extends Controller
 		}
     }
 
-    public function checkComplete($id, &$step, &$errors)
+    public function checkComplete($id, &$step, &$errors, $promo_type)
     {
-    	$deals = $this->getDealsData($id, 'all');
+    	$deals = $this->getDealsData($id, 'all', $promo_type);
     	if (!$deals) {
     		$errors = 'Deals not found';
     		return false;
     	}
 
     	$deals = $deals->toArray();
-    	if ( $deals['is_online'] == 1) 
+    	if ( $deals['is_online'] == 1)
     	{
-	    	if ( empty($deals['deals_product_discount_rules']) && empty($deals['deals_tier_discount_rules']) && empty($deals['deals_buyxgety_rules']) ) 
+	    	if ( empty($deals['deals_product_discount_rules']) && empty($deals['deals_tier_discount_rules']) && empty($deals['deals_buyxgety_rules']) )
 	    	{
 	    		$step = 2;
 	    		$errors = 'Deals not complete';
@@ -1288,9 +1292,9 @@ class ApiDeals extends Controller
 	    	}
     	}
 
-    	if ( $deals['is_offline'] == 1) 
+    	if ( $deals['is_offline'] == 1)
     	{
-    		if ( empty($deals['deals_promo_id_type']) && empty($deals['deals_promo_id']) ) 
+    		if ( empty($deals['deals_promo_id_type']) && empty($deals['deals_promo_id']) )
 	    	{
 	    		$step = 2;
 	    		$errors = 'Deals not complete';

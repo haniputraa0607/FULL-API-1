@@ -796,6 +796,8 @@ class ApiDealsClaimPay extends Controller
             $voucher['url_webview'] = env('API_URL').'api/webview/mydeals/'.$voucher['id_deals_user'];
         }elseif($voucher['paid_status'] == 'Cancelled'){
             $voucher['message'] = Setting::where('key', 'payment_ovo_fail_messages')->pluck('value_text')->first()??'Transaksi Gagal';
+        }elseif($voucher['paid_status'] == 'Pending'){
+            $voucher['message'] = Setting::where('key', 'payment_ovo_pending_messages')->pluck('value_text')->first()??'Menunggu Pembayaran';
         }
 
         return MyHelper::checkGet($voucher);
