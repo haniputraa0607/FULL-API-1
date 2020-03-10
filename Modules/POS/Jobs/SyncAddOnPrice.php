@@ -49,7 +49,7 @@ class SyncAddOnPrice implements ShouldQueue
                     $table->bigIncrements('id_product_modifier_price_periode');
                     $table->unsignedInteger('id_product_modifier');
                     $table->unsignedInteger('id_outlet');
-                    $table->float('price')->nullable();
+                    $table->float('price', 10, 2)->nullable();
                     $table->dateTime('date')->nullable();
                     $table->timestamps();
 

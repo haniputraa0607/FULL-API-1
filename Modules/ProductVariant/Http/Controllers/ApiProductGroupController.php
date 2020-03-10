@@ -42,6 +42,7 @@ class ApiProductGroupController extends Controller
         $pg = ProductGroup::select(\DB::raw('product_groups.*,count(id_product) as products_count'))
             ->leftJoin('products','products.id_product_group','=','product_groups.id_product_group')
             ->groupBy('product_groups.id_product_group')
+            ->orderBy('product_groups.product_group_position')
             ->with('product_category');
         if($request->json('rule')){
             $this->filterList($pg,$request->post('rule'),$request->post('operator'));
@@ -278,6 +279,7 @@ class ApiProductGroupController extends Controller
         $append = [];
         if($update && $request->json('variant_type') == 'single'){
             $id_product = $post['id_product'];
+            Product::where('id_product_group',$pg->id_product_group)->update(['id_product_group'=>null]);
             ProductProductVariant::where('id_product',$id_product)->delete();
             $variant1 = ProductVariant::where('product_variant_code','general_type')->first();
             if(!$variant1){
@@ -343,6 +345,14 @@ class ApiProductGroupController extends Controller
         }
         \DB::commit();
         return MyHelper::checkUpdate($update)+$append;
+    }
+
+    public function reorder(Request $request) {
+        $post = $request->json()->all();
+        foreach ($post['id_product_group']??[] as $key => $id_product_group) {
+            $update = ProductGroup::where('id_product_group',$id_product_group)->update(['product_group_position'=>$key+1]);
+        }
+        return MyHelper::checkUpdate(1);
     }
 
     /**
@@ -444,7 +454,9 @@ class ApiProductGroupController extends Controller
                     ->whereNotNull('product_prices.product_price')
                     ->whereNotNull('product_groups.id_product_category')
                     // order by position
-                    ->orderBy('products.position')
+                    ->orderByRaw('product_groups.product_group_position = 0')
+                    ->orderBy('product_groups.product_group_position')
+                    ->orderBy('product_groups.id_product_group')
                     // group by product_groups
                     ->groupBy('product_groups.id_product_group');
                     // ->get();
@@ -471,7 +483,7 @@ class ApiProductGroupController extends Controller
             $product['product_price_pretty'] = MyHelper::requestNumber($product['product_price'],'_CURRENCY');
             $id_product_category = $product['id_product_category'];
             if(!isset($result[$id_product_category]['product_category_name'])){
-                $category = ProductCategory::select('product_category_name','id_product_category')->find($id_product_category)->toArray();
+                $category = ProductCategory::select('product_category_name','id_product_category','product_category_order')->find($id_product_category)->toArray();
                 unset($category['url_product_category_photo']);
                 $result[$id_product_category] = $category;
             }
@@ -479,6 +491,9 @@ class ApiProductGroupController extends Controller
             unset($product['products']);
             $result[$id_product_category]['products'][] = $product;
         }
+        usort($result, function($a,$b){
+            return ($b['product_category_order']*-1) <=> ($a['product_category_order']*-1);
+        });
         $result = MyHelper::checkGet(array_values($result));
         $result['promo_error'] = $promo_error;
 

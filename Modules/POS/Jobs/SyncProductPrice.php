@@ -50,7 +50,7 @@ class SyncProductPrice implements ShouldQueue
                     $table->bigIncrements('id_product_price_periode');
                     $table->unsignedInteger('id_product');
                     $table->unsignedInteger('id_outlet');
-                    $table->float('price')->nullable();
+                    $table->float('price', 10, 2)->nullable();
                     $table->dateTime('date')->nullable();
                     $table->timestamps();
 
