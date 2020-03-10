@@ -503,7 +503,6 @@ class ApiHistoryController extends Controller
             ->join('outlets', 'transactions.id_outlet', '=', 'outlets.id_outlet')
             ->join('brand_outlet', 'outlets.id_outlet', '=', 'brand_outlet.id_outlet')
             ->leftJoin('transaction_products', 'transactions.id_transaction', '=', 'transaction_products.id_transaction')
-            ->where('transaction_payment_status', '!=', 'Cancelled')
             ->where('transactions.id_user', $id)
             ->with('outlet', 'logTopup')
             ->orderBy('transaction_date', 'DESC')
@@ -616,8 +615,9 @@ class ApiHistoryController extends Controller
                     $dataList['id_outlet'] = $value['outlet']['id_outlet'];
                     $dataList['outlet_code'] = $value['outlet']['outlet_code'];
                     $dataList['outlet'] = $value['outlet']['outlet_name'];
-                    $dataList['amount'] = number_format($value['transaction_grandtotal'], 0, ',', '.');
-                    $dataList['cashback'] = number_format($value['transaction_cashback_earned'], 0, ',', '.');
+                    $dataList['amount'] = MyHelper::requestNumber($value['transaction_grandtotal'], '_CURRENCY');
+
+                    $dataList['cashback'] = MyHelper::requestNumber($value['transaction_cashback_earned'],'_POINT');
                     $dataList['subtitle'] = $value['sum_qty'].($value['sum_qty']>1?' items':' item');
                     $dataList['item_total'] = (int) $value['sum_qty'];
                     if ($dataList['cashback'] >= 0) {
@@ -725,9 +725,9 @@ class ApiHistoryController extends Controller
         foreach ($voucher as $key => $value) {
             $dataVoucher[$key]['type'] = 'voucher';
             $dataVoucher[$key]['id'] = $value['id_deals_user'];
-            $dataVoucher[$key]['date'] = $value['claimed_at'];
+            $dataVoucher[$key]['date'] = date($value['claimed_at']);
             $dataVoucher[$key]['outlet'] = 'Buy a Voucher';
-            $dataVoucher[$key]['amount'] = number_format($value['voucher_price_cash'] - $value['balance_nominal'], 0, ',', '.');
+            $dataVoucher[$key]['amount'] = MyHelper::requestNumber($value['voucher_price_cash'] - $value['balance_nominal'], '_CURRENCY');
         }
 
         return $dataVoucher;
@@ -1029,7 +1029,7 @@ class ApiHistoryController extends Controller
                 $dataList['id']      = $value['id_log_balance'];
                 $dataList['date']    = date('Y-m-d H:i:s', strtotime($value['created_at']));
                 $dataList['outlet'] = 'Welcome Point';
-                $dataList['amount'] = '+ ' . number_format($value['balance'], 0, ',', '.');
+                $dataList['amount'] = '+ ' . MyHelper::requestNumber($value['balance'], '_POINT');
 
                 $listBalance[$key] = $dataList;
             }

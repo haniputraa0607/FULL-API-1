@@ -63,8 +63,8 @@ class SyncProductPrice implements ShouldQueue
             }
             $interval = date_diff(date_create($price['start_date']), date_create($price['end_date']));
 
-            if($interval->format('%a') > 90){
-                $end = 90;
+            if($interval->format('%a') > 3){
+                $end = 3;
             }else{
                 $end = $interval->format('%a') + 1;
             }
