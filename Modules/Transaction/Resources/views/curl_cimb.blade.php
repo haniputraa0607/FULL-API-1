@@ -222,7 +222,7 @@
     </script>
 </head>
 <body>
-    <form id="clickForm" action="https://ipg.cimbniaga.co.id/BPG/admin/payment/PaymentWindow.jsp" method="post">
+    <form id="clickForm" action="{{env('CIMB_URL')}}" method="post">
         <input type="hidden" id="MERCHANT_ACC_NO" name="MERCHANT_ACC_NO">
         <input type="hidden" id="TXN_PASSWORD" name="TXN_PASSWORD">
         <input type="hidden" id="AMOUNT" name="AMOUNT">
