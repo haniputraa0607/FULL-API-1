@@ -481,6 +481,14 @@ class ApiDeals extends Controller
             $deals[0]['webview_url'] = env('APP_URL') . "webview/deals/" . $deals[0]['id_deals'] . "/" . $deals[0]['deals_type'];
             // text tombol beli
             $deals[0]['button_status'] = 0;
+            // price cash - user point
+            $price_cash_point = $deals[0]['deals_voucher_price_cash'] - auth()->user()->balance;
+            if ( $price_cash_point <= 0 ) {
+            	$deals[0]['price_cash_point'] = 0;
+            }else{
+            	$deals[0]['price_cash_point'] = $price_cash_point;
+            }
+            $deals[0]['price_cash_point_pretty'] = MyHelper::requestNumber($deals[0]['price_cash_point'],'_CURRENCY');
             //text konfirmasi pembelian
             if($deals[0]['deals_voucher_price_type']=='free'){
                 //voucher free
