@@ -528,7 +528,7 @@ class ApiProductGroupController extends Controller
             ->join('product_product_variants','products.id_product','=','product_product_variants.id_product')
             ->join('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
             ->join('product_variants as parents','product_variants.parent','=','parents.id_product_variant')
-            ->select(\DB::raw('products.id_product,product_prices.product_stock_status,GROUP_CONCAT(product_variants.product_variant_code order by parents.product_variant_position) as product_variant_code,count(product_variants.product_variant_code) as product_variant_count,product_prices.product_price'))
+            ->select(\DB::raw('products.id_product,product_prices.product_stock_status,GROUP_CONCAT(DISTINCT (product_variants.product_variant_code) order by parents.product_variant_position) as product_variant_code,count(DISTINCT(product_variants.product_variant_code)) as product_variant_count,product_prices.product_price'))
             ->having('product_variant_count','2')
             ->groupBy('products.id_product')
             ->get('id_product')->toArray();
