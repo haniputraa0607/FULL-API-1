@@ -2055,7 +2055,7 @@ class ApiOnlineTransaction extends Controller
 
         $cashback_text_array = [
             $cashback_text[0],
-            count($cashback_text) >= 2?number_format($cashback_earned,0,',','.').' Point':'',
+            count($cashback_text) >= 2?MyHelper::requestNumber($cashback_earned,'_POINT').' Point':'',
             $cashback_text[1]??''
         ];
 
