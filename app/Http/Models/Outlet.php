@@ -164,6 +164,7 @@ class Outlet extends Authenticatable
 				$hari_ini = "Tuesday";
 			break;
 
+
 			case 'Wed':
 				$hari_ini = "Wednesday";
 			break;

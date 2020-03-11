@@ -1805,16 +1805,23 @@ class ApiPOS extends Controller
         return $syncMenu;
     }
 
-    public function transaction(Request $request)
+    public function transaction(Request $request, $post = null, $cek = 1)
     {
-        $post = $request->json()->all();
+        if(!$post){
+            $post = $request->json()->all();
+        }
 
-        if(!empty($post['api_key']) && !empty($post['api_secret']) &&
-            !empty($post['store_code']) && !empty($post['transactions'])){
+        if(( $cek != 1 &&
+            !empty($post['store_code']) && !empty($post['transactions']) ) ||
+            ($cek == 1 && !empty($post['api_key']) && !empty($post['api_secret']) &&
+            !empty($post['store_code']) && !empty($post['transactions']))
+        ){
 
-            $api = $this->checkApi($post['api_key'], $post['api_secret']);
-            if ($api['status'] != 'success') {
-                return response()->json($api);
+            if($cek == 1){
+                $api = $this->checkApi($post['api_key'], $post['api_secret']);
+                if ($api['status'] != 'success') {
+                    return response()->json($api);
+                }
             }
 
             $checkOutlet = Outlet::where('outlet_code', strtoupper($post['store_code']))->first();
@@ -1916,7 +1923,7 @@ class ApiPOS extends Controller
                         isset($trx['menu'])){
 
                         $insertTrx = $this->insertTransaction($getIdBrand, $checkOutlet, $productList, $allProductCode, $groupList, $allGroupCode, $variantList, $allVariantCode, $modList, $allModCode, $trx, $config, $settingPoint, $countSettingCashback, $fraudTrxDay, $fraudTrxWeek);
-                        return $insertTrx;
+
                         if(isset($insertTrx['id_transaction'])){
                                 $countTransactionSuccess++;
                                 $result[] = $insertTrx;
@@ -2784,7 +2791,7 @@ class ApiPOS extends Controller
         }
     }
 
-    public function transactionRefund(reqTransactionRefund $request)
+    public function transactionRefund(Request $request)
     {
         $post = $request->json()->all();
 
@@ -2804,7 +2811,17 @@ class ApiPOS extends Controller
         $successRefund = [];
         $failedRefund  = [];
 
-        foreach($post['transactions'] as $trx){
+        if(!isset($post['data'])){
+            return response()->json(['status' => 'fail', 'messages' => 'field data is required']);
+        }
+
+        foreach($post['data'] as $trx){
+            if(!isset($trx['trx_id']) || !isset($trx['reason'])){
+                $countFailed += 1;
+                $failedRefund[] = 'fail to refund, trx_id and reason is required';
+                continue;
+            }
+
             DB::beginTransaction();
             $checkTrx = Transaction::where('transaction_receipt_number', $trx['trx_id'])->where('id_outlet', $outlet->id_outlet)->first();
             if (empty($checkTrx)) {
@@ -2823,7 +2840,7 @@ class ApiPOS extends Controller
 
             $checkTrx->transaction_payment_status = 'Cancelled';
             $checkTrx->void_date = date('Y-m-d H:i:s');
-            $checkTrx->transaction_notes = $post['reason'];
+            $checkTrx->transaction_notes = $trx['reason'];
             $checkTrx->update();
             if (!$checkTrx) {
                 DB::rollback();
@@ -2880,14 +2897,14 @@ class ApiPOS extends Controller
                     }
                     $checkMembership = app($this->membership)->calculateMembership($user['phone']);
                     $countSuccess += 1;
-                    $successRefund[] = 'success to refund trx_id ' . $trx['trx_id'];
+                    $successRefund[] = 'success to refund ' . $trx['trx_id'];
                 }
             }
 
             DB::commit();
         }
 
-        return response()->json(['status' => 'success',, 'result' => [
+        return response()->json(['status' => 'success', 'result' => [
             'count_success' => $countSuccess,
             'success' => $successRefund,
             'count_failed' => $countFailed,
