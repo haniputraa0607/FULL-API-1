@@ -528,9 +528,32 @@ class ApiProductGroupController extends Controller
             ->join('product_product_variants','products.id_product','=','product_product_variants.id_product')
             ->join('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
             ->join('product_variants as parents','product_variants.parent','=','parents.id_product_variant')
-            ->select(\DB::raw('products.id_product,product_prices.product_stock_status,GROUP_CONCAT(product_variants.product_variant_code order by parents.product_variant_position) as product_variant_code,product_prices.product_price'))->groupBy('products.id_product')->get('id_product')->toArray();
+            ->select(\DB::raw('products.id_product,product_prices.product_stock_status,GROUP_CONCAT(product_variants.product_variant_code order by parents.product_variant_position) as product_variant_code,count(product_variants.product_variant_code) as product_variant_count,product_prices.product_price'))
+            ->having('product_variant_count','2')
+            ->groupBy('products.id_product')
+            ->get('id_product')->toArray();
         $id_products = array_column($products, 'id_product');
         $is_visible = 1;
+        // get product lowest price and default variant
+        $default = $query2
+            ->select(\DB::raw('product_price,GROUP_CONCAT(CONCAT_WS(",",product_variants.parent,product_variants.id_product_variant) separator ";") as defaults'))
+            ->join('product_product_variants','product_product_variants.id_product','=','products.id_product')
+            ->join('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
+            ->having('defaults','<>','')
+            ->orderBy('product_price')
+            ->groupBy('product_price')
+            ->first();
+        // arrange default variant
+        if($default['defaults']??false){
+            $default['defaults'] = explode(';',$default['defaults']);
+            $defaults = [];
+            foreach ($default['defaults'] as $defaulte) {
+                if($defaulte){
+                    $exp = explode(',', $defaulte);
+                    $defaults[$exp[0]??''] = $exp[1]??'';
+                }
+            }
+        }
         //get variant stock
         $variant_stock = [];
         foreach ($products as $product) {
@@ -542,7 +565,7 @@ class ApiProductGroupController extends Controller
                     'product_variant_code' => $varcode[1],
                     'product_stock_status' => $product['product_stock_status'],
                     'product_price' => $product['product_price'],
-                    'product_price_pretty' => MyHelper::requestNumber($product['product_price'],'_CURRENCY')
+                    'more_price_pretty' => MyHelper::requestNumber($product['product_price'] - $default['product_price'],'_CURRENCY')
                 ];
                 if(in_array($varcode[0], $this->general)){
                     $is_visible = 0;
@@ -553,15 +576,6 @@ class ApiProductGroupController extends Controller
         if(!$id_products || !$variant_stock){
             return MyHelper::checkGet([]);
         }
-        // get product lowest price and default variant
-        $default = $query2
-            ->select(\DB::raw('product_price,GROUP_CONCAT(CONCAT_WS(",",product_variants.parent,product_variants.id_product_variant) separator ";") as defaults'))
-            ->leftJoin('product_product_variants','product_product_variants.id_product','=','products.id_product')
-            ->leftJoin('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
-            ->having('defaults','<>','')
-            ->orderBy('product_price')
-            ->groupBy('product_price')
-            ->first();
         // get product group detail
         $data = ProductGroup::select('id_product_group','product_group_name','product_group_image_detail','product_group_code','product_group_description')->find($post['id_product_group'])->toArray();
 
@@ -587,17 +601,6 @@ class ApiProductGroupController extends Controller
         // set price to response
         $data['product_price'] = MyHelper::requestNumber($default['product_price'],$request->json('request_number'));
         $data['product_price_pretty'] = MyHelper::requestNumber($default['product_price'],'_CURRENCY');
-        // arrange default variant
-        if($default['defaults']??false){
-            $default['defaults'] = explode(';',$default['defaults']);
-            $defaults = [];
-            foreach ($default['defaults'] as $default) {
-                if($default){
-                    $exp = explode(',', $default);
-                    $defaults[$exp[0]??''] = $exp[1]??'';
-                }
-            }
-        }
         $arranged_variant = [];
         foreach ($variants as $key => $variant) {
             if(!isset($arranged_variant[$variant['parent_id']]['type_name'])){
@@ -634,9 +637,15 @@ class ApiProductGroupController extends Controller
                             $is_should_hidden = 0;
                         }
                         $child['childs'][] = array_merge($vrn,$variant_stock[$key][$vrn['product_variant_code']]);
+                        if(in_array(1, array_column($child['childs'], 'default'))){
+                            $child['childs'][0]['default'] = 1;
+                        }
                     }
                 }
                 $child['is_visible'] = $is_should_hidden;
+                if(in_array(1, array_column($child, 'default'))){
+                    $child[0]['default'] = 1;
+                }
                 $stock['childs'] = $child;
                 $data['variants']['childs'][]=$stock;
             }
