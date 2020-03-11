@@ -637,18 +637,18 @@ class ApiProductGroupController extends Controller
                             $is_should_hidden = 0;
                         }
                         $child['childs'][] = array_merge($vrn,$variant_stock[$key][$vrn['product_variant_code']]);
-                        if(in_array(1, array_column($child['childs'], 'default'))){
-                            $child['childs'][0]['default'] = 1;
-                        }
                     }
                 }
-                $child['is_visible'] = $is_should_hidden;
-                if(in_array(1, array_column($child, 'default'))){
-                    $child[0]['default'] = 1;
+                if(!in_array(1, array_column($child['childs'], 'default'))){
+                    $child['childs'][0]['default'] = 1;
                 }
+                $child['is_visible'] = $is_should_hidden;
                 $stock['childs'] = $child;
                 $data['variants']['childs'][]=$stock;
             }
+        }
+        if(in_array(1, array_column($data['variants']['childs'], 'default'))){
+            $data['variants']['childs'][0]['default'] = 1;
         }
         // get available modifiers
         $posta = [
