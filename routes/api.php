@@ -49,3 +49,8 @@ Route::get('time', function() {
 		'message' => MyHelper::simpleReplace($ptt,['processing_time'=>$am['value']])
 	]);
 });
+Route::post('converter', function(Request $request) {
+	$mode = $request->json('type')?:'currency';
+	$value = $request->json('value')?:0;
+	return MyHelper::checkGet(MyHelper::requestNumber($value,$mode=='point'?'_POINT':'_CURRENCY'));
+});

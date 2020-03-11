@@ -1566,9 +1566,10 @@ class ApiOnlineTransaction extends Controller
      */
     public function checkTransaction(CheckTransaction $request) {
         $post = $request->json()->all();
+        $missing_product = 0;
         $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
         if($use_product_variant){
-            foreach ($post['item'] as &$prod) {
+            foreach ($post['item'] as $key => &$prod) {
                 $prd = Product::where(function($query) use ($prod){
                     foreach($prod['variants'] as $variant){
                         $query->whereHas('product_variants',function($query) use ($variant){
@@ -1577,10 +1578,8 @@ class ApiOnlineTransaction extends Controller
                     }
                 })->where('id_product_group',$prod['id_product_group'])->first();
                 if(!$prd){
-                    return [
-                        'status' => 'fail',
-                        'messages' => ['Product not found']
-                    ];
+                    $missing_product++;
+                    unset($post['item'][$key]);
                 }
                 $prod['id_product'] = $prd['id_product'];
             }
@@ -1792,7 +1791,6 @@ class ApiOnlineTransaction extends Controller
         // check and group product
         $subtotal = 0;
         $error_msg=[];
-        $missing_product = 0;
         foreach ($discount_promo['item']??$post['item'] as &$item) {
             // get detail product
             if($use_product_variant){
@@ -1840,8 +1838,7 @@ class ApiOnlineTransaction extends Controller
 
             if($use_product_variant){
                 $product->join('product_groups','product_groups.id_product_group','=','products.id_product_group');
-                $product->join('product_product_variants','product_product_variants.id_product','=','products.id_product');
-                $product->addSelect(DB::raw('products.id_product_group,product_group_code,GROUP_CONCAT(product_product_variants.id_product_variant) as variants'));
+                $product->addSelect(DB::raw('products.id_product_group,product_group_code'));
             }
 
             $product = $product->find($item['id_product']);
@@ -1852,7 +1849,7 @@ class ApiOnlineTransaction extends Controller
             $product->append('photo');
             $product = $product->toArray();
             if($use_product_variant){
-                $variants = explode(',', $product['variants']);
+                $variants = $item['variants'];
                 $product['variants'] = [];
                 foreach ($variants as $variant) {
                     $product['variants'][] = ProductVariant::select('id_product_variant','product_variant_code','product_variant_name')->find($variant);
@@ -2058,7 +2055,7 @@ class ApiOnlineTransaction extends Controller
 
         $cashback_text_array = [
             $cashback_text[0],
-            count($cashback_text) >= 2?number_format($cashback_earned,0,',','.').' Point':'',
+            count($cashback_text) >= 2?MyHelper::requestNumber($cashback_earned,'_POINT').' Point':'',
             $cashback_text[1]??''
         ];
 
