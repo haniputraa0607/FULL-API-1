@@ -17,6 +17,8 @@ use Modules\Subscription\Entities\SubscriptionUser;
 use Modules\Subscription\Entities\SubscriptionUserVoucher;
 use Modules\Deals\Entities\DealsContent;
 use Modules\Deals\Entities\DealsContentDetail;
+use Modules\Promotion\Entities\DealsPromotionContent;
+use Modules\Promotion\Entities\DealsPromotionContentDetail;
 use App\Http\Models\Setting;
 
 use Modules\Subscription\Http\Requests\ListSubscription;
@@ -475,6 +477,10 @@ class ApiSubscription extends Controller
         if ($source == 'deals') {
         	$contentTable = new DealsContent;
         	$contentTableDetail = new DealsContentDetail;
+        }elseif ($source == 'deals_promotion') {
+        	$contentTable = new DealsPromotionContent;
+        	$contentTableDetail = new DealsPromotionContentDetail;
+        	$source = 'deals';
         }else{
         	$contentTable = new SubscriptionContent;
         	$contentTableDetail = new SubscriptionContentDetail;

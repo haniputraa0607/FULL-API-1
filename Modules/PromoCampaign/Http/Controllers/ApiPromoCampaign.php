@@ -26,6 +26,13 @@ use Modules\Deals\Entities\DealsTierDiscountRule;
 use Modules\Deals\Entities\DealsBuyxgetyProductRequirement;
 use Modules\Deals\Entities\DealsBuyxgetyRule;
 
+use Modules\Promotion\Entities\DealsPromotionProductDiscount;
+use Modules\Promotion\Entities\DealsPromotionProductDiscountRule;
+use Modules\Promotion\Entities\DealsPromotionTierDiscountProduct;
+use Modules\Promotion\Entities\DealsPromotionTierDiscountRule;
+use Modules\Promotion\Entities\DealsPromotionBuyxgetyProductRequirement;
+use Modules\Promotion\Entities\DealsPromotionBuyxgetyRule;
+
 use Modules\ProductVariant\Entities\ProductGroup;
 
 use App\Http\Models\User;
@@ -38,6 +45,7 @@ use App\Http\Models\Voucher;
 use App\Http\Models\Treatment;
 use App\Http\Models\Deal;
 use App\Http\Models\DealsUser;
+use App\Http\Models\DealsPromotionTemplate;
 
 use Modules\PromoCampaign\Http\Requests\Step1PromoCampaignRequest;
 use Modules\PromoCampaign\Http\Requests\Step2PromoCampaignRequest;
@@ -871,18 +879,29 @@ class ApiPromoCampaign extends Controller
         $post = $request->json()->all();
         $post['promo_type'] = $post['promo_type']??null;
         $user = $request->user();
-        // return $post;
+
         if (!empty($post['id_deals'])) {
-        	$source = 'deals';
-        	$table = new Deal;
-        	$id_table = 'id_deals';
-        	$id_post = $post['id_deals'];
-        	$error_message = 'Deals';
+        	if ( $post['deals_type'] != 'Promotion' ) {
+        		$source = 'deals';
+	        	$table = new Deal;
+	        	$id_table = 'id_deals';
+	        	$id_post = $post['id_deals'];
+	        	$error_message = 'Deals';
+	        	$warning_image = 'deals';
+        	}else {
+	        	$source = 'deals_promotion';
+	        	$table = new DealsPromotionTemplate;
+	        	$id_table = 'id_deals_promotion_template';
+	        	$id_post = $post['id_deals'];
+	        	$error_message = 'Deals';
+	        	$warning_image = 'deals';
+	        }
         }else{
         	$source = 'promo_campaign';
         	$table = new PromoCampaign;
         	$id_table = 'id_promo_campaign';
         	$id_post = $post['id_promo_campaign'];
+	        $warning_image = 'promo_campaign';
         	$error_message = 'Deals';
         }
 
@@ -923,17 +942,25 @@ class ApiPromoCampaign extends Controller
         }
 
 		$image = $table::where($id_table, $id_post)->first();
-
-		if(isset($image[$source.'_warning_image']) && file_exists($image[$source.'_warning_image'])){
-			unlink($image[$source.'_warning_image']);
+	
+		if (!empty($post['id_deals'])) {
+			if (!empty($image['deals_total_claimed']) ) {
+				return [
+	                'status'  => 'fail',
+	                'message' => 'Cannot update deals because someone has already claimed a voucher'
+	            ];
+			}
 		}
-
         if (isset($post['promo_warning_image']) && empty($post['use_global'])) {
 			$img_name = rand(10,99).$id_post.rand(10,99).'-'.time();
 			$upload = MyHelper::uploadPhotoStrict($post['promo_warning_image'], $saveImagePath, 100, 100, $img_name, '.png');
 
+
 			if (isset($upload['status']) && $upload['status'] == "success") {
-				$dataPromoCampaign[$source.'_warning_image'] = $upload['path'];
+				if(isset($image[$warning_image.'_warning_image']) && file_exists($image[$warning_image.'_warning_image'])){
+					unlink($image[$warning_image.'_warning_image']);
+				}
+				$dataPromoCampaign[$warning_image.'_warning_image'] = $upload['path'];
 			}
 			else {
 				$result = [
@@ -945,14 +972,12 @@ class ApiPromoCampaign extends Controller
 				return $result;
 			}
 		}else{
-			$dataPromoCampaign[$source.'_warning_image'] = null;
+			$dataPromoCampaign[$warning_image.'_warning_image'] = null;
 		}
 
         $update = $table::where($id_table, $id_post)->update($dataPromoCampaign);
 
-
         if ($post['promo_type'] == 'Product Discount') {
-
             if ($post['filter_product'] == 'All Product') {
                 $createFilterProduct = $this->createProductFilter('all_product', 1, $id_post, null, $post['discount_type'], $post['discount_value'], $post['max_product'], $post['max_percent_discount'], $post['product_type'], $source, $table, $id_table);
             } elseif ($post['filter_product'] == 'Selected') {
@@ -1004,7 +1029,6 @@ class ApiPromoCampaign extends Controller
     	    }
         }
 
-// return $createFilterProduct;
         DB::commit();
         return response()->json($createFilterProduct);
     }
@@ -1077,6 +1101,17 @@ class ApiPromoCampaign extends Controller
 		        DealsBuyxgetyProductRequirement::where('id_deals', '=', $id_post)->delete();
 
 	    	}
+	    	elseif ($source == 'deals_promotion')
+	    	{
+	    		DealsPromotionProductDiscountRule::where('id_deals', '=', $id_post)->delete();
+		        DealsPromotionTierDiscountRule::where('id_deals', '=', $id_post)->delete();
+		        DealsPromotionBuyxgetyRule::where('id_deals', '=', $id_post)->delete();
+
+		        DealsPromotionTierDiscountProduct::where('id_deals', '=', $id_post)->delete();
+		        DealsPromotionProductDiscount::where('id_deals', '=', $id_post)->delete();
+		        DealsPromotionBuyxgetyProductRequirement::where('id_deals', '=', $id_post)->delete();
+
+	    	}
 
 	    	return true;
     	} catch (Exception $e) {
@@ -1086,7 +1121,6 @@ class ApiPromoCampaign extends Controller
 
     public function createProductFilter($parameter, $operator, $id_post, $product, $discount_type, $discount_value, $max_product, $max_percent_discount, $product_type, $source, $table, $id_table)
     {
-
     	$delete_rule = $this->deleteAllProductRule($source, $id_post);
 
     	if (!$delete_rule) {
@@ -1107,6 +1141,12 @@ class ApiPromoCampaign extends Controller
     	{
 	        $table_product_discount_rule = new DealsProductDiscountRule;
 	        $table_product_discount = new DealsProductDiscount;
+    	}
+    	elseif ($source == 'deals_promotion')
+    	{
+    		$table_product_discount_rule = new DealsPromotionProductDiscountRule;
+	        $table_product_discount = new DealsPromotionProductDiscount;
+	        $id_table = 'id_deals';
     	}
 
     	if ($discount_type == 'Nominal') {
@@ -1196,6 +1236,12 @@ class ApiPromoCampaign extends Controller
 	        $table_tier_discount_rule = new DealsTierDiscountRule;
 	        $table_tier_discount_product = new DealsTierDiscountProduct;
     	}
+    	elseif ($source == 'deals_promotion')
+    	{
+    		$table_tier_discount_rule = new DealsPromotionTierDiscountRule;
+	        $table_tier_discount_product = new DealsPromotionTierDiscountProduct;
+	        $id_table = 'id_deals';
+    	}
 
     	if ($discount_type == 'Nominal') {
         	$is_nominal = 1;
@@ -1279,6 +1325,12 @@ class ApiPromoCampaign extends Controller
     	{
 	        $table_buyxgety_discount_rule = new DealsBuyxgetyRule;
 	        $table_buyxgety_discount_product = new DealsBuyxgetyProductRequirement;
+    	}
+    	elseif ($source == 'deals_promotion')
+    	{
+	        $table_buyxgety_discount_rule = new DealsPromotionBuyxgetyRule;
+	        $table_buyxgety_discount_product = new DealsPromotionBuyxgetyProductRequirement;
+	        $id_table = 'id_deals';
     	}
 
         $data = [];
@@ -2068,7 +2120,7 @@ class ApiPromoCampaign extends Controller
 
     	if (!empty($id_deals_user))
     	{
-    		$deals = $deals->where('id_deals_user', '=', $id_deals_user);
+    		$deals = $deals->where('id_deals_user', '=', $id_deals_user)->where('id_user', '=', auth()->user()->id);
     	}
     	else
     	{
