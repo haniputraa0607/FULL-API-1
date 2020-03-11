@@ -574,7 +574,7 @@ class ApiProductGroupController extends Controller
         }
         // product exists?
         if(!$id_products || !$variant_stock){
-            return MyHelper::checkGet([]);
+            return MyHelper::checkGet([],'Product not found');
         }
         // get product group detail
         $data = ProductGroup::select('id_product_group','product_group_name','product_group_image_detail','product_group_code','product_group_description')->find($post['id_product_group'])->toArray();
