@@ -942,7 +942,7 @@ class ApiPromoCampaign extends Controller
         }
 
 		$image = $table::where($id_table, $id_post)->first();
-	
+
 		if (!empty($post['id_deals'])) {
 			if (!empty($image['deals_total_claimed']) ) {
 				return [
@@ -1971,7 +1971,7 @@ class ApiPromoCampaign extends Controller
     	if ( ($query[$source.'_product_discount_rules']['is_all_product']??false) == 1 || ($query['promo_type']??false) == 'Referral')
         {
         	$applied_product = '*';
-        	$product = 'semua product';
+        	$product = 'All Product';
         }
         elseif ( !empty($query[$source.'_product_discount']) )
         {
@@ -2077,7 +2077,7 @@ class ApiPromoCampaign extends Controller
 
     public function checkPromoCode($promo_code=null, $outlet=null, $product=null, $id_promo_campaign_promo_code=null)
     {
-    	if (!empty($id_promo_campaign_promo_code)) 
+    	if (!empty($id_promo_campaign_promo_code))
     	{
     		$code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code',$id_promo_campaign_promo_code);
     	}
@@ -2085,7 +2085,7 @@ class ApiPromoCampaign extends Controller
     	{
     		$code = PromoCampaignPromoCode::where('promo_code',$promo_code);
     	}
-    	
+
         $code = $code->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
 		            ->where('step_complete', '=', 1)
 		            ->where( function($q){
