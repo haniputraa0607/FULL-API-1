@@ -180,10 +180,6 @@ class ApiProductVariantController extends Controller
         }
         // delete not exist variant
         $delete = ProductVariant::whereNotIn('id_product_variant',$dataId)->delete();
-        if(!$delete){
-            \DB::rollback();
-            return MyHelper::checkDelete($update);
-        }
         \DB::commit();
         return MyHelper::checkUpdate($update);
     }
