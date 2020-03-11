@@ -1911,19 +1911,9 @@ class ApiOutletController extends Controller
             $subTitleSuccess = Setting::where('key', 'order_now_sub_title_success')->first()->value;
             $subTitleFail = Setting::where('key', 'order_now_sub_title_fail')->first()->value;
 
-            $day = [
-                'Mon' => 'Senin',
-                'Tue' => 'Selasa',
-                'Wed' => 'Rabu',
-                'Thu' => 'Kamis',
-                'Fri' => 'Jumat',
-                'Sat' => 'Sabtu',
-                'Sun' => 'Minggu'
-            ];
-
             $data = [
                 'current_date' => date('Y-m-d'),
-                'current_day' => $day[date('D')],
+                'current_day' => date('l'),
                 'current_hour' => date('H:i:s')
             ];
 
