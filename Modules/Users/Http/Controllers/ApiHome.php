@@ -102,6 +102,9 @@ class ApiHome extends Controller
                 $item['url']     = env('APP_URL').'outlet/webview/gofood/list';
             }
 
+            if ($value->type == 'referral') {
+                $item['url']     = env('API_URL') . 'api/referral/webview';
+            }
             array_push($array, $item);
         }
 
