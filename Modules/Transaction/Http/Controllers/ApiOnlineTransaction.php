@@ -2404,6 +2404,9 @@ class ApiOnlineTransaction extends Controller
 
     public function checkPromoGetPoint($promo_source)
     {
+    	if (empty($promo_source)) {
+    		return 1;
+    	}
     	if ($promo_source != 'promo_code' && $promo_source != 'voucher_online' && $promo_source != 'voucher_offline') {
     		return 0;
     	}

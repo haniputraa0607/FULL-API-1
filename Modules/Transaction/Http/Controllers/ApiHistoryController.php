@@ -589,47 +589,26 @@ class ApiHistoryController extends Controller
 
             //cek payment
             if ($value['trasaction_payment_type']) {
-                $found = false;
+                $dataList['type'] = 'trx';
+                $dataList['id'] = $value['id_transaction'];
+                $dataList['date']    = date('Y-m-d H:i', strtotime($value['transaction_date']));
+                $dataList['id_outlet'] = $value['outlet']['id_outlet'];
+                $dataList['outlet_code'] = $value['outlet']['outlet_code'];
+                $dataList['outlet'] = $value['outlet']['outlet_name'];
+                $dataList['amount'] = MyHelper::requestNumber($value['transaction_grandtotal'], '_CURRENCY');
 
-                if ($value['transaction_payment_status'] = 'Completed') {
-                    $found = true;
+                $dataList['cashback'] = MyHelper::requestNumber($value['transaction_cashback_earned'],'_POINT');
+                $dataList['subtitle'] = $value['sum_qty'].($value['sum_qty']>1?' items':' item');
+                $dataList['item_total'] = (int) $value['sum_qty'];
+                if ($dataList['cashback'] >= 0) {
+                    $dataList['status_point'] = 1;
                 } else {
-                    $pay = TransactionMultiplePayment::where('id_transaction', $value['id_transaction'])->first();
-                    if ($pay) {
-                        $payMidtrans = TransactionPaymentMidtran::where('id_transaction', $value['id_transaction'])->first();
-                        if ($payMidtrans && $payMidtrans['transaction_status']) {
-                            $found = true;
-                        }
-                    } else {
-                        $payMidtrans = TransactionPaymentMidtran::where('id_transaction', $value['id_transaction'])->first();
-                        if ($payMidtrans && $payMidtrans['transaction_status']) {
-                            $found = true;
-                        }
-                    }
+                    $dataList['status_point'] = 0;
                 }
+                $dataList['rate_status'] = UserRating::where('id_transaction',$value['id_transaction'])->exists()?1:0;
+                $dataList['payment_status'] = $value['transaction_payment_status'];
 
-                if ($found == true) {
-                    $dataList['type'] = 'trx';
-                    $dataList['id'] = $value['id_transaction'];
-                    $dataList['date']    = date('Y-m-d H:i', strtotime($value['transaction_date']));
-                    $dataList['id_outlet'] = $value['outlet']['id_outlet'];
-                    $dataList['outlet_code'] = $value['outlet']['outlet_code'];
-                    $dataList['outlet'] = $value['outlet']['outlet_name'];
-                    $dataList['amount'] = MyHelper::requestNumber($value['transaction_grandtotal'], '_CURRENCY');
-
-                    $dataList['cashback'] = MyHelper::requestNumber($value['transaction_cashback_earned'],'_POINT');
-                    $dataList['subtitle'] = $value['sum_qty'].($value['sum_qty']>1?' items':' item');
-                    $dataList['item_total'] = (int) $value['sum_qty'];
-                    if ($dataList['cashback'] >= 0) {
-                        $dataList['status_point'] = 1;
-                    } else {
-                        $dataList['status_point'] = 0;
-                    }
-                    $dataList['rate_status'] = UserRating::where('id_transaction',$value['id_transaction'])->exists()?1:0;
-                    $dataList['payment_status'] = $value['transaction_payment_status'];
-
-                    $listTransaction[] = $dataList;
-                }
+                $listTransaction[] = $dataList;
             }
         }
 
