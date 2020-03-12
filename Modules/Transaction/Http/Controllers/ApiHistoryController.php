@@ -634,7 +634,7 @@ class ApiHistoryController extends Controller
         foreach ($transaction as $key => $value) {
             $dataList['type'] = 'trx';
             $dataList['id'] = $value['id_transaction'] ;
-            $dataList['date']    = date('Y-m-d H:i', strtotime($value['transaction_date']));
+            $dataList['date']    = date('d M Y H:i', strtotime($value['transaction_date']));
             $dataList['outlet'] = $value['outlet']['outlet_name'];
             $dataList['outlet_code'] = $value['outlet']['outlet_code'];
             $dataList['amount'] = MyHelper::requestNumber($value['transaction_grandtotal'],'_CURRENCY');
@@ -704,7 +704,7 @@ class ApiHistoryController extends Controller
         foreach ($voucher as $key => $value) {
             $dataVoucher[$key]['type'] = 'voucher';
             $dataVoucher[$key]['id'] = $value['id_deals_user'];
-            $dataVoucher[$key]['date'] = date('Y-m-d H:i', strtotime($value['claimed_at']));
+            $dataVoucher[$key]['date'] = date('d M Y H:i', strtotime($value['claimed_at']));
             $dataVoucher[$key]['outlet'] = 'Buy a Voucher';
             $dataVoucher[$key]['amount'] = MyHelper::requestNumber($value['voucher_price_cash'] - $value['balance_nominal'], '_CURRENCY');
         }
@@ -725,7 +725,7 @@ class ApiHistoryController extends Controller
                 $dataList['type']    = 'point';
                 $dataList['detail_type']    = 'trx';
                 $dataList['id']      = $value['id_log_point'];
-                $dataList['date']    = date('Y-m-d H:i', strtotime($trx['transaction_date']));
+                $dataList['date']    = date('d M Y H:i', strtotime($trx['transaction_date']));
                 $dataList['outlet']  = $trx['outlet']['outlet_name'];
                 $dataList['amount'] = MyHelper::requestNumber($value['point'],'_POINT');
 
@@ -742,7 +742,7 @@ class ApiHistoryController extends Controller
                 $dataList['type']        = 'point';
                 $dataList['detail_type'] = 'voucher';
                 $dataList['id']          = $value['id_log_point'];
-                $dataList['date']        = date('Y-m-d H:i', strtotime($vou['claimed_at']));
+                $dataList['date']        = date('d M Y H:i', strtotime($vou['claimed_at']));
                 $dataList['outlet']      = $trx['outlet']['outlet_name'];
                 $dataList['amount']     = MyHelper::requestNumber($value['point'],'_POINT');
                 $log[$key]['online']     = 1;
@@ -930,7 +930,7 @@ class ApiHistoryController extends Controller
                 if ($trx['transaction_payment_status'] != 'Cancelled') {
                     $dataList['type']    = 'balance';
                     $dataList['id']      = $value['id_log_balance'];
-                    $dataList['date']    = date('Y-m-d H:i', strtotime($value['created_at']));
+                    $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
                     $dataList['outlet']  = $trx['outlet']['outlet_name'];
                     if ($value['balance'] < 0) {
                         $dataList['amount'] = '- ' . ltrim(MyHelper::requestNumber($value['balance'], '_POINT'), '-');
@@ -943,7 +943,7 @@ class ApiHistoryController extends Controller
                     if ($value['balance'] < 0) {
                         $dataList['type']    = 'balance';
                         $dataList['id']      = $value['id_log_balance'];
-                        $dataList['date']    = date('Y-m-d H:i', strtotime($value['created_at']));
+                        $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
                         $dataList['outlet']  = $trx['outlet']['outlet_name'];
                         if ($value['balance'] < 0) {
                             $dataList['amount'] = '- ' . ltrim(MyHelper::requestNumber($value['balance'], '_POINT'), '-');
@@ -955,7 +955,7 @@ class ApiHistoryController extends Controller
                     } else {
                         $dataList['type']    = 'profile';
                         $dataList['id']      = $value['id_log_balance'];
-                        $dataList['date']    = date('Y-m-d H:i', strtotime($value['created_at']));
+                        $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
                         $dataList['outlet']  = 'Reversal';
                         if ($value['balance'] < 0) {
                             $dataList['amount'] = '- ' . ltrim(MyHelper::requestNumber($value['balance'], '_POINT'), '-');
@@ -971,7 +971,7 @@ class ApiHistoryController extends Controller
                 // $log[$key]['detail'] = $vou;
                 $dataList['type']   = 'voucher';
                 $dataList['id']      = $value['id_log_balance'];
-                $dataList['date']   = date('Y-m-d H:i', strtotime($vou['claimed_at']));
+                $dataList['date']   = date('d M Y H:i', strtotime($vou['claimed_at']));
                 $dataList['outlet'] = 'Buy a Voucher';
                 $dataList['amount'] = '- ' . ltrim(MyHelper::requestNumber($value['balance'], '_POINT'), '-');
                 // $dataList['amount'] = number_format($value['balance'], 0, ',', '.');
@@ -990,14 +990,14 @@ class ApiHistoryController extends Controller
 
                 $dataList['type']   = 'profile';
                 $dataList['id']      = $value['id_log_balance'];
-                $dataList['date']    = date('Y-m-d H:i', strtotime($value['created_at']));
+                $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
                 $dataList['amount'] = '+ ' . MyHelper::requestNumber($value['balance'], '_POINT');
 
                 $listBalance[$key] = $dataList;
             } elseif($value['source'] == 'Balance Reset') {
                 $dataList['type']   = 'profile';
                 $dataList['id']      = $value['id_log_balance'];
-                $dataList['date']    = date('Y-m-d H:i', strtotime($value['created_at']));
+                $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
                 $dataList['outlet'] = 'Point Expired';
                 $dataList['amount'] = MyHelper::requestNumber($value['balance'], '_POINT');
 
@@ -1006,7 +1006,7 @@ class ApiHistoryController extends Controller
                 // return 'a';
                 $dataList['type']   = 'profile';
                 $dataList['id']      = $value['id_log_balance'];
-                $dataList['date']    = date('Y-m-d H:i', strtotime($value['created_at']));
+                $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
                 $dataList['outlet'] = 'Welcome Point';
                 $dataList['amount'] = '+ ' . MyHelper::requestNumber($value['balance'], '_POINT');
 
