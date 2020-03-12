@@ -233,6 +233,14 @@ class ApiOutletController extends Controller
     }
 
     function updateStatus(UpdateStatus $request) {
+        //check data
+        $outlet = Outlet::where('id_outlet', $request->json('id_outlet'))->first();
+        if($request->json('outlet_status') == 'Active' &&
+            ($outlet['id_city'] == null || $outlet['outlet_latitude'] == null || $outlet['outlet_longitude'] == null)){
+            return response()->json([
+                'status' => 'fail', 'messages' => ['data outlet not complete']
+            ]);
+        }
         $post = $this->checkInputOutlet($request->json()->all());
         $save = Outlet::where('id_outlet', $request->json('id_outlet'))->update($post);
         // return Outlet::where('id_outlet', $request->json('id_outlet'))->first();
@@ -615,7 +623,7 @@ class ApiOutletController extends Controller
             }
             $outlet = Outlet::with(['outlet_ovo'])->get()->toArray();
         }
-        
+
         return response()->json(MyHelper::checkGet($outlet));
     }
 
@@ -2014,7 +2022,7 @@ class ApiOutletController extends Controller
 		$promo_error = null;
 		if ( (!empty($post['promo_code']) && empty($post['id_deals_user'])) || (empty($post['promo_code']) && !empty($post['id_deals_user'])) ) {
         // if (isset($post['promo_code'])) {
-        	if (!empty($post['promo_code'])) 
+        	if (!empty($post['promo_code']))
         	{
         		$code = app($this->promo_campaign)->checkPromoCode($post['promo_code'], 1);
         		$source = 'promo_campaign';
@@ -2027,7 +2035,7 @@ class ApiOutletController extends Controller
 	        	$promo_error = 'Promo not valid';
 	        	return false;
 	        }else{
-	        	
+
 	        	if ( ($code['promo_campaign']['date_end']??$code['voucher_expired_at']) < date('Y-m-d H:i:s') ) {
 	        		$promo_error = 'Promo is ended';
 	        		return false;
