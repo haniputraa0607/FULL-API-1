@@ -548,7 +548,7 @@ class ApiPOS extends Controller
                     $save = Outlet::create([
                         'outlet_code'       => $value['store_code'],
                         'outlet_name'       => $value['store_name'],
-                        'outlet_status'     => $value['store_status'],
+                        'outlet_status'     => 'Inactive',
                         'outlet_address'    => $value['store_address'],
                         'outlet_phone'      => $value['store_phone'],
                         'outlet_latitude'   => $value['store_latitude'],

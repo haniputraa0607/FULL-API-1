@@ -340,27 +340,27 @@
 						@foreach ($data[0]['outlet_schedules'] as $key => $val)
 						@php
 							switch($val['day']){
-								case 'Minggu':
+								case 'Monday':
 									$val['day'] = "Sun";
 								break;
 
-								case 'Senin':
+								case 'Sunday':
 									$val['day'] = "Mon";
 								break;
 
-								case 'Selasa':
+								case 'Tuesday':
 									$val['day'] = "Tue";
 								break;
 
-								case 'Rabu':
+								case 'Wednesday':
 									$val['day'] = "Wed";
 								break;
 
-								case 'Kamis':
+								case 'Thursday':
 									$val['day'] = "Thu";
 								break;
 
-								case 'Jumat':
+								case 'Friday':
 									$val['day'] = "Fri";
 								break;
 
@@ -378,8 +378,6 @@
 									{{date('H.i', strtotime($val['open']))}} - {{date('H.i', strtotime($val['close']))}}
 								@endif
 							</div>
-							@if ($val['day'] == "Minggu")
-						@endif
 						</div>
 						@endforeach
 					@else
