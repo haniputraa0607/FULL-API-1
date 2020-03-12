@@ -24,6 +24,7 @@ use App\Http\Models\PromotionRuleParent;
 use App\Http\Models\InboxGlobalRule;
 use App\Http\Models\InboxGlobalRuleParent;
 use App\Http\Models\LogTopupManual;
+use App\Http\Models\LogApiSms;
 use Modules\PointInjection\Entities\PointInjectionRule;
 use Modules\PointInjection\Entities\PointInjectionRuleParent;
 
@@ -264,7 +265,7 @@ class MyHelper{
 	}
 
 	public static function encryptkhususnew($value) {
-							
+
 		if(!$value){return false;}
 		$skey = self::getkey();
 		$depan = substr($skey, 0, env('ENC_DD'));
@@ -276,7 +277,7 @@ class MyHelper{
 	}
 
 	public static function decryptkhususnew($value) {
-							
+
 		if(!$value){return false;}
 		$skey = self::parsekey($value);
 		$jumlah = strlen($value);
@@ -290,7 +291,7 @@ class MyHelper{
 
 	// terbaru, cuma nambah serialize + unserialize sih biar support array
 	public static function encrypt2019($value) {
-							
+
 		if(!$value){return false;}
 		// biar support array
 		$text = serialize($value);
@@ -304,7 +305,7 @@ class MyHelper{
 	}
 
 	public static function decrypt2019($value) {
-							
+
 		if(!$value){return false;}
 		$skey = self::parsekey($value);
 		$jumlah = strlen($value);
@@ -404,7 +405,7 @@ class MyHelper{
 	}
 
 	public static function getkey() {
-				 
+
 		$depan = self::createrandom(env('ENC_DD'));
 		$belakang = self::createrandom(env('ENC_DB'));
 		$skey = $depan . env('ENC_FK') . $belakang;
@@ -412,7 +413,7 @@ class MyHelper{
 	}
 
 	public static function parsekey($value) {
-				 
+
 		$depan = substr($value, 0, env('ENC_DD'));
 		$belakang = substr($value, -env('ENC_DB'), env('ENC_DB'));
 		$skey = $depan . env('ENC_FK') . $belakang;
@@ -908,7 +909,7 @@ class MyHelper{
 			}else{
 				if (!file_exists($path)) {
 					mkdir($path, 666, true);
-				}		
+				}
 				if (file_put_contents($upload, $decoded)) {
 						$result = [
 							'status' => 'success',
@@ -1858,7 +1859,7 @@ class MyHelper{
 			}
 			elseif($type == 'inbox_global'){
 				$createRuleParent = InboxGlobalRuleParent::create($dataRuleParent);
-			} 
+			}
 			elseif ($type == 'point_injection') {
 				$createRuleParent = PointInjectionRuleParent::create($dataRuleParent);
 			}
@@ -2181,19 +2182,19 @@ class MyHelper{
 			case 'int':
 				return (int) $number;
 				break;
-			
+
 			case 'float':
 				return (float) $number;
 				break;
-			
+
 			case 'double':
 				return (double) $number;
 				break;
-			
+
 			case 'rupiah':
 				return 'Rp'.number_format($number,0,',','.');
 				break;
-			
+
 			case 'dollar':
 				return '$'.number_format($number,2,'.',',');
 				break;
@@ -2205,7 +2206,7 @@ class MyHelper{
 			case 'thousand_sg':
 				return number_format($number,2,'.',',');
 				break;
-						
+
 			case 'custom':
 				return number_format($number,...$custom);
 
@@ -2272,5 +2273,23 @@ class MyHelper{
                 'messages' => [$phoneSetting->message_failed]
             ];
         }
+	}
+
+	public static function logApiSMS($arr){
+    	if(!is_array($arr)){return false;}
+		$trace=array_slice((new \Exception)->getTrace(),1,6);
+		$log=[
+		    'request_header'=>null,
+		    'request_body'=>null,
+		    'request_url'=>null,
+		    'request_method'=>null,
+		    'response'=>null,
+		    'more_info'=>null,
+		    'phone'=>null,
+		    'user_agent'=>null,
+		];
+		$log=array_merge($log,$arr);
+		array_walk($log, function(&$data){if(is_array($data)){$data=json_encode($data);}});
+		LogApiSms::create($log);
     }
 }
