@@ -583,7 +583,7 @@ class PromoCampaignTools{
 					$errors[]= $message;
 					return false;
 				}
-				$benefit_product = $this->getOneProduct($id_outlet, $promo_rule->benefit_id_product,1);
+				$benefit_product = $this->getOneProduct($id_outlet, $promo_rule->benefit_id_product,1, 1);
 
 				$benefit_qty=$promo_rule->benefit_qty;
 				$benefit_value=$promo_rule->discount_value;
@@ -602,7 +602,6 @@ class PromoCampaignTools{
 					'discount_value'=>$benefit_value,
 					'max_percent_discount'=>$benefit_max_value
 				];
-
 				// add product benefit
 				$benefit_item = [
 					'id_custom' 	=> isset(end($trxs)['id_custom']) ? end($trxs)['id_custom']+1 : '',
@@ -611,6 +610,7 @@ class PromoCampaignTools{
 					'qty'			=> $promo_rule->benefit_qty,
 					'is_promo'		=> 1,
 					'is_free'		=> ($promo_rule->discount_type == "percent" && $promo_rule->discount_value == 100) ? 1 : 0,
+					'variants'		=> [$benefit_product->product_variants[0]->id_product_variant??'', $benefit_product->product_variants[1]->id_product_variant??''],
 					'modifiers'		=> []
 				];
 
@@ -1171,7 +1171,7 @@ class PromoCampaignTools{
 
     }
 
-    public function getOneProduct($id_outlet, $id_product, $brand=null)
+    public function getOneProduct($id_outlet, $id_product, $brand=null, $variant=null)
     {
     	$product = Product::join('product_prices','product_prices.id_product','=','products.id_product')
 	                ->where('product_prices.id_outlet','=',$id_outlet)
@@ -1189,6 +1189,11 @@ class PromoCampaignTools{
 		if (!empty($brand)) {
 
 			$product = $product->with('brands');
+		}
+
+		if (!empty($variant)) {
+
+			$product = $product->with('product_variants');
 		}
 
 		$product = $product->first();
