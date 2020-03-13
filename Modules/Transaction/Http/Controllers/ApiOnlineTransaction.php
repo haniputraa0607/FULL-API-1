@@ -1946,6 +1946,7 @@ class ApiOnlineTransaction extends Controller
 
             $product_price_total = $product['qty'] * ($product['product_price']+$mod_price);
             $product['product_price_total_pretty'] = MyHelper::requestNumber($product_price_total,'_CURRENCY');
+            $product['product_price_divider_pretty'] = MyHelper::requestNumber($product['product_price']+$mod_price,'_CURRENCY');
             $product['product_price_pretty'] = MyHelper::requestNumber($product['product_price'],'_CURRENCY');
             $product['product_price_total'] = MyHelper::requestNumber($product_price_total,$rn);
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],$rn);
@@ -2111,6 +2112,7 @@ class ApiOnlineTransaction extends Controller
             }
             $result['used_point_pretty'] = MyHelper::requestNumber($used_point,'_POINT');
             $result['used_point'] = MyHelper::requestNumber($used_point,$rn);
+            $result['points_pretty'] = MyHelper::requestNumber($balance - $used_point,'_POINT');
             $result['points'] = MyHelper::requestNumber(($balance - $used_point),$rn);
         }
 
