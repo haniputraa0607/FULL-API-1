@@ -23,7 +23,6 @@ class reqOutlet extends FormRequest
             'store.*.store_name'        => 'required',
             'store.*.store_status'      => 'required|in:Active,Inactive',
             'store.*.store_address'     => 'required',
-            'store.*.store_phone'       => 'required',
             'store.*.store_latitude'    => 'required',
             'store.*.store_longitude'   => 'required',
             'store.*.store_schedule'    => 'required|array'
