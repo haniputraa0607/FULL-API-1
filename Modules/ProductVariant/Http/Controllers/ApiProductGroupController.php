@@ -44,6 +44,12 @@ class ApiProductGroupController extends Controller
             ->groupBy('product_groups.id_product_group')
             ->orderBy('product_groups.product_group_position')
             ->with('product_category');
+        if($request->json('keyword')){
+            $pg->where(function($query) use ($request){
+                $query->where('product_group_name','like',"%{$request->json('keyword')}%");
+                $query->orWhere('product_group_code','like',"%{$request->json('keyword')}%");
+            });
+        }
         if($request->json('rule')){
             $this->filterList($pg,$request->post('rule'),$request->post('operator'));
         }
