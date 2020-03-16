@@ -340,11 +340,11 @@
 						@foreach ($data[0]['outlet_schedules'] as $key => $val)
 						@php
 							switch($val['day']){
-								case 'Monday':
+								case 'Sunday':
 									$val['day'] = "Sun";
 								break;
 
-								case 'Sunday':
+								case 'Monday':
 									$val['day'] = "Mon";
 								break;
 
