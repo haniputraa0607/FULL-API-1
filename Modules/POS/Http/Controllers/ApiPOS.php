@@ -893,6 +893,7 @@ class ApiPOS extends Controller
                             Product::where('product_code', $variance['sap_matnr'])->update([
                                 'product_name_pos'  => implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]),
                                 'product_status'    => $variance['status'],
+                                'category_id_pos'    => $menu['category_id'],
                                 'id_product_group'  => $createGroup->id_product_group
                             ]);
 
@@ -921,7 +922,8 @@ class ApiPOS extends Controller
                                 'product_code'      => $variance['sap_matnr'],
                                 'product_name'      => implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]),
                                 'product_name_pos'  => implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]),
-                                'product_status'    => $variance['status']
+                                'product_status'    => $variance['status'],
+                                'category_id_pos'    => $menu['category_id']
                             ]);
 
                             //insert brand
@@ -2801,10 +2803,6 @@ class ApiPOS extends Controller
             return response()->json($api);
         }
 
-        $outlet = Outlet::where('outlet_code', strtoupper($post['store_code']))->first();
-        if (empty($outlet)) {
-            return response()->json(['status' => 'fail', 'messages' => 'Store not found']);
-        }
 
         $countSuccess    = 0;
         $countFailed   = 0;
@@ -2816,11 +2814,17 @@ class ApiPOS extends Controller
         }
 
         foreach($post['data'] as $trx){
-            if(!isset($trx['trx_id']) || !isset($trx['reason'])){
-                $countFailed += 1;
-                $failedRefund[] = 'fail to refund, trx_id and reason is required';
-                continue;
+            $outlet = Outlet::where('outlet_code', strtoupper($trx['store_code']))->first();
+            if (empty($outlet)) {
+                return response()->json(['status' => 'fail', 'messages' => 'Store not found']);
             }
+
+
+            // if(!isset($trx['trx_id']) || !isset($trx['reason'])){
+            //     $countFailed += 1;
+            //     $failedRefund[] = 'fail to refund, trx_id and reason is required';
+            //     continue;
+            // }
 
             DB::beginTransaction();
             $checkTrx = Transaction::where('transaction_receipt_number', $trx['trx_id'])->where('id_outlet', $outlet->id_outlet)->first();
