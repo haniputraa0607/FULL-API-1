@@ -73,6 +73,7 @@ class ApiFavoriteController extends Controller
             if(count($datax)>=1){
                 $datax = MyHelper::groupIt($datax,'id_outlet',function($key,&$val) use ($nf,$data){
                     $total_price = $val['product']['price'];
+                    $val['product']['price_pretty']=MyHelper::requestNumber($val['product']['price'],'_CURRENCY');
                     $val['product']['price']=MyHelper::requestNumber($val['product']['price'],$nf);
                     foreach ($val['modifiers'] as &$modifier) {
                         $price = ProductModifierPrice::select('product_modifier_price')->where([
@@ -119,6 +120,7 @@ class ApiFavoriteController extends Controller
             }
             $data = $data->toArray();
             $total_price = $data['product']['price'];
+            $data['product']['price_pretty']=MyHelper::requestNumber($data['product']['price'],'_CURRENCY');
             $data['product']['price']=MyHelper::requestNumber($data['product']['price'],$nf);
             foreach ($data['modifiers'] as &$modifier) {
                 $price = ProductModifierPrice::select('product_modifier_price')->where([
