@@ -80,6 +80,7 @@ class ConnectPOS{
 			$transactions[$user->phone] = $trxData->toArray();
 			$transactions[$user->phone]['outlet_name'] = $trxData->outlet->outlet_name;
 			$outlets[] = env('POS_OUTLET_OVERWRITE')?:$trxData->outlet->outlet_code;
+			$receive_at = $trxData->receive_at?:date('Y-m-d H:i:s');
 			$body = [
 				'header' => [
 					'orderNumber'=> $trxData->transaction_receipt_number, //receipt number
@@ -88,7 +89,7 @@ class ConnectPOS{
 					'bookingCode'=> $trxData->order_id,
 					'businessDate'=> date('Ymd',strtotime($trxData->transaction_date)), //tgl trx
 					'trxDate'=> date('Ymd',strtotime($trxData->transaction_date)), // tgl trx
-					'trxStartTime'=> date('Ymd His',strtotime($trxData->receive_at)), //created at
+					'trxStartTime'=> date('Ymd His',strtotime($receive_at)), // receive at
 					'trxEndTime'=> date('Ymd His',strtotime($trxData->completed_at)),// completed at
 					'pickupTime'=> date('Ymd His',strtotime($trxData->pickup_at?:$trxData->completed_at)),// pickup_at
 					'pax'=> count($trxData->products), // total item
@@ -145,7 +146,7 @@ class ConnectPOS{
 					"sapMatnr"=> $modifier->code, // product code
 					"categoryId"=> $modifier->product_modifier->category_id_pos, // ga ada / 0
 					"qty"=> $modifier->qty, // qty
-					"price"=> $modifier->transaction_product_modifier_price / $modifier->qty, // item price/ item
+					"price"=> (float) $modifier->transaction_product_modifier_price / $modifier->qty, // item price/ item
 					"discount"=> 0, // udah * qty
 					"grossAmount"=> $modifier->transaction_product_modifier_price, //grsndtotal /item
 					"netAmount"=> $modifier->transaction_product_modifier_price - $tax, // potong tAX 10%
@@ -265,7 +266,7 @@ class ConnectPOS{
 			'user' 		        => implode(',',$users),
 			'request' 		    => json_encode($sendData),
 			'response_status'   => ($response['status_code']??null),
-			'response'   		=> $response['response']??json_encode($response),
+			'response'   		=> json_encode($response),
 			'ip' 		        => \Request::ip(),
 			'useragent' 	    => \Request::header('user-agent')
 		];
@@ -277,14 +278,14 @@ class ConnectPOS{
 				if($top){
 					$top->update([
 						'request' => json_encode($sendData), 
-						'response' => $response['response']??json_encode($response),
+						'response' => json_encode($response),
 						'count_retry'=>($top->count_retry+1),
 						'success_retry_status'=>0
 					]);
 				}else{
 					$top = TransactionOnlinePos::create([
 						'request' => json_encode($sendData), 
-						'response' => $response['response']??json_encode($response),
+						'response' => json_encode($response),
 						'id_transaction' => $variables['id_transaction'],
 						'count_retry' => 1
 					]);
@@ -300,21 +301,21 @@ class ConnectPOS{
 				if($top){
 					$top->update([
 						'request' => json_encode($sendData), 
-						'response' => $response['response']??json_encode($response),
+						'response' => json_encode($response),
 						'count_retry'=>($top->count_retry+1),
 						'success_retry_status'=>1
 					]);
 				}else{
 					$top = TransactionOnlinePos::create([
 						'request' => json_encode($sendData), 
-						'response' => $response['response']??json_encode($response),
+						'response' => json_encode($response),
 						'id_transaction' => $variables['id_transaction'],
 						'count_retry' => 1,
 						'success_retry_status'=>1
 					]);
 				}
 			}
-			TransactionPickup::whereIn('id_transaction',$id_transactions)->update([
+			TransactionPickup::whereIn('id_transaction',$id_transactions)->whereNull('receive_at')->update([
 				'receive_at' => date('Y-m-d H:i:s')
 			]);
 		}
