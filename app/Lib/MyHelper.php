@@ -2209,6 +2209,24 @@ class MyHelper{
 
 			case 'custom':
 				return number_format($number,...$custom);
+				break;
+
+			case 'short':
+				if ($number < 1000) {
+				    // Anything less than a million
+				    $n_format = number_format($number,0);
+				} elseif ($number < 1000000) {
+				    // Anything less than a billion
+				    $n_format = number_format($number / 1000, 0) . 'K';
+				} elseif ($number < 1000000000) {
+				    // Anything less than a billion
+				    $n_format = number_format($number / 1000000, 0) . 'M';
+				} else {
+				    // At least a billion
+				    $n_format = number_format($number / 1000000000, 0) . 'B';
+				}
+				return $n_format;
+				break;
 
 			default:
 				return $number;

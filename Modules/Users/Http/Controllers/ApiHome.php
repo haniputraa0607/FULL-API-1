@@ -701,6 +701,7 @@ class ApiHome extends Controller
             'result' => [
                 'total_point' => (int) $user->balance??0,
                 'total_point_pretty' => MyHelper::requestNumber($user->balance,'_POINT'),
+                'total_point_short' => MyHelper::requestNumber($user->balance,'short'),
                 'user_info'     => $retUser,
                 'qr_code'       => $qrCode??'',
                 'greeting'      => $greetingss??'',
