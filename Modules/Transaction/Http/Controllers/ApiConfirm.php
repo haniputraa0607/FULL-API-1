@@ -17,6 +17,7 @@ use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\TransactionPaymentOvo;
+use App\Http\Models\TransactionPickup;
 use App\Http\Models\LogRequest;
 use App\Http\Models\OvoReversal;
 use App\Http\Models\OvoReference;
