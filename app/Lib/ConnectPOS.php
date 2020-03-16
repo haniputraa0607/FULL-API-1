@@ -102,9 +102,8 @@ class ConnectPOS{
 					'bookingCode'=> $trxData->order_id,
 					'businessDate'=> date('Ymd',strtotime($trxData->transaction_date)), //tgl trx
 					'trxDate'=> date('Ymd',strtotime($trxData->transaction_date)), // tgl trx
-					'trxStartTime'=> date('Ymd His',strtotime($receive_at)), // receive at
+					'trxStartTime'=> date('Ymd His',strtotime($trxData->pickup_at?:$trxData->completed_at)), // pickup at
 					'trxEndTime'=> date('Ymd His',strtotime($trxData->completed_at)),// completed at
-					'pickupTime'=> date('Ymd His',strtotime($trxData->pickup_at?:$trxData->completed_at)),// pickup_at
 					'pax'=> count($trxData->products), // total item
 					'orderType'=> 'take away', //take away
 					'grandTotal'=> $trxData->transaction_grandtotal, //grandtotal
