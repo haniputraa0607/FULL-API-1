@@ -83,7 +83,7 @@ class ApiReward extends Controller
                         if((isset($setWinner['status']) && $setWinner['status'] == 'fail') || !isset($setWinner['status'])){
                             return response()->json($setWinner);
                         }
-                        
+
                         $reward = Reward::with('reward_user.user')->where('id_reward', $post['id_reward'])->get();
                     }
                 }
@@ -126,7 +126,7 @@ class ApiReward extends Controller
                     'status'   => 'fail',
                     'messages' => ['fail upload image']
                 ];
-    
+
                 return response()->json($result);
             }
         }
@@ -188,7 +188,7 @@ class ApiReward extends Controller
             return response()->json($result);
         }
 
-        //cek reward start & reward end  
+        //cek reward start & reward end
         if($now < $reward['reward_start'] || $now > $reward['reward_end']){
             $result = [
                 'status'   => 'fail',
@@ -321,7 +321,7 @@ class ApiReward extends Controller
                 $id_user[] = $win[$rand];
             }
         }
-        
+
         //set winner
         $winner = RewardUser::whereIn('id_user', $id_user)->where('id_reward', $reward->id_reward)->update(['is_winner' => '1']);
         if(!$winner){

@@ -560,7 +560,7 @@ class ApiHome extends Controller
         if($user->first_login===0){
             $send = app($this->autocrm)->SendAutoCRM('Login First Time', $user['phone']);
             if (!$send) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json(['status' => 'fail', 'messages' => ['Send notification failed']]);
             }
 

@@ -50,7 +50,7 @@ class ApiReferralController extends Controller
         }
 
         $value = implode('', [$referral->promo_code->promo_campaign_referral->referred_promo_value, $retVal = ($referral->promo_code->promo_campaign_referral->referred_promo_unit == 'Percent') ? '%' : ' point']);
-        
+
         $data = [
             'status'    => 'success',
             'result'    => [
@@ -71,7 +71,7 @@ class ApiReferralController extends Controller
             'promo_code'    => $referral->promo_code->promo_code,
             'referral'      => $referral->promo_code->promo_campaign_referral
         ];
-        
+
         return view('webview.referral', $data);
     }
     /**
@@ -205,7 +205,7 @@ class ApiReferralController extends Controller
         $post = $request->json()->all();
         $referral = PromoCampaignReferral::first();
         if(
-            ($post['referred_promo_unit'] == 'Percent' && $post['referred_promo_value']>100) || 
+            ($post['referred_promo_unit'] == 'Percent' && $post['referred_promo_value']>100) ||
             ($post['referrer_promo_unit'] == 'Percent' && $post['referrer_promo_value']>100)
         ){
             return MyHelper::checkGet([],'Percent value should lower or equal than 100');
@@ -229,7 +229,7 @@ class ApiReferralController extends Controller
         $update2 = PromoCampaign::where('id_promo_campaign',$referral->id_promo_campaign)->update($dataPromoCampaign);
         $update3 = Setting::updateOrCreate(['key'=>'referral_messages'],['value_text'=>$post['referral_messages']]);
         if(!$update || !$update2 || !$update3){
-            \DB::rollback();
+            \DB::rollBack();
             return MyHelper::checkUpdate([]);
         }
         \DB::commit();

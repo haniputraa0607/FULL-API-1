@@ -127,7 +127,7 @@ class ApiOnlineTransaction extends Controller
 
         $outlet = Outlet::where('id_outlet', $post['id_outlet'])->with('today')->first();
         if (empty($outlet)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Outlet Not Found']
@@ -147,7 +147,7 @@ class ApiOnlineTransaction extends Controller
 
         //cek outlet active
         if(isset($outlet['outlet_status']) && $outlet['outlet_status'] == 'Inactive'){
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Outlet tutup']
@@ -155,7 +155,7 @@ class ApiOnlineTransaction extends Controller
         }
 
         if($post['payment_type'] == 'Ovo' && !Ovo::checkOutletOvo($post['id_outlet'])){
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Ovo payment not available at this store']
@@ -170,14 +170,14 @@ class ApiOnlineTransaction extends Controller
                 foreach($holiday as $i => $holi){
                     if($holi['yearly'] == '0'){
                         if($holi['date'] == date('Y-m-d')){
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'    => 'fail',
                                 'messages'  => ['Outlet tutup']
                             ]);
                         }
                     }else{
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => ['Outlet tutup']
@@ -187,7 +187,7 @@ class ApiOnlineTransaction extends Controller
             }
 
             if($outlet['today']['is_closed'] == '1'){
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Outlet tutup']
@@ -199,7 +199,7 @@ class ApiOnlineTransaction extends Controller
                 $settingTime = Setting::where('key', 'processing_time')->first();
                 if($settingTime && $settingTime->value){
                     if($outlet['today']['close'] && date('H:i') > date('H:i', strtotime('-'.$settingTime->value.' minutes' ,strtotime($outlet['today']['close'])))){
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => ['Outlet tutup']
@@ -209,7 +209,7 @@ class ApiOnlineTransaction extends Controller
 
                 //cek outlet open - close hour
                 if(($outlet['today']['open'] && date('H:i') < date('H:i', strtotime($outlet['today']['open']))) || ($outlet['today']['close'] && date('H:i') > date('H:i', strtotime($outlet['today']['close'])))){
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Outlet tutup']
@@ -232,7 +232,7 @@ class ApiOnlineTransaction extends Controller
 
         $user = User::with('memberships')->where('id', $id)->first();
         if (empty($user)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['User Not Found']
@@ -241,7 +241,7 @@ class ApiOnlineTransaction extends Controller
 
         //suspend
         if(isset($user['is_suspended']) && $user['is_suspended'] == '1'){
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 // 'messages'  => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
@@ -261,7 +261,7 @@ class ApiOnlineTransaction extends Controller
             $userAddress = UserAddress::where(['id_user' => $id, 'id_user_address' => $post['id_user_address']])->first();
 
             if (empty($userAddress)) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Address Not Found']
@@ -306,7 +306,7 @@ class ApiOnlineTransaction extends Controller
                 $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors);
 
                 if ( !empty($errore) || !empty($errors)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return [
                         'status'=>'fail',
                         'messages'=>['Promo code not valid']
@@ -333,7 +333,7 @@ class ApiOnlineTransaction extends Controller
 				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals');
 
 				if ( !empty($errors) ) {
-					DB::rollback();
+					DB::rollBack();
                     return [
                         'status'=>'fail',
                         'messages'=>['Voucher is not valid']
@@ -385,7 +385,7 @@ class ApiOnlineTransaction extends Controller
                         }
                     }
 
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => $mes
@@ -408,7 +408,7 @@ class ApiOnlineTransaction extends Controller
                         }
                     }
 
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => $mes
@@ -435,7 +435,7 @@ class ApiOnlineTransaction extends Controller
                             }
                         }
 
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => $mes
@@ -523,7 +523,7 @@ class ApiOnlineTransaction extends Controller
         if ($use_referral){
             $referral_rule = PromoCampaignReferral::where('id_promo_campaign',$code->id_promo_campaign)->first();
             if(!$referral_rule){
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Insert Referrer Cashback Failed']
@@ -600,7 +600,7 @@ class ApiOnlineTransaction extends Controller
             //check key GO-SEND
             $checkKey = Gosend::checkKey();
             if(isset($checkKey) && $checkKey['status'] == 'fail'){
-                DB::rollback();
+                DB::rollBack();
                 return response()->json($checkKey);
             }
 
@@ -677,7 +677,7 @@ class ApiOnlineTransaction extends Controller
         $newTopupController = new NewTopupController();
         $checkHashBefore = $newTopupController->checkHash('log_balances', $id);
         if (!$checkHashBefore) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Your previous transaction data is invalid']
@@ -696,7 +696,7 @@ class ApiOnlineTransaction extends Controller
         $insertTransaction = Transaction::create($transaction);
 
         if (!$insertTransaction) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Insert Transaction Failed']
@@ -713,7 +713,7 @@ class ApiOnlineTransaction extends Controller
                 'referred_bonus' => $promo_discount?:$insertTransaction['transaction_cashback_earned']
             ]);
             if(!$addPromoCounter){
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Insert Transaction Failed']
@@ -741,7 +741,7 @@ class ApiOnlineTransaction extends Controller
                 'id_transaction' => $insertTransaction['id_transaction']
             ]);
             if(!$addTransactionVoucher){
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Insert Transaction Failed']
@@ -756,7 +756,7 @@ class ApiOnlineTransaction extends Controller
         ]);
 
         if (!$updateReceiptNumber) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Insert Transaction Failed']
@@ -779,7 +779,7 @@ class ApiOnlineTransaction extends Controller
             }
             $checkProduct = Product::where('id_product', $valueProduct['id_product'])->first();
             if (empty($checkProduct)) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Product Not Found']
@@ -788,7 +788,7 @@ class ApiOnlineTransaction extends Controller
 
             $checkPriceProduct = ProductPrice::where(['id_product' => $checkProduct['id_product'], 'id_outlet' => $post['id_outlet']])->first();
             if (empty($checkPriceProduct)) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Product Price Not Valid']
@@ -796,7 +796,7 @@ class ApiOnlineTransaction extends Controller
             }
 
             if ($checkPriceProduct['product_stock_status'] == 'Sold Out') {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Product '.$checkProduct['product_name'].' sudah habis, silakan pilih yang lain']
@@ -826,7 +826,7 @@ class ApiOnlineTransaction extends Controller
 
             $trx_product = TransactionProduct::create($dataProduct);
             if (!$trx_product) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Insert Product Transaction Failed']
@@ -900,7 +900,7 @@ class ApiOnlineTransaction extends Controller
             }
             $trx_modifier = TransactionProductModifier::insert($insert_modifier);
             if (!$trx_modifier) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Insert Product Modifier Transaction Failed']
@@ -963,7 +963,7 @@ class ApiOnlineTransaction extends Controller
 
         // $insrtProduct = TransactionProduct::insert($dataInsertProduct);
         // if (!$insrtProduct) {
-        //     DB::rollback();
+        //     DB::rollBack();
         //     return response()->json([
         //         'status'    => 'fail',
         //         'messages'  => ['Insert Product Transaction Failed']
@@ -971,7 +971,7 @@ class ApiOnlineTransaction extends Controller
         // }
         $insertUserTrxProduct = app($this->transaction)->insertUserTrxProduct($userTrxProduct);
         if ($insertUserTrxProduct == 'fail') {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Insert Product Transaction Failed']
@@ -1013,7 +1013,7 @@ class ApiOnlineTransaction extends Controller
             if($configAdminOutlet && $configAdminOutlet['is_active'] == '1'){
                 $totalAdmin = $adminOutlet->where('delivery', 1)->first();
                 if (empty($totalAdmin)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Admin outlet is empty']
@@ -1078,7 +1078,7 @@ class ApiOnlineTransaction extends Controller
 
             $insertShipment = TransactionShipment::create($dataShipment);
             if (!$insertShipment) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Insert Shipment Transaction Failed']
@@ -1089,7 +1089,7 @@ class ApiOnlineTransaction extends Controller
             if($configAdminOutlet && $configAdminOutlet['is_active'] == '1'){
                 $totalAdmin = $adminOutlet->where('pickup_order', 1)->first();
                 if (empty($totalAdmin)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Admin outlet is empty']
@@ -1194,7 +1194,7 @@ class ApiOnlineTransaction extends Controller
             $insertPickup = TransactionPickup::create($dataPickup);
 
             if (!$insertPickup) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Insert Pickup Order Transaction Failed']
@@ -1222,7 +1222,7 @@ class ApiOnlineTransaction extends Controller
 
                 $gosend = TransactionPickupGoSend::create($dataGoSend);
                 if (!$gosend) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Insert Transaction GO-SEND Failed']
@@ -1254,7 +1254,7 @@ class ApiOnlineTransaction extends Controller
 
             $gosend = TransactionPickupGoSend::create($dataGoSend);
             if (!$gosend) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Insert Transaction GO-SEND Failed']
@@ -1322,7 +1322,7 @@ class ApiOnlineTransaction extends Controller
 
                     $insertDataLog = LogPoint::create($dataLog);
                     if (!$insertDataLog) {
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => ['Insert Point Failed']
@@ -1337,7 +1337,7 @@ class ApiOnlineTransaction extends Controller
                 if ($insertTransaction['transaction_cashback_earned'] != 0) {
                     $insertDataLogCash = app($this->balance)->addLogBalance( $insertTransaction['id_user'], $insertTransaction['transaction_cashback_earned'], $insertTransaction['id_transaction'], 'Transaction', $insertTransaction['transaction_grandtotal']);
                     if (!$insertDataLogCash) {
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => ['Insert Cashback Failed']
@@ -1355,7 +1355,7 @@ class ApiOnlineTransaction extends Controller
                         ]
                     );
                     if($send != true){
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status' => 'fail',
                             'messages' => ['Failed Send notification to customer']
@@ -1381,7 +1381,7 @@ class ApiOnlineTransaction extends Controller
                     ]);
 
                 if(!$updatePointCashback){
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status' => 'fail',
                         'messages' => ['Failed update Point and Cashback']
@@ -1391,7 +1391,7 @@ class ApiOnlineTransaction extends Controller
 
             $checkMembership = app($this->membership)->calculateMembership($user['phone']);
             if (!$checkMembership) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Recount membership failed']
@@ -1405,12 +1405,12 @@ class ApiOnlineTransaction extends Controller
                 $save = app($this->balance)->topUp($insertTransaction['id_user'], $insertTransaction['transaction_grandtotal'], $insertTransaction['id_transaction']);
 
                 if (!isset($save['status'])) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json(['status' => 'fail', 'messages' => ['Transaction failed']]);
                 }
 
                 if ($save['status'] == 'fail') {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json($save);
                 }
 
@@ -1441,7 +1441,7 @@ class ApiOnlineTransaction extends Controller
                     if ($configAdminOutlet && $configAdminOutlet['is_active'] == '1') {
                         $sendAdmin = app($this->notif)->sendNotif($insertTransaction);
                         if (!$sendAdmin) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'    => 'fail',
                                 'messages'  => ['Transaction failed']
@@ -1452,7 +1452,7 @@ class ApiOnlineTransaction extends Controller
                     $send = app($this->notif)->notification($mid, $insertTransaction);
 
                     if (!$send) {
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => ['Transaction failed']
@@ -1514,7 +1514,7 @@ class ApiOnlineTransaction extends Controller
 
                     $insertDataMidtrans = TransactionPaymentMidtran::create($dataInsertMidtrans);
                     if (!$insertDataMidtrans) {
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => ['Insert Data Midtrans Failed']
@@ -1598,7 +1598,7 @@ class ApiOnlineTransaction extends Controller
         $rn = $request->json('request_number');
         $ovo_available = Ovo::checkOutletOvo($post['id_outlet']);
         if (empty($outlet)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Outlet Not Found']
@@ -1615,7 +1615,7 @@ class ApiOnlineTransaction extends Controller
         $outlet_status = 1;
         //cek outlet active
         if(isset($outlet['outlet_status']) && $outlet['outlet_status'] == 'Inactive'){
-            // DB::rollback();
+            // DB::rollBack();
             // return response()->json([
             //     'status'    => 'fail',
             //     'messages'  => ['Outlet tutup']
@@ -1631,7 +1631,7 @@ class ApiOnlineTransaction extends Controller
                 foreach($holiday as $i => $holi){
                     if($holi['yearly'] == '0'){
                         if($holi['date'] == date('Y-m-d')){
-                            // DB::rollback();
+                            // DB::rollBack();
                             // return response()->json([
                             //     'status'    => 'fail',
                             //     'messages'  => ['Outlet tutup']
@@ -1639,7 +1639,7 @@ class ApiOnlineTransaction extends Controller
                             $outlet_status = 0;
                         }
                     }else{
-                        // DB::rollback();
+                        // DB::rollBack();
                         // return response()->json([
                         //     'status'    => 'fail',
                         //     'messages'  => ['Outlet tutup']
@@ -1650,7 +1650,7 @@ class ApiOnlineTransaction extends Controller
             }
 
             if($outlet['today']['is_closed'] == '1'){
-                // DB::rollback();
+                // DB::rollBack();
                 // return response()->json([
                 //     'status'    => 'fail',
                 //     'messages'  => ['Outlet tutup']
@@ -1663,7 +1663,7 @@ class ApiOnlineTransaction extends Controller
                 $settingTime = Setting::where('key', 'processing_time')->first();
                 if($settingTime && $settingTime->value){
                     if($outlet['today']['close'] && date('H:i') > date('H:i', strtotime('-'.$settingTime->value.' minutes' ,strtotime($outlet['today']['close'])))){
-                        // DB::rollback();
+                        // DB::rollBack();
                         // return response()->json([
                         //     'status'    => 'fail',
                         //     'messages'  => ['Outlet tutup']
@@ -1674,7 +1674,7 @@ class ApiOnlineTransaction extends Controller
 
                 //cek outlet open - close hour
                 if(($outlet['today']['open'] && date('H:i') < date('H:i', strtotime($outlet['today']['open']))) || ($outlet['today']['close'] && date('H:i') > date('H:i', strtotime($outlet['today']['close'])))){
-                    // DB::rollback();
+                    // DB::rollBack();
                     // return response()->json([
                     //     'status'    => 'fail',
                     //     'messages'  => ['Outlet tutup']
@@ -1984,7 +1984,7 @@ class ApiOnlineTransaction extends Controller
                         }
                     }
 
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => $mes
@@ -2011,7 +2011,7 @@ class ApiOnlineTransaction extends Controller
                             }
                         }
 
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => $mes
@@ -2330,7 +2330,7 @@ class ApiOnlineTransaction extends Controller
 
             $curl = $this->sendStatus('https://exp.host/--/api/v2/push/send', 'POST', $dataArraySend);
             if (!$curl) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Transaction failed']

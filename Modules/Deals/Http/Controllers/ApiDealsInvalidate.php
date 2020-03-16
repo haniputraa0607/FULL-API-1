@@ -130,7 +130,7 @@ class ApiDealsInvalidate extends Controller
             // }
         }
 
-        DB::rollback();
+        DB::rollBack();
 
         return response()->json($fail);
     }

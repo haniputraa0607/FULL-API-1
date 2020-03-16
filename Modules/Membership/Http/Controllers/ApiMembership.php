@@ -76,7 +76,7 @@ class ApiMembership extends Controller
 						if ($upload['status'] == "success") {
 							$data['membership_image'] = $upload['path'];
 						} else{
-							DB::rollback();
+							DB::rollBack();
 							$result = [
 									'status'	=> 'fail',
 									'messages'	=> ['Upload Membership Image failed.']
@@ -99,7 +99,7 @@ class ApiMembership extends Controller
 						if ($upload['status'] == "success") {
 							$data['membership_bg_image'] = $upload['path'];
 						} else{
-							DB::rollback();
+							DB::rollBack();
 							$result = [
 									'status'	=> 'fail',
 									'messages'	=> ['Upload Membership Image failed.']
@@ -166,7 +166,7 @@ class ApiMembership extends Controller
 							if($promoid['promo_id']){
 								$savePromoid = MembershipPromoId::Create(['id_membership' => $membership['id_membership'], 'promo_name' => $promoid['promo_name'], 'promo_id' => $promoid['promo_id']]);
 								if(!$savePromoid){
-									DB::rollback();
+									DB::rollBack();
 									$result = [
 										'status'	=> 'fail',
 										'messages'	=> ['Update membership failed.']
@@ -209,7 +209,7 @@ class ApiMembership extends Controller
 					if ($upload['status'] == "success") {
 						$post['membership_image'] = $upload['path'];
 					} else{
-						DB::rollback();
+						DB::rollBack();
 						$result = [
 								'status'	=> 'fail',
 								'messages'	=> ['Upload Membership Image failed.']
@@ -227,7 +227,7 @@ class ApiMembership extends Controller
 					if ($upload['status'] == "success") {
 						$post['membership_bg_image'] = $upload['path'];
 					} else{
-						DB::rollback();
+						DB::rollBack();
 						$result = [
 								'status'	=> 'fail',
 								'messages'	=> ['Upload Membership Image failed.']
@@ -284,7 +284,7 @@ class ApiMembership extends Controller
 				$query = Membership::create($data);
 
 				if(!$query){
-					DB::rollback();
+					DB::rollBack();
 					$result = [
 							'status'	=> 'fail',
 							'messages'	=> ['Update Membership failed.']
@@ -297,7 +297,7 @@ class ApiMembership extends Controller
 						if($promoid['promo_id']){
 							$savePromoid = MembershipPromoId::Create(['id_membership' => $membership['id_membership'], 'promo_name' => $promoid['promo_name'], 'promo_id' => $promoid['promo_id']]);
 							if(!$savePromoid){
-								DB::rollback();
+								DB::rollBack();
 								$result = [
 									'status'	=> 'fail',
 									'messages'	=> ['Update membership failed.']
@@ -316,10 +316,10 @@ class ApiMembership extends Controller
 			DB::commit();
 			return response()->json(['status' => 'success']);
 		}elseif(isset($calculate['status']) && $calculate['status'] == 'fail'){
-			DB::rollback();
+			DB::rollBack();
 			return response()->json($calculate);
 		}else{
-			DB::rollback();
+			DB::rollBack();
 			return response()->json([
 				'status' => 'fail',
 				'messages' => ['Update Membership failed.']

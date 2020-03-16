@@ -299,7 +299,7 @@ class ApiNews extends Controller
                         $saveForm = NewsFormStructure::create($dataForm);
 
                         if ( !($save && $saveForm) ) {
-                            DB::rollback();
+                            DB::rollBack();
                         }
                     }
                 }
@@ -626,7 +626,7 @@ class ApiNews extends Controller
                 foreach ($post['news_form'] as $key => $news_form) {
                     $value = $this->checkCustomFormValue($news_form);
                     if(!$value && $news_form['input_value']!=""){
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'   => 'fail',
                             'messages' => ['Fail to save data.'],
@@ -655,7 +655,7 @@ class ApiNews extends Controller
                     ]);
 
                     if ( !($newsFormData && $newsFormDataDetail) ) {
-                        DB::rollback();
+                        DB::rollBack();
 
                         return response()->json([
                             'status'   => 'fail',

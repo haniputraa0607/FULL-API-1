@@ -54,7 +54,7 @@ class ApiCronTrxController extends Controller
         if (empty($getTrx)) {
             return response()->json(['empty']);
         }
-
+        $count = 0;
         foreach ($getTrx as $key => $value) {
 
         	db::begintransaction();
@@ -100,7 +100,7 @@ class ApiCronTrxController extends Controller
             foreach($logBalance as $logB){
                 $reversal = app($this->balance)->addLogBalance( $singleTrx->id_user, abs($logB['balance']), $singleTrx->id_transaction, 'Reversal', $singleTrx->transaction_grandtotal);
 	            if (!$reversal) {
-	            	db::rollback();
+	            	db::rollBack();
 	            	continue;
 	            }
                 $usere= User::where('id',$singleTrx->id_user)->first();
@@ -118,14 +118,15 @@ class ApiCronTrxController extends Controller
             // return voucher
             $update_voucher = app($this->voucher)->returnVoucher($value->id_transaction);
             if (!$update_voucher) {
-            	db::rollback();
+            	db::rollBack();
             	continue;
             }
+            $count++;
             db::commit();
 
         }
 
-        return response()->json(['success']);
+        return response()->json([$count]);
     }
 
     public function checkSchedule()

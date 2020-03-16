@@ -121,7 +121,7 @@ class BalanceController extends Controller
         $update_user = $user->update(['balance' => $new_user_balance]);
 
         if (!($log_balance && $update_user)) {
-            DB::rollback();
+            DB::rollBack();
             return false;
         }
 

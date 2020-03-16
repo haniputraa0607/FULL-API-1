@@ -310,7 +310,7 @@ class ApiPOS extends Controller
             !empty($post['store_code']) && !empty($post['uid'])){
 
             if(strlen($post['uid']) < 35){
-                DB::rollback();
+                DB::rollBack();
                 return ['status' => 'fail', 'messages' => 'Minimum length of member uid is 35'];
             }
 
@@ -339,7 +339,7 @@ class ApiPOS extends Controller
 
             //suspend
             if (isset($user['is_suspended']) && $user['is_suspended'] == '1') {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => 'Maaf, akun Anda sedang di-suspend'
@@ -537,7 +537,7 @@ class ApiPOS extends Controller
                     try {
                         OutletSchedule::updateOrCreate(['id_outlet' => $cekOutlet->id_outlet, 'day' => $valueSchedule['day']], $valueSchedule);
                     } catch (Exception $e) {
-                        DB::rollback();
+                        DB::rollBack();
                         LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
                         $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'] . '. Error at store schedule '.$valueSchedule['day'];
                         continue;
@@ -565,7 +565,7 @@ class ApiPOS extends Controller
                         try {
                             OutletSchedule::create($valueSchedule);
                         } catch (Exception $e) {
-                            DB::rollback();
+                            DB::rollBack();
                             LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
                             $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'] . '. Error at store schedule '.$valueSchedule['day'];
                             continue;
@@ -577,11 +577,11 @@ class ApiPOS extends Controller
 
             //check brand outlet
             try {
-                $brandOutlet = BrandOutlet::where('id_outlet', $save->id_outlet)->first();
+                $brandOutlet = BrandOutlet::where('id_outlet', $cekOutlet->id_outlet)->first();
                 if(!$brandOutlet){
                     BrandOutlet::create([
                         'id_brand' => $getIdBrand->id_brand,
-                        'id_outlet' => $save->id_outlet
+                        'id_outlet' => $cekOutlet->id_outlet
                     ]);
                 }
             } catch (\Exception $e) {
@@ -693,7 +693,7 @@ class ApiPOS extends Controller
                         'product_group_name'    => $menu['menu_name']
                     ]);
                 } catch (\Exception $e) {
-                    DB::rollback();
+                    DB::rollBack();
                     LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                     $failedProduct[] = 'fail to sync, product ' . $menu['menu_name'];
                     continue;
@@ -722,7 +722,7 @@ class ApiPOS extends Controller
                                 'parent'                    => 1
                             ]);
                         } catch (\Exception $e) {
-                            DB::rollback();
+                            DB::rollBack();
                             LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                             $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
                             continue;
@@ -741,7 +741,7 @@ class ApiPOS extends Controller
                                 'parent'                    => 2
                             ]);
                         } catch (\Exception $e) {
-                            DB::rollback();
+                            DB::rollBack();
                             LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                             $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
                             continue;
@@ -771,7 +771,7 @@ class ApiPOS extends Controller
                             $countUpdate        = $countUpdate + 1;
                             $updatedProduct[]   = implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
                         } catch (\Exception $e) {
-                            DB::rollback();
+                            DB::rollBack();
                             LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                             $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
                             continue;
@@ -797,7 +797,7 @@ class ApiPOS extends Controller
                             $countInsert        = $countInsert + 1;
                             $insertProduct[]    = implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
                         } catch (\Exception $e) {
-                            DB::rollback();
+                            DB::rollBack();
                             LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                             $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
                             continue;
@@ -820,7 +820,7 @@ class ApiPOS extends Controller
                             'id_product_variant'    => $variantType->id_product_variant
                         ]);
                     } catch (\Exception $e) {
-                        DB::rollback();
+                        DB::rollBack();
                         LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                         $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
                         continue;
@@ -833,7 +833,7 @@ class ApiPOS extends Controller
                         'product_group_name'    => $menu['menu_name']
                     ]);
                 } catch (\Exception $e) {
-                    DB::rollback();
+                    DB::rollBack();
                     LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                     $failedProduct[] = 'fail to sync, product ' . $menu['menu_name'];
                     continue;
@@ -861,7 +861,7 @@ class ApiPOS extends Controller
                                 'parent'                    => 1
                             ]);
                         } catch (\Exception $e) {
-                            DB::rollback();
+                            DB::rollBack();
                             LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                             $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
                             continue;
@@ -880,7 +880,7 @@ class ApiPOS extends Controller
                                 'parent'                    => 2
                             ]);
                         } catch (\Exception $e) {
-                            DB::rollback();
+                            DB::rollBack();
                             LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                             $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
                             continue;
@@ -910,7 +910,7 @@ class ApiPOS extends Controller
                             $countUpdate        = $countUpdate + 1;
                             $updatedProduct[]   = implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
                         } catch (\Exception $e) {
-                            DB::rollback();
+                            DB::rollBack();
                             LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                             $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
                             continue;
@@ -936,7 +936,7 @@ class ApiPOS extends Controller
                             $countInsert        = $countInsert + 1;
                             $insertProduct[]    = implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
                         } catch (\Exception $e) {
-                            DB::rollback();
+                            DB::rollBack();
                             LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                             $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
                             continue;
@@ -959,7 +959,7 @@ class ApiPOS extends Controller
                             'id_product_variant'    => $variantType->id_product_variant
                         ]);
                     } catch (\Exception $e) {
-                        DB::rollback();
+                        DB::rollBack();
                         LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                         $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
                         ;
@@ -1070,7 +1070,7 @@ class ApiPOS extends Controller
                         'category_id_pos'      => $menu['category_id']
                     ]);
                 } catch (\Exception $e) {
-                    DB::rollback();
+                    DB::rollBack();
                     LogBackendError::logExceptionMessage("ApiPOS/syncAddOn=>" . $e->getMessage(), $e);
                     $failedProduct[] = 'fail to sync, add on ' . $menu['name'];
                     continue;
@@ -1095,7 +1095,7 @@ class ApiPOS extends Controller
                                 ]);
                                 $countUpdate = $countUpdate + 1;
                             } catch (\Exception $e) {
-                                DB::rollback();
+                                DB::rollBack();
                                 LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                                 $failedProduct[] = 'fail to sync, product ' . $productModifier->text;
                                 continue;
@@ -1115,7 +1115,7 @@ class ApiPOS extends Controller
                         'category_id_pos'      => $menu['category_id']
                     ]);
                 } catch (\Exception $e) {
-                    DB::rollback();
+                    DB::rollBack();
                     LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                     $failedProduct[] = 'fail to sync, product modifier ' . $menu['sap_matnr'];
                     continue;
@@ -1140,7 +1140,7 @@ class ApiPOS extends Controller
                                 ]);
                                 $countUpdate = $countUpdate + 1;
                             } catch (\Exception $e) {
-                                DB::rollback();
+                                DB::rollBack();
                                 LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                                 $failedProduct[] = 'fail to sync, product ' . $productModifier->text;
                                 continue;
@@ -1396,7 +1396,7 @@ class ApiPOS extends Controller
                                 try {
                                     BrandProduct::join('brands', 'brands.id_brand', 'brand_product.id_brand')->where('id_product', $product->id_product)->whereIn('brand_product.id_brand', $deleteDiffBrand)->delete();
                                 } catch (\Exception $e) {
-                                    DB::rollback();
+                                    DB::rollBack();
                                     LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                                     $failedProduct[] = 'fail to sync, product ' . $menu['name'];
                                     continue;
@@ -1417,7 +1417,7 @@ class ApiPOS extends Controller
                                     }
                                     BrandProduct::insert($brandProduct);
                                 } catch (Exception $e) {
-                                    DB::rollback();
+                                    DB::rollBack();
                                     LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                                     $failedProduct[] = 'fail to sync, product ' . $menu['name'];
                                     continue;
@@ -1567,7 +1567,7 @@ class ApiPOS extends Controller
                                 }
                                 BrandProduct::insert($brandProduct);
                             } catch (Exception $e) {
-                                DB::rollback();
+                                DB::rollBack();
                                 LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                                 $failedProduct[] = 'fail to sync, brand ' . $menu['name'];
                                 continue;
@@ -2063,7 +2063,7 @@ class ApiPOS extends Controller
 
                     if (isset($trx['member_uid'])) {
                         if(strlen($trx['member_uid']) < 35){
-                            DB::rollback();
+                            DB::rollBack();
                             return ['status' => 'fail', 'messages' => 'Minimum length of member uid is 35'];
                         }
                         $qr         = MyHelper::readQR($trx['member_uid']);
@@ -2072,7 +2072,7 @@ class ApiPOS extends Controller
                         $user       = User::where('phone', $phoneqr)->with('memberships')->first();
 
                         if (empty($user)) {
-                            DB::rollback();
+                            DB::rollBack();
                             return ['status' => 'fail', 'messages' => 'User not found'];
                         }elseif(isset($user['is_suspended']) && $user['is_suspended'] == '1'){
                             $user['id'] = null;
@@ -2194,7 +2194,7 @@ class ApiPOS extends Controller
 
                     $createTrx = Transaction::create($dataTrx);
                     if (!$createTrx) {
-                        DB::rollback();
+                        DB::rollBack();
                         return ['status' => 'fail', 'messages' => 'Transaction sync failed'];
                     }
 
@@ -2213,7 +2213,7 @@ class ApiPOS extends Controller
                                 ];
                                 array_push($dataPayments,$dataPay);
                             }else{
-                                DB::rollback();
+                                DB::rollBack();
                                 return ['status' => 'fail', 'messages' => 'There is an incomplete input in the payment list'];
                             }
                         }
@@ -2230,7 +2230,7 @@ class ApiPOS extends Controller
 
                     $insertPayments = TransactionPaymentOffline::insert($dataPayments);
                     if (!$insertPayments) {
-                        DB::rollback();
+                        DB::rollBack();
                         return ['status' => 'fail', 'messages' => 'Failed insert transaction payments'];
                     }
 
@@ -2253,7 +2253,7 @@ class ApiPOS extends Controller
                                                 'product_group_name'    => $menu['menu_name']
                                             ]);
                                         } catch (\Exception $e) {
-                                            DB::rollback();
+                                            DB::rollBack();
                                             LogBackendError::logExceptionMessage("ApiPOS/transactionSync=>" . $e->getMessage(), $e);
                                             return ['status' => 'fail', 'messages' => 'Failed create new product group'];
                                         }
@@ -2292,7 +2292,7 @@ class ApiPOS extends Controller
                                                 'parent'                    => 1
                                             ]);
                                         } catch (\Exception $e) {
-                                            DB::rollback();
+                                            DB::rollBack();
                                             LogBackendError::logExceptionMessage("ApiPOS/transactionSync=>" . $e->getMessage(), $e);
                                             return ['status' => 'fail', 'messages' => 'Failed create new product variant size'];
                                         }
@@ -2318,7 +2318,7 @@ class ApiPOS extends Controller
                                                 'parent'                    => 2
                                             ]);
                                         } catch (\Exception $e) {
-                                            DB::rollback();
+                                            DB::rollBack();
                                             LogBackendError::logExceptionMessage("ApiPOS/transactionSync=>" . $e->getMessage(), $e);
                                             return ['status' => 'fail', 'messages' => 'Failed create new product variant type'];
                                         }
@@ -2349,7 +2349,7 @@ class ApiPOS extends Controller
                                         BrandProduct::create($brandProduct);
 
                                     } catch (\Exception $e) {
-                                        DB::rollback();
+                                        DB::rollBack();
                                         LogBackendError::logExceptionMessage("ApiPOS/transactionSync=>" . $e->getMessage(), $e);
                                         return ['status' => 'fail', 'messages' => 'Failed create new product'];
                                     }
@@ -2370,7 +2370,7 @@ class ApiPOS extends Controller
                                             'id_product_variant'    => $variantType['id_product_variant']
                                         ]);
                                     } catch (\Exception $e) {
-                                        DB::rollback();
+                                        DB::rollBack();
                                         LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
                                         return ['status' => 'fail', 'messages' => 'Failed create product variant detail'];
                                     }
@@ -2380,7 +2380,7 @@ class ApiPOS extends Controller
                                     $productPriceData['product_price_base'] = $menu['price'];
                                     $newProductPrice = ProductPrice::create($productPriceData);
                                     if (!$newProductPrice) {
-                                        DB::rollback();
+                                        DB::rollBack();
                                         return ['status' => 'fail', 'messages' => 'Failed create new product price'];
                                     }
 
@@ -2403,7 +2403,7 @@ class ApiPOS extends Controller
                                 $createProduct = TransactionProduct::create($dataProduct);
 
                                 if (!$createProduct) {
-                                    DB::rollback();
+                                    DB::rollBack();
                                     return ['status' => 'fail', 'messages' => 'Failed create transaction product'];
                                 }
                                 $modSubtotal = 0;
@@ -2429,7 +2429,7 @@ class ApiPOS extends Controller
                                                 ]);
                                             } catch (\Exception $e) {
                                                 dd($e);
-                                                DB::rollback();
+                                                DB::rollBack();
                                                 LogBackendError::logExceptionMessage("ApiPOS/transactionSync=>" . $e->getMessage(), $e);
                                                 return ['status' => 'fail', 'messages' => 'Failed create new add on'];
                                             }
@@ -2448,7 +2448,7 @@ class ApiPOS extends Controller
                                                     'id_product_modifier'   => $productModifier->id_product_modifier
                                                 ]);
                                             } catch (\Exception $e) {
-                                                DB::rollback();
+                                                DB::rollBack();
                                                 LogBackendError::logExceptionMessage("ApiPOS/transactionSync=>" . $e->getMessage(), $e);
                                                 return ['status' => 'fail', 'messages' => 'Failed create add on product'];
                                             }
@@ -2474,7 +2474,7 @@ class ApiPOS extends Controller
                                         try {
                                             TransactionProductModifier::create($dataProductMod);
                                         } catch (\Exception $e) {
-                                            DB::rollback();
+                                            DB::rollBack();
                                             LogBackendError::logExceptionMessage("ApiPOS/transactionSync=>" . $e->getMessage(), $e);
                                             return ['status' => 'fail', 'messages' => 'Failed create transaction product add on'];
                                         }
@@ -2488,7 +2488,7 @@ class ApiPOS extends Controller
                                     TransactionProduct::where('id_transaction_product', $createProduct['id_transction_product'])->update(['transaction_modifier_subtotal' => $modSubtotal]);
                                 }
                             }else{
-                                DB::rollback();
+                                DB::rollBack();
                                 return['status' => 'fail', 'messages' => 'There is an incomplete input in the menu list'];
                             }
                         }
@@ -2511,7 +2511,7 @@ class ApiPOS extends Controller
 
                             $insertDataLog = LogPoint::updateOrCreate(['id_user' => $createTrx['id_user'], 'id_reference' => $createTrx['id_transaction']], $dataLog);
                             if (!$insertDataLog) {
-                                DB::rollback();
+                                DB::rollBack();
                                 return [
                                     'status'    => 'fail',
                                     'messages'  => 'Insert Point Failed'
@@ -2524,7 +2524,7 @@ class ApiPOS extends Controller
                             $user->points = $pointBefore + $pointValue;
                             $user->update();
                             if (!$user) {
-                                DB::rollback();
+                                DB::rollBack();
                                 return [
                                     'status'    => 'fail',
                                     'messages'  => 'Insert Point Failed'
@@ -2536,7 +2536,7 @@ class ApiPOS extends Controller
 
                             $insertDataLogCash = app($this->balance)->addLogBalance($createTrx['id_user'], $createTrx['transaction_cashback_earned'], $createTrx['id_transaction'], 'Transaction', $createTrx['transaction_grandtotal']);
                             if (!$insertDataLogCash) {
-                                DB::rollback();
+                                DB::rollBack();
                                 return [
                                     'status'    => 'fail',
                                     'messages'  => 'Insert Cashback Failed'
@@ -2553,7 +2553,7 @@ class ApiPOS extends Controller
                                 ]
                             );
                             if($send != true){
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status' => 'fail',
                                     'messages' => 'Failed Send notification to customer'
@@ -2579,7 +2579,7 @@ class ApiPOS extends Controller
                             ]);
 
                         if(!$updatePointCashback){
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status' => 'fail',
                                 'messages' => ['Failed update Point and Cashback']
@@ -2614,12 +2614,12 @@ class ApiPOS extends Controller
                         'point_value'       => $pointValue
                     ];
                 }else{
-                    DB::rollback();
+                    DB::rollBack();
                     return ['status' => 'fail', 'messages' => 'trx_id does not exist'];
                 }
             }
         }catch (Exception $e) {
-            DB::rollback();
+            DB::rollBack();
             return ['status' => 'fail', 'messages' => $e];
         }
     }
@@ -2712,7 +2712,7 @@ class ApiPOS extends Controller
                     $dataDuplicate['sync_datetime'] = date('Y-m-d H:i:s');
                     $insertDuplicate = TransactionDuplicate::create($dataDuplicate);
                     if(!$insertDuplicate){
-                        DB::rollback();
+                        DB::rollBack();
                         return ['status' => 'Transaction sync failed'];
                     }
 
@@ -2738,7 +2738,7 @@ class ApiPOS extends Controller
 
                     $insertTrxDuplicateProd = TransactionDuplicateProduct::insert($prodDuplicate);
                     if(!$insertTrxDuplicateProd){
-                        DB::rollback();
+                        DB::rollBack();
                         return ['status' => 'Transaction sync failed'];
                     }
 
@@ -2769,7 +2769,7 @@ class ApiPOS extends Controller
 
                     $insertTrxDuplicatePay = TransactionDuplicatePayment::create($dataTrxDuplicatePay);
                     if(!$insertTrxDuplicatePay){
-                        DB::rollback();
+                        DB::rollBack();
                         return ['status' => 'Transaction sync failed'];
                     }
 
@@ -2788,7 +2788,7 @@ class ApiPOS extends Controller
 
             return ['status' => 'not duplicate'];
         }catch (Exception $e){
-            DB::rollback();
+            DB::rollBack();
             return ['status' => 'fail', 'messages' => $e];
         }
     }
@@ -2799,7 +2799,7 @@ class ApiPOS extends Controller
 
         $api = $this->checkApi($post['api_key'], $post['api_secret']);
         if ($api['status'] != 'success') {
-            DB::rollback();
+            DB::rollBack();
             return response()->json($api);
         }
 
@@ -2847,7 +2847,7 @@ class ApiPOS extends Controller
             $checkTrx->transaction_notes = $trx['reason'];
             $checkTrx->update();
             if (!$checkTrx) {
-                DB::rollback();
+                DB::rollBack();
                 $countFailed += 1;
                 $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update transaction status';
                 continue;
@@ -2861,7 +2861,7 @@ class ApiPOS extends Controller
                     if (!empty($point)) {
                         $point->delete();
                         if (!$point) {
-                            DB::rollback();
+                            DB::rollBack();
                             $countFailed += 1;
                             $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed delete point';
                             continue;
@@ -2872,7 +2872,7 @@ class ApiPOS extends Controller
                         $user->points = $sumPoint;
                         $user->update();
                         if (!$user) {
-                            DB::rollback();
+                            DB::rollBack();
                             $countFailed += 1;
                             $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update point';
                             continue;
@@ -2893,7 +2893,7 @@ class ApiPOS extends Controller
                         $user->balance = $sumBalance;
                         $user->update();
                         if (!$user) {
-                            DB::rollback();
+                            DB::rollBack();
                             $countFailed += 1;
                             $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update point';
                             continue;
@@ -3092,7 +3092,7 @@ class ApiPOS extends Controller
         try {
             $insertRequest = SyncMenuRequest::insert($data);
         } catch (\Exception $e) {
-            DB::rollback();
+            DB::rollBack();
             LogBackendError::logExceptionMessage("ApiPOS/syncOutletMenu=>" . $e->getMessage(), $e);
         }
         DB::commit();
