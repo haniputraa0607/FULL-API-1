@@ -35,13 +35,13 @@ class UseSaldoController extends Controller
         $post = $request->json()->all();
 
         $api = app($this->pos)->checkApi($post['api_key'], $post['api_secret']);
-        if ($api['status'] != 'success') { 
-            return response()->json($api); 
-        } 
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
 
         $checkOutlet = Outlet::where('outlet_code', $post['store_code'])->first();
         if (empty($checkOutlet)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Store code is not valid']]);
         }
 
@@ -51,19 +51,19 @@ class UseSaldoController extends Controller
 
         $time = date('Y-m-d h:i:s', strtotime('+10 minutes', strtotime(date('Y-m-d h:i:s', $timestamp))));
         if (date('Y-m-d h:i:s') > $time) {
-            DB::rollback();
-            return response()->json(['status' => 'fail', 'messages' => ['Mohon refresh qrcode dan ulangi scan member']]); 
+            DB::rollBack();
+            return response()->json(['status' => 'fail', 'messages' => ['Mohon refresh qrcode dan ulangi scan member']]);
         }
 
-        $user = User::where('phone', $phoneqr)->first(); 
+        $user = User::where('phone', $phoneqr)->first();
         if (empty($user)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['User not found']]);
         }
 
         $checkHashBefore = app($this->topup)->checkHash('log_balances', $user['id']);
         if (!$checkHashBefore) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction user data']]);
         }
 
@@ -79,19 +79,19 @@ class UseSaldoController extends Controller
 
         $ins = TransactionBalance::create($data);
         if (!$ins) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Use balance failed']]);
         }
 
         $dataIns = TransactionBalance::where('id_transaction_balance', $ins['id_transaction_balance'])->first();
         if (empty($dataIns)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Use balance failed']]);
         }
 
         $send = app($this->autocrm)->SendAutoCRM('Generate Approval Code', $user['phone'], ['notif_type' => 'generate_code', 'code' => $dataIns['approval_code']]);
         if (!$send) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Create approval code failed']]);
         }
 
@@ -106,7 +106,7 @@ class UseSaldoController extends Controller
 
         $checkAp = TransactionBalance::where('approval_code', $post['approval_code'])->first();
         if (empty($checkAp)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Data not found']]);
         }
 
@@ -116,41 +116,41 @@ class UseSaldoController extends Controller
 
         $time = date('Y-m-d h:i:s', strtotime('+10 minutes', strtotime(date('Y-m-d h:i:s', $timestamp))));
         if (date('Y-m-d h:i:s') > $time) {
-            // DB::rollback();
-            // return response()->json(['status' => 'fail', 'messages' => ['Mohon refresh qrcode dan ulangi scan member']]); 
+            // DB::rollBack();
+            // return response()->json(['status' => 'fail', 'messages' => ['Mohon refresh qrcode dan ulangi scan member']]);
         }
 
-        $user = User::where('phone', $phoneqr)->first(); 
+        $user = User::where('phone', $phoneqr)->first();
         if (empty($user)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['User not found']]);
         }
 
         $api = app($this->pos)->checkApi($post['api_key'], $post['api_secret']);
-        if ($api['status'] != 'success') { 
-            return response()->json($api); 
+        if ($api['status'] != 'success') {
+            return response()->json($api);
         }
 
         if (date('Y-m-d H:i:s') > date('Y-m-d H:i:s', strtotime($checkAp['expired_at']))) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Approval code has been expired']]);
         }
 
         if ($checkAp['status'] != 'Pending') {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Approval code has been confirmed']]);
         }
 
         $checkAp->status = 'Confirmed';
         $checkAp->update();
         if (!$checkAp) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Confirm failed']]);
         }
 
         $checkHashBefore = app($this->topup)->checkHash('log_balances', $user['id']);
         if (!$checkHashBefore) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction user data']]);
         }
 
@@ -181,13 +181,13 @@ class UseSaldoController extends Controller
 
         $insertDataBalance = LogBalance::create($dataSetBalance);
         if (!$insertDataBalance) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 
         $checkUpdateEnc = LogBalance::where('id_log_balance', $insertDataBalance['id_log_balance'])->first();
         if (empty($checkUpdateEnc)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 
@@ -211,14 +211,14 @@ class UseSaldoController extends Controller
         $checkUpdateEnc->enc = $enc;
         $checkUpdateEnc->update();
         if (!$checkUpdateEnc) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 
         $checkAp->approval_code = MyHelper::createrandom(10, 'Besar Angka');
         $checkAp->update();
         if (!$checkAp) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 
@@ -233,7 +233,7 @@ class UseSaldoController extends Controller
 
         $checkAp = TransactionBalance::where('approval_code', $post['request_code'])->first();
         if (empty($checkAp)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Data not found']]);
         }
 
@@ -243,24 +243,24 @@ class UseSaldoController extends Controller
 
         $time = date('Y-m-d h:i:s', strtotime('+10 minutes', strtotime(date('Y-m-d h:i:s', $timestamp))));
         if (date('Y-m-d h:i:s') > $time) {
-            // DB::rollback();
-            // return response()->json(['status' => 'fail', 'messages' => ['Mohon refresh qrcode dan ulangi scan member']]); 
+            // DB::rollBack();
+            // return response()->json(['status' => 'fail', 'messages' => ['Mohon refresh qrcode dan ulangi scan member']]);
         }
 
-        $user = User::where('phone', $phoneqr)->first(); 
+        $user = User::where('phone', $phoneqr)->first();
         if (empty($user)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['User not found']]);
         }
 
         $api = app($this->pos)->checkApi($post['api_key'], $post['api_secret']);
-        if ($api['status'] != 'success') { 
-            return response()->json($api); 
+        if ($api['status'] != 'success') {
+            return response()->json($api);
         }
 
         $checkHashBefore = app($this->topup)->checkHash('log_balances', $user['id']);
         if (!$checkHashBefore) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction user data']]);
         }
 
@@ -291,13 +291,13 @@ class UseSaldoController extends Controller
 
         $insertDataBalance = LogBalance::create($dataSetBalance);
         if (!$insertDataBalance) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 
         $checkUpdateEnc = LogBalance::where('id_log_balance', $insertDataBalance['id_log_balance'])->first();
         if (empty($checkUpdateEnc)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 
@@ -321,7 +321,7 @@ class UseSaldoController extends Controller
         $checkUpdateEnc->enc = $enc;
         $checkUpdateEnc->update();
         if (!$checkUpdateEnc) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 

@@ -318,7 +318,7 @@ class ApiPromotion extends Controller
 					//get deals template
 					$dealsTemplate = DealsPromotionTemplate::find($post['id_deals_promotion_template'][$key]);
 					if(!$dealsTemplate){
-						DB::rollback();
+						DB::rollBack();
 						$result = [
 							'status'	=> 'fail',
 							'messages'	=> ['Update Promotion Content Failed.', 'Deals Not Found.']
@@ -859,7 +859,7 @@ class ApiPromotion extends Controller
 				//get deals template
 				$dealsTemplate = DealsPromotionTemplate::find($post['id_deals_promotion_template'][0]);
 				if(!$dealsTemplate){
-					DB::rollback();
+					DB::rollBack();
 					$result = [
 						'status'	=> 'fail',
 						'messages'	=> ['Update Promotion Content Failed.', 'Deals Not Found.']
@@ -2239,7 +2239,7 @@ class ApiPromotion extends Controller
 						$deleteDeals = app($this->deals)->delete($dataContent['id_deals']);
 
 						if (!$deleteDeals) {
-							DB::rollback();
+							DB::rollBack();
 							return response()->json(MyHelper::checkDelete($delete));
 						}
 					}
@@ -2260,12 +2260,12 @@ class ApiPromotion extends Controller
 						DB::commit();
 					}
 					else {
-						DB::rollback();
+						DB::rollBack();
 					}
 
 					return response()->json(MyHelper::checkDelete($delete));
 				}else{
-					DB::rollback();
+					DB::rollBack();
 					return response()->json([
 						'status'   => 'fail',
 						'messages' => ['Failed Delete promotion.']
@@ -2277,7 +2277,7 @@ class ApiPromotion extends Controller
 					DB::commit();
 				}
 				else {
-					DB::rollback();
+					DB::rollBack();
 				}
 				return response()->json(MyHelper::checkDelete($delete));
 			}

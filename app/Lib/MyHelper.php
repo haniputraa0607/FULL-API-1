@@ -1718,7 +1718,7 @@ class MyHelper{
 		}
 
 		if (!$insert) {
-			DB::rollback();
+			DB::rollBack();
 			return 'fail';
 		} else {
 			return 'success';

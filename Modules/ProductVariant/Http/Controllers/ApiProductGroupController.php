@@ -61,7 +61,7 @@ class ApiProductGroupController extends Controller
         return MyHelper::checkGet($pg->toArray());
     }
 
-    
+
     function photoAjax(Request $request) {
     	$post = $request->json()->all();
     	$data = [];
@@ -72,7 +72,7 @@ class ApiProductGroupController extends Controller
             } else {
                 $upload = MyHelper::uploadPhotoStrict($post['photo'], $this->saveImage, 200, 200);
             }
-            
+
     	    if (isset($upload['status']) && $upload['status'] == "success") {
                 if ($post['detail'] == 1) {
                     $data['product_group_image_detail'] = $upload['path'];
@@ -199,12 +199,12 @@ class ApiProductGroupController extends Controller
             ];
             $insert = ProductProductVariant::insert($insertData);
             if(!$insert){
-                \DB::rollback();
+                \DB::rollBack();
                 return MyHelper::checkCreate($insert);
             }
             $update = Product::where('id_product',$id_product)->update(['id_product_group'=>$create['id_product_group']]);
             if(!$update){
-                \DB::rollback();
+                \DB::rollBack();
                 return MyHelper::checkUpdate($update);
             }
         }
@@ -318,12 +318,12 @@ class ApiProductGroupController extends Controller
             ];
             $insert = ProductProductVariant::insert($insertData);
             if(!$insert){
-                \DB::rollback();
+                \DB::rollBack();
                 return MyHelper::checkCreate($insert);
             }
             $update = Product::where('id_product',$id_product)->update(['id_product_group'=>$pg->id_product_group]);
             if(!$update){
-                \DB::rollback();
+                \DB::rollBack();
                 return MyHelper::checkUpdate($update);
             }
         }else{
@@ -410,7 +410,7 @@ class ApiProductGroupController extends Controller
                 $insert = ProductProductVariant::insert($insertData);
                 $updatex[] = $insertData;
                 if(!$insert){
-                    \DB::rollback();
+                    \DB::rollBack();
                     return MyHelper::checkCreate($insert);
                 }
             }
@@ -418,7 +418,7 @@ class ApiProductGroupController extends Controller
         $update = Product::where('id_product_group',$id_product_group)->update(['id_product_group'=>null]);
         $update = Product::whereIn('id_product',$id_products)->update(['id_product_group'=>$id_product_group]);
         if(!$update){
-            \DB::rollback();
+            \DB::rollBack();
             return MyHelper::checkUpdate($update);
         }
         \DB::commit();
@@ -477,7 +477,7 @@ class ApiProductGroupController extends Controller
         }
 
         $promo_data = $this->applyPromo($post, $data, $promo_error);
-        
+
         if ($promo_data) {
         	$data = $promo_data;
         }
@@ -755,7 +755,7 @@ class ApiProductGroupController extends Controller
             unset($product['products']);
             $result[] = $product;
         }
-        
+
         $result = MyHelper::checkGet(array_values($result));
         $result['promo_error'] = $promo_error;
 
@@ -773,7 +773,7 @@ class ApiProductGroupController extends Controller
 		$promo_error = null;
         if ( (!empty($post['promo_code']) && empty($post['id_deals_user'])) || (empty($post['promo_code']) && !empty($post['id_deals_user'])) ) {
 
-        	if (!empty($post['promo_code'])) 
+        	if (!empty($post['promo_code']))
         	{
         		$code = app($this->promo_campaign)->checkPromoCode($post['promo_code'], 1, 1);
         		$source = 'promo_campaign';
@@ -809,7 +809,7 @@ class ApiProductGroupController extends Controller
 						unset($data[$key]['products']);
     				}
         		}else{
-        			if ( ($code['product_type']??$code['deal_voucher']['deals']['product_type']) == 'group') 
+        			if ( ($code['product_type']??$code['deal_voucher']['deals']['product_type']) == 'group')
         			{
         				if (isset($applied_product[0])) {
 	        				// loop available product

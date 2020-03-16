@@ -596,7 +596,7 @@ class ApiProductController extends Controller
         $checkCode = Product::where('product_code', $post['name'])->first();
     	if ($checkCode) {
             $upload = MyHelper::uploadPhotoStrict($post['photo'], $this->saveImage, 300, 300);
-            
+
     	    if (isset($upload['status']) && $upload['status'] == "success") {
     	        $data['product_photo'] = $upload['path'];
     	    }

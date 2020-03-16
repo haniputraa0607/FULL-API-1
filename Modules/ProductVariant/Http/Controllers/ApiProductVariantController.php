@@ -136,7 +136,7 @@ class ApiProductVariantController extends Controller
                 'product_variant_price'=>$variant['product_variant_price']
             ]);
             if(!$create){
-                \DB::rollback();
+                \DB::rollBack();
                 return MyHelper::checkCreate($create);
             }
         }
@@ -155,7 +155,7 @@ class ApiProductVariantController extends Controller
             $dataId[] = $value;
             $update = ProductVariant::where('id_product_variant' , $value)->update(['product_variant_position' => ($key+1)]);
             if(!$update){
-                \DB::rollback();
+                \DB::rollBack();
                 return MyHelper::checkUpdate($update);
             }
         }
@@ -165,16 +165,16 @@ class ApiProductVariantController extends Controller
                 $dataId[] = $value;
                 $update = ProductVariant::where('id_product_variant' , $value)->update(['product_variant_position' => ($key+1),'parent'=>$par]);
                 if(!$update){
-                    \DB::rollback();
+                    \DB::rollBack();
                     return MyHelper::checkUpdate($update);
                 }
             }
-        }        
+        }
         // update data
         foreach ($variants as $variant) {
             $update = ProductVariant::updateOrCreate(['id_product_variant'=>$variant['id_product_variant']],$variant);
             if(!$update){
-                \DB::rollback();
+                \DB::rollBack();
                 return MyHelper::checkUpdate($update);
             }
         }

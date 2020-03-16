@@ -69,7 +69,7 @@ class ApiSubscriptionClaimPay extends Controller
                 if (!empty($dataSubs->subscription_price_cash) || !empty($dataSubs->subscription_price_point)) {
                     if (!empty($dataSubs->subscription_price_point)) {
                         if (!app($this->claim)->checkSubsPoint($dataSubs, $request->user()->id)) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'   => 'fail',
                                 'messages' => ['Your point not enough.']
@@ -80,7 +80,7 @@ class ApiSubscriptionClaimPay extends Controller
                     //CEK IF BALANCE O
                     if(isset($post['balance']) && $post['balance'] == true){
                         if(app($this->claim)->getPoint($request->user()->id) <= 0){
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'   => 'fail',
                                 'messages' => ['Your need more point.']
@@ -114,7 +114,7 @@ class ApiSubscriptionClaimPay extends Controller
                             $voucher = $user_subs;
 
                             if (!$user_subs) {
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status'   => 'fail',
                                     'messages' => ['Failed to save data.']
@@ -145,7 +145,7 @@ class ApiSubscriptionClaimPay extends Controller
                                 }
 
                                 if (!$subs_voucher) {
-                                    DB::rollback();
+                                    DB::rollBack();
                                     return response()->json([
                                         'status'   => 'fail',
                                         'messages' => ['Failed to save data.']
@@ -161,7 +161,7 @@ class ApiSubscriptionClaimPay extends Controller
                             $updateSubs = app($this->claim)->updateSubs($dataSubs);
                         }
                         else {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'   => 'fail',
                                 'messages' => ['Subscription is runs out.']
@@ -182,7 +182,7 @@ class ApiSubscriptionClaimPay extends Controller
                             return $this->bayarSekarang($payNow);
                         }
                         else {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'   => 'fail',
                                 'messages' => ['Transaction is failed.']
@@ -192,7 +192,7 @@ class ApiSubscriptionClaimPay extends Controller
                         DB::commit();
                     }
                     else {
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'   => 'fail',
                             'messages' => ['You have participated.']
@@ -201,7 +201,7 @@ class ApiSubscriptionClaimPay extends Controller
 
                 }
                 else {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status' => 'fail',
                         'messages' => ['This is a free subscription.']
@@ -209,7 +209,7 @@ class ApiSubscriptionClaimPay extends Controller
                 }
             }
             else {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status' => 'fail',
                     'messages' => ['Date valid '.date('d F Y', strtotime($dataSubs->subscription_start)).' until '.date('d F Y', strtotime($dataSubs->subscription_end))]
@@ -245,7 +245,7 @@ class ApiSubscriptionClaimPay extends Controller
                         $voucher->load('subscription');
                         $autocrm = app($this->autocrm)->SendAutoCRM('Buy Paid Subscription Success', $phone,
                             [
-                                'bought_at'                        => $voucher->bought_at, 
+                                'bought_at'                        => $voucher->bought_at,
                                 'subscription_title'               => $voucher->subscription->subscription_title,
                                 'id_subscription_user'             => $return['result']['voucher']['id_subscription_user'],
                                 'subscription_price_point'         => (string) $voucher->subscription_price_point,
@@ -279,7 +279,7 @@ class ApiSubscriptionClaimPay extends Controller
             }
         }
 
-        DB::rollback();
+        DB::rollBack();
         return response()->json([
             'status' => 'fail',
             'messages' => ['Failed to pay.']

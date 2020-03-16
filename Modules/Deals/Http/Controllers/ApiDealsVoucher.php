@@ -59,13 +59,13 @@ class ApiDealsVoucher extends Controller
                         $save = true;
                     }
                     else {
-                        DB::rollback();
+                        DB::rollBack();
                         $save = false;
                     }
                 }
             }
             else {
-                DB::rollback();
+                DB::rollBack();
                 $save = false;
             }
 
@@ -654,7 +654,7 @@ class ApiDealsVoucher extends Controller
 			DB::commit();
 			$deals_user = 1;
 		}else{
-			DB::rollback();
+			DB::rollBack();
 		}
 		$deals_user = MyHelper::checkUpdate($deals_user);
 		$deals_user['webview_url'] = env('API_URL') ."api/webview/voucher/". $id_deals_user;

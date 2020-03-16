@@ -51,7 +51,7 @@ class ApiRatingOptionController extends Controller
             $insert['options'] = implode(',',array_map(function($var){return substr($var,0,20);},$rule['options']));
             $create = RatingOption::create($insert);
             if(!$create){
-                \DB::rollback();
+                \DB::rollBack();
                 return MyHelper::checkCreate($create);
             }
         }

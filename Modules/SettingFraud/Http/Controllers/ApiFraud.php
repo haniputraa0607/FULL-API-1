@@ -619,7 +619,7 @@ class ApiFraud extends Controller
 
                 if(!empty($countOutlet)){
                     if($countOutlet[0]['id_outlet'] != $data['id_outlet']){
-                        DB::rollback();
+                        DB::rollBack();
                         $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxPoint, $user, null, 0, 0, date('Y-m-d H:i:s'), 0,null,
                             $sumBalance, $countOutlet[0]['id_outlet'], $data['id_outlet']);
                         return response()->json(['status' => 'fail', 'messages' => ['Transaction failed. Point can not use in this outlet.']]);

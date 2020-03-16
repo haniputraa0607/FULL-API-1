@@ -94,7 +94,7 @@ class ApiSubscriptionClaim extends Controller
                                 $voucher = $user_subs;
 
                                 if (!$user_subs) {
-                                    DB::rollback();
+                                    DB::rollBack();
                                     return response()->json([
                                         'status'   => 'fail',
                                         'messages' => ['Failed to save data.']
@@ -126,7 +126,7 @@ class ApiSubscriptionClaim extends Controller
                                     }
 
                                     if (!$subs_voucher) {
-                                        DB::rollback();
+                                        DB::rollBack();
                                         return response()->json([
                                             'status'   => 'fail',
                                             'messages' => ['Failed to save data.']
@@ -142,7 +142,7 @@ class ApiSubscriptionClaim extends Controller
                                 $updateSubs = $this->updateSubs($dataSubs);
                             }
                             else {
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status'   => 'fail',
                                     'messages' => ['Voucher is runs out.']
@@ -151,7 +151,7 @@ class ApiSubscriptionClaim extends Controller
 
                             // UPDATE POINT
                             if (!$this->updatePoint($voucher)) {
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status'   => 'fail',
                                     'messages' => ['Proses pembelian subscription gagal, silakan mencoba kembali']
@@ -195,7 +195,7 @@ class ApiSubscriptionClaim extends Controller
                             return response()->json(MyHelper::checkCreate($return));
                             }
                         else {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'   => 'fail',
                                 'messages' => ['You have participated.']
@@ -203,7 +203,7 @@ class ApiSubscriptionClaim extends Controller
                         }
                     }
                     else {
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'   => 'fail',
                             'messages' => ['Your point is not enough.']
@@ -212,7 +212,7 @@ class ApiSubscriptionClaim extends Controller
                 }
             }
             else {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status' => 'fail',
                     'messages' => ['Date valid '.date('d F Y', strtotime($dataSubs->subscription_start)).' until '.date('d F Y', strtotime($dataSubs->subscription_end))]

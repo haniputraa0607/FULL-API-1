@@ -374,13 +374,13 @@ class ApiCustomPageController extends Controller
         }
 
         $customPage = CustomPage::with(['custom_page_image_header', 'custom_page_outlet.outlet', 'custom_page_product.product'])->where('id_custom_page', $id_custom_page)->first();
-        
+
         if ($customPage) {
             $data['result'] = $customPage;
-            
+
             $data['result']['custom_page_button_form_text_button'] = json_decode($customPage['custom_page_button_form_text'], true)['button'];
             $data['result']['custom_page_button_form_text_value'] = json_decode($customPage['custom_page_button_form_text'], true)['value'];
-            
+
             return view('custompage::webview.information', $data);
         } else {
             return view('custompage::webview.information', ['result' => null]);
