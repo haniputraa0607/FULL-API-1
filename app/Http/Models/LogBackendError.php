@@ -34,7 +34,10 @@ class LogBackendError extends Model
 		//
 		$e = FlattenException::create($e);
 		if ($e->getStatusCode()) {
-			$ip = $_SERVER['REMOTE_ADDR'];
+			$ip = isset($_SERVER['HTTP_X_FORWARDED_FOR'])?$_SERVER['HTTP_X_FORWARDED_FOR']:$_SERVER['REMOTE_ADDR'];
+			if(strpos($ip,',') !== false) {
+				$ip = substr($ip,0,strpos($ip,','));
+			}
 			$user_agent = $_SERVER['HTTP_USER_AGENT']??null;
 			$request_method = $_SERVER['REQUEST_METHOD'];
 			if ($ip == "::1") $ip = "Localhost";
