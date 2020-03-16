@@ -995,19 +995,204 @@ class ApiPOS extends Controller
                 $dataJob[$keyMenu]['sap_matnr']   = $menu['sap_matnr'];
                 foreach ($menu['price_detail'] as $keyPrice => $price) {
                     $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
-                    if ($checkOutlet) {
-                        $dataJob[$keyMenu]['price_detail'][$keyPrice]  = $price;
-                        $countInsert     = $countInsert + 1;
-                        $insertProduct[] = 'Success to sync, product ' . $menu['sap_matnr'] . ' at outlet ' . $price['store_code'];
+
+                    if (!Schema::connection('mysql3')->hasTable('outlet_' . $price['store_code'])) {
+                        Schema::connection('mysql3')->create('outlet_' . $price['store_code'], function ($table) {
+                            $table->bigIncrements('id_product_price_periode');
+                            $table->unsignedInteger('id_product');
+                            $table->unsignedInteger('id_outlet');
+                            $table->float('price', 10, 2)->nullable();
+                            $table->dateTime('start_date')->nullable();
+                            $table->dateTime('end_date')->nullable();
+                            $table->timestamps();
+
+                            $table->index(['id_product', 'id_outlet', 'start_date', 'end_date'], 'index_product_price');
+                        });
+                    }
+
+                    if ($price['start_date'] < date('Y-m-d')) {
+                        $price['start_date'] = date('Y-m-d');
+                    }
+
+                    DB::beginTransaction();
+
+                    $flagOne = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
+                        ->where('start_date', $price['start_date'])->where('end_date', $price['end_date'])
+                        ->orderBy('start_date')->get()->toArray();
+
+                    if (empty($flagOne)) {
+                        $flagTwo = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
+                            ->where('start_date', '<=', $price['start_date'])->where('end_date', '>=', $price['start_date'])
+                            ->orderBy('start_date')->get()->toArray();
+
+                        if (!empty($flagTwo) && end($flagTwo)->end_date >= $price['end_date']) {
+                            $flagBetween = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
+                                ->whereBetween('end_date', [$price['start_date'], $price['end_date']])->get()->toArray();
+                            if (!empty($flagBetween)) {
+                                foreach ($flagBetween as $keyFlagBetween => $between) {
+                                    if ($keyFlagBetween != 0) {
+                                        DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', $between->id_product_price_periode)->delete();
+                                    }
+                                }
+                            }
+
+                            if (date('Y-m-d', strtotime(end($flagTwo)->start_date)) == $price['start_date']) {
+                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagTwo)->id_product_price_periode)->delete();
+                            } else {
+                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagTwo)->id_product_price_periode)->update([
+                                    'id_product'    => $checkProduct->id_product,
+                                    'id_outlet'     => $checkOutlet->id_outlet,
+                                    'price'         => end($flagTwo)->price,
+                                    'start_date'    => date('Y-m-d', strtotime(end($flagTwo)->start_date)),
+                                    'end_date'      => date('Y-m-d', strtotime($price['start_date'] . ' -' . 1 . ' day'))
+                                ]);
+                            }
+
+                            DB::connection('mysql3')->table('outlet_' . $price['store_code'])->insert([[
+                                'id_product'    => $checkProduct->id_product,
+                                'id_outlet'     => $checkOutlet->id_outlet,
+                                'price'         => $price['price'],
+                                'start_date'    => $price['start_date'],
+                                'end_date'      => $price['end_date']
+                            ], [
+                                'id_product'    => $checkProduct->id_product,
+                                'id_outlet'     => $checkOutlet->id_outlet,
+                                'price'         => end($flagTwo)->price,
+                                'start_date'    => date('Y-m-d', strtotime($price['end_date'] . ' +' . 1 . ' day')),
+                                'end_date'      => date('Y-m-d', strtotime(end($flagTwo)->end_date))
+                            ]]);
+                        } elseif (!empty($flagTwo) && end($flagTwo)->end_date <= $price['end_date']) {
+                            $flagBetween = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
+                                ->whereBetween('end_date', [$price['start_date'], $price['end_date']])->get()->toArray();
+
+                            if (!empty($flagBetween)) {
+                                foreach ($flagBetween as $keyFlagBetween => $between) {
+                                    if ($keyFlagBetween != 0) {
+                                        DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', $between->id_product_price_periode)->delete();
+                                    }
+                                }
+                            }
+
+                            $flagThree = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
+                                ->where('end_date', '>=', $price['end_date'])
+                                ->orderBy('start_date')->get()->toArray();
+
+                            if (date('Y-m-d', strtotime(end($flagTwo)->start_date)) == $price['start_date']) {
+                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagTwo)->id_product_price_periode)->delete();
+                            } else {
+                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagTwo)->id_product_price_periode)->update([
+                                    'id_product'    => $checkProduct->id_product,
+                                    'id_outlet'     => $checkOutlet->id_outlet,
+                                    'price'         => end($flagTwo)->price,
+                                    'start_date'    => date('Y-m-d', strtotime(end($flagTwo)->start_date)),
+                                    'end_date'      => date('Y-m-d', strtotime($price['start_date'] . ' -' . 1 . ' day'))
+                                ]);
+                            }
+
+                            if (!empty($flagTwo) && !empty($flagThree)) {
+                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagThree)->id_product_price_periode)->update([
+                                    'id_product'    => $checkProduct->id_product,
+                                    'id_outlet'     => $checkOutlet->id_outlet,
+                                    'price'         => $price['price'],
+                                    'start_date'    => $price['start_date'],
+                                    'end_date'      => $price['end_date']
+                                ]);
+                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->insert([
+                                    'id_product'    => $checkProduct->id_product,
+                                    'id_outlet'     => $checkOutlet->id_outlet,
+                                    'price'         => end($flagThree)->price,
+                                    'start_date'    => date('Y-m-d', strtotime($price['end_date'] . ' +' . 1 . ' day')),
+                                    'end_date'      => date('Y-m-d', strtotime(end($flagThree)->end_date))
+                                ]);
+                            } else {
+                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->insert([
+                                    'id_product'    => $checkProduct->id_product,
+                                    'id_outlet'     => $checkOutlet->id_outlet,
+                                    'price'         => $price['price'],
+                                    'start_date'    => $price['start_date'],
+                                    'end_date'      => $price['end_date']
+                                ]);
+                            }
+                        } else {
+                            $flagBetween = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
+                                ->whereBetween('end_date', [$price['start_date'], $price['end_date']])
+                                ->orderBy('start_date')->get()->toArray();
+
+                            if (!empty($flagBetween)) {
+                                foreach ($flagBetween as $keyFlagBetween => $between) {
+                                    if ($keyFlagBetween != 0) {
+                                        DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', $between->id_product_price_periode)->delete();
+                                    }
+                                }
+                            }
+
+                            $flagThree = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
+                                ->where('end_date', '>=', $price['end_date'])
+                                ->orderBy('start_date')->get()->toArray();
+
+                            if (empty($flagThree)) {
+                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->insert([
+                                    'id_product'    => $checkProduct->id_product,
+                                    'id_outlet'     => $checkOutlet->id_outlet,
+                                    'price'         => $price['price'],
+                                    'start_date'    => $price['start_date'],
+                                    'end_date'      => $price['end_date']
+                                ]);
+                            } elseif (empty($flagTwo) && !empty($flagThree)) {
+                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', reset($flagThree)->id_product_price_periode)->update([
+                                    'id_product'    => $checkProduct->id_product,
+                                    'id_outlet'     => $checkOutlet->id_outlet,
+                                    'price'         => reset($flagThree)->price,
+                                    'start_date'    => date('Y-m-d', strtotime($price['end_date'] . ' +' . 1 . ' day')),
+                                    'end_date'      => date('Y-m-d', strtotime(reset($flagThree)->end_date)),
+                                ]);
+                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->insert([
+                                    'id_product'    => $checkProduct->id_product,
+                                    'id_outlet'     => $checkOutlet->id_outlet,
+                                    'price'         => $price['price'],
+                                    'start_date'    => $price['start_date'],
+                                    'end_date'      => $price['end_date']
+                                ]);
+                            } else {
+                                if (date('Y-m-d', strtotime(end($flagTwo)->start_date)) == $price['start_date']) {
+                                    DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagTwo)->id_product_price_periode)->delete();
+                                } else {
+                                    DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagTwo)->id_product_price_periode)->update([
+                                        'id_product'    => $checkProduct->id_product,
+                                        'id_outlet'     => $checkOutlet->id_outlet,
+                                        'price'         => end($flagTwo)->price,
+                                        'start_date'    => date('Y-m-d', strtotime(end($flagTwo)->start_date)),
+                                        'end_date'      => date('Y-m-d', strtotime($price['start_date'] . ' -' . 1 . ' day'))
+                                    ]);
+                                }
+                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->insert([[
+                                    'id_product'    => $checkProduct->id_product,
+                                    'id_outlet'     => $checkOutlet->id_outlet,
+                                    'price'         => $price['price'],
+                                    'start_date'    => $price['start_date'],
+                                    'end_date'      => $price['end_date']
+                                ]]);
+                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagThree)->id_product_price_periode)->update([
+                                    'id_product'    => $checkProduct->id_product,
+                                    'id_outlet'     => $checkOutlet->id_outlet,
+                                    'price'         => end($flagThree)->price,
+                                    'start_date'    => date('Y-m-d', strtotime($price['end_date'] . ' +' . 1 . ' day')),
+                                    'end_date'      => end($flagThree)->end_date
+                                ]);
+                            }
+                        }
                     } else {
-                        $countfailed     = $countfailed + 1;
-                        $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ' at outlet ' . $price['store_code'] . ', outlet not found';
-                        continue;
+                        DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagOne)->id_product_price_periode)->update([
+                            'id_product'    => $checkProduct->id_product,
+                            'id_outlet'     => $checkOutlet->id_outlet,
+                            'price'         => $price['price'],
+                        ]);
                     }
                 }
-                if (isset($dataJob[$keyMenu]['price_detail'])) {
-                    SyncProductPrice::dispatch(json_encode($dataJob[$keyMenu]));
-                }
+                dd('no');
+                // if (isset($dataJob[$keyMenu]['price_detail'])) {
+                // SyncProductPrice::dispatch(json_encode($dataJob[$keyMenu]));
+                // }
             } else {
                 $countfailed     = $countfailed + 1;
                 $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', product not found';
