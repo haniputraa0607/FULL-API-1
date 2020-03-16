@@ -2,6 +2,7 @@
 namespace App\Lib;
 
 use App\Http\Models\Transaction;
+use App\Http\Models\TransactionVoucher;
 use App\Http\Models\TransactionPickup;
 use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentBalance;
@@ -81,6 +82,18 @@ class ConnectPOS{
 			$transactions[$user->phone]['outlet_name'] = $trxData->outlet->outlet_name;
 			$outlets[] = env('POS_OUTLET_OVERWRITE')?:$trxData->outlet->outlet_code;
 			$receive_at = $trxData->receive_at?:date('Y-m-d H:i:s');
+			$voucher = TransactionVoucher::where('id_transaction',$trxData->id_transaction)->first();
+			$appliedPromo = null;
+			$promoNumber = null;
+			if($trxData->id_promo_campaign_promo_code || $voucher){
+				$appliedPromo = 'MOBILE APPS PROMO';
+				if($trxData->id_promo_campaign_promo_code){
+					$promoNumber = $trxData->promo_campaign_promo_code->promo_code;
+				}else{
+					$voucher->load('deals_voucher');
+					$promoNumber = $voucher->deals_voucher->voucher_code;
+				}
+			}
 			$body = [
 				'header' => [
 					'orderNumber'=> $trxData->transaction_receipt_number, //receipt number
@@ -98,7 +111,7 @@ class ConnectPOS{
 					'subTotal'=> $trxData->transaction_subtotal, //subtotal
 					'tax'=> $trxData->transaction_tax, // transaction tax, ikut tabel
 					'notes'=> '', // “”
-					'appliedPromo'=> $trxData->id_promo_campaign_promo_code?'MOBILE APPS PROMO':'', // kalau pakai prromo / “”
+					'appliedPromo'=> $appliedPromo, // kalau pakai prromo / “”
 					'pos'=> [ //hardcode
 					'id'=> 1,
 					'cashDrawer'=> 1,
@@ -131,8 +144,8 @@ class ConnectPOS{
 					"tax"=> $tax, //10%
 					"type"=> $product->product_variants[1]->product_variant_code == 'general_type'?null:$product->product_variants[1]->product_variant_code, //code variant /null
 					"size"=> $product->product_variants[0]->product_variant_code == 'general_size'?null:$product->product_variants[0]->product_variant_code, // code variant /null
-					"promoNumber"=> $trxData->id_promo_campaign_promo_code?$trxData->promo_campaign_promo_code->promo_code:null, //kode voucher //null
-					"promoType"=> $trxData->id_promo_campaign_promo_code?"5":null, //hardcode //null
+					"promoNumber"=> $promoNumber, //kode voucher //null
+					"promoType"=> $appliedPromo?"5":null, //hardcode //null
 					"status"=> "ACTIVE" // hardcode
 				];
 				$last = $key+1;
@@ -153,8 +166,8 @@ class ConnectPOS{
 					"tax"=> $tax, //10%
 					"type"=> null, //code variant /null
 					"size"=> null, // code variant /null
-					"promoNumber"=> $trxData->id_promo_campaign_promo_code?$trxData->promo_campaign_promo_code->promo_code:null, //kode voucher //null
-					"promoType"=> $trxData->id_promo_campaign_promo_code?"5":null, //hardcode //null
+					"promoNumber"=> $promoNumber, //kode voucher //null
+					"promoType"=> $appliedPromo?"5":null, //hardcode //null
 					"status"=> "ACTIVE" // hardcode
 				];
 			}
