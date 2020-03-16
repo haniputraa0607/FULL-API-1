@@ -17,6 +17,7 @@ use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\TransactionPaymentOvo;
+use App\Http\Models\TransactionPickup;
 use App\Http\Models\LogRequest;
 use App\Http\Models\OvoReversal;
 use App\Http\Models\OvoReference;
@@ -327,7 +328,7 @@ class ApiConfirm extends Controller
         elseif ($post['payment_type'] == 'Cimb') {
             $cimb['MERCHANT_TRANID']    = $check->transaction_receipt_number;
             $cimb['AMOUNT']             = $countGrandTotal;
-            
+
             return [
                 'status'    => 'success',
                 'result'    => [
@@ -589,6 +590,14 @@ class ApiConfirm extends Controller
                                     $dataTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction')
                                     ->where('id_transaction', $payment['id_transaction'])->first();
 
+                                    //inset pickup_at when pickup_type = right now
+                                    if($dataTrx['trasaction_type'] == 'Pickup Order'){
+                                        $dataPickup = TransactionPickup::where('id_transaction', $dataTrx['id_transaction'])->first();
+                                        if(isset($dataPickup['pickup_type']) && $dataPickup['pickup_type'] == 'right now'){
+                                            $updatePickup = TransactionPickup::where('id_transaction', $dataTrx['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s')]);
+                                        }
+                                    }
+
                                     // apply cashback to referrer
                                     \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($dataTrx);
 
@@ -783,7 +792,7 @@ class ApiConfirm extends Controller
         }
 
         $updatePaymentStatus = Transaction::where('id_transaction', $payment['id_transaction'])->update(['transaction_payment_status' => 'Cancelled']);
-        
+
         $updateVoucher = app($this->voucher)->returnVoucher($payment['id_transaction']);
 
         //return balance

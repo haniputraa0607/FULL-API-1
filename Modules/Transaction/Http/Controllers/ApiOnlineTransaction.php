@@ -339,7 +339,7 @@ class ApiOnlineTransaction extends Controller
                         'messages'=>['Voucher is not valid']
                     ];
 	            }
-	            
+
                 $promo_source = 'voucher_online';
 	            $promo_discount=$discount_promo['discount'];
 	        }
@@ -734,7 +734,7 @@ class ApiOnlineTransaction extends Controller
         if($request->json('id_deals_user')){
         	$update_voucher = DealsUser::where('id_deals_user','=',$request->id_deals_user)->update(['used_at' => date('Y-m-d H:i:s'), 'id_outlet' => $request->json('id_outlet')]);
         	$update_deals = Deal::where('id_deals','=',$deals->dealVoucher['deals']['id_deals'])->update(['deals_total_used' => $deals->dealVoucher['deals']['deals_total_used']+1]);
-        	
+
             $addTransactionVoucher = TransactionVoucher::create([
                 'id_deals_voucher' => $deals['id_deals_voucher'],
                 'id_user' => $insertTransaction['id_user'],
@@ -1416,6 +1416,11 @@ class ApiOnlineTransaction extends Controller
 
                 // Fraud Detection
                 if ($post['transaction_payment_status'] == 'Completed' || $save['type'] == 'no_topup') {
+
+                    //inset pickup_at when pickup_type = right now
+                    if($insertPickup['pickup_type'] == 'right now'){
+                        $updatePickup = TransactionPickup::where('id_transaction', $insertTransaction['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s')]);
+                    }
                     $userData = User::find($user['id']);
 
                     if($fraudTrxDay){
@@ -1750,7 +1755,7 @@ class ApiOnlineTransaction extends Controller
 		            	$promo_error['warning_image'] = env('S3_URL_API').($code['promo_campaign_warning_image']??$promo_error['warning_image']);
 				        $promo_error['product'] = $pct->getRequiredProduct($code->id_promo_campaign)??null;
 		            	$promo_source = null;
-		                
+
 		            }
 		            $promo_discount=$discount_promo['discount'];
 	        	}
