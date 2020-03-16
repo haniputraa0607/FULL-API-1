@@ -37,7 +37,7 @@ Route::group(['prefix' => 'api/v1/pos/', 'namespace' => 'Modules\POS\Http\Contro
 });
 Route::group(['prefix' => 'api/v1/pos/', 'namespace' => 'Modules\POS\Http\Controllers'], function()
 {
-    Route::group(['middleware' => ['auth_client','log_activities', 'scopes:pos']], function() {
+    Route::group(['middleware' => ['auth_client','log_activities_pos', 'scopes:pos']], function() {
         Route::any('/order', 'ApiOrder@listOrder');
         Route::post('order/detail', 'ApiOrder@detailOrder');
         Route::post('order/accept', 'ApiOrder@acceptOrder');
