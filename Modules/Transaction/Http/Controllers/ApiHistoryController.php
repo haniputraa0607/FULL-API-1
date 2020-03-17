@@ -464,7 +464,7 @@ class ApiHistoryController extends Controller
     {
         $date = [];
         foreach ($data as $key => $row) {
-            $date[$key] = $row['date'];
+            $date[$key] = strtotime($row['date']);
         }
 
         if ($order == 'new') {
@@ -583,33 +583,26 @@ class ApiHistoryController extends Controller
         $listTransaction = [];
 
         foreach ($transaction as $key => $value) {
-            // $transaction[$key]['date'] = $value['transaction_date'];
-            // $transaction[$key]['type'] = 'trx';
-            // $transaction[$key]['outlet'] = $value['outlet']['outlet_name'];
+            $dataList['type'] = 'trx';
+            $dataList['id'] = $value['id_transaction'];
+            $dataList['date']    = date('d M Y H:i', strtotime($value['transaction_date']));
+            $dataList['id_outlet'] = $value['outlet']['id_outlet'];
+            $dataList['outlet_code'] = $value['outlet']['outlet_code'];
+            $dataList['outlet'] = $value['outlet']['outlet_name'];
+            $dataList['amount'] = MyHelper::requestNumber($value['transaction_grandtotal'], '_CURRENCY');
 
-            //cek payment
-            if ($value['trasaction_payment_type']) {
-                $dataList['type'] = 'trx';
-                $dataList['id'] = $value['id_transaction'];
-                $dataList['date']    = date('Y-m-d H:i', strtotime($value['transaction_date']));
-                $dataList['id_outlet'] = $value['outlet']['id_outlet'];
-                $dataList['outlet_code'] = $value['outlet']['outlet_code'];
-                $dataList['outlet'] = $value['outlet']['outlet_name'];
-                $dataList['amount'] = MyHelper::requestNumber($value['transaction_grandtotal'], '_CURRENCY');
-
-                $dataList['cashback'] = MyHelper::requestNumber($value['transaction_cashback_earned'],'_POINT');
-                $dataList['subtitle'] = $value['sum_qty'].($value['sum_qty']>1?' items':' item');
-                $dataList['item_total'] = (int) $value['sum_qty'];
-                if ($dataList['cashback'] >= 0) {
-                    $dataList['status_point'] = 1;
-                } else {
-                    $dataList['status_point'] = 0;
-                }
-                $dataList['rate_status'] = UserRating::where('id_transaction',$value['id_transaction'])->exists()?1:0;
-                $dataList['payment_status'] = $value['transaction_payment_status'];
-
-                $listTransaction[] = $dataList;
+            $dataList['cashback'] = MyHelper::requestNumber($value['transaction_cashback_earned'],'_POINT');
+            $dataList['subtitle'] = $value['sum_qty'].($value['sum_qty']>1?' items':' item');
+            $dataList['item_total'] = (int) $value['sum_qty'];
+            if ($dataList['cashback'] >= 0) {
+                $dataList['status_point'] = 1;
+            } else {
+                $dataList['status_point'] = 0;
             }
+            $dataList['rate_status'] = UserRating::where('id_transaction',$value['id_transaction'])->exists()?1:0;
+            $dataList['payment_status'] = $value['transaction_payment_status'];
+
+            $listTransaction[] = $dataList;
         }
 
         return $listTransaction;
