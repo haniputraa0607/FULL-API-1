@@ -80,7 +80,7 @@ class ApiDealsClaimPay extends Controller
                 if (!empty($dataDeals->deals_voucher_price_point) || !empty($dataDeals->deals_voucher_price_cash)) {
                     if (!empty($dataDeals->deals_voucher_price_point)) {
                         if (!app($this->claim)->checkDealsPoint($dataDeals, $request->user()->id)) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'   => 'fail',
                                 'messages' => ['Your point not enough.']
@@ -92,7 +92,7 @@ class ApiDealsClaimPay extends Controller
                     if(isset($post['balance']) && $post['balance'] == true){
                         $user_balance = app($this->claim)->getPoint($request->user()->id);
                         if($user_balance <= 0){
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'   => 'fail',
                                 'messages' => ['Your need more point.']
@@ -143,7 +143,7 @@ class ApiDealsClaimPay extends Controller
                                             'deals_voucher_status' => 'Sent',
                                         ]);
                                         if (!$voucher) {
-                                            DB::rollback();
+                                            DB::rollBack();
                                             return response()->json([
                                                 'status'   => 'fail',
                                                 'messages' => ['Failed to save data.']
@@ -160,7 +160,7 @@ class ApiDealsClaimPay extends Controller
                                             $voucher = $apiDealsClaim->createVoucherUser($id_user, $voucher->id_deals_voucher, $dataDeals, $deals_sub, 0);
                                         }
                                         if (!$voucher) {
-                                            DB::rollback();
+                                            DB::rollBack();
                                             return response()->json([
                                                 'status'   => 'fail',
                                                 'messages' => ['Failed to save data.']
@@ -180,7 +180,7 @@ class ApiDealsClaimPay extends Controller
                                 $voucher = $user_voucher;
                             }
                             else {
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status'   => 'fail',
                                     'messages' => ['Voucher is runs out.']
@@ -194,7 +194,7 @@ class ApiDealsClaimPay extends Controller
                                 $voucher = app($this->claim)->getVoucherFromTable($request->user(), $dataDeals);
 
                                 if (!$voucher) {
-                                    DB::rollback();
+                                    DB::rollBack();
                                     return response()->json([
                                         'status'   => 'fail',
                                         'messages' => ['Voucher is runs out.']
@@ -206,7 +206,7 @@ class ApiDealsClaimPay extends Controller
                                 $voucher = app($this->claim)->getVoucherGenerate($request->user(), $dataDeals);
 
                                 if (!$voucher) {
-                                    DB::rollback();
+                                    DB::rollBack();
                                     return response()->json([
                                         'status'   => 'fail',
                                         'messages' => ['Voucher is runs out.']
@@ -227,7 +227,7 @@ class ApiDealsClaimPay extends Controller
                             return $this->bayarSekarang($payNow);
                         }
                         else {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'   => 'fail',
                                 'messages' => ['Transaction is failed.']
@@ -245,7 +245,7 @@ class ApiDealsClaimPay extends Controller
 
                 }
                 else {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status' => 'fail',
                         'messages' => ['This is a free voucher.']
@@ -253,7 +253,7 @@ class ApiDealsClaimPay extends Controller
                 }
             }
             else {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status' => 'fail',
                     'messages' => ['Date valid '.date('d F Y', strtotime($dataDeals->deals_start)).' until '.date('d F Y', strtotime($dataDeals->deals_end))]
@@ -292,7 +292,7 @@ class ApiDealsClaimPay extends Controller
                     unset($pay['payment']);
                     $pay['deals'] = 1;
                     DB::commit();
-                    
+
                     return [
                         'status'    => 'success',
                         'result'    => [
@@ -331,7 +331,7 @@ class ApiDealsClaimPay extends Controller
                         $voucher->load('dealVoucher.deals');
                         $autocrm = app($this->autocrm)->SendAutoCRM('Claim Paid Deals Success', $phone,
                             [
-                                'claimed_at'                => $voucher->claimed_at, 
+                                'claimed_at'                => $voucher->claimed_at,
                                 'deals_title'               => $voucher->dealVoucher->deals->deals_title,
                                 'id_deals_user'             => $return['result']['voucher']['id_deals_user'],
                                 'deals_voucher_price_point' => (string) $voucher->voucher_price_point,
@@ -362,7 +362,7 @@ class ApiDealsClaimPay extends Controller
             }
         }
 
-        DB::rollback();
+        DB::rollBack();
         return response()->json([
             'status' => 'fail',
             'messages' => ['Failed to pay.']
@@ -524,7 +524,7 @@ class ApiDealsClaimPay extends Controller
             if($transaction->balance_nominal){
                 $insertDataLogCash = app("Modules\Balance\Http\Controllers\BalanceController")->addLogBalance($transaction->id_user, $transaction->balance_nominal, $transaction->id_deals_user, 'Claim Deals Failed');
                 if (!$insertDataLogCash) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Insert Cashback Failed']
@@ -647,7 +647,7 @@ class ApiDealsClaimPay extends Controller
                                 $voucher->load('dealVoucher.deals');
                                 $autocrm = app($this->autocrm)->SendAutoCRM('Claim Paid Deals Success', $phone,
                                     [
-                                        'claimed_at'                => $voucher->claimed_at, 
+                                        'claimed_at'                => $voucher->claimed_at,
                                         'deals_title'               => $voucher->dealVoucher->deals->deals_title,
                                         'id_deals_user'             => $voucher->id_deals_user,
                                         'deals_voucher_price_point' => (string) $voucher->voucher_price_point,
@@ -714,11 +714,11 @@ class ApiDealsClaimPay extends Controller
                 $updatePaymentStatus = DealsUser::where('id_deals_user', $voucher['id_deals_user'])->update(['paid_status' => 'Cancelled']);
 
                 //return balance\
-                
+
                 if ($voucher->balance_nominal) {
                     $insertDataLogCash = app($this->balance)->addLogBalance($voucher['id_user'], $voucher['balance_nominal'], $voucher['id_deals_user'], 'Claim Deals Failed');
                     if (!$insertDataLogCash) {
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => ['Insert Cashback Failed']
@@ -759,11 +759,11 @@ class ApiDealsClaimPay extends Controller
             case 'Pending':
                 $title = 'Pending';
                 break;
-            
+
             case 'Paid':
                 $title = 'Terbayar';
                 break;
-            
+
             case 'Completed':
                     $title = 'Sukses';
                     break;
@@ -771,7 +771,7 @@ class ApiDealsClaimPay extends Controller
             case 'Cancelled':
                     $title = 'Gagal';
                     break;
-            
+
             default:
                 $title = 'Sukses';
                 break;

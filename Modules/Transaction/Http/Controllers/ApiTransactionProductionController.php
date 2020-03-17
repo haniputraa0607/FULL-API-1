@@ -37,7 +37,7 @@ class ApiTransactionProductionController extends Controller
         $check = Transaction::with('transaction_shipments', 'productTransaction.product')->where('transaction_receipt_number', $post['id'])->first();
 
         if (empty($check)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Transaction Not Found']
@@ -45,7 +45,7 @@ class ApiTransactionProductionController extends Controller
         }
 
         if ($check['transaction_payment_status'] != 'Pending') {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Transaction Invalid']
@@ -78,7 +78,7 @@ class ApiTransactionProductionController extends Controller
             ];
             array_push($dataDetailProduct, $dataShip);
         }
-        
+
         if ($check['transaction_service'] > 0) {
             $dataService = [
                 'id'       => null,
@@ -121,7 +121,7 @@ class ApiTransactionProductionController extends Controller
             if ($checkPayment['type'] == 'Balance') {
                 $checkPaymentBalance = TransactionPaymentBalance::where('id_transaction', $check['id_transaction'])->first();
                 if (empty($checkPaymentBalance)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status' => 'fail',
                         'messages' => ['Transaction is invalid']
@@ -196,7 +196,7 @@ class ApiTransactionProductionController extends Controller
             }
 
             if (empty($connectMidtrans['token'])) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => [
@@ -220,7 +220,7 @@ class ApiTransactionProductionController extends Controller
 
             $insertNotifMidtrans = TransactionPaymentMidtran::create($dataNotifMidtrans);
             if (!$insertNotifMidtrans) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => [
@@ -238,7 +238,7 @@ class ApiTransactionProductionController extends Controller
 
             $saveMultiple = TransactionMultiplePayment::create($dataMultiple);
             if (!$saveMultiple) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['fail to confirm transaction']
@@ -252,7 +252,7 @@ class ApiTransactionProductionController extends Controller
             // $update = Transaction::where('transaction_receipt_number', $post['id'])->update(['trasaction_payment_type' => $post['payment_type']]);
 
             // if (!$update) {
-            //     DB::rollback();
+            //     DB::rollBack();
             //     return response()->json([
             //         'status'    => 'fail',
             //         'messages'  => [
@@ -272,14 +272,14 @@ class ApiTransactionProductionController extends Controller
             if (isset($post['id_manual_payment_method'])) {
                 $checkPaymentMethod = ManualPaymentMethod::where('id_manual_payment_method', $post['id_manual_payment_method'])->first();
                 if (empty($checkPaymentMethod)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'   => 'fail',
                         'messages' => ['Payment Method Not Found']
                     ]);
                 }
             }
-            
+
             if (isset($post['payment_receipt_image'])) {
                 if (!file_exists($this->saveImage)) {
                     mkdir($this->saveImage, 0777, true);
@@ -291,7 +291,7 @@ class ApiTransactionProductionController extends Controller
                     $post['payment_receipt_image'] = $save['path'];
                 }
                 else {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'   => 'fail',
                         'messages' => ['fail upload image']
@@ -322,20 +322,20 @@ class ApiTransactionProductionController extends Controller
                 $update = Transaction::where('transaction_receipt_number', $post['id'])->update(['transaction_payment_status' => 'Paid', 'trasaction_payment_type' => $post['payment_type']]);
 
                 if (!$update) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status' => 'fail',
                         'messages' => ['Transaction Failed']
                     ]);
                 }
             } elseif (isset($insertPayment) && $insertPayment == 'fail') {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status' => 'fail',
                     'messages' => ['Transaction Failed']
                 ]);
             } else {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status' => 'fail',
                     'messages' => ['Transaction Failed']
@@ -347,7 +347,7 @@ class ApiTransactionProductionController extends Controller
                 'status' => 'success',
                 'result' => $check
             ]);
-            
+
         }
     }
 }

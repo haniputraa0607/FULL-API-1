@@ -51,7 +51,7 @@ class ApiConfirm extends Controller
 
         $check = Transaction::with('transaction_shipments', 'productTransaction.product','outlet_name')->where('id_user',$user->id)->where('id_transaction', $post['id'])->first();
         if (empty($check)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Transaction Not Found']
@@ -59,7 +59,7 @@ class ApiConfirm extends Controller
         }
 
         if ($check['transaction_payment_status'] != 'Pending') {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Transaction Invalid']
@@ -146,7 +146,7 @@ class ApiConfirm extends Controller
             if ($checkPayment['type'] == 'Balance') {
                 $checkPaymentBalance = TransactionPaymentBalance::where('id_transaction', $check['id_transaction'])->first();
                 if (empty($checkPaymentBalance)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status' => 'fail',
                         'messages' => ['Transaction is invalid']
@@ -221,7 +221,7 @@ class ApiConfirm extends Controller
             }
 
             if (empty($connectMidtrans['token'])) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => [
@@ -245,7 +245,7 @@ class ApiConfirm extends Controller
 
             $insertNotifMidtrans = TransactionPaymentMidtran::create($dataNotifMidtrans);
             if (!$insertNotifMidtrans) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => [
@@ -263,7 +263,7 @@ class ApiConfirm extends Controller
 
             $saveMultiple = TransactionMultiplePayment::create($dataMultiple);
             if (!$saveMultiple) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['fail to confirm transaction']
@@ -277,7 +277,7 @@ class ApiConfirm extends Controller
             // $update = Transaction::where('transaction_receipt_number', $post['id'])->update(['trasaction_payment_type' => $post['payment_type']]);
 
             // if (!$update) {
-            //     DB::rollback();
+            //     DB::rollBack();
             //     return response()->json([
             //         'status'    => 'fail',
             //         'messages'  => [
@@ -341,7 +341,7 @@ class ApiConfirm extends Controller
             if (isset($post['id_manual_payment_method'])) {
                 $checkPaymentMethod = ManualPaymentMethod::where('id_manual_payment_method', $post['id_manual_payment_method'])->first();
                 if (empty($checkPaymentMethod)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'   => 'fail',
                         'messages' => ['Payment Method Not Found']
@@ -360,7 +360,7 @@ class ApiConfirm extends Controller
                     $post['payment_receipt_image'] = $save['path'];
                 }
                 else {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'   => 'fail',
                         'messages' => ['fail upload image']
@@ -391,20 +391,20 @@ class ApiConfirm extends Controller
                 $update = Transaction::where('transaction_receipt_number', $post['id'])->update(['transaction_payment_status' => 'Paid', 'trasaction_payment_type' => $post['payment_type']]);
 
                 if (!$update) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status' => 'fail',
                         'messages' => ['Transaction Failed']
                     ]);
                 }
             } elseif (isset($insertPayment) && $insertPayment == 'fail') {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status' => 'fail',
                     'messages' => ['Transaction Failed']
                 ]);
             } else {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status' => 'fail',
                     'messages' => ['Transaction Failed']
@@ -475,7 +475,7 @@ class ApiConfirm extends Controller
                 'is_production' => $is_prod
             ]);
             if (!$insertPayOvo) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => [
@@ -492,7 +492,7 @@ class ApiConfirm extends Controller
 
             $saveMultiple = TransactionMultiplePayment::create($dataMultiple);
             if (!$saveMultiple) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['fail to confirm transaction']
@@ -690,7 +690,7 @@ class ApiConfirm extends Controller
                         if (!empty($checkBalance)) {
                             $insertDataLogCash = app($this->balance)->addLogBalance($trx['id_user'], $checkBalance['balance_nominal'], $trx['id_transaction'], 'Transaction Failed', $trx['transaction_grandtotal']);
                             if (!$insertDataLogCash) {
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status'    => 'fail',
                                     'messages'  => ['Insert Cashback Failed']
@@ -707,7 +707,7 @@ class ApiConfirm extends Controller
                                 ]
                             );
                             if($send != true){
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                         'status' => 'fail',
                                         'messages' => ['Failed Send notification to customer']
@@ -802,7 +802,7 @@ class ApiConfirm extends Controller
             if (!empty($checkBalance)) {
                 $insertDataLogCash = app($this->balance)->addLogBalance($trx['id_user'], $checkBalance['balance_nominal'], $trx['id_transaction'], 'Transaction Failed', $trx['transaction_grandtotal']);
                 if (!$insertDataLogCash) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Insert Cashback Failed']
@@ -819,7 +819,7 @@ class ApiConfirm extends Controller
                     ]
                 );
                 if($send != true){
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                             'status' => 'fail',
                             'messages' => ['Failed Send notification to customer']

@@ -52,7 +52,7 @@ class ApiOvoReversal extends Controller
                 //update status reversal
                 $updateStatus = TransactionPaymentOvo::where('id_transaction_payment_ovo', $trx['id_transaction_payment_ovo'])->update(['reversal' => 'yes']);
                 if(!$updateStatus){
-                    DB::rollback();
+                    DB::rollBack();
                 }else{
                     DB::commit();
                 }

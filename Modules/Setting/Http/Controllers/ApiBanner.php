@@ -93,7 +93,7 @@ class ApiBanner extends Controller
             $update = Banner::find($id_banner)->update(['position' => $key+1]);
 
             if (!$update) {
-                DB:: rollback();
+                DB:: rollBack();
                 return [
                     'status' => 'fail',
                     'messages' => ['Sort banner failed']

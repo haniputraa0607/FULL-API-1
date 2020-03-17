@@ -49,11 +49,11 @@ class ApiTransactionPaymentManual extends Controller
     }
 
     public function manualPaymentConfirm(ManualPaymentConfirm $request) {
-        $post = $request->json()->all(); 
+        $post = $request->json()->all();
         $user = $request->user();
 
         $confirm['id_user_confirming'] = $user['id'];
-        
+
         if($post['status'] == 'accept'){
             $confirm['confirmed_at'] = date('Y-m-d h:i:s');
             $confirm['payment_note_confirm'] = $post['payment_note_confirm'];
@@ -62,22 +62,22 @@ class ApiTransactionPaymentManual extends Controller
             $confirm['cancelled_at'] = date('Y-m-d h:i:s');
             $status = 'Cancelled';
         }
-        
+
         DB::beginTransaction();
         $updateConfirm = TransactionPaymentManual::find($post['id_transaction_payment_manual']);
         $update = $updateConfirm->update($confirm);
-        
+
         if($update){
             $updateTrans = Transaction::find($updateConfirm->id_transaction)->update(['transaction_payment_status'=>$status]);
             if($updateTrans){
 
                 if($status == 'Completed'){
                     $trans = Transaction::with('user.memberships', 'outlet', 'productTransaction')->where('id_transaction', $updateConfirm->id_transaction)->first();
-                    
+
                     //SEND NOTIF FRAUD
                     $fraud = app($this->notif)->checkFraud($trans);
                     if ($fraud == false) {
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'   => 'fail',
                             'messages' => ['Send Notification Fraud Detection Failed']
@@ -86,32 +86,32 @@ class ApiTransactionPaymentManual extends Controller
 
                     //SEND NOTIF TO ADMIN OUTLET
                     $sendNotif = app($this->notif)->sendNotif($trans);
-    
-    
+
+
                     $savePoint = app($this->notif)->savePoint($trans);
-    
+
                     if (!$savePoint) {
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'   => 'fail',
                             'messages' => ['Transaction failed']
                         ]);
                     }
-                    
+
                     app($this->notif)->notification(['order_id' => $trans['transaction_receipt_number']], $trans);
                 }
-                
+
                 DB::commit();
                 return response()->json(MyHelper::checkUpdate($update));
             }else{
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Manual payment confirmation failed']
                 ]);
             }
         }else{
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Manual payment confirmation failed']
@@ -163,7 +163,7 @@ class ApiTransactionPaymentManual extends Controller
                     } elseif ($con['subject'] == 'grand_total') {
                         $var = 'transactions.transaction_grandtotal';
                     }
-    
+
                     if ($con['subject'] == 'receipt' || $con['subject'] == 'name' || $con['subject'] == 'phone' || $con['subject'] == 'email' || $con['subject'] == 'payment_bank' || $con['subject'] == 'payment_account_number' || $con['subject'] == 'payment_account_name' || $con['subject'] == 'confirm_by') {
                         if ($post['rule'] == 'and' || $key == 0) {
                             if ($con['operator'] == 'like') {
@@ -179,7 +179,7 @@ class ApiTransactionPaymentManual extends Controller
                             }
                         }
                     }
-    
+
                     if ($con['subject'] == 'payment_nominal' || $con['subject'] == 'grand_total') {
                         if ($post['rule'] == 'and' || $key == 0) {
                             $query = $query->where($var, $con['operator'], $con['parameter']);
@@ -187,7 +187,7 @@ class ApiTransactionPaymentManual extends Controller
                             $query = $query->orWhere($var, $con['operator'], $con['parameter']);
                         }
                     }
-    
+
                     if ($con['subject'] == 'confirmed_at' || $con['subject'] == 'cancelled_at') {
                         $var = 'transaction_payment_manuals.'.$con['subject'];
                         if ($post['rule'] == 'and' || $key == 0) {
@@ -196,7 +196,7 @@ class ApiTransactionPaymentManual extends Controller
                             $query = $query->orWhereDate($var, $con['operator'], date('Y-m-d', strtotime($con['parameter'])));
                         }
                     }
-    
+
                     if ($con['subject'] == 'gender' ) {
                         if ($post['rule'] == 'and' || $key == 0) {
                             $query = $query->where($var, '=', $con['parameter']);
@@ -247,7 +247,7 @@ class ApiTransactionPaymentManual extends Controller
 		$query = Bank::get()->toArray();
         return response()->json(MyHelper::checkGet($query));
 	}
-	
+
 	public function bankDelete(Request $request) {
         $id = $request->json('id');
         $check =  Bank::where('id_bank', $id)->first();
@@ -262,17 +262,17 @@ class ApiTransactionPaymentManual extends Controller
 
         return response()->json(MyHelper::checkDelete($check));
     }
-	
+
 	public function bankCreate(Request $request) {
         $create = Bank::create(['nama_bank' => $request->json('nama_bank')]);
         return response()->json(MyHelper::checkCreate($create));
     }
-	
+
 	public function bankMethodList() {
 		$query = BankMethod::get()->toArray();
         return response()->json(MyHelper::checkGet($query));
 	}
-	
+
 	public function bankMethodDelete(Request $request) {
         $id = $request->json('id');
         $check =  BankMethod::where('id_bank_method', $id)->first();
@@ -287,12 +287,12 @@ class ApiTransactionPaymentManual extends Controller
 
         return response()->json(MyHelper::checkDelete($check));
     }
-	
+
 	public function bankmethodCreate(Request $request) {
         $create =  BankMethod::create(['method' => $request->json('method')]);
         return response()->json(MyHelper::checkCreate($create));
     }
-	
+
     public function list() {
         $method = ManualPayment::select('id_manual_payment', 'manual_payment_name')->get()->toArray();
         return response()->json(MyHelper::checkGet($method));

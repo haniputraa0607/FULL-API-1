@@ -96,7 +96,7 @@ class ApiDeals extends Controller
             	$data['deals_total_voucher'] = 0;
             }
 
-            if ($post['deals_type'] == 'Promotion') 
+            if ($post['deals_type'] == 'Promotion')
             {
 	            if($post['deals_voucher_type'] == 'List Vouchers'){
 					$data['deals_list_voucher'] = str_replace("\r\n", ',', $post['voucher_code']);
@@ -128,7 +128,7 @@ class ApiDeals extends Controller
         }
         if (isset($post['deals_image'])) {
 
-            if ($post['deals_type'] == 'Promotion') 
+            if ($post['deals_type'] == 'Promotion')
             {
             	$promotionPath = 'img/promotion/deals';
             }
@@ -137,7 +137,7 @@ class ApiDeals extends Controller
             }
 
             $upload = MyHelper::uploadPhotoStrict($post['deals_image'], ($promotionPath??$this->saveImage), 500, 500);
-            
+
             if (isset($upload['status']) && $upload['status'] == "success") {
                 $data['deals_image'] = $upload['path'];
             } else {
@@ -287,7 +287,7 @@ class ApiDeals extends Controller
         if ($save) {
             DB::commit();
         } else {
-            DB::rollback();
+            DB::rollBack();
         }
 
         return response()->json(MyHelper::checkCreate($save));
@@ -879,18 +879,18 @@ class ApiDeals extends Controller
         if($rules2=$newRule['status']??false){
             foreach ($rules2 as $rule) {
 
-            	if ($rule[1] == 'used') 
+            	if ($rule[1] == 'used')
             	{
 	                $query->{$where.'NotNull'}('used_at');
             	}
-            	elseif ($rule[1] == 'expired') 
+            	elseif ($rule[1] == 'expired')
             	{
 	                $query->$where(function($q) {
 	                	$q->whereNotNull('voucher_expired_at')
 	                		->whereDate('voucher_expired_at','<',date("Y-m-d H:i:s"));
 	                });
             	}
-            	elseif ($rule[1] == 'redeemed') 
+            	elseif ($rule[1] == 'redeemed')
             	{
 	                $query->{$where.'NotNull'}('redeemed_at');
             	}
@@ -1000,7 +1000,7 @@ class ApiDeals extends Controller
             DB::commit();
 	        return response()->json(MyHelper::checkUpdate($save));
         } else {
-            DB::rollback();
+            DB::rollBack();
         	return response()->json(['status' => 'fail','messages' => ['Cannot update deals because someone has already claimed a voucher']]);
         }
 
@@ -1042,7 +1042,7 @@ class ApiDeals extends Controller
             if ($delete) {
                 DB::commit();
             } else {
-                DB::rollback();
+                DB::rollBack();
             }
 
             return response()->json(MyHelper::checkDelete($delete));
@@ -1295,12 +1295,12 @@ class ApiDeals extends Controller
         }
 
         if ($post['step'] == 2 || $post['step'] == 'all') {
-			$deals = $deals->with([  
-                $table.'_product_discount', 
-                $table.'_product_discount_rules', 
-                $table.'_tier_discount_product', 
-                $table.'_tier_discount_rules', 
-                $table.'_buyxgety_product_requirement', 
+			$deals = $deals->with([
+                $table.'_product_discount',
+                $table.'_product_discount_rules',
+                $table.'_tier_discount_product',
+                $table.'_tier_discount_rules',
+                $table.'_buyxgety_product_requirement',
                 $table.'_buyxgety_rules.product'
             ]);
         }
@@ -1357,13 +1357,13 @@ class ApiDeals extends Controller
 				$update = DealsPromotionTemplate::where('id_deals_promotion_template','=',$post['id_deals'])->update(['deals_description' => $post['deals_description'], 'step_complete' => 0, 'last_updated_by' => auth()->user()->id]);
     		}
 
-            if ($update) 
+            if ($update)
 			{
 		        DB::commit();
 		    }
 		    else
 		    {
-		        DB::rollback();
+		        DB::rollBack();
 		        return  response()->json([
 		            'status'   => 'fail',
 		            'messages' => 'Update Deals failed'
@@ -1372,7 +1372,7 @@ class ApiDeals extends Controller
         }
         else
         {
-            DB::rollback();
+            DB::rollBack();
             return  response()->json([
                 'status'   => 'fail',
                 'messages' => 'Update Deals failed'

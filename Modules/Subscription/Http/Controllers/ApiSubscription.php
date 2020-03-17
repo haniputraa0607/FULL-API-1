@@ -108,8 +108,8 @@ class ApiSubscription extends Controller
             $data['subscription_price_cash'] = $post['subscription_price_cash'];
             $data['subscription_price_point'] = null;
             $data['is_free'] = 1;
-        } 
-        elseif ( ($post['prices_by']??false) == 'point' ) 
+        }
+        elseif ( ($post['prices_by']??false) == 'point' )
         {
             $data['subscription_price_cash'] = null;
             $data['subscription_price_point'] = $post['subscription_price_point'];
@@ -117,7 +117,7 @@ class ApiSubscription extends Controller
         else
         {
             $data['subscription_price_cash'] = null;
-            $data['subscription_price_point'] = null;   
+            $data['subscription_price_point'] = null;
         }
 
         if (isset($post['id_outlet'])) {
@@ -157,7 +157,7 @@ class ApiSubscription extends Controller
             $data['subscription_voucher_total'] = $post['subscription_voucher_total'];
         }
         if ( ($post['voucher_type']??0)=='percent' ) {
-            
+
             if (isset($post['subscription_voucher_percent'])) {
                 $data['subscription_voucher_percent'] = $post['subscription_voucher_percent'];
                 $data['subscription_voucher_nominal'] = null;
@@ -254,11 +254,11 @@ class ApiSubscription extends Controller
                 case 'subscription_receipt':
                 $query->orderBy('subscription_user_receipt_number',$value['dir']);
                 break;
-                
+
                 case 'user':
                 $query->orderBy('users.name',$value['dir']);
                 break;
-                
+
                 case 'bought_at':
                 $query->orderBy('bought_at',$value['dir']);
                 break;
@@ -316,7 +316,7 @@ class ApiSubscription extends Controller
                     ->with([
                         'transaction' => function($q){
                             $q->select(
-                                'id_outlet', 
+                                'id_outlet',
                                 'id_transaction',
                                 'transaction_receipt_number'
                             );
@@ -354,7 +354,7 @@ class ApiSubscription extends Controller
         if ($save) {
             DB::commit();
         } else {
-            DB::rollback();
+            DB::rollBack();
         }
         return response()->json(MyHelper::checkCreate($save));
     }
@@ -377,7 +377,7 @@ class ApiSubscription extends Controller
             $data['is_all_outlet'] = null;
             // DELETE
             $this->deleteOutlet($data['id_subscription']);
-            if ( ($data['id_outlet'][0]??0) == 'all') 
+            if ( ($data['id_outlet'][0]??0) == 'all')
             {
                 $data['is_all_outlet'] = 1;
             }
@@ -395,7 +395,7 @@ class ApiSubscription extends Controller
         if ($save) {
             DB::commit();
         } else {
-            DB::rollback();
+            DB::rollBack();
         }
         return response()->json(MyHelper::checkCreate($save));
     }
@@ -437,7 +437,7 @@ class ApiSubscription extends Controller
         $del_content = SubscriptionContent::where('id_subscription','=',$post['id_subscription'])->delete();
 
         // create content & detail
-        foreach ($post['id_subscription_content'] as $key => $value) 
+        foreach ($post['id_subscription_content'] as $key => $value)
         {
             $save = SubscriptionContent::create($data_content[$key]);
 
@@ -462,7 +462,7 @@ class ApiSubscription extends Controller
         if ($save) {
             DB::commit();
         } else {
-            DB::rollback();
+            DB::rollBack();
         }
         return response()->json(MyHelper::checkUpdate($save));
     }
@@ -512,7 +512,7 @@ class ApiSubscription extends Controller
         $del_content = $contentTable->where('id_'.$source,'=',$post['id_'.$source])->delete();
 
         // create content & detail
-        foreach ($post['id_'.$source.'_content'] as $key => $value) 
+        foreach ($post['id_'.$source.'_content'] as $key => $value)
         {
             $save = $contentTable->create($data_content[$key]);
 
@@ -529,7 +529,7 @@ class ApiSubscription extends Controller
             }
         }
 
-        if ($save) 
+        if ($save)
         {
             return true;
         }
@@ -543,7 +543,7 @@ class ApiSubscription extends Controller
     {
         $data = $request->json()->all();
 
-        DB::beginTransaction();     
+        DB::beginTransaction();
         $new_data = $this->checkInputan($data);
 
         //update subscription outlet
@@ -551,7 +551,7 @@ class ApiSubscription extends Controller
             $new_data['is_all_outlet'] = null;
             // DELETE
             $this->deleteOutlet($data['id_subscription']);
-            if ( ($data['id_outlet'][0]??0) == 'all') 
+            if ( ($data['id_outlet'][0]??0) == 'all')
             {
                 $new_data['is_all_outlet'] = 1;
             }
@@ -580,7 +580,7 @@ class ApiSubscription extends Controller
         if ($save) {
             DB::commit();
         } else {
-            DB::rollback();
+            DB::rollBack();
             return  response()->json([
                 'status'   => 'fail',
                 'messages' => 'Update Subscription failed'
@@ -706,7 +706,7 @@ class ApiSubscription extends Controller
 
     public function listSubscription(ListSubscription $request)
     {
-        $post = $request->json()->all(); 
+        $post = $request->json()->all();
         $subs = (new Subscription)->newQuery();
         $user = $request->user();
         $curBalance = (int) $user->balance??0;
@@ -734,8 +734,8 @@ class ApiSubscription extends Controller
                                 $q->orderBy('order')
                                     ->where('is_active', '=', 1)
                                     ->addSelect(
-                                        'id_subscription', 
-                                        'id_subscription_content', 
+                                        'id_subscription',
+                                        'id_subscription_content',
                                         'title',
                                         'order'
                                     );
@@ -975,7 +975,7 @@ class ApiSubscription extends Controller
 
             $result['current_page']  = $page;
             if (!$request->json('id_subscription')) {
-                
+
                 $result['data']          = $listData;
             }else{
 
@@ -1150,8 +1150,8 @@ class ApiSubscription extends Controller
                         $q->orderBy('order')
                             ->where('is_active', '=', 1)
                             ->addSelect(
-                                'id_subscription', 
-                                'id_subscription_content', 
+                                'id_subscription',
+                                'id_subscription_content',
                                 'title',
                                 'order'
                             );
@@ -1244,7 +1244,7 @@ class ApiSubscription extends Controller
         }
 
 // return $subs->get();
-        if ( isset($post['id_subscription_user']) ) 
+        if ( isset($post['id_subscription_user']) )
         {
             $subs = $subs->where('id_subscription_user', '=', $post['id_subscription_user'])
                          ->first()->toArray();
@@ -1338,7 +1338,7 @@ class ApiSubscription extends Controller
                 $data = $result;
             }
             else
-            {   
+            {
                 $empty_text = Setting::where('key','=','message_mysubscription_empty_header')
                                 ->orWhere('key','=','message_mysubscription_empty_content')
                                 ->orderBy('id_setting')
@@ -1362,8 +1362,8 @@ class ApiSubscription extends Controller
                     $message = 'Maaf, halaman ini tidak tersedia';
                 }
                 return [
-                    'status'    => 'fail', 
-                    'messages'  => [$message], 
+                    'status'    => 'fail',
+                    'messages'  => [$message],
                     'empty'     => [
                         'header'    => "",
                         'content'   => ""

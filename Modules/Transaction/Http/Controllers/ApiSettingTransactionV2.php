@@ -133,7 +133,7 @@ class ApiSettingTransactionV2 extends Controller
                 }
                 $product = Product::with('product_discounts', 'product_prices')->where('id_product', $valueData['id_product'])->first();
                 if (empty($product)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status' => 'fail',
                         'messages' => ['Product Not Found']
@@ -142,7 +142,7 @@ class ApiSettingTransactionV2 extends Controller
 
                 $productPrice = ProductPrice::where(['id_product' => $valueData['id_product'], 'id_outlet' => $data['id_outlet']])->first();
                 if (empty($productPrice)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status' => 'fail',
                         'messages' => ['Price Product Not Found'],
@@ -240,7 +240,7 @@ class ApiSettingTransactionV2 extends Controller
             // foreach ($data['item'] as $keyProduct => $valueProduct) {
             //     $checkProduct = Product::where('id_product', $valueProduct['id_product'])->first();
             //     if (empty($checkProduct)) {
-            //         DB::rollback();
+            //         DB::rollBack();
             //         return response()->json([
             //             'status'    => 'fail',
             //             'messages'  => ['Product Not Found'],
@@ -305,7 +305,7 @@ class ApiSettingTransactionV2 extends Controller
         foreach ($data['item'] as $keyData => $valueData) {
             $product = Product::with('product_discounts')->where('id_product', $valueData['id_product'])->first();
             if (empty($product)) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status' => 'fail',
                     'messages' => ['Product Not Found']
@@ -314,7 +314,7 @@ class ApiSettingTransactionV2 extends Controller
 
             $priceProduct = ProductPrice::where('id_product', $valueData['id_product'])->where('id_outlet', $data['id_outlet'])->first();
             if (empty($priceProduct)) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status' => 'fail',
                     'messages' => ['Product Price Not Found']
@@ -376,7 +376,7 @@ class ApiSettingTransactionV2 extends Controller
         foreach ($data['item'] as $keyData => $valueData) {
             $product = Product::with('product_discounts')->where('id_product', $valueData['id_product'])->first();
             if (empty($product)) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status' => 'fail',
                     'messages' => ['Product Not Found']
@@ -385,7 +385,7 @@ class ApiSettingTransactionV2 extends Controller
 
             $priceProduct = ProductPrice::where('id_product', $valueData['id_product'])->where('id_outlet', $data['id_outlet'])->first();
             if (empty($priceProduct)) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status' => 'fail',
                     'messages' => ['Product Price Not Found']

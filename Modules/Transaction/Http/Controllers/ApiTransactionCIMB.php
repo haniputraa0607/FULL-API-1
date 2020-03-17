@@ -51,7 +51,7 @@ class ApiTransactionCIMB extends Controller
                     ]);
             } catch (\Exception $e) {
                 LogBackendError::logExceptionMessage("ApiTransactionCIMB/callback=>" . $e->getMessage(), $e);
-                DB::rollback();
+                DB::rollBack();
                 $data = Transaction::with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->where('transaction_receipt_number', $request['MERCHANT_TRANID'])->get()->toArray()[0];
                 if ($data['trasaction_type'] == 'Pickup Order') {
                     $detail = TransactionPickup::where('id_transaction', $data['id_transaction'])->with('transaction_pickup_go_send')->first();
@@ -71,7 +71,7 @@ class ApiTransactionCIMB extends Controller
                 ]);
             } catch (\Exception $e) {
                 LogBackendError::logExceptionMessage("ApiTransactionCIMB/callback=>" . $e->getMessage(), $e);
-                DB::rollback();
+                DB::rollBack();
                 $data = Transaction::with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->where('transaction_receipt_number', $request['MERCHANT_TRANID'])->get()->toArray()[0];
                 if ($data['trasaction_type'] == 'Pickup Order') {
                     $detail = TransactionPickup::where('id_transaction', $data['id_transaction'])->with('transaction_pickup_go_send')->first();
@@ -92,7 +92,7 @@ class ApiTransactionCIMB extends Controller
 
             $saveMultiple = TransactionMultiplePayment::create($dataMultiple);
             if (!$saveMultiple) {
-                DB::rollback();
+                DB::rollBack();
                 $data = Transaction::with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->where('transaction_receipt_number', $request['MERCHANT_TRANID'])->get()->toArray()[0];
                 if ($data['trasaction_type'] == 'Pickup Order') {
                     $detail = TransactionPickup::where('id_transaction', $data['id_transaction'])->with('transaction_pickup_go_send')->first();
@@ -175,7 +175,7 @@ class ApiTransactionCIMB extends Controller
                     ]);
             } catch (\Exception $e) {
                 LogBackendError::logExceptionMessage("ApiTransactionCIMB/callback=>" . $e->getMessage(), $e);
-                DB::rollback();
+                DB::rollBack();
                 $data = Transaction::with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->where('transaction_receipt_number', $request['MERCHANT_TRANID'])->get()->toArray()[0];
                 if ($data['trasaction_type'] == 'Pickup Order') {
                     $detail = TransactionPickup::where('id_transaction', $data['id_transaction'])->with('transaction_pickup_go_send')->first();
@@ -194,7 +194,7 @@ class ApiTransactionCIMB extends Controller
                 ]);
             } catch (\Exception $e) {
                 LogBackendError::logExceptionMessage("ApiTransactionCIMB/callback=>" . $e->getMessage(), $e);
-                DB::rollback();
+                DB::rollBack();
                 $data = Transaction::with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->where('transaction_receipt_number', $request['MERCHANT_TRANID'])->get()->toArray()[0];
                 if ($data['trasaction_type'] == 'Pickup Order') {
                     $detail = TransactionPickup::where('id_transaction', $data['id_transaction'])->with('transaction_pickup_go_send')->first();
@@ -251,7 +251,7 @@ class ApiTransactionCIMB extends Controller
                 DealsUser::where('id_deals_user', $idVoucher)->update(['paid_status' => 'Completed']);
             } catch (\Exception $e) {
                 LogBackendError::logExceptionMessage("ApiTransactionCIMB/callbackDeals=>" . $e->getMessage(), $e);
-                DB::rollback();
+                DB::rollBack();
                 return redirect('#transaction_fail');
             }
 
@@ -304,7 +304,7 @@ class ApiTransactionCIMB extends Controller
                 DealsUser::where('id_deals_user', $idVoucher)->update(['paid_status' => 'Cancelled']);
             } catch (\Exception $e) {
                 LogBackendError::logExceptionMessage("ApiTransactionCIMB/callbackDeals=>" . $e->getMessage(), $e);
-                DB::rollback();
+                DB::rollBack();
                 return redirect('#transaction_fail');
             }
 
@@ -351,7 +351,7 @@ class ApiTransactionCIMB extends Controller
             }
         } catch (\Exception $e) {
             LogBackendError::logExceptionMessage("ApiTransactionCIMB/curlCimb=>" . $e->getMessage(), $e);
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => [

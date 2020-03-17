@@ -62,7 +62,7 @@ class ApiProductModifierController extends Controller
         DB::beginTransaction();
         $createe = ProductModifier::create($data);
         if(!$createe){
-            DB::rollback();
+            DB::rollBack();
             return [
                 'status'=>'fail',
                 'messages'=>['Failed create product modifier']
@@ -78,7 +78,7 @@ class ApiProductModifierController extends Controller
                     ];
                     $create = ProductModifierBrand::create($data);
                     if(!$create){
-                        DB::rollback();
+                        DB::rollBack();
                         return [
                             'status'=>'fail',
                             'messages'=>['Failed assign id brand to product modifier']
@@ -94,7 +94,7 @@ class ApiProductModifierController extends Controller
                     ];
                     $create = ProductModifierProduct::create($data);
                     if(!$create){
-                        DB::rollback();
+                        DB::rollBack();
                         return [
                             'status'=>'fail',
                             'messages'=>['Failed assign id brand to product modifier']
@@ -110,7 +110,7 @@ class ApiProductModifierController extends Controller
                     ];
                     $create = ProductModifierProductCategory::create($data);
                     if(!$create){
-                        DB::rollback();
+                        DB::rollBack();
                         return [
                             'status'=>'fail',
                             'messages'=>['Failed assign id brand to product modifier']
@@ -169,7 +169,7 @@ class ApiProductModifierController extends Controller
         ];
         $update = $product_modifier->update($data);
         if(!$update){
-            DB::rollback();
+            DB::rollBack();
             return MyHelper::checkUpdate($update);
         }
         if(!($post['patch']??false)){
@@ -185,7 +185,7 @@ class ApiProductModifierController extends Controller
                         ];
                         $create = ProductModifierBrand::create($data);
                         if(!$create){
-                            DB::rollback();
+                            DB::rollBack();
                             return [
                                 'status'=>'fail',
                                 'messages'=>['Failed assign id brand to product modifier']
@@ -201,7 +201,7 @@ class ApiProductModifierController extends Controller
                         ];
                         $create = ProductModifierProduct::create($data);
                         if(!$create){
-                            DB::rollback();
+                            DB::rollBack();
                             return [
                                 'status'=>'fail',
                                 'messages'=>['Failed assign id brand to product modifier']
@@ -217,7 +217,7 @@ class ApiProductModifierController extends Controller
                         ];
                         $create = ProductModifierProductCategory::create($data);
                         if(!$create){
-                            DB::rollback();
+                            DB::rollBack();
                             return [
                                 'status'=>'fail',
                                 'messages'=>['Failed assign id brand to product modifier']
@@ -303,7 +303,7 @@ class ApiProductModifierController extends Controller
             ];
             $insert = ProductModifierPrice::updateOrCreate($key,$insertData);
             if(!$insert){
-                DB::rollback();
+                DB::rollBack();
                 return [
                     'status' => 'fail',
                     'messages' => ['Update price fail']

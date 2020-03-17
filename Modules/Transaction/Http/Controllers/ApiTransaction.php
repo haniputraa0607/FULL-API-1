@@ -215,7 +215,7 @@ class ApiTransaction extends Controller
             $update->save();
 
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -292,7 +292,7 @@ class ApiTransaction extends Controller
             $update->save();
 
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -309,7 +309,7 @@ class ApiTransaction extends Controller
             $updateDelPricing = Setting::where('key', 'transaction_delivery_pricing')->first();
 
             if (!$updateMinValue || !$updateMaxDis || !$updateDelPrice || !$updateDelPricing) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting not found']
@@ -327,7 +327,7 @@ class ApiTransaction extends Controller
             $updateDelPricing->save();
 
             if (!$updateMinValue || !$updateMaxDis || !$updateDelPrice || !$updateDelPricing) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -392,7 +392,7 @@ class ApiTransaction extends Controller
             $update->save();
 
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -493,7 +493,7 @@ class ApiTransaction extends Controller
             $update->save();
 
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -576,7 +576,7 @@ class ApiTransaction extends Controller
             $update->save();
 
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -659,7 +659,7 @@ class ApiTransaction extends Controller
             $update->save();
 
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -677,7 +677,7 @@ class ApiTransaction extends Controller
             $updateCashback->value = $post['value']/100;
             $updateCashback->save();
             if (!$updateCashback) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -695,7 +695,7 @@ class ApiTransaction extends Controller
             $updateCashbackMax->value = $post['max'];
             $updateCashbackMax->save();
             if (!$updateCashbackMax) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -708,7 +708,7 @@ class ApiTransaction extends Controller
         } elseif ($post['key'] == 'outlet') {
             $update = Setting::where('key', 'default_outlet')->first();
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting not found']
@@ -719,7 +719,7 @@ class ApiTransaction extends Controller
             $update->save();
 
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -766,7 +766,7 @@ class ApiTransaction extends Controller
             if ($img) {
                 $data['manual_payment_logo'] = $upload;
             } else {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['fail upload image']
@@ -779,7 +779,7 @@ class ApiTransaction extends Controller
             //     $data['manual_payment_logo'] = $save['path'];
             // }
             // else {
-            //     DB::rollback();
+            //     DB::rollBack();
             //     return response()->json([
             //         'status'   => 'fail',
             //         'messages' => ['fail upload image']
@@ -806,7 +806,7 @@ class ApiTransaction extends Controller
         $save = ManualPayment::create($data);
 
         if (!$save) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Create manual payment failed']
@@ -857,7 +857,7 @@ class ApiTransaction extends Controller
             if ($img) {
                 $data['manual_payment_logo'] = $upload;
             } else {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['fail upload image']
@@ -869,7 +869,7 @@ class ApiTransaction extends Controller
             //     $data['manual_payment_logo'] = $save['path'];
             // }
             // else {
-            //     DB::rollback();
+            //     DB::rollBack();
             //     return response()->json([
             //         'status'   => 'fail',
             //         'messages' => ['fail upload image']
@@ -896,7 +896,7 @@ class ApiTransaction extends Controller
         $save = ManualPayment::where('id_manual_payment', $post['id'])->update($data);
         // return $save;
         if (!$save) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Update manual payment failed']
@@ -914,7 +914,7 @@ class ApiTransaction extends Controller
         //         // return $delete;
 
         //         if (!$delete) {
-        //             DB::rollback();
+        //             DB::rollBack();
         //             return response()->json([
         //                 'status'    => 'fail',
         //                 'messages'  => ['Update manual payment failed1']
@@ -933,7 +933,7 @@ class ApiTransaction extends Controller
         //         $insert = ManualPaymentMethod::create($data);
 
         //         if (!$insert) {
-        //             DB::rollback();
+        //             DB::rollBack();
         //             return response()->json([
         //                 'status'    => 'fail',
         //                 'messages'  => ['Update manual payment failed']
@@ -992,7 +992,7 @@ class ApiTransaction extends Controller
             $delete = ManualPaymentMethod::where('id_manual_payment', $post['id'])->delete();
 
             if (!$delete) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Failed']
@@ -1013,7 +1013,7 @@ class ApiTransaction extends Controller
                         $delete = ManualPaymentTutorial::where('id_manual_payment_method', $post['id_method'][$key])->delete();
 
                         if (!$delete) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'    => 'fail',
                                 'messages'  => ['Failed']
@@ -1028,7 +1028,7 @@ class ApiTransaction extends Controller
                 }
 
                 if (!$insert) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Failed']
@@ -1046,7 +1046,7 @@ class ApiTransaction extends Controller
                         $insert = ManualPaymentTutorial::create($dataTutor);
 
                         if (!$insert) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'    => 'fail',
                                 'messages'  => ['Insert Failed']
@@ -1062,7 +1062,7 @@ class ApiTransaction extends Controller
                         $delete = ManualPaymentMethod::where('id_manual_payment_method', $value)->delete();
 
                         if (!$delete) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'    => 'fail',
                                 'messages'  => ['Insert Failed']
@@ -1403,14 +1403,14 @@ class ApiTransaction extends Controller
             if($use_product_variant){
                 $list = Transaction::where([['id_transaction', $id],
                 ['id_user',$request->user()->id]])->with(
-                    'user.city.province', 
-                    'productTransaction.product.product_group', 
-                    'productTransaction.product.product_variants', 
-                    'productTransaction.product.product_group.product_category', 
-                    'productTransaction.modifiers', 
-                    'productTransaction.product.product_photos', 
-                    'productTransaction.product.product_discounts', 
-                    'transaction_payment_offlines', 
+                    'user.city.province',
+                    'productTransaction.product.product_group',
+                    'productTransaction.product.product_variants',
+                    'productTransaction.product.product_group.product_category',
+                    'productTransaction.modifiers',
+                    'productTransaction.product.product_photos',
+                    'productTransaction.product.product_discounts',
+                    'transaction_payment_offlines',
                     'outlet.city')->first();
             }else{
                 $list = Transaction::where([['id_transaction', $id],
@@ -2064,7 +2064,7 @@ class ApiTransaction extends Controller
                             $insertPoint = PointLog::create($dataPoint);
 
                             if (!$insertPoint) {
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status'    => 'fail',
                                     'messages'  => ['insert point failed']
@@ -2079,7 +2079,7 @@ class ApiTransaction extends Controller
                     $checkTransaction->save();
 
                     if (!$checkTransaction) {
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => ['Update status payment failed']
@@ -2109,7 +2109,7 @@ class ApiTransaction extends Controller
                 $insertPayment = TransactionPayment::create($dataPayment);
 
                 if (!$insertPayment) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Transaction payment cannot be create']

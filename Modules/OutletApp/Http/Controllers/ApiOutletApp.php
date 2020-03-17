@@ -660,7 +660,7 @@ class ApiOutletApp extends Controller
                 "transaction_date" => $order->transaction_date]
             );
             if($send != true){
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                         'status' => 'fail',
                         'messages' => ['Failed Send notification to customer']
@@ -730,7 +730,7 @@ class ApiOutletApp extends Controller
                 "transaction_date" => $order->transaction_date
             ]);
             if($send != true){
-                // DB::rollback();
+                // DB::rollBack();
                 return response()->json([
                         'status' => 'fail',
                         'messages' => ['Failed Send notification to customer']
@@ -746,7 +746,7 @@ class ApiOutletApp extends Controller
                 $savePoint = app($this->getNotif)->savePoint($newTrx);
                 // return $savePoint;
                 if (!$savePoint) {
-                    // DB::rollback();
+                    // DB::rollBack();
                     return response()->json([
                         'status'   => 'fail',
                         'messages' => ['Transaction failed']
@@ -830,7 +830,7 @@ class ApiOutletApp extends Controller
             \App\Lib\ConnectPOS::create()->sendTransaction($order->id_transaction);
 
             if($send != true){
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                         'status' => 'fail',
                         'messages' => ['Failed Send notification to customer']
@@ -1072,7 +1072,7 @@ class ApiOutletApp extends Controller
                             if($payBalance){
                                 $refund = app($this->balance)->addLogBalance( $order['id_user'], $point=$payBalance['balance_nominal'], $order['id_transaction'], 'Rejected Order Point', $order['transaction_grandtotal']);
                                 if ($refund == false) {
-                                    DB::rollback();
+                                    DB::rollBack();
                                     return response()->json([
                                         'status'    => 'fail',
                                         'messages'  => ['Insert Cashback Failed']
@@ -1085,7 +1085,7 @@ class ApiOutletApp extends Controller
                             if($payOvo){
                                 $refund = app($this->balance)->addLogBalance( $order['id_user'], $point=$payOvo['amount'], $order['id_transaction'], 'Rejected Order Ovo', $order['transaction_grandtotal']);
                                 if ($refund == false) {
-                                    DB::rollback();
+                                    DB::rollBack();
                                     return response()->json([
                                         'status'    => 'fail',
                                         'messages'  => ['Insert Cashback Failed']
@@ -1098,7 +1098,7 @@ class ApiOutletApp extends Controller
                             if($payMidtrans){
                                 $refund = app($this->balance)->addLogBalance( $order['id_user'], $point=$payMidtrans['gross_amount'], $order['id_transaction'], 'Rejected Order Midtrans', $order['transaction_grandtotal']);
                                 if ($refund == false) {
-                                    DB::rollback();
+                                    DB::rollBack();
                                     return response()->json([
                                         'status'    => 'fail',
                                         'messages'  => ['Insert Cashback Failed']
@@ -1117,7 +1117,7 @@ class ApiOutletApp extends Controller
                             ]
                         );
                         if($send != true){
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                     'status' => 'fail',
                                     'messages' => ['Failed Send notification to customer']
@@ -1130,7 +1130,7 @@ class ApiOutletApp extends Controller
                     if($payMidtrans){
                         $refund = app($this->balance)->addLogBalance( $order['id_user'], $point=$payMidtrans['gross_amount'], $order['id_transaction'], 'Rejected Order Midtrans', $order['transaction_grandtotal']);
                         if ($refund == false) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'    => 'fail',
                                 'messages'  => ['Insert Cashback Failed']
@@ -1139,7 +1139,7 @@ class ApiOutletApp extends Controller
                     }elseif($payOvo){
                         $refund = app($this->balance)->addLogBalance( $order['id_user'], $point=$payOvo['amount'], $order['id_transaction'], 'Rejected Order Ovo', $order['transaction_grandtotal']);
                         if ($refund == false) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'    => 'fail',
                                 'messages'  => ['Insert Cashback Failed']
@@ -1150,7 +1150,7 @@ class ApiOutletApp extends Controller
                         if($payBalance){
                             $refund = app($this->balance)->addLogBalance( $order['id_user'], $point=$payBalance['balance_nominal'], $order['id_transaction'], 'Rejected Order Point', $order['transaction_grandtotal']);
                             if ($refund == false) {
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status'    => 'fail',
                                     'messages'  => ['Insert Cashback Failed']
@@ -1170,7 +1170,7 @@ class ApiOutletApp extends Controller
                         ]
                     );
                     if($send != true){
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                                 'status' => 'fail',
                                 'messages' => ['Failed Send notification to customer']
@@ -1184,7 +1184,7 @@ class ApiOutletApp extends Controller
                         'id_transaction' => $order->id_transaction,
                     ]);
                     if($send != true){
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                                 'status' => 'fail',
                                 'messages' => ['Failed Send notification to customer']

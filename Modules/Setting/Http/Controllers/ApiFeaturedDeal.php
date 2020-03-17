@@ -48,7 +48,7 @@ class ApiFeaturedDeal extends Controller
             $update = FeaturedDeal::find($id_featured_deal)->update(['order' => $key+1]);
 
             if (!$update) {
-                DB:: rollback();
+                DB:: rollBack();
                 return [
                     'status' => 'fail',
                     'messages' => ['Sort featured deal failed']

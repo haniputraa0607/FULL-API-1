@@ -72,7 +72,7 @@ class ApiNotification extends Controller {
             $transac = Transaction::with('user.memberships', 'logTopup')->where('transaction_receipt_number', $midtrans['order_id'])->first();
 
             if (empty($transac)) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['Transaction not found']
@@ -82,7 +82,7 @@ class ApiNotification extends Controller {
             // PROCESS
             $checkPayment = $this->checkPayment($transac, $midtrans);
             if (!$checkPayment) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['Transaction not found']
@@ -106,7 +106,7 @@ class ApiNotification extends Controller {
 
             // $user = User::where('id', $newTrx['id_user'])->first();
             // if (empty($user)) {
-            //     DB::rollback();
+            //     DB::rollBack();
             //     return response()->json([
             //         'status'   => 'fail',
             //         'messages' => ['Data Transaction Not Valid']
@@ -130,7 +130,7 @@ class ApiNotification extends Controller {
                         }
                     }
                 } else {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'   => 'fail',
                         'messages' => ['Data Transaction Not Valid']
@@ -142,7 +142,7 @@ class ApiNotification extends Controller {
                 // if (!in_array('Balance', $column)) {
                 //     $savePoint = $this->savePoint($newTrx);
                 //     if (!$savePoint) {
-                //         DB::rollback();
+                //         DB::rollBack();
                 //         return response()->json([
                 //             'status'   => 'fail',
                 //             'messages' => ['Transaction failed']
@@ -171,14 +171,14 @@ class ApiNotification extends Controller {
                         return response()->json(['status' => 'success']);
                     } elseif (isset($kirim['status']) && $kirim['status'] == 'fail') {
                         if (isset($kirim['messages'])) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'   => 'fail',
                                 'messages' => $kirim['messages']
                             ]);
                         }
                     } else {
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'   => 'fail',
                             'messages' => ['failed']
@@ -219,7 +219,7 @@ class ApiNotification extends Controller {
                             if (!empty($checkBalance)) {
                                 $insertDataLogCash = app($this->balance)->addLogBalance($newTrx['id_user'], $checkBalance['balance_nominal'], $newTrx['id_transaction'], 'Rejected Order', $newTrx['transaction_grandtotal']);
                                 if (!$insertDataLogCash) {
-                                    DB::rollback();
+                                    DB::rollBack();
                                     return response()->json([
                                         'status'    => 'fail',
                                         'messages'  => ['Insert Cashback Failed']
@@ -239,7 +239,7 @@ class ApiNotification extends Controller {
 	                            ]
 	                        );
 	                        if($send != true){
-	                            DB::rollback();
+	                            DB::rollBack();
 	                            return response()->json([
 	                                    'status' => 'fail',
 	                                    'messages' => ['Failed Send notification to customer']
@@ -272,25 +272,25 @@ class ApiNotification extends Controller {
                 DB::beginTransaction();
                 $checkLogMid = LogTopupMidtrans::where('order_id', $midtrans['order_id'])->first();
                 if (empty($checkLogMid)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json(['status' => 'fail']);
                 }
 
                 $checkLog = LogTopup::where('id_log_topup', $checkLogMid['id_log_topup'])->first();
                 if (empty($checkLog)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json(['status' => 'fail']);
                 }
 
                 $user = User::where('id', $checkLog['id_user'])->first();
                 if (empty($user)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json(['status' => 'fail']);
                 }
 
                 $dataMid = $this->processMidtrans($midtrans);
                 if (!$dataMid) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json(['status' => 'fail']);
                 }
 
@@ -299,7 +299,7 @@ class ApiNotification extends Controller {
                         $checkLog->topup_payment_status = 'Completed';
                         $checkLog->update();
                         if (!$checkLog) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json(['status' => 'fail']);
                         }
 
@@ -322,7 +322,7 @@ class ApiNotification extends Controller {
                         $checkLog->enc = $enc;
                         $checkLog->update();
                         if (!$checkLog) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json(['status' => 'fail']);
                         }
                     }
@@ -346,7 +346,7 @@ class ApiNotification extends Controller {
 
         }
 
-        DB::rollback();
+        DB::rollBack();
         return response()->json([
             'status'   => 'fail',
             'messages' => ['Transaction not found']
@@ -554,7 +554,7 @@ class ApiNotification extends Controller {
 
             $insertDataLog = LogPoint::updateOrCreate(['id_reference' => $data['id_transaction'], 'source' => 'Transaction'], $dataLog);
             if (!$insertDataLog) {
-                DB::rollback();
+                DB::rollBack();
                 return false;
             }
 
@@ -568,7 +568,7 @@ class ApiNotification extends Controller {
 
                 $insertDataLogCash = app($this->balance)->addLogBalance( $data['id_user'], $data['transaction_cashback_earned'], $data['id_transaction'], 'Transaction', $data['transaction_grandtotal']);
                 if (!$insertDataLogCash) {
-                    DB::rollback();
+                    DB::rollBack();
                     return false;
                 }
                 $usere= User::where('id',$data['id_user'])->first();
@@ -582,7 +582,7 @@ class ApiNotification extends Controller {
                     ]
                 );
                 if($send != true){
-                    DB::rollback();
+                    DB::rollBack();
                     return false;
                 }
             }
@@ -728,7 +728,7 @@ Detail: ".$link['short'],
                 return true;
             }
         }
-        DB::rollback();
+        DB::rollBack();
         return false;
     }
 
@@ -779,7 +779,7 @@ Detail: ".$link['short'],
                 return true;
             }
         }
-        DB::rollback();
+        DB::rollBack();
         return false;
     }
 
@@ -1045,7 +1045,7 @@ Detail: ".$link['short'],
         //     ]
         // );
         // if($send != true){
-        //     DB::rollback();
+        //     DB::rollBack();
         //     return false;
         // }
 
@@ -1067,7 +1067,7 @@ Detail: ".$link['short'],
         ]);
 
         if (!$updateCountTrx) {
-            DB::rollback();
+            DB::rollBack();
             return false;
         }
 

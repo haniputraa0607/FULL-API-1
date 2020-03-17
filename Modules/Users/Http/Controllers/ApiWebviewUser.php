@@ -25,7 +25,7 @@ class ApiWebviewUser extends Controller
         $this->membership    = "Modules\Membership\Http\Controllers\ApiMembership";
         $this->autocrm  = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
     }
-    
+
     // update profile, point, balance
     public function completeProfile(Request $request)
     {
@@ -36,7 +36,7 @@ class ApiWebviewUser extends Controller
         DB::beginTransaction();
             $update = User::where('id', $user->id)->update($post);
             if ( !$update ) {
-                DB::rollback();
+                DB::rollBack();
                 return [
                     'status' => 'fail',
                     'messages' => 'Failed to save data'
@@ -97,20 +97,20 @@ class ApiWebviewUser extends Controller
 
             // if ( !($user_update && $insert_log_point && $addLogBalance) ) {
             if ( !$addLogBalance ) {
-                DB::rollback();
+                DB::rollBack();
                 return [
                     'status' => 'fail',
                     'messages' => 'Failed to save data'
                 ];
             }
             if($balance_nominal??false){
-                $send   = app($this->autocrm)->SendAutoCRM('Complete User Profile Point Bonus', $user->phone, 
+                $send   = app($this->autocrm)->SendAutoCRM('Complete User Profile Point Bonus', $user->phone,
                     [
                         'received_point' => (string) $balance_nominal
                     ]
                 );
                 if($send != true){
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status' => 'fail',
                         'messages' => ['Failed Send notification to customer']

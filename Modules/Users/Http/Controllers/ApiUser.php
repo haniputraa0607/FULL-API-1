@@ -1739,7 +1739,7 @@ class ApiUser extends Controller
                 $referral = \Modules\PromoCampaign\Lib\PromoCampaignTools::createReferralCode($data[0]['id']);
 
                 if(!$referral){
-                    DB::rollback();
+                    DB::rollBack();
                     return [
                         'status'=>'fail',
                         'messages' => ['failed create referral code']
@@ -1792,7 +1792,7 @@ class ApiUser extends Controller
                         $addLogBalance = $balanceController->addLogBalance($datauser[0]['id'], $balance_nominal, null, "Welcome Point", 0);
 
                         if ( !$addLogBalance ) {
-                            DB::rollback();
+                            DB::rollBack();
                             return [
                                 'status' => 'fail',
                                 'messages' => 'Failed to save data'
@@ -1805,7 +1805,7 @@ class ApiUser extends Controller
                                 ]
                             );
                             if($send != true){
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status' => 'fail',
                                     'messages' => ['Failed Send notification to customer']
@@ -2559,7 +2559,7 @@ class ApiUser extends Controller
                 $create = UserFeature::updateOrCreate(['id_user'=>$user->id,'id_feature'=>$id_feature]);
                 // $create = DB::insert('insert into user_features (id_user, id_feature) values (?, ?)', [$user->id, $id_feature]);
                 if(!$create){
-                    DB::rollback();
+                    DB::rollBack();
                     return [
                         'status'=>'fail',
                         'messages'=>['Update user permission failed']

@@ -148,7 +148,7 @@ class ApiSetting extends Controller
 
     public function settingList(SettingList $request){
         $data = $request->json()->all();
-        
+
 		if(isset($data['key']))
         $setting = Setting::where('key', $data['key'])->first();
 
@@ -188,7 +188,7 @@ class ApiSetting extends Controller
                     if($value['id_setting']){
                         $save = Setting::where('id_setting', $value['id_setting'])->update(['value' => $value['value']]);
                         if(!$save){
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json(MyHelper::checkUpdate($save));
                         }
 
@@ -200,7 +200,7 @@ class ApiSetting extends Controller
                         ]);
 
                         if(!$save){
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json(MyHelper::checkCreate($save));
                         }
 
@@ -242,7 +242,7 @@ class ApiSetting extends Controller
 
                             $insertDataLog = LogPoint::create($dataLog);
                             if (!$insertDataLog) {
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status'    => 'fail',
                                     'messages'  => ['Insert Point Failed']
@@ -253,7 +253,7 @@ class ApiSetting extends Controller
                             $totalPoint = LogPoint::where('id_user',$datauser['id'])->sum('point');
                             $updateUserPoint = User::where('id', $datauser['id'])->update(['points' => $totalPoint]);
                             if (!$updateUserPoint) {
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status'    => 'fail',
                                     'messages'  => ['Update User Point Failed']
@@ -285,7 +285,7 @@ class ApiSetting extends Controller
 
                             $insertDataLog = LogBalance::create($dataLog);
                             if (!$insertDataLog) {
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status'    => 'fail',
                                     'messages'  => ['Insert Balance Failed']
@@ -296,7 +296,7 @@ class ApiSetting extends Controller
                             $totalBalance = LogBalance::where('id_user',$datauser['id'])->sum('balance');
                             $updateUserBalance = User::where('id', $datauser['id'])->update(['balance' => $totalBalance]);
                             if (!$updateUserBalance) {
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status'    => 'fail',
                                     'messages'  => ['Update User Balance Failed']
@@ -723,7 +723,7 @@ class ApiSetting extends Controller
             $save = Setting::updateOrCreate(['key' => $key], ['key' => $key, 'value' => $value]);
             if(!$save){
                 break;
-                DB::rollback();
+                DB::rollBack();
             }
         }
         DB::commit();
@@ -1098,7 +1098,7 @@ class ApiSetting extends Controller
 
             $update = Setting::updateOrCreate(['key' => $data['key']], $data);
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json(MyHelper::checkUpdate($update));
             }
         }
@@ -1112,7 +1112,7 @@ class ApiSetting extends Controller
 
         $update = Setting::updateOrCreate(['key' => 'go_send_package_detail'], ['value' => $post['value']]);
         if (!$update) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(MyHelper::checkUpdate($update));
         }
 
@@ -1417,7 +1417,7 @@ class ApiSetting extends Controller
             foreach ($updates as $key => $value) {
                 $up=Setting::updateOrCreate(['key'=>$key],[$value[0]=>$value[1]]);
                 if(!$up){
-                    DB::rollback();
+                    DB::rollBack();
                     return [
                         'status'=>'fail',
                         'messages'=>['Something went wrong']
@@ -1443,7 +1443,7 @@ class ApiSetting extends Controller
         return [
             'status'=>'fail',
             'messages'=>['No setting updated']
-        ];        
+        ];
     }
 
     /* ============== Start Phone Setting ============== */

@@ -14,6 +14,7 @@ use Modules\PointInjection\Jobs\UserPointInjection;
 use App\Http\Models\Outlet;
 use App\Http\Models\News;
 use App\Http\Models\OauthAccessToken;
+use App\Http\Models\LogBackendError;
 
 use App\Lib\MyHelper;
 use App\Lib\PushNotificationHelper;
@@ -284,7 +285,7 @@ class ApiPointInjectionController extends Controller
                 'total_point'   => $post['duration_day'] * $post['point']
             ];
         }
-        
+
         if (isset($post['point_injection_media'])) {
             foreach ($post['point_injection_media'] as $key => $value) {
                 if ($value == 'Push Notification') {
@@ -432,7 +433,7 @@ class ApiPointInjectionController extends Controller
                 DB::rollBack();
                 return response()->json($result);
             }
-            
+
             if ($post['list_user'] == 'Upload CSV' || $post['list_user'] == "Filter Phone") {
                 $request->validate([
                     'phone_number'  => 'required'
@@ -458,7 +459,7 @@ class ApiPointInjectionController extends Controller
                 $result = ['point_injection_rules' => $postRules['data']];
                 $postPointInjection = array_merge($postPointInjection, $result);
             }
-            
+
             if (!isset($userData) || $userData == null) {
                 $result = [
                     'status'  => 'fail',
@@ -574,93 +575,98 @@ class ApiPointInjectionController extends Controller
      */
     public function getPointInjection()
     {
-        $dateNow = date('Y-m-d H:00:00');
+        try{
+            $dateNow = date('Y-m-d H:00:00');
 
-        $pointInjection = PivotPointInjection::where('send_time', '<=', $dateNow)
-            ->get()->toArray();
-        
-        if ($pointInjection == null) {
-            $result = [
-                'status'  => 'fail',
-                'message'  => ['No data']
-            ];
-            return response()->json($result);
-        }
-        DB::beginTransaction();
-        foreach ($pointInjection as $valueUser) {
-            $insertDataLogCash[] = app($this->balance)->addLogBalance($valueUser['id_user'], $valueUser['point'], $valueUser['id_point_injection'], 'Point Injection', 0);
-            $addTotalPoint[] = PointInjectionUser::where('id_user', $valueUser['id_user'])->where('id_point_injection', $valueUser['id_point_injection'])->increment('total_point', $valueUser['point']);
-            if ($valueUser['point_injection_media_push'] == 1) {
-                $dataOptional          = [];
-                $image = null;
-                if (isset($valueUser['point_injection_push_image']) && $valueUser['point_injection_push_image'] != null) {
-                    $dataOptional['image'] = env('AWS_URL') . $valueUser['point_injection_push_image'];
-                    $image = env('AWS_URL') . $valueUser['point_injection_push_image'];
-                }
+            $pointInjection = PivotPointInjection::where('send_time', '<=', $dateNow)
+                ->get()->toArray();
 
-                if (isset($valueUser['point_injection_push_clickto']) && $valueUser['point_injection_push_clickto'] != null) {
-                    $dataOptional['type'] = $valueUser['point_injection_push_clickto'];
-                } else {
-                    $dataOptional['type'] = 'Home';
-                }
+            if ($pointInjection == null) {
+                $result = [
+                    'status'  => 'fail',
+                    'message'  => ['No data']
+                ];
+                return response()->json($result);
+            }
+            DB::beginTransaction();
+            foreach ($pointInjection as $valueUser) {
+                $insertDataLogCash[] = app($this->balance)->addLogBalance($valueUser['id_user'], $valueUser['point'], $valueUser['id_point_injection'], 'Point Injection', 0);
+                $addTotalPoint[] = PointInjectionUser::where('id_user', $valueUser['id_user'])->where('id_point_injection', $valueUser['id_point_injection'])->increment('total_point', $valueUser['point']);
+                if ($valueUser['point_injection_media_push'] == 1) {
+                    $dataOptional          = [];
+                    $image = null;
+                    if (isset($valueUser['point_injection_push_image']) && $valueUser['point_injection_push_image'] != null) {
+                        $dataOptional['image'] = env('AWS_URL') . $valueUser['point_injection_push_image'];
+                        $image = env('AWS_URL') . $valueUser['point_injection_push_image'];
+                    }
 
-                if (isset($valueUser['point_injection_push_link']) && $valueUser['point_injection_push_link'] != null) {
-                    if ($dataOptional['type'] == 'Link')
-                        $dataOptional['link'] = $valueUser['point_injection_push_link'];
-                    else
+                    if (isset($valueUser['point_injection_push_clickto']) && $valueUser['point_injection_push_clickto'] != null) {
+                        $dataOptional['type'] = $valueUser['point_injection_push_clickto'];
+                    } else {
+                        $dataOptional['type'] = 'Home';
+                    }
+
+                    if (isset($valueUser['point_injection_push_link']) && $valueUser['point_injection_push_link'] != null) {
+                        if ($dataOptional['type'] == 'Link')
+                            $dataOptional['link'] = $valueUser['point_injection_push_link'];
+                        else
+                            $dataOptional['link'] = null;
+                    } else {
                         $dataOptional['link'] = null;
-                } else {
-                    $dataOptional['link'] = null;
-                }
-
-                if (isset($valueUser['point_injection_push_id_reference']) && $valueUser['point_injection_push_id_reference'] != null) {
-                    $dataOptional['id_reference'] = (int) $valueUser['point_injection_push_id_reference'];
-                } else {
-                    $dataOptional['id_reference'] = 0;
-                }
-
-                if ($valueUser['point_injection_push_clickto'] == 'News' && $valueUser['point_injection_push_id_reference'] != null) {
-                    $news = News::find($valueUser['point_injection_push_id_reference']);
-                    if ($news) {
-                        $dataOptional['news_title'] = $news->news_title;
                     }
-                    $dataOptional['url'] = env('APP_URL') . 'news/webview/' . $valueUser['point_injection_push_id_reference'];
-                }
 
-                if ($valueUser['point_injection_push_clickto'] == 'Order' && $valueUser['point_injection_push_id_reference'] != null) {
-                    $outlet = Outlet::find($valueUser['point_injection_push_id_reference']);
-                    if ($outlet) {
-                        $dataOptional['news_title'] = $outlet->outlet_name;
+                    if (isset($valueUser['point_injection_push_id_reference']) && $valueUser['point_injection_push_id_reference'] != null) {
+                        $dataOptional['id_reference'] = (int) $valueUser['point_injection_push_id_reference'];
+                    } else {
+                        $dataOptional['id_reference'] = 0;
                     }
-                }
 
-                //push notif logout
-                if ($valueUser['point_injection_push_clickto'] == 'Logout') {
-                    $user = User::find($valueUser['id_user']);
-                    if ($user) {
-                        //delete token
-                        $del = OauthAccessToken::join('oauth_access_token_providers', 'oauth_access_tokens.id', 'oauth_access_token_providers.oauth_access_token_id')
-                            ->where('oauth_access_tokens.user_id', $user['id'])->where('oauth_access_token_providers.provider', 'users')->delete();
+                    if ($valueUser['point_injection_push_clickto'] == 'News' && $valueUser['point_injection_push_id_reference'] != null) {
+                        $news = News::find($valueUser['point_injection_push_id_reference']);
+                        if ($news) {
+                            $dataOptional['news_title'] = $news->news_title;
+                        }
+                        $dataOptional['url'] = env('APP_URL') . 'news/webview/' . $valueUser['point_injection_push_id_reference'];
                     }
-                }
 
-                $deviceToken = PushNotificationHelper::searchDeviceToken("id", $valueUser['id_user']);
+                    if ($valueUser['point_injection_push_clickto'] == 'Order' && $valueUser['point_injection_push_id_reference'] != null) {
+                        $outlet = Outlet::find($valueUser['point_injection_push_id_reference']);
+                        if ($outlet) {
+                            $dataOptional['news_title'] = $outlet->outlet_name;
+                        }
+                    }
 
-                $subject = app($this->autocrm)->TextReplace($valueUser['point_injection_push_subject'], $valueUser['id_user'], ['point_injection_title' => $valueUser['title'], 'geting_point_injection' => $valueUser['point']], 'id');
-                $content = app($this->autocrm)->TextReplace($valueUser['point_injection_push_content'], $valueUser['id_user'], ['point_injection_title' => $valueUser['title'], 'geting_point_injection' => $valueUser['point']], 'id');
+                    //push notif logout
+                    if ($valueUser['point_injection_push_clickto'] == 'Logout') {
+                        $user = User::find($valueUser['id_user']);
+                        if ($user) {
+                            //delete token
+                            $del = OauthAccessToken::join('oauth_access_token_providers', 'oauth_access_tokens.id', 'oauth_access_token_providers.oauth_access_token_id')
+                                ->where('oauth_access_tokens.user_id', $user['id'])->where('oauth_access_token_providers.provider', 'users')->delete();
+                        }
+                    }
 
-                if (!empty($deviceToken)) {
-                    if (isset($deviceToken['token']) && !empty($deviceToken['token'])) {
-                        $push = PushNotificationHelper::sendPush($deviceToken['token'], $subject, $content, $image, $dataOptional);
+                    $deviceToken = PushNotificationHelper::searchDeviceToken("id", $valueUser['id_user']);
+
+                    $subject = app($this->autocrm)->TextReplace($valueUser['point_injection_push_subject'], $valueUser['id_user'], ['point_injection_title' => $valueUser['title'], 'geting_point_injection' => $valueUser['point']], 'id');
+                    $content = app($this->autocrm)->TextReplace($valueUser['point_injection_push_content'], $valueUser['id_user'], ['point_injection_title' => $valueUser['title'], 'geting_point_injection' => $valueUser['point']], 'id');
+
+                    if (!empty($deviceToken)) {
+                        if (isset($deviceToken['token']) && !empty($deviceToken['token'])) {
+                            $push = PushNotificationHelper::sendPush($deviceToken['token'], $subject, $content, $image, $dataOptional);
+                        }
                     }
                 }
             }
+            $pointInjection = PivotPointInjection::where('send_time', '<=', $dateNow)->delete();
+
+            DB::commit();
+
+            return response()->json($insertDataLogCash);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            LogBackendError::logExceptionMessage("ApiPointInjection=>" . $e->getMessage(), $e);
         }
-
-        $pointInjection = PivotPointInjection::where('send_time', '<=', $dateNow)->delete();
-
-        DB::commit();
-        return response()->json($insertDataLogCash);
     }
 
     /**
