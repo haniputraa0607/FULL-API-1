@@ -1063,8 +1063,9 @@ class ApiPOS extends Controller
                             ]]);
                         } elseif (!empty($flagTwo) && end($flagTwo)->end_date <= $price['end_date']) {
                             $flagBetween = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
-                                ->whereBetween('end_date', [$price['start_date'], $price['end_date']])->get()->toArray();
-
+                                ->whereBetween('end_date', [$price['start_date'], $price['end_date']])
+                                ->orderBy('start_date')->get()->toArray();
+                                
                             if (!empty($flagBetween)) {
                                 foreach ($flagBetween as $keyFlagBetween => $between) {
                                     if ($keyFlagBetween != 0) {
