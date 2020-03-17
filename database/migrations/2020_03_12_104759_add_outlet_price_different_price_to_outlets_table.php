@@ -14,7 +14,7 @@ class AddOutletPriceDifferentPriceToOutletsTable extends Migration
     public function up()
     {
         Schema::table('outlets', function (Blueprint $table) {
-            $table->boolean('outlet_different_price')->after('max_order')->default(0);
+            $table->boolean('outlet_different_price')->after('outlet_pin')->default(0);
         });
     }
 
