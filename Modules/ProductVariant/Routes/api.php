@@ -22,6 +22,8 @@ Route::group(['middleware'=>['log_activities','auth:api', 'scopes:be'],'prefix'=
 		Route::post('delete',['middleware' => 'feature_control:221', 'uses' => 'ApiProductGroupController@destroy']);
 		Route::post('assign',['middleware' => 'feature_control:220', 'uses' => 'ApiProductGroupController@assign']);
 		Route::post('reorder',['middleware' => 'feature_control:220', 'uses' => 'ApiProductGroupController@reorder']);
+		Route::post('import',['middleware' => 'feature_control:220', 'uses' => 'ApiProductGroupController@import']);
+		Route::post('export',['middleware' => 'feature_control:217', 'uses' => 'ApiProductGroupController@export']);
 		Route::post('photoAjax',['middleware' => 'feature_control:213', 'uses' => 'ApiProductGroupController@photoAjax']);
 
 	});
