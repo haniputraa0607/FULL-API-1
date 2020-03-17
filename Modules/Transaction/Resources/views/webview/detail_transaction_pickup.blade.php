@@ -642,14 +642,14 @@
         <div class="row space-bottom">
             <div class="col-12 text-14px Ubuntu-Medium text-black">Order Status</div>
         </div>
-        <div class="row" style="margin-top: 5px;">
-            @php $top = 6; $bg = true; @endphp
+        <div class="row" style="margin-top: 10px;">
+            @php $top = 5; $bg = true; @endphp
             @if(isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Cancelled')
                 <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
                     <div class="round-black @if($bg) bg-black @endif"></div>
                     Your order has been canceled
                 </div>
-                @php $top += 6; $bg = false; @endphp
+                @php $top += 5; $bg = false; @endphp
                 <div class="col-12 top-{{$top}}px">
                     <div class="inline text-center">
                         <div class="line-vertical text-grey-medium-light">|</div>
@@ -664,7 +664,7 @@
                         </div>
                     </div>
                 </div>
-                @php $top += 6; @endphp
+                @php $top += 5; @endphp
             @else
                 @if($data['detail']['reject_at'] != null)
                     <div class="col-12 text-13-3px Ubuntu-Medium text-black">
@@ -685,14 +685,14 @@
                             </div>
                         </div>
                     </div>
-                    @php $top += 6; $bg = false; @endphp
+                    @php $top += 5; $bg = false; @endphp
                 @endif
                 @if($data['detail']['taken_by_system_at'] != null)
                     <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
                         <div class="round-black @if($bg) bg-black @endif"></div>
-                        Your order has been done by system
+                        Your order has been done by system 
                     </div>
-                    @php $top += 6; $bg = false; @endphp
+                    @php $top += 5; $bg = false; @endphp
                     <div class="col-12 top-{{$top}}px">
                         <div class="inline text-center">
                             <div class="line-vertical text-grey-medium-light">|</div>
@@ -707,14 +707,14 @@
                             </div>
                         </div>
                     </div>
-                    @php $top += 6; @endphp
+                    @php $top += 5; @endphp
                 @endif
                 @if($data['detail']['taken_at'] != null)
                     <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
                         <div class="round-black @if($bg) bg-black @endif"></div>
-                        Your order has been taken
+                        Your order has been taken 
                     </div>
-                    @php $top += 6; $bg = false; @endphp
+                    @php $top += 5; $bg = false; @endphp
                     <div class="col-12 top-{{$top}}px">
                         <div class="inline text-center">
                             <div class="line-vertical text-grey-medium-light">|</div>
@@ -729,14 +729,14 @@
                             </div>
                         </div>
                     </div>
-                    @php $top += 6; @endphp
+                    @php $top += 5; @endphp
                 @endif
                 @if($data['detail']['ready_at'] != null)
                     <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
                         <div class="round-black @if($bg) bg-black @endif"></div>
-                        Your order is ready
+                        Your order is ready 
                     </div>
-                    @php $top += 6; $bg = false; @endphp
+                    @php $top += 5; $bg = false; @endphp
                     <div class="col-12 top-{{$top}}px">
                         <div class="inline text-center">
                             <div class="line-vertical text-grey-medium-light">|</div>
@@ -751,14 +751,14 @@
                             </div>
                         </div>
                     </div>
-                    @php $top += 6; @endphp
+                    @php $top += 5; @endphp
                 @endif
                 @if($data['detail']['receive_at'] != null)
                     <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
                         <div class="round-black @if($bg) bg-black @endif"></div>
-                        Your order has been received
+                        Your order has been received 
                     </div>
-                    @php $top += 6; $bg = false; @endphp
+                    @php $top += 5; $bg = false; @endphp
                     <div class="col-12 top-{{$top}}px">
                         <div class="inline text-center">
                             <div class="line-vertical text-grey-medium-light">|</div>
@@ -773,11 +773,11 @@
                             </div>
                         </div>
                     </div>
-                    @php $top += 6; @endphp
+                    @php $top += 5; @endphp
                 @endif
                 <div class="col-12 text-13-3px Ubuntu-Medium text-black top-{{$top}}px">
                     <div class="round-black @if($bg) bg-black @endif"></div>
-                    Your order awaits confirmation
+                    Your order awaits confirmation 
                 </div>
                 <div class="col-12 text-11-7px Ubuntu text-black space-bottom top-{{$top}}px">
                     <div class="round-white"></div>
