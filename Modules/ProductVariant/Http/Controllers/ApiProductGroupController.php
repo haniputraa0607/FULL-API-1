@@ -14,6 +14,8 @@ use App\Http\Models\Setting;
 use App\Http\Models\Product;
 use App\Http\Models\ProductModifier;
 use App\Http\Models\ProductCategory;
+use Modules\Brand\Entities\Brand;
+use Modules\Brand\Entities\BrandProduct;
 
 use Modules\PromoCampaign\Entities\PromoCampaign;
 use Modules\PromoCampaign\Entities\PromoCampaignPromoCode;
@@ -876,5 +878,189 @@ class ApiProductGroupController extends Controller
         }
         return $data;
         // end promo code
+    }
+
+    /**
+     * Export data product
+     * @param Request $request Laravel Request Object
+     */
+    public function import(Request $request) {
+        $post = $request->json()->all();
+        $result = [
+            'processed' => 0,
+            'invalid' => 0,
+            'updated' => 0,
+            'updated_price' => 0,
+            'updated_price_fail' => 0,
+            'create' => 0,
+            'create_category' => 0,
+            'no_update' => 0,
+            'failed' => 0,
+            'not_found' => 0,
+            'more_msg' => [],
+            'more_msg_extended' => []
+        ];
+        switch ($post['type']) {
+            case 'global':
+                // update or create if not exist 
+                $data = $post['data']??[];
+                foreach ($data['products'] as $key => $value) {
+                    if(empty($value['product_group_code'])){
+                        $result['invalid']++;
+                        continue;
+                    }
+                    $result['processed']++;
+                    if(empty($value['product_group_name'])){
+                        unset($value['product_group_name']);
+                    }
+                    if(empty($value['product_group_description'])){
+                        unset($value['product_group_description']);
+                    }
+                    $product = ProductGroup::where('product_group_code',$value['product_group_code'])->first();
+                    if($product){
+                        if($product->update($value)){
+                            $result['updated']++;
+                        }else{
+                            $result['no_update']++;
+                        }
+                    }else{
+                        $product = ProductGroup::create($value);
+                        if($product){
+                            $result['create']++;
+                        }else{
+                            $result['failed']++;
+                            $result['more_msg_extended'][] = "Product Group with product group code {$value['product_group_code']} failed to be created";
+                            continue;
+                        }
+                    }
+                }
+                break;
+            
+            case 'detail':
+                // update only, never create
+                $data = $post['data']??[];
+                foreach ($data['products'] as $key => $value) {
+                    if(empty($value['product_group_code'])){
+                        $result['invalid']++;
+                        continue;
+                    }
+                    $result['processed']++;
+                    if(empty($value['product_group_name'])){
+                        unset($value['product_group_name']);
+                    }
+                    if(empty($value['product_group_description'])){
+                        unset($value['product_group_description']);
+                    }
+                    if(empty($value['product_group_position'])){
+                        unset($value['product_group_position']);
+                    }
+                    $product = ProductGroup::where([
+                            'product_group_code' => $value['product_group_code']
+                        ])->first();
+                    if(!$product){
+                        $result['not_found']++;
+                        $result['more_msg_extended'][] = "Product with product code {$value['product_group_code']} not found";
+                        continue;
+                    }
+                    if(empty($value['product_category_name'])){
+                        unset($value['product_category_name']);
+                    }else{
+                        $pc = ProductCategory::where('product_category_name',$value['product_category_name'])->first();
+                        if(!$pc){
+                            $result['create_category']++;
+                            $pc = ProductCategory::create([
+                                'product_category_name' => $value['product_category_name']
+                            ]);
+                        }
+                        $value['id_product_category'] = $pc->id_product_category;
+                        unset($value['product_category_name']);
+                    }
+                    $update1 = $product->update($value);
+                    if($update1){
+                        $result['updated']++;
+                    }else{
+                        $result['no_update']++;
+                    }
+                }
+                break;
+            
+            default:
+                # code...
+                break;
+        }
+        $response = [];
+        if($result['invalid']+$result['processed']<=0){
+            return MyHelper::checkGet([],'File empty');
+        }else{
+            $response[] = $result['invalid']+$result['processed'].' total data found';
+        }
+        if($result['processed']){
+            $response[] = $result['processed'].' data processed';
+        }
+        if($result['updated']){
+            $response[] = 'Update '.$result['updated'].' product';
+        }
+        if($result['create']){
+            $response[] = 'Create '.$result['create'].' new product';
+        }
+        if($result['create_category']){
+            $response[] = 'Create '.$result['create_category'].' new category';
+        }
+        if($result['no_update']){
+            $response[] = $result['no_update'].' product not updated';
+        }
+        if($result['invalid']){
+            $response[] = $result['invalid'].' row data invalid';
+        }
+        if($result['failed']){
+            $response[] = 'Failed create '.$result['failed'].' product';
+        }
+        if($result['not_found']){
+            $response[] = $result['not_found'].' product not found';
+        }
+        if($result['updated_price']){
+            $response[] = 'Update '.$result['updated_price'].' product price';
+        }
+        if($result['updated_price_fail']){
+            $response[] = 'Update '.$result['updated_price_fail'].' product price fail';
+        }
+        $response = array_merge($response,$result['more_msg_extended']);
+        return MyHelper::checkGet($response);
+    }
+
+    /**
+     * Export data product
+     * @param Request $request Laravel Request Object
+     */
+    public function export(Request $request) {
+        $post = $request->json()->all();
+        switch ($post['type']) {
+            case 'global':
+                $data['products'] = ProductGroup::select('product_group_code','product_group_name','product_group_description')
+                    ->join('products','product_groups.id_product_group','=','products.id_product_group')
+                    ->groupBy('product_groups.id_product_group')
+                    ->orderBy('product_group_position')
+                    ->orderBy('product_groups.id_product_group')
+                    ->distinct()
+                    ->get();
+                break;
+
+            case 'detail':
+                $data['products'] = ProductGroup::select('product_categories.product_category_name','product_groups.product_group_position','product_group_code','product_group_name','product_group_description')
+                    ->leftJoin('product_categories','product_categories.id_product_category','=','product_groups.id_product_category')
+                    ->groupBy('product_groups.id_product_group')
+                    ->groupBy('product_category_name')
+                    ->orderBy('product_category_name')
+                    ->orderBy('product_group_position')
+                    ->orderBy('product_groups.id_product_group')
+                    ->distinct()
+                    ->get();
+                break;
+
+            default:
+                # code...
+                break;
+        }
+        return MyHelper::checkGet($data);
     }
 }
