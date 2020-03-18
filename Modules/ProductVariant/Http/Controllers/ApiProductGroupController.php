@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 
+use Modules\Product\Entities\ProductPromoCategory;
 use Modules\ProductVariant\Entities\ProductGroup;
 use Modules\ProductVariant\Entities\ProductProductVariant;
 use Modules\ProductVariant\Entities\ProductVariant;
@@ -466,7 +467,10 @@ class ApiProductGroupController extends Controller
                     ->orderBy('product_groups.product_group_position')
                     ->orderBy('product_groups.id_product_group')
                     // group by product_groups
-                    ->groupBy('product_groups.id_product_group');
+                    ->groupBy('product_groups.id_product_group')
+                    ->with(['promo_category'=>function($query){
+                        $query->select('product_group_product_promo_categories.id_product_promo_category');
+                    }]);
                     // ->get();
         if (isset($post['promo_code'])) {
         	$data = $data->with('products');
@@ -497,6 +501,18 @@ class ApiProductGroupController extends Controller
             }
             unset($product['id_product_category']);
             unset($product['products']);
+            foreach ($product['promo_category'] as $key => $value) {
+                $id_product_promo_category = $value['id_product_promo_category'];
+                if(!isset($result['promo'.$id_product_promo_category]['product_category_name'])){
+                    $category = ProductPromoCategory::select('product_promo_category_name','id_product_promo_category','product_promo_category_order')->find($id_product_promo_category)->toArray();
+                    $result['promo'.$id_product_promo_category] = [
+                        'id_product_category' => $category['id_product_promo_category'],
+                        'product_category_name' => $category['product_promo_category_name'],
+                        'product_category_order' => ($category['product_promo_category_order']-1000000)
+                    ];
+                }
+                $result['promo'.$id_product_promo_category]['products'][] = $product;
+            }
             $result[$id_product_category]['products'][] = $product;
         }
         usort($result, function($a,$b){
@@ -585,7 +601,7 @@ class ApiProductGroupController extends Controller
             return MyHelper::checkGet([],'Product not found');
         }
         // get product group detail
-        $data = ProductGroup::select('id_product_group','product_group_name','product_group_image_detail','product_group_code','product_group_description')->find($post['id_product_group'])->toArray();
+        $data = ProductGroup::select('id_product_group','id_product_category','product_group_name','product_group_image_detail','product_group_code','product_group_description')->find($post['id_product_group'])->toArray();
 
         // add id_brand, outlet_name,outlet_code
         $data['id_brand'] = $post['id_brand'];
