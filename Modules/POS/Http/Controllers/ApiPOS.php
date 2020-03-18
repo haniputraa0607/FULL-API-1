@@ -772,7 +772,7 @@ class ApiPOS extends Controller
                             $product = Product::create([
                                 'id_product_group'  => $checkGroup->id_product_group,
                                 'product_code'      => $variance['sap_matnr'],
-                                'product_name'      => implode(" ", [ucwords($checkGroup->product_group_name), $variance['size'], $variance['type']]),
+                                'product_name'      => implode(" ", [ucwords(strtolower($checkGroup->product_group_name)), $variance['size'], $variance['type']]),
                                 'product_name_pos'  => implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]),
                                 'product_status'    => $variance['status'],
                                 'category_id_pos'   => $menu['category_id']
@@ -821,7 +821,7 @@ class ApiPOS extends Controller
                 try {
                     $createGroup = ProductGroup::create([
                         'product_group_code'    => $menu['menu_id'],
-                        'product_group_name'    => $menu['menu_name']
+                        'product_group_name'    => ucwords(strtolower($menu['menu_name']))
                     ]);
                 } catch (\Exception $e) {
                     DB::rollBack();
@@ -911,7 +911,7 @@ class ApiPOS extends Controller
                             $product = Product::create([
                                 'id_product_group'  => $createGroup->id_product_group,
                                 'product_code'      => $variance['sap_matnr'],
-                                'product_name'      => implode(" ", [ucwords($createGroup->product_group_name), $variance['size'], $variance['type']]),
+                                'product_name'      => implode(" ", [ucwords(strtolower($createGroup->product_group_name)), $variance['size'], $variance['type']]),
                                 'product_name_pos'  => implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]),
                                 'product_status'    => $variance['status'],
                                 'category_id_pos'    => $menu['category_id']
@@ -2434,7 +2434,7 @@ class ApiPOS extends Controller
                                         try {
                                             $productGroup = ProductGroup::create([
                                                 'product_group_code'    => $menu['menu_id'],
-                                                'product_group_name'    => $menu['menu_name']
+                                                'product_group_name'    => ucwords(strtolower($menu['menu_name']))
                                             ]);
                                         } catch (\Exception $e) {
                                             DB::rollBack();
@@ -2521,7 +2521,7 @@ class ApiPOS extends Controller
                                         $product = Product::create([
                                             'product_code'    => $menu['menu_variance']['sap_matnr'],
                                             'product_name_pos'  => implode(" ", [$productGroup['product_group_name'], $variance['size'], $variance['type']]),
-                                            'product_name'  => implode(" ", [ucwords($productGroup['product_group_name']), $variance['size'], $variance['type']]),
+                                            'product_name'  => implode(" ", [ucwords(strtolower($productGroup['product_group_name'])), $variance['size'], $variance['type']]),
                                             'product_status'    => $variance['status'],
                                             'id_product_group'  => $productGroup['id_product_group']
                                         ]);
