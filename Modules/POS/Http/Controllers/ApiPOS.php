@@ -2039,6 +2039,7 @@ class ApiPOS extends Controller
 
                 $config['point']    = Configs::where('config_name', 'point')->first()->is_active;
                 $config['balance']  = Configs::where('config_name', 'balance')->first()->is_active;
+                $config['unique_receipt_outlet'] = Configs::where('config_name', 'unique receipt outlet')->first()->is_active;
                 $settingPoint       = Setting::where('key', 'point_conversion_value')->first()->value;
                 $transOriginal      = $post['transactions'];
 
@@ -2046,14 +2047,15 @@ class ApiPOS extends Controller
 
                 $receipt = array_column($post['transactions'], 'trx_id');
                 //exclude receipt number when already exist in outlet
-                $checkReceipt = Transaction::select('transaction_receipt_number', 'id_transaction')->where('id_outlet', $checkOutlet['id_outlet'])
-                                    ->whereIn('transaction_receipt_number', $receipt)
+                $checkReceipt = Transaction::select('transaction_receipt_number', 'id_transaction');
+                if($config['unique_receipt_outlet'] == '1'){
+                    $checkReceipt = $checkReceipt->where('id_outlet', $checkOutlet['id_outlet']);
+                }
+                $checkReceipt = $checkReceipt->whereIn('transaction_receipt_number', $receipt)
                                     ->where('trasaction_type', 'Offline')
                                     ->get();
                 $convertTranscToArray = $checkReceipt->toArray();
                 $receiptExist = $checkReceipt->pluck('transaction_receipt_number')->toArray();
-
-                $validReceipt = array_diff($receipt,$receiptExist);
 
                 $invalidReceipt = array_intersect($receipt,$receiptExist);
                 foreach($invalidReceipt as $key => $invalid){
@@ -2061,34 +2063,39 @@ class ApiPOS extends Controller
                     unset($post['transactions'][$key]);
                 }
 
-                //check possibility duplicate
-                $receiptDuplicate = Transaction::where('id_outlet', '!=', $checkOutlet['id_outlet'])
-                                    ->whereIn('transaction_receipt_number', $validReceipt)
-                                    ->where('trasaction_type', 'Offline')
-                                    ->select('transaction_receipt_number')
-                                    ->get()->pluck('transaction_receipt_number')->toArray();
+                //check possibility duplicate when receipt number unique per outlet
+                if($config['unique_receipt_outlet'] == '1'){
+                    $validReceipt = array_diff($receipt,$receiptExist);
 
-                $transactionDuplicate = TransactionDuplicate::where('id_outlet', '=', $checkOutlet['id_outlet'])
+                    $receiptDuplicate = Transaction::where('id_outlet', '!=', $checkOutlet['id_outlet'])
                                         ->whereIn('transaction_receipt_number', $validReceipt)
+                                        ->where('trasaction_type', 'Offline')
                                         ->select('transaction_receipt_number')
                                         ->get()->pluck('transaction_receipt_number')->toArray();
 
-                $receiptDuplicate = array_intersect($receipt, $receiptDuplicate);
-                $contentDuplicate = [];
-                foreach($receiptDuplicate as $key => $receipt){
-                    if(in_array($receipt, $transactionDuplicate)){
-                        $countTransactionDuplicate++;
-                        unset($post['transactions'][$key]);
-                    }else{
-                        $duplicate = $this->processDuplicate($post['transactions'][$key], $checkOutlet);
-                        if(isset($duplicate['status']) && $duplicate['status'] == 'duplicate'){
+                    $transactionDuplicate = TransactionDuplicate::where('id_outlet', '=', $checkOutlet['id_outlet'])
+                                            ->whereIn('transaction_receipt_number', $validReceipt)
+                                            ->select('transaction_receipt_number')
+                                            ->get()->pluck('transaction_receipt_number')->toArray();
+
+                    $receiptDuplicate = array_intersect($receipt, $receiptDuplicate);
+
+                    $contentDuplicate = [];
+                    foreach($receiptDuplicate as $key => $receipt){
+                        if(in_array($receipt, $transactionDuplicate)){
                             $countTransactionDuplicate++;
-                            $data = [
-                                'trx' => $duplicate['trx'],
-                                'duplicate' =>$duplicate['duplicate']
-                            ];
-                            $contentDuplicate[] = $data;
                             unset($post['transactions'][$key]);
+                        }else{
+                            $duplicate = $this->processDuplicate($post['transactions'][$key], $checkOutlet);
+                            if(isset($duplicate['status']) && $duplicate['status'] == 'duplicate'){
+                                $countTransactionDuplicate++;
+                                $data = [
+                                    'trx' => $duplicate['trx'],
+                                    'duplicate' =>$duplicate['duplicate']
+                                ];
+                                $contentDuplicate[] = $data;
+                                unset($post['transactions'][$key]);
+                            }
                         }
                     }
                 }
@@ -2838,7 +2845,7 @@ class ApiPOS extends Controller
                 foreach ($trx['menu'] as $row => $menu) {
                     $productDuplicate = false;
                     foreach($trxDuplicate['productTransaction'] as $i => $dataProduct){
-                        if($menu['plu_id'] == $dataProduct['product']['product_code']){
+                        if($menu['menu_variance']['sap_matnr'] == $dataProduct['product']['product_code']){
                             //cek jumlah quantity
                             if($menu['qty'] == $dataProduct['transaction_product_qty']){
                                 //set status product duplicate true
@@ -2910,7 +2917,7 @@ class ApiPOS extends Controller
                         $dataTrxDuplicateProd['id_transaction_duplicate'] = $insertDuplicate['id_transaction_duplicate'];
 
                         $dataTrxDuplicateProd['id_product'] = $menu['id_product'];
-                        $dataTrxDuplicateProd['transaction_product_code'] = $menu['plu_id'];
+                        $dataTrxDuplicateProd['transaction_product_code'] = $menu['menu_variance']['sap_matnr'];
                         $dataTrxDuplicateProd['transaction_product_name'] = $menu['product_name'];
                         $dataTrxDuplicateProd['transaction_product_qty'] = $menu['qty'];
                         $dataTrxDuplicateProd['transaction_product_price'] = $menu['price'];
