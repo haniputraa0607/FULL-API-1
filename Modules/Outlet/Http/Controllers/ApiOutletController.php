@@ -346,7 +346,7 @@ class ApiOutletController extends Controller
         }
 
         if (empty($data)) {
-            return reponse()->json([
+            return response()->json([
                 'status'   => 'fail',
                 'messages' => ['fail save to database']
             ]);
@@ -555,6 +555,12 @@ class ApiOutletController extends Controller
 
         $loopdata = array_map(function($var) use ($post){
             $var['url']=env('API_URL').'api/outlet/webview/'.$var['id_outlet'];
+            foreach($var['outlet_schedules'] as $index => $sch){
+                $var['outlet_schedules'][$index] = $this->setTimezone($var['outlet_schedules'][$index]);
+            }
+            if(isset($var['today']['time_zone'])){
+                $var['today'] = $this->setTimezone($var['today']);
+            }
             if(($post['latitude']??false)&&($post['longitude']??false)){
                 $var['distance']=number_format((float)$this->distance($post['latitude'], $post['longitude'], $var['outlet_latitude'], $var['outlet_longitude'], "K"), 2, '.', '').' km';
             }
@@ -670,6 +676,10 @@ class ApiOutletController extends Controller
                 $outlet[$key]['dist']     = (float) $jaraknya;
 
                 $outlet[$key] = $this->setAvailableOutlet($outlet[$key], $processing);
+
+                if(isset($outlet[$key]['today']['time_zone'])){
+                    $outlet[$key]['today'] = $this->setTimezone($outlet[$key]['today']);
+                }
             }
             usort($outlet, function($a, $b) {
                 return $a['dist'] <=> $b['dist'];
@@ -939,7 +949,11 @@ class ApiOutletController extends Controller
                     continue;
                 }
 
-                $outlet[$key] = $this->setAvailableOutlet($outlet[$key], $processing);;
+                $outlet[$key] = $this->setAvailableOutlet($outlet[$key], $processing);
+
+                if(isset($outlet[$key]['today']['time_zone'])){
+                    $outlet[$key]['today'] = $this->setTimezone($outlet[$key]['today']);
+                }
             }
 			if($sort != 'Alphabetical'){
 				usort($outlet, function($a, $b) {
@@ -1433,7 +1447,7 @@ class ApiOutletController extends Controller
             }
         }
 
-        return response()->json(MyHelper::checkUpdate($update));
+        return response()->json(MyHelper::checkUpdate($updateHoliday));
     }
 
     function exportCity(Request $request) {
@@ -2092,5 +2106,27 @@ class ApiOutletController extends Controller
             ];
         }
         return ['status'=>'fail'];
+    }
+
+    public function setTimezone($data){
+        $data['time_zone_id'] = 'WIB';
+        switch ($data['time_zone']) {
+            case 'Asia/Makassar':
+                $data['open'] = date('H:i', strtotime('+1 hour',strtotime($data['open'])));
+                $data['close'] = date('H:i', strtotime('+1 hour', strtotime($data['close'])));
+                $data['time_zone_id'] = 'WITA';
+            break;
+            case 'Asia/Jayapura':
+                $data['open'] = date('H:i', strtotime('+2 hours', strtotime($data['open'])));
+                $data['close'] = date('H:i', strtotime('+2 hours', strtotime($data['close'])));
+                $data['time_zone_id'] = 'WIT';
+            break;
+            case 'Asia/Singapore':
+                $data['open'] = date('H:i', strtotime('+1 hour',strtotime($data['open'])));
+                $data['close'] = date('H:i', strtotime('+1 hour', strtotime($data['close'])));
+                $data['time_zone_id'] = '';
+            break;
+        }
+        return $data;
     }
 }

@@ -144,7 +144,7 @@ class Outlet extends Authenticatable
 
 	public function outlet_schedules()
 	{
-		return $this->hasMany(\App\Http\Models\OutletSchedule::class, 'id_outlet');
+		return $this->hasMany(\App\Http\Models\OutletSchedule::class, 'id_outlet')->select('id_outlet', 'day', 'open', 'close', 'is_closed', 'time_zone');
 	}
 
 	public function today()
@@ -182,7 +182,7 @@ class Outlet extends Authenticatable
 			break;
 		}
 
-		return $this->belongsTo(OutletSchedule::class, 'id_outlet', 'id_outlet')->where('day', $hari_ini);
+		return $this->belongsTo(OutletSchedule::class, 'id_outlet', 'id_outlet')->where('day', $hari_ini)->select('id_outlet', 'day', 'open', 'close', 'is_closed', 'time_zone');
 	}
 
 	public function outlet_ovo()
