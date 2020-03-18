@@ -535,6 +535,7 @@ class ApiPOS extends Controller
                 }
                 foreach ($value['store_schedule'] as $valueSchedule) {
                     try {
+                        $valueSchedule = $this->setTimezone($valueSchedule);
                         OutletSchedule::updateOrCreate(['id_outlet' => $cekOutlet->id_outlet, 'day' => $valueSchedule['day']], $valueSchedule);
                     } catch (Exception $e) {
                         DB::rollBack();
@@ -563,6 +564,7 @@ class ApiPOS extends Controller
                     foreach ($value['store_schedule'] as $valueSchedule) {
                         $valueSchedule['id_outlet'] = $save->id_outlet;
                         try {
+                            $valueSchedule = $this->setTimezone($valueSchedule);
                             OutletSchedule::create($valueSchedule);
                         } catch (Exception $e) {
                             DB::rollBack();
@@ -1065,7 +1067,7 @@ class ApiPOS extends Controller
                             $flagBetween = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
                                 ->whereBetween('end_date', [$price['start_date'], $price['end_date']])
                                 ->orderBy('start_date')->get()->toArray();
-                                
+
                             if (!empty($flagBetween)) {
                                 foreach ($flagBetween as $keyFlagBetween => $between) {
                                     if ($keyFlagBetween != 0) {
@@ -1190,7 +1192,7 @@ class ApiPOS extends Controller
                         ]);
                     }
                 }
-                dd('no');
+                // dd('no');
                 // if (isset($dataJob[$keyMenu]['price_detail'])) {
                 // SyncProductPrice::dispatch(json_encode($dataJob[$keyMenu]));
                 // }
@@ -3334,5 +3336,23 @@ class ApiPOS extends Controller
             // }
         }
         SyncMenuRequest::where('id', $getRequest['id'])->delete();
+    }
+
+    public function setTimezone($data){
+        switch ($data['time_zone']) {
+            case 'Asia/Makassar':
+                $data['open'] = date('H:i', strtotime('-1 hour',strtotime($data['open'])));
+                $data['close'] = date('H:i', strtotime('-1 hour', strtotime($data['close'])));
+            break;
+            case 'Asia/Jayapura':
+                $data['open'] = date('H:i', strtotime('-2 hours', strtotime($data['open'])));
+                $data['close'] = date('H:i', strtotime('-2 hours', strtotime($data['close'])));
+            break;
+            case 'Asia/Singapore':
+                $data['open'] = date('H:i', strtotime('-1 hour',strtotime($data['open'])));
+                $data['close'] = date('H:i', strtotime('-1 hour', strtotime($data['close'])));
+            break;
+        }
+        return $data;
     }
 }
