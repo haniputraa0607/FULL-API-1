@@ -8,6 +8,7 @@ use Illuminate\Routing\Controller;
 
 use Modules\Product\Entities\ProductPromoCategory;
 use Modules\ProductVariant\Entities\ProductGroup;
+use Modules\ProductVariant\Entities\ProductGroupProductPromoCategory;
 use Modules\ProductVariant\Entities\ProductProductVariant;
 use Modules\ProductVariant\Entities\ProductVariant;
 use App\Http\Models\Outlet;
@@ -223,7 +224,7 @@ class ApiProductGroupController extends Controller
     public function show(Request $request)
     {
         $id_product_group = $request->json('id_product_group');
-        $data = ProductGroup::find($id_product_group)->toArray();
+        $data = ProductGroup::with('promo_category')->find($id_product_group)->toArray();
         $data['variants'] = Product::select(\DB::raw('products.id_product,products.product_name,GROUP_CONCAT(id_product_variant) as variants'))
             ->where('id_product_group',$id_product_group)
             ->leftJoin('product_product_variants','product_product_variants.id_product','products.id_product')
@@ -270,6 +271,15 @@ class ApiProductGroupController extends Controller
                     'messages'    => ['fail upload image']
                 ];
                 return response()->json($result);
+            }
+        }
+        ProductGroupProductPromoCategory::where('id_product_group',$post['id_product_group'])->delete();
+        if(isset($post['id_product_promo_category'])){
+            foreach ($post['id_product_promo_category'] as $id_product_promo_category) {
+                ProductGroupProductPromoCategory::create([
+                    'id_product_group' => $post['id_product_group'],
+                    'id_product_promo_category' => $id_product_promo_category
+                ]);
             }
         }
         $data = [

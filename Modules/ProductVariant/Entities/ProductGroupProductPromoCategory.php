@@ -6,5 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProductGroupProductPromoCategory extends Model
 {
-    protected $fillable = [];
+	public $timestamps = false;
+    protected $fillable = [
+    	'id_product_group',
+    	'id_product_promo_category'
+    ];
 }
