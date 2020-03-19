@@ -22,7 +22,9 @@ class ApiTransactionCIMB extends Controller
     function __construct()
     {
         date_default_timezone_set('Asia/Jakarta');
-        $this->autocrm       = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
+        $this->autocrm  = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
+        $this->notif    = "Modules\Transaction\Http\Controllers\ApiNotification";
+        $this->trx = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
     }
 
     public function callback(Request $request)
@@ -37,6 +39,7 @@ class ApiTransactionCIMB extends Controller
                 $updateCimb = TransactionPaymentCimb::where('merchant_tranid', $request['MERCHANT_TRANID'])
                     ->update([
                         'id_transaction'    => $transaction->id_transaction,
+                        'amount'            => $request['AMOUNT'],
                         'transaction_id'    => $request['TRANSACTION_ID'],
                         'txn_status'        => $request['TXN_STATUS'],
                         'txn_signature'     => $request['TXN_SIGNATURE'],
@@ -104,7 +107,8 @@ class ApiTransactionCIMB extends Controller
 
                 return view('transaction::webview.detail_transaction_pickup')->with(compact('data'));
             }
-            \App\Lib\ConnectPOS::create()->sendTransaction($data['id_transaction']);
+            
+            \App\Lib\ConnectPOS::create()->sendTransaction($transaction->id_transaction);
 
             // apply cashback to referrer
             \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($transaction);

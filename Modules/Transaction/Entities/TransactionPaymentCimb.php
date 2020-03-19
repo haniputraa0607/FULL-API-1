@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class TransactionPaymentCimb extends Model
 {
-    protected $primaryKey = 'id_transaction_payment_cimb';
+    protected $primaryKey = 'idtransaction_payment_cimb';
 
     protected $casts = [
         'id_transaction' => 'int'

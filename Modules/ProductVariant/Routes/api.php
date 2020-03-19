@@ -25,7 +25,7 @@ Route::group(['middleware'=>['log_activities','auth:api', 'scopes:be'],'prefix'=
 		Route::post('import',['middleware' => 'feature_control:220', 'uses' => 'ApiProductGroupController@import']);
 		Route::post('export',['middleware' => 'feature_control:217', 'uses' => 'ApiProductGroupController@export']);
 		Route::post('photoAjax',['middleware' => 'feature_control:213', 'uses' => 'ApiProductGroupController@photoAjax']);
-
+		Route::post('category/update',['middleware' => 'feature_control:220', 'uses' => 'ApiProductGroupController@categoryUpdate']);
 	});
 	Route::any('/',['middleware' => 'feature_control:212', 'uses' => 'ApiProductVariantController@index']);
 	Route::post('detail',['middleware' => 'feature_control:213', 'uses' => 'ApiProductVariantController@show']);
