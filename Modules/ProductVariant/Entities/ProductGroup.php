@@ -22,6 +22,11 @@ class ProductGroup extends Model
     	return $this->belongsTo(\App\Http\Models\ProductCategory::class,'id_product_category','id_product_category');
     }
 
+    public function promo_category()
+    {
+        return $this->belongsToMany(\Modules\Product\Entities\ProductPromoCategory::class,'product_group_product_promo_categories','id_product_group','id_product_promo_category')->distinct();
+    }
+
     public function products()
     {
         return $this->hasMany(\App\Http\Models\Product::class,'id_product_group','id_product_group');
