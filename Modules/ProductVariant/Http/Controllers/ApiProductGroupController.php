@@ -43,11 +43,20 @@ class ApiProductGroupController extends Controller
      */
     public function index(Request $request)
     {
-        $pg = ProductGroup::select(\DB::raw('product_groups.*,count(id_product) as products_count'))
-            ->leftJoin('products','products.id_product_group','=','product_groups.id_product_group')
-            ->groupBy('product_groups.id_product_group')
-            ->orderBy('product_groups.product_group_position')
-            ->with('product_category');
+        switch ($request->json('target')) {
+            case 'manage_category':
+                $pg = ProductGroup::select('product_groups.id_product_group','product_group_name','product_group_code','id_product_category')
+                    ->groupBy('product_groups.id_product_group');
+                break;
+            
+            default:
+                $pg = ProductGroup::select(\DB::raw('product_groups.*,count(id_product) as products_count'))
+                    ->leftJoin('products','products.id_product_group','=','product_groups.id_product_group')
+                    ->groupBy('product_groups.id_product_group')
+                    ->orderBy('product_groups.product_group_position')
+                    ->with('product_category');
+                break;
+        }
         if($request->json('keyword')){
             $pg->where(function($query) use ($request){
                 $query->where('product_group_name','like',"%{$request->json('keyword')}%");
@@ -1088,5 +1097,14 @@ class ApiProductGroupController extends Controller
                 break;
         }
         return MyHelper::checkGet($data);
+    }
+
+    public function categoryUpdate(Request $request) {
+        $post = $request->post();
+        $update = false;
+        foreach ($post['id_product_category']??[] as $id_product_group => $id_product_category) {
+            $update = ProductGroup::where('id_product_group',$id_product_group)->update(['id_product_category'=>$id_product_category]);
+        }
+        return MyHelper::checkUpdate($update);
     }
 }
