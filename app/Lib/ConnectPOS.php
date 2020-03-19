@@ -7,10 +7,10 @@ use App\Http\Models\TransactionPickup;
 use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\TransactionPaymentMidtran;
-use App\Http\Models\TransactionPaymentCimb;
 use App\Http\Models\TransactionPaymentOvo;
 use App\Http\Models\LogActivitiesPosTransactionsOnline;
 use App\Http\Models\TransactionOnlinePos;
+use Modules\Transaction\Entities\TransactionPaymentCimb;
 
 class ConnectPOS{
 	public static $obj = null;
