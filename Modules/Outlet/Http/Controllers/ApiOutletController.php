@@ -555,8 +555,10 @@ class ApiOutletController extends Controller
 
         $loopdata = array_map(function($var) use ($post){
             $var['url']=env('API_URL').'api/outlet/webview/'.$var['id_outlet'];
-            foreach($var['outlet_schedules'] as $index => $sch){
-                $var['outlet_schedules'][$index] = $this->setTimezone($var['outlet_schedules'][$index]);
+            if(isset($var['outlet_schedules'])){
+                foreach($var['outlet_schedules'] as $index => $sch){
+                    $var['outlet_schedules'][$index] = $this->setTimezone($var['outlet_schedules'][$index]);
+                }
             }
             if(isset($var['today']['time_zone'])){
                 $var['today'] = $this->setTimezone($var['today']);
