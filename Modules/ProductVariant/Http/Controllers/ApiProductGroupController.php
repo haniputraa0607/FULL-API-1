@@ -955,6 +955,24 @@ class ApiProductGroupController extends Controller
                     if($product){
                         if($product->update($value)){
                             $result['updated']++;
+                            if($value['product_group_name']){
+                                $products = Product::where('id_product_group',$product->id_product_group)->with(['product_variants'=>function($query){
+                                    $query->select('product_variants.id_product_variant','product_variants.product_variant_code')
+                                    ->join('product_variants as parent','product_variants.parent','=','parent.id_product_variant')
+                                    ->orderBy('parent.product_variant_position')->distinct();
+                                }])->get();
+                                foreach ($products as $product) {
+                                    $p = $product->toArray();
+                                    $new_name = $value['product_group_name'];
+                                    if($p['product_variants'][0]['product_variant_code']??'general' != 'general'){
+                                        $new_name.=' '.$p['product_variants'][0]['product_variant_code'];
+                                    }
+                                    if($p['product_variants'][1]['product_variant_code']??'general' != 'general'){
+                                        $new_name.=' '.$p['product_variants'][1]['product_variant_code'];
+                                    }
+                                    $product->update(['product_name'=>$new_name]);
+                                }
+                            }
                         }else{
                             $result['no_update']++;
                         }
@@ -1013,6 +1031,24 @@ class ApiProductGroupController extends Controller
                     $update1 = $product->update($value);
                     if($update1){
                         $result['updated']++;
+                        if($value['product_group_name']){
+                            $products = Product::where('id_product_group',$product->id_product_group)->with(['product_variants'=>function($query){
+                                $query->select('product_variants.id_product_variant','product_variants.product_variant_code')
+                                ->join('product_variants as parent','product_variants.parent','=','parent.id_product_variant')
+                                ->orderBy('parent.product_variant_position')->distinct();
+                            }])->get();
+                            foreach ($products as $product) {
+                                $p = $product->toArray();
+                                $new_name = $value['product_group_name'];
+                                if($p['product_variants'][0]['product_variant_code']??'general' != 'general'){
+                                    $new_name.=' '.$p['product_variants'][0]['product_variant_code'];
+                                }
+                                if($p['product_variants'][1]['product_variant_code']??'general' != 'general'){
+                                    $new_name.=' '.$p['product_variants'][1]['product_variant_code'];
+                                }
+                                $product->update(['product_name'=>$new_name]);
+                            }
+                        }
                     }else{
                         $result['no_update']++;
                     }
