@@ -292,7 +292,7 @@ class ApiProductGroupController extends Controller
             }
         }
         $data = [
-            'id_product_category' => $request->json('id_product_category'),
+            'id_product_category' => $request->json('id_product_category')?:null,
             'product_group_code' => $request->json('product_group_code'),
             'product_group_name' => $request->json('product_group_name'),
             'product_group_description' => $request->json('product_group_description'),
@@ -1156,7 +1156,7 @@ class ApiProductGroupController extends Controller
         $post = $request->post();
         $update = false;
         foreach ($post['id_product_category']??[] as $id_product_group => $id_product_category) {
-            $update = ProductGroup::where('id_product_group',$id_product_group)->update(['id_product_category'=>$id_product_category]);
+            $update = ProductGroup::where('id_product_group',$id_product_group)->update(['id_product_category'=>$id_product_category?:null]);
         }
         return MyHelper::checkUpdate($update);
     }

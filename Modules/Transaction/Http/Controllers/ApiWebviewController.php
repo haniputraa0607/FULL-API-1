@@ -31,9 +31,100 @@ class ApiWebviewController extends Controller
     {
         $id = $request->json('id_transaction');
         $type = $request->json('type');
+        $check = $request->json('check');
+        $button = '';
         $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
 
         $success = $request->json('trx_success');
+
+        $user = $request->user();
+
+        if (empty($check)) {
+            if ($type == 'trx') {
+                // if(count($arrId) != 2){
+                //     $list = Transaction::where('transaction_receipt_number', $id)->first();
+                // }else{
+                $list = Transaction::where([['id_transaction', $id],['id_user', $user->id]])->first();
+                // }
+
+                if (empty($list)) {
+                    return response()->json(['status' => 'fail', 'messages' => ['Transaction not found']]);
+                }
+
+                $dataEncode = [
+                    'id_transaction'   => $id,
+                    'type' => $type,
+                ];
+
+                if (isset($success)) {
+                    $dataEncode['trx_success'] = $success;
+                    $button = 'LIHAT NOTA';
+                }
+
+                $title = 'Transaction Detail';
+                // if ($list['transaction_payment_status'] == 'Pending') {
+                //     $title = 'Pending';
+                // }
+
+                // if ($list['transaction_payment_status'] == 'Paid') {
+                //     $title = 'Paid';
+                // }
+
+                // if ($list['transaction_payment_status'] == 'Completed') {
+                //     $title = 'Success';
+                // }
+
+                // if ($list['transaction_payment_status'] == 'Cancelled') {
+                //     $title = 'Failed';
+                // }
+
+                $encode = json_encode($dataEncode);
+                $base = base64_encode($encode);
+
+                $send = [
+                    'status' => 'success',
+                    'result' => [
+                        'button'                     => $button,
+                        'title'                      => $title,
+                        'payment_status'             => $list['transaction_payment_status'],
+                        'id_transaction'             => $list['transaction_receipt_number'],
+                        'transaction_grandtotal'     => $list['transaction_grandtotal'],
+                        'type'                       => $type,
+                        'url'                        => env('API_URL').'api/transaction/web/view/detail?data='.$base
+                    ],
+                ];
+
+                return response()->json($send);
+            } else {
+                $list = $voucher = DealsUser::with('outlet', 'dealVoucher.deal')->where('id_deals_user', $id)->orderBy('claimed_at', 'DESC')->first();
+
+                if (empty($list)) {
+                    return response()->json(MyHelper::checkGet($list));
+                }
+
+                $dataEncode = [
+                    'id_transaction'    => $id,
+                    'type'              => $type
+                ];
+
+                $encode = json_encode($dataEncode);
+                $base = base64_encode($encode);
+
+                $send = [
+                    'status'         => 'success',
+                    'result'         => [
+                        'payment_status'             => $list['paid_status'],
+                        'id_transaction'             => $list['id_deals_user'],
+                        'transaction_grandtotal'     => $list['voucher_price_cash'],
+                        'type'                       => $type,
+                        'url'                        => env('API_URL').'api/transaction/web/view/detail?data='.$base
+                    ],
+
+                ];
+
+                return response()->json($send);
+            }
+        }
 
         if ($type == 'trx') {
             if($request->json('id_transaction')){
@@ -381,7 +472,83 @@ class ApiWebviewController extends Controller
         }
 
         $select = [];
-        
+        $check = $request->json('check');
+        $receipt = null;
+
+        $data   = LogBalance::where('id_log_balance', $id)->first();
+        if ($data['source'] == 'Transaction' || $data['source'] == 'Rejected Order' || $data['source'] == 'Rejected Order Point' || $data['source'] == 'Rejected Order Midtrans' || $data['source'] == 'Reversal') {
+            $select = Transaction::with('outlet')->where('id_transaction', $data['id_reference'])->first();
+            $receipt = $select['transaction_receipt_number'];
+            $type = 'trx';
+        } else {
+            $type = 'voucher';
+        }
+
+        if (empty($check)) {
+
+            if($type == 'voucher'){
+                $list = DealsUser::with('outlet', 'dealVoucher.deal')->where('id_deals_user', $data['id_reference'])->first();
+
+                if ($list) {
+
+                    $dataEncode = [
+                        'id_transaction'   => $data['id_reference'],
+                        'type' => $type
+                    ];
+
+                    $encode = json_encode($dataEncode);
+                    $base = base64_encode($encode);
+
+                    if($list['balance_nominal'] != null){
+                        $list['voucher_price_cash'] = $list['voucher_price_cash'] - $list['balance_nominal'];
+                    }
+
+                    $send = [
+                        'status'         => 'success',
+                        'result'         => [
+                            'payment_status'             => $list['paid_status'],
+                            'id_transaction' => $list['id_deals_user'],
+                            'transaction_grandtotal'     => $list['voucher_price_cash'],
+                            'type'                       => $type,
+                            'url'                        => env('API_URL').'api/transaction/web/view/detail?data='.$base
+                        ],
+
+                    ];
+
+                    return response()->json($send);
+                }
+                return response()->json(['status' => 'fail', 'messages' => ['Data not valid']]);
+            }
+            $dataEncode2 = [
+                'id_transaction'   => $select['id_transaction'],
+                'type' => $type
+            ];
+
+            $encode2 = json_encode($dataEncode2);
+            $base2 = base64_encode($encode2);
+
+            $dataEncode = [
+                'id'   => $id
+            ];
+
+            $encode = json_encode($dataEncode);
+            $base = base64_encode($encode);
+            // return $base;
+
+            $send = [
+                'status'                     => 'success',
+                'result' => [
+                    'type'                       => $type,
+                    'id_transaction' => $select['id_transaction'],
+                    'button'                     => 'View Detail',
+                    'url'                        => env('API_URL').'api/transaction/web/view/detail/balance?data='.$base,
+                    'trx_url'                    => env('API_URL').'api/transaction/web/view/detail?data='.$base2
+                ],
+            ];
+
+            return response()->json($send);
+        }
+
         $data   = LogBalance::where('id_log_balance', $id)->first();
         if ($data['source'] == 'Transaction' || $data['source'] == 'Rejected Order'  || $data['source'] == 'Rejected Order Point' || $data['source'] == 'Rejected Order Midtrans' || $data['source'] == 'Reversal') {
             $select = Transaction::with(['outlet', 'productTransaction.product'])->where('id_transaction', $data['id_reference'])->first();
