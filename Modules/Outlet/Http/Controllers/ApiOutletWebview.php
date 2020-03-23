@@ -38,8 +38,14 @@ class ApiOutletWebview extends Controller
         // }
         
         $list = MyHelper::postCURLWithBearer('api/outlet/list?log_save=0', ['id_outlet' => $id], $bearer);
-        
-        return response()->json(['data' => $list['result']]);
+
+        unset($list['result'][0]['product_prices']);
+
+        if ($list['status'] == 'success') {
+            return response()->json(['status' => 'success', 'result' => $list['result'][0]]);
+        } else {
+            return response()->json(['status' => 'fail', 'messages' => 'fail to load data']);
+        }
     }
 
     public function listOutletGofood(Request $request)
