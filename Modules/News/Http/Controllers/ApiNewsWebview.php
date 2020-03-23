@@ -45,4 +45,31 @@ class ApiNewsWebview extends Controller
             return view('error', ['msg' => 'Something went wrong, try again']);
         }
     }
+    public function detailNews(Request $request, $id)
+    {
+        $news = News::with('newsOutlet','newsOutlet.outlet','newsProduct','newsProduct.product')->find($id)->toArray();
+        $totalOutlet = 0;
+        $outlet = Outlet::get()->toArray();
+        if ($outlet) {
+            $totalOutlet = count($outlet);
+        }
+        
+        $totalOutletNews = 0;
+
+        $totalProduct = 0;
+        $product = Product::get()->toArray();
+        if ($product) {
+            $totalProduct = count($product);
+        }
+        
+        $totalProductNews = 0;
+        
+        if ($news) {
+            // return $news['result'];
+            $totalOutletNews = count($news['news_outlet']);
+            return response()->json(['news' => [$news], 'total_outlet' => $totalOutlet, 'total_outlet_news' => $totalOutletNews, 'total_product' => $totalProduct, 'total_product_news' => $totalProductNews]);
+        }else {
+            return response()->json(['status' => 'fail','message' => 'Something went wrong, try again']);
+        }
+    }
 }
