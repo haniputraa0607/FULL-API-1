@@ -138,6 +138,20 @@ class ApiUserRatingController extends Controller
                 'messages'=>['Transaction not found']
             ];
         }
+        $max_rating_value = Setting::select('value')->where('key','response_max_rating_value')->pluck('value')->first()?:2;
+        if($post['rating_value'] <= $max_rating_value){
+            $trx->load('outlet_name');
+            $variables = [
+                'receipt_number' => $trx->transaction_receipt_number,
+                'outlet_name' => $trx->outlet_name->outlet_name,
+                'transaction_date' => date('d-m-Y H:i',strtotime($trx->transaction_date)),
+                'rating_value' => (string) $post['rating_value'],
+                'suggestion' => $post['suggestion']??'',
+                'question' => $post['option_question'],
+                'selected_option' => implode(',',array_map(function($var){return trim($var,'"');},$post['option_value']??[]))
+            ];
+            app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('User Rating', $user->phone, $variables,null,true);
+        }
         $insert = [
             'id_transaction' => $trx->id_transaction,
             'id_user' => $request->user()->id,

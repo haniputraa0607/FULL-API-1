@@ -851,8 +851,13 @@ class ApiAutoCrm extends Controller
 		return response()->json(MyHelper::checkGet($result));
 	}
 
-	public function listAutoCrm(){
-		$query = Autocrm::with('whatsapp_content')->get()->toArray();
+	public function listAutoCrm(Request $request){
+		$query = Autocrm::with('whatsapp_content');
+		if($request->autocrm_title){
+			$query = $query->where('autocrm_title',$request->autocrm_title)->first();
+		}else{
+			$query = $query->get()->toArray();			
+		}
 		return response()->json(MyHelper::checkGet($query));
 	}
 
