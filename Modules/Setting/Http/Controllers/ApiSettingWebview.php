@@ -63,7 +63,7 @@ class ApiSettingWebview extends Controller
         $faqList = MyHelper::postCURLWithBearer('api/setting/faq?log_save=0', null, $bearer);
         
         if(isset($faqList['result'])){
-            return response()->json(['status' => 'success', 'data' => $faqList['result']]);
+            return response()->json(['status' => 'success', 'result' => $faqList['result']]);
         }else{
             return response()->json(['status' => 'fail', 'message' => 'Failed to open News']);
         }
@@ -89,7 +89,7 @@ class ApiSettingWebview extends Controller
                 $data['value'] =preg_replace('/<\/font>?/', '</div>' , $data['value']);
             }
             
-            return response()->json(['status' => 'success', 'data' => $data]);
+            return response()->json(['status' => 'success', 'result' => $data['result']]);
         }else{
             return response()->json(['status' => 'fail', 'message' => 'Failed to open']);
         }
