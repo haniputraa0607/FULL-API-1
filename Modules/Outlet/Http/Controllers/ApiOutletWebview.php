@@ -26,6 +26,22 @@ class ApiOutletWebview extends Controller
         return view('outlet::webview.list', ['data' => $list['result']]);
     }
 
+    public function detailOutlet(Request $request, $id)
+    {
+    	$bearer = $request->header('Authorization');
+        if ($bearer == "") {
+            return view('error', ['msg' => 'Unauthenticated']);
+        }
+
+        // if ($request->isMethod('get')) {
+        //     return view('error', ['msg' => 'Url method is POST']);
+        // }
+        
+        $list = MyHelper::postCURLWithBearer('api/outlet/list?log_save=0', ['id_outlet' => $id], $bearer);
+        
+        return response()->json(['data' => $list['result']]);
+    }
+
     public function listOutletGofood(Request $request)
     {
     	$bearer = $request->header('Authorization');
