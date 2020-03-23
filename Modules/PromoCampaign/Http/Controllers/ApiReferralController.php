@@ -55,25 +55,26 @@ class ApiReferralController extends Controller
             'status'    => 'success',
             'result'    => [
                 'messages'      => str_replace(['%value%', '%code%'], [$value, $referral->promo_code->promo_code], $setting->value_text),
-                'url_webview'   => env('API_URL') . 'api/referral/detail'
+                'promo_code'    => $referral->promo_code->promo_code,
+                'referral'      => $referral->promo_code->promo_campaign_referral
             ]
         ];
 
         return response()->json($data);
     }
 
-    public function detail(Request $request)
-    {
-        $user = $request->user();
-        $referral = UserReferralCode::with(['promo_code', 'promo_code.promo_campaign_referral'])->where('id_user', $user->id)->get()->first();
+    // public function detail(Request $request)
+    // {
+    //     $user = $request->user();
+    //     $referral = UserReferralCode::with(['promo_code', 'promo_code.promo_campaign_referral'])->where('id_user', $user->id)->get()->first();
 
-        $data = [
-            'promo_code'    => $referral->promo_code->promo_code,
-            'referral'      => $referral->promo_code->promo_campaign_referral
-        ];
+    //     $data = [
+    //         'promo_code'    => $referral->promo_code->promo_code,
+    //         'referral'      => $referral->promo_code->promo_campaign_referral
+    //     ];
 
-        return view('webview.referral', $data);
-    }
+    //     return response()->json($data);
+    // }
     /**
      * Provide report data
      * @param Request $request
