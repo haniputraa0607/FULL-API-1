@@ -45,4 +45,35 @@ class ApiNewsWebview extends Controller
             return view('error', ['msg' => 'Something went wrong, try again']);
         }
     }
+    public function detailNews(Request $request, $id)
+    {
+        $news = News::with('newsOutlet','newsOutlet.outlet','newsProduct','newsProduct.product')->find($id)->toArray();
+        $totalOutlet = 0;
+        $outlet = Outlet::get()->toArray();
+        if ($outlet) {
+            $totalOutlet = count($outlet);
+        }
+        
+        $totalOutletNews = 0;
+
+        $totalProduct = 0;
+        $product = Product::get()->toArray();
+        if ($product) {
+            $totalProduct = count($product);
+        }
+        
+        $totalProductNews = 0;
+        
+        if ($news) {
+            // return $news['result'];
+            $news['news_image_dalam'] = env('S3_URL_API').$news['news_image_dalam'];
+            $totalOutletNews = count($news['news_outlet']);
+            return response()->json([
+                'status'    => 'success',
+                'result'    => $news
+            ]);
+        }else {
+            return response()->json(['status' => 'fail','message' => 'Something went wrong, try again']);
+        }
+    }
 }
