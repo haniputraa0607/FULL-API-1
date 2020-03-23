@@ -27,13 +27,13 @@ class ApiDealsWebview extends Controller
         $deals = MyHelper::postCURLWithBearer('api/deals/list', $post, $request->header('Authorization'));
 
         if($deals['status'] == 'success'){
+            $deals['result'][0]['deals_image'] = env('S3_URL_API') . $deals['result'][0]['deals_image'];
             $response = [
                 'status' => 'success',
-                'result' => [
-                    'detail' => $deals['result'],
-                    'button_text' => 'BELI'
-                ]
+                'result' => 
+                    $deals['result'][0]
             ];
+            $response['result']['button_text'] = 'BELI';
         }else{
             $response = [
                 'status' => 'fail',
