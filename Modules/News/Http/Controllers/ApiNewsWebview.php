@@ -66,8 +66,12 @@ class ApiNewsWebview extends Controller
         
         if ($news) {
             // return $news['result'];
+            $news['news_image_dalam'] = env('S3_URL_API').$news['news_image_dalam'];
             $totalOutletNews = count($news['news_outlet']);
-            return response()->json(['news' => [$news], 'total_outlet' => $totalOutlet, 'total_outlet_news' => $totalOutletNews, 'total_product' => $totalProduct, 'total_product_news' => $totalProductNews]);
+            return response()->json([
+                'status'    => 'success',
+                'result'    => $news
+            ]);
         }else {
             return response()->json(['status' => 'fail','message' => 'Something went wrong, try again']);
         }
