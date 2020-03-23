@@ -55,14 +55,14 @@ class ApiReferralController extends Controller
             'status'    => 'success',
             'result'    => [
                 'messages'      => str_replace(['%value%', '%code%'], [$value, $referral->promo_code->promo_code], $setting->value_text),
-                'url_webview'   => env('API_URL') . 'api/referral/webview'
+                'url_webview'   => env('API_URL') . 'api/referral/detail'
             ]
         ];
 
         return response()->json($data);
     }
 
-    public function webview(Request $request)
+    public function detail(Request $request)
     {
         $user = $request->user();
         $referral = UserReferralCode::with(['promo_code', 'promo_code.promo_campaign_referral'])->where('id_user', $user->id)->get()->first();
