@@ -86,7 +86,7 @@ class Outlet extends Authenticatable
 		// 'outlet_close_hours'
 	];
 
-	protected $appends  = ['call', 'url'];
+	protected $appends  = ['call', 'url', 'detail'];
 
 	public function getCallAttribute() {
 		$call = preg_replace("/[^0-9]/", "", $this->outlet_phone);
@@ -96,6 +96,11 @@ class Outlet extends Authenticatable
 	public function getUrlAttribute()
 	{
 		return env('API_URL').'/api/outlet/webview/'.$this->id_outlet;
+	}
+
+	public function getDetailAttribute()
+	{
+		return env('API_URL').'/api/outlet/detail/'.$this->id_outlet;
 	}
 
 	public function brands(){

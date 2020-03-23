@@ -86,23 +86,29 @@ class ApiHome extends Controller
         foreach ($banners as $key => $value) {
 
             $item['image_url']  = env('S3_URL_API').$value->image;
+            $item['type']       = 'none';
             $item['id_news']    = $value->id_news;
             $item['news_title'] = "";
             $item['url']        = $value->url;
 
+            if($item['url'] != null){
+                $item['type']       = 'link';
+            }
+
             if ($value->id_news != "") {
+                $item['type']       = 'news';
                 $item['news_title'] = $value->news->news_title;
                 // if news, generate webview news detail url
                 $item['url']        = env('API_URL') .'news/webview/'. $value->id_news;
-            }
-
-            if ($value->type == 'gofood') {
+            }elseif ($value->type == 'gofood') {
+                $item['type']       = 'gofood';
                 $item['id_news'] = 99999999;
                 $item['news_title'] = "GO-FOOD";
                 $item['url']     = env('APP_URL').'outlet/webview/gofood/list';
-            }
-
-            if ($value->type == 'referral') {
+            }elseif ($value->type == 'referral') {
+                $item['type']       = 'referral';
+                $item['id_news'] = 999999999;
+                $item['news_title'] = "Referral";
                 $item['url']     = env('API_URL') . 'api/referral/webview';
             }
             array_push($array, $item);
@@ -290,7 +296,7 @@ class ApiHome extends Controller
                 $encode = json_encode($dataEncode);
                 $base = base64_encode($encode);
 
-                $membership['webview_detail_membership'] = env('API_URL').'api/membership/web/view?data='.$base;
+                $membership['detail_membership'] = env('API_URL').'api/membership/web/view?data='.$base;
 				if(isset($membership['membership_image']))
 					$membership['membership_image'] = env('S3_URL_API').$membership['membership_image'];
 			} else {
@@ -673,7 +679,7 @@ class ApiHome extends Controller
             $encode = json_encode($dataEncode);
             $base = base64_encode($encode);
 
-            $membership['webview_detail_membership'] = env('API_URL').'api/membership/web/view?data='.$base;
+            $membership['detail_membership'] = env('API_URL').'api/membership/detail?data='.$base;
         } else {
             $membership = null;
         }

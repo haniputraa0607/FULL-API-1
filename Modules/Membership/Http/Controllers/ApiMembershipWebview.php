@@ -12,25 +12,9 @@ use App\Http\Models\LogBalance;
 use App\Lib\MyHelper;
 class ApiMembershipWebview extends Controller
 {
-    public function webview(Request $request)
+    public function detail(Request $request)
     {
-		$check = $request->json('check');
-        if (empty($check)) {
-			$user = $request->user();
-			$dataEncode = [
-				'id_user' => $user->id,
-			];
-			$encode = json_encode($dataEncode);
-			$base = base64_encode($encode);
-			$send = [
-				'status' => 'success',
-				'result' => [
-					'url'              => env('API_URL').'api/membership/web/view?data='.$base
-				],
-			];
-			return response()->json($send);
-        }
-		$post = $request->json()->all();
+		$post = json_decode(base64_decode($request->get('data')), true);
 		$result = [];
 		$result['user_membership'] = UsersMembership::with('user')->where('id_user', $post['id_user'])->orderBy('id_log_membership', 'desc')->first();
 		$settingCashback = Setting::where('key', 'cashback_conversion_value')->first();
@@ -47,6 +31,7 @@ class ApiMembershipWebview extends Controller
 		$nextTrxType = '';
 		if(count($allMembership) > 0){
 			if($result['user_membership']){
+				$result['user_membership']['membership_image'] = env('S3_URL_API') . $result['user_membership']['membership_image'];
 				foreach($allMembership as $index => $dataMembership){
 					$allMembership[$index]['benefit_text']=json_decode($dataMembership['benefit_text'],true)??[];
 					if($dataMembership['membership_type'] == 'count'){
@@ -56,7 +41,7 @@ class ApiMembershipWebview extends Controller
 								$nextTrx = $dataMembership['min_total_count'];
 								$nextTrxType = 'count';
 								$nextMembershipName = $dataMembership['membership_name'];
-								$nextMembershipImage = $dataMembership['membership_image'];
+								$nextMembershipImage =  env('S3_URL_API') . $dataMembership['membership_image'];
 							}
 						}
 					}
@@ -67,7 +52,7 @@ class ApiMembershipWebview extends Controller
 								$nextTrx = $dataMembership['min_total_value'];
 								$nextTrxType = 'value';
 								$nextMembershipName = $dataMembership['membership_name'];
-								$nextMembershipImage = $dataMembership['membership_image'];
+								$nextMembershipImage =  env('S3_URL_API') . $dataMembership['membership_image'];
 							}
 						}
 					}
@@ -78,7 +63,7 @@ class ApiMembershipWebview extends Controller
 								$nextTrx = $dataMembership['min_total_balance'];
 								$nextTrxType = 'balance';
 								$nextMembershipName = $dataMembership['membership_name'];
-								$nextMembershipImage = $dataMembership['membership_image'];
+								$nextMembershipImage =  env('S3_URL_API') . $dataMembership['membership_image'];
 							}
 						}
 					}
@@ -90,7 +75,7 @@ class ApiMembershipWebview extends Controller
 			}else{
 				$result['user_membership']['user'] = User::find($post['id_user']);
 				$nextMembershipName = $allMembership[0]['membership_name'];
-				$nextMembershipImage = $allMembership[0]['membership_image'];
+				$nextMembershipImage = env('S3_URL_API') . $allMembership[0]['membership_image'];
 				if($allMembership[0]['membership_type'] == 'count'){
 					$nextTrx = $allMembership[0]['min_total_count'];
 					$nextTrxType = 'count';
@@ -141,25 +126,25 @@ class ApiMembershipWebview extends Controller
 		}
 		return response()->json(MyHelper::checkGet($result));
 	}
-	public function detailWebview(Request $request)
-	{
-		$bearer = $request->header('Authorization');
+	// public function detail(Request $request)
+	// {
+	// 	$bearer = $request->header('Authorization');
 
-		if ($bearer == "") {
-			return view('error', ['msg' => 'Unauthenticated']);
-		}
-		$data = json_decode(base64_decode($request->get('data')), true);
-		$data['check'] = 1;
-		$check = MyHelper::postCURLWithBearer('api/membership/detail/webview?log_save=0', $data, $bearer);
-		if (isset($check['status']) && $check['status'] == 'success') {
-			$data['result'] = $check['result'];
-		} elseif (isset($check['status']) && $check['status'] == 'fail') {
-			return view('error', ['msg' => 'Data failed']);
-		} else {
-			return view('error', ['msg' => 'Something went wrong, try again']);
-		}
-		$data['max_value'] = end($check['result']['all_membership'])['min_value'];
+	// 	if ($bearer == "") {
+	// 		return view('error', ['msg' => 'Unauthenticated']);
+	// 	}
+	// 	$data = json_decode(base64_decode($request->get('data')), true);
+	// 	$data['check'] = 1;
+	// 	$check = MyHelper::postCURLWithBearer('api/membership/detail/webview?log_save=0', $data, $bearer);
+	// 	if (isset($check['status']) && $check['status'] == 'success') {
+	// 		$data['result'] = $check['result'];
+	// 	} elseif (isset($check['status']) && $check['status'] == 'fail') {
+	// 		return view('error', ['msg' => 'Data failed']);
+	// 	} else {
+	// 		return view('error', ['msg' => 'Something went wrong, try again']);
+	// 	}
+	// 	$data['max_value'] = end($check['result']['all_membership'])['min_value'];
 
-		return view('membership::webview.detail_membership', $data);
-	}
+	// 	return view('membership::webview.detail_membership', $data);
+	// }
 }
