@@ -144,7 +144,7 @@ class ApiUserRatingController extends Controller
             $variables = [
                 'receipt_number' => $trx->transaction_receipt_number,
                 'outlet_name' => $trx->outlet_name->outlet_name,
-                'transaction_date' => date('d-m-Y H:i',strtotime($trx->transaction_date)),
+                'transaction_date' => date('d F Y H:i',strtotime($trx->transaction_date)),
                 'rating_value' => (string) $post['rating_value'],
                 'suggestion' => $post['suggestion']??'',
                 'question' => $post['option_question'],
