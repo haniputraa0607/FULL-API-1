@@ -31,6 +31,7 @@ class ApiMembershipWebview extends Controller
 		$nextTrxType = '';
 		if(count($allMembership) > 0){
 			if($result['user_membership']){
+				$result['user_membership']['membership_image'] = env('S3_URL_API') . $result['user_membership']['membership_image'];
 				foreach($allMembership as $index => $dataMembership){
 					$allMembership[$index]['benefit_text']=json_decode($dataMembership['benefit_text'],true)??[];
 					if($dataMembership['membership_type'] == 'count'){
@@ -40,7 +41,7 @@ class ApiMembershipWebview extends Controller
 								$nextTrx = $dataMembership['min_total_count'];
 								$nextTrxType = 'count';
 								$nextMembershipName = $dataMembership['membership_name'];
-								$nextMembershipImage = $dataMembership['membership_image'];
+								$nextMembershipImage =  env('S3_URL_API') . $dataMembership['membership_image'];
 							}
 						}
 					}
@@ -51,7 +52,7 @@ class ApiMembershipWebview extends Controller
 								$nextTrx = $dataMembership['min_total_value'];
 								$nextTrxType = 'value';
 								$nextMembershipName = $dataMembership['membership_name'];
-								$nextMembershipImage = $dataMembership['membership_image'];
+								$nextMembershipImage =  env('S3_URL_API') . $dataMembership['membership_image'];
 							}
 						}
 					}
@@ -62,7 +63,7 @@ class ApiMembershipWebview extends Controller
 								$nextTrx = $dataMembership['min_total_balance'];
 								$nextTrxType = 'balance';
 								$nextMembershipName = $dataMembership['membership_name'];
-								$nextMembershipImage = $dataMembership['membership_image'];
+								$nextMembershipImage =  env('S3_URL_API') . $dataMembership['membership_image'];
 							}
 						}
 					}
@@ -74,7 +75,7 @@ class ApiMembershipWebview extends Controller
 			}else{
 				$result['user_membership']['user'] = User::find($post['id_user']);
 				$nextMembershipName = $allMembership[0]['membership_name'];
-				$nextMembershipImage = $allMembership[0]['membership_image'];
+				$nextMembershipImage = env('S3_URL_API') . $allMembership[0]['membership_image'];
 				if($allMembership[0]['membership_type'] == 'count'){
 					$nextTrx = $allMembership[0]['min_total_count'];
 					$nextTrxType = 'count';
