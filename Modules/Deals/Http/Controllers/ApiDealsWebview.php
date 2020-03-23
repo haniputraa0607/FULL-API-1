@@ -18,12 +18,19 @@ class ApiDealsWebview extends Controller
     public function dealsDetail(Request $request)
     {
         // return url webview and button text for mobile (native button)
-        $deals = Deal::find($request->get('id_deals'));
-        if($deals){
+        
+        $post['id_deals'] = $request->get('id_deals');
+        $post['publish'] = 1;
+        $post['deals_type'] = "Deals";
+        $post['web'] = 1;
+        
+        $deals = MyHelper::postCURLWithBearer('api/deals/list', $post, $request->header('Authorization'));
+
+        if($deals['status'] == 'success'){
             $response = [
                 'status' => 'success',
                 'result' => [
-                    'webview_url' => env('APP_URL') ."api/webview/deals/". $deals['id_deals'] ."/". $deals['deals_type'],
+                    'detail' => $deals['result'],
                     'button_text' => 'BELI'
                 ]
             ];
