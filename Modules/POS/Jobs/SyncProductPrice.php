@@ -37,52 +37,43 @@ class SyncProductPrice implements ShouldQueue
     public function handle()
     {
         DB::beginTransaction();
-        if(is_string($this->data)){
-            $this->data = (array)json_decode($this->data);
+        if (is_string($this->data)) {
+            $this->data = (array) json_decode($this->data, true);
         }
-        $product = Product::where('product_code', $this->data['sap_matnr'])->first();
-        foreach ($this->data['price_detail'] as $price) {
-            $price = (array)$price;
-            $outlet = Outlet::where('outlet_code', $price['store_code'])->first();
 
-            if (!Schema::connection('mysql3')->hasTable('outlet_' . $price['store_code'])) {
-                Schema::connection('mysql3')->create('outlet_' . $price['store_code'], function ($table) {
+        foreach ($this->data['price_detail'] as $price) {
+            $outlet = Outlet::where('id_outlet', $price['id_outlet'])->first();
+            if (!Schema::connection('mysql3')->hasTable('outlet_' . $outlet->outlet_code)) {
+                Schema::connection('mysql3')->create('outlet_' . $outlet->outlet_code, function ($table) {
                     $table->bigIncrements('id_product_price_periode');
                     $table->unsignedInteger('id_product');
                     $table->unsignedInteger('id_outlet');
                     $table->float('price', 10, 2)->nullable();
-                    $table->dateTime('date')->nullable();
+                    $table->dateTime('start_date')->nullable();
+                    $table->dateTime('end_date')->nullable();
                     $table->timestamps();
-
-                    $table->index(['id_product', 'id_outlet', 'date'], 'index_product_price');
+                    $table->index(['id_product', 'id_outlet', 'start_date', 'end_date'], 'index_product_price');
                 });
             }
 
-            if($price['start_date'] < date('Y-m-d')){
-                $price['start_date'] = date('Y-m-d');
-            }
-            $interval = date_diff(date_create($price['start_date']), date_create($price['end_date']));
+            $inBetween = DB::connection('mysql3')->table('outlet_' . $outlet->outlet_code)
+                ->where('id_product', $price['id_product'])
+                ->where('id_outlet', $price['id_outlet'])
+                ->whereIn('id_product_price_periode', function ($q) use ($price, $outlet) {
+                    $q->from('outlet_' . $outlet->outlet_code)
+                        ->selectRaw('id_product_price_periode')
+                        ->where('start_date', '>=', $price['start_date'])->where('end_date', '<=', $price['end_date']);
+                })
+                ->orWhere('end_date', '<=', date('Y-m-d'))
+                ->orderBy('start_date')->get()->toArray();
 
-            if($interval->format('%a') > 3){
-                $end = 3;
-            }else{
-                $end = $interval->format('%a') + 1;
+            if (!empty($inBetween)) {
+                foreach ($inBetween as $between) {
+                    DB::connection('mysql3')->table('outlet_' . $outlet->outlet_code)->where('id_product_price_periode', $between->id_product_price_periode)->delete();
+                }
             }
 
-            for ($i = 0; $i < $end; $i++) {
-                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->updateOrInsert([
-                    'id_product'    => $product->id_product,
-                    'id_outlet'     => $outlet->id_outlet,
-                    'date'          => date('Y-m-d H:i:s', strtotime($price['start_date'] . ' +' . $i . ' day'))
-                ], [
-                    'id_product'    => $product->id_product,
-                    'id_outlet'     => $outlet->id_outlet,
-                    'price'         => $price['price'],
-                    'date'          => date('Y-m-d H:i:s', strtotime($price['start_date'] . ' +' . $i . ' day')),
-                    'created_at'    => date('Y-m-d H:i:s'),
-                    'updated_at'    => date('Y-m-d H:i:s')
-                ]);
-            }
+            DB::connection('mysql3')->table('outlet_' . $outlet->outlet_code)->insert($price);
         }
         DB::commit();
     }
