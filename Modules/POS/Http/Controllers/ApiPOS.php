@@ -1225,7 +1225,6 @@ class ApiPOS extends Controller
                 SyncAddOnPrice::dispatch(json_encode($dataJob[$keyMenu]));
             }
         }
-        dd($dataJob);
 
         $hasil['success_menu']['total']         = $countInsert;
         $hasil['success_menu']['list_menu']     = $insertProduct;
