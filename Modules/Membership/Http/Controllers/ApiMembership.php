@@ -35,6 +35,9 @@ class ApiMembership extends Controller
 
     function create(Request $request) {
         $post = $request->json()->all();
+        if($post['benefit_text']??false){
+        	$post['benefit_text']=json_encode($post['benefit_text']);
+        }
         $save = Membership::create($post);
 
         return response()->json(MyHelper::checkCreate($save));
@@ -68,12 +71,12 @@ class ApiMembership extends Controller
 						if($cur['membership_image']){
 							$deletephoto = MyHelper::deletePhoto($cur['membership_image']);
 						}
-						$upload = MyHelper::uploadPhotoStrict($membership['membership_image'], $path = 'img/membership/', 500, 500);
+						$upload = MyHelper::uploadPhotoStrict($membership['membership_image'], $path = 'img/membership/', 75, 75);
 
 						if ($upload['status'] == "success") {
 							$data['membership_image'] = $upload['path'];
 						} else{
-							DB::rollback();
+							DB::rollBack();
 							$result = [
 									'status'	=> 'fail',
 									'messages'	=> ['Upload Membership Image failed.']
@@ -82,21 +85,21 @@ class ApiMembership extends Controller
 						}
 					}
 
-					if (isset($membership['membership_next_image'])) {
+					if (isset($membership['membership_bg_image'])) {
 						if (!file_exists('img/membership/')) {
 							mkdir('img/membership/', 0777, true);
 						}
 
 						//delete photo
-						if($cur['membership_next_image']){
-							$deletenextphoto = MyHelper::deletePhoto($cur['membership_next_image']);
+						if($cur['membership_bg_image']){
+							$deletebgphoto = MyHelper::deletePhoto($cur['membership_bg_image']);
 						}
-						$upload = MyHelper::uploadPhotoStrict($membership['membership_next_image'], $path = 'img/membership/', 500, 500);
+						$upload = MyHelper::uploadPhotoStrict($membership['membership_bg_image'], $path = 'img/membership/', 245, 140);
 
 						if ($upload['status'] == "success") {
-							$data['membership_next_image'] = $upload['path'];
+							$data['membership_bg_image'] = $upload['path'];
 						} else{
-							DB::rollback();
+							DB::rollBack();
 							$result = [
 									'status'	=> 'fail',
 									'messages'	=> ['Upload Membership Image failed.']
@@ -148,6 +151,7 @@ class ApiMembership extends Controller
 					$data['benefit_point_multiplier'] = $membership['benefit_point_multiplier'];
 					$data['benefit_cashback_multiplier'] = $membership['benefit_cashback_multiplier'];
 					$data['benefit_discount'] = $membership['benefit_discount'];
+					$data['benefit_text'] = $membership['benefit_text']??null;
 					// $data['benefit_promo_id'] = $membership['benefit_promo_id'];
 
 					if(isset($membership['cashback_maximum'])){
@@ -162,7 +166,7 @@ class ApiMembership extends Controller
 							if($promoid['promo_id']){
 								$savePromoid = MembershipPromoId::Create(['id_membership' => $membership['id_membership'], 'promo_name' => $promoid['promo_name'], 'promo_id' => $promoid['promo_id']]);
 								if(!$savePromoid){
-									DB::rollback();
+									DB::rollBack();
 									$result = [
 										'status'	=> 'fail',
 										'messages'	=> ['Update membership failed.']
@@ -179,8 +183,8 @@ class ApiMembership extends Controller
 				if($cur['membership_image']){
 					$deletephoto = MyHelper::deletePhoto($cur['membership_image']);
 				}
-				if($cur['membership_next_image']){
-					$deletenextphoto = MyHelper::deletePhoto($cur['membership_next_image']);
+				if($cur['membership_bg_image']){
+					$deletebgphoto = MyHelper::deletePhoto($cur['membership_bg_image']);
 				}
 				$query = Membership::where('id_membership', $cur['id_membership'])->delete();
 			}
@@ -205,7 +209,7 @@ class ApiMembership extends Controller
 					if ($upload['status'] == "success") {
 						$post['membership_image'] = $upload['path'];
 					} else{
-						DB::rollback();
+						DB::rollBack();
 						$result = [
 								'status'	=> 'fail',
 								'messages'	=> ['Upload Membership Image failed.']
@@ -214,16 +218,16 @@ class ApiMembership extends Controller
 					}
 				}
 
-				if (isset($post['membership_next_image'])) {
+				if (isset($post['membership_bg_image'])) {
 					if (!file_exists('img/membership/')) {
 						mkdir('img/membership/', 0777, true);
 					}
-					$upload = MyHelper::uploadPhotoStrict($post['membership_next_image'], $path = 'img/membership/', 500, 500);
+					$upload = MyHelper::uploadPhotoStrict($post['membership_bg_image'], $path = 'img/membership/', 500, 500);
 
 					if ($upload['status'] == "success") {
-						$post['membership_next_image'] = $upload['path'];
+						$post['membership_bg_image'] = $upload['path'];
 					} else{
-						DB::rollback();
+						DB::rollBack();
 						$result = [
 								'status'	=> 'fail',
 								'messages'	=> ['Upload Membership Image failed.']
@@ -280,7 +284,7 @@ class ApiMembership extends Controller
 				$query = Membership::create($data);
 
 				if(!$query){
-					DB::rollback();
+					DB::rollBack();
 					$result = [
 							'status'	=> 'fail',
 							'messages'	=> ['Update Membership failed.']
@@ -293,7 +297,7 @@ class ApiMembership extends Controller
 						if($promoid['promo_id']){
 							$savePromoid = MembershipPromoId::Create(['id_membership' => $membership['id_membership'], 'promo_name' => $promoid['promo_name'], 'promo_id' => $promoid['promo_id']]);
 							if(!$savePromoid){
-								DB::rollback();
+								DB::rollBack();
 								$result = [
 									'status'	=> 'fail',
 									'messages'	=> ['Update membership failed.']
@@ -312,10 +316,10 @@ class ApiMembership extends Controller
 			DB::commit();
 			return response()->json(['status' => 'success']);
 		}elseif(isset($calculate['status']) && $calculate['status'] == 'fail'){
-			DB::rollback();
+			DB::rollBack();
 			return response()->json($calculate);
 		}else{
-			DB::rollback();
+			DB::rollBack();
 			return response()->json([
 				'status' => 'fail',
 				'messages' => ['Update Membership failed.']
@@ -387,13 +391,15 @@ class ApiMembership extends Controller
 											->whereDate('transaction_date','>=',$date_start)
 											->whereDate('transaction_date','<=',date('Y-m-d', strtotime($check['retain_date'])))
 											->where('transaction_payment_status', 'Completed')
-											->count('transaction_subtotal');
+                                            ->whereNull('fraud_flag')
+											->count('transaction_grandtotal');
 
 					$trx_value = Transaction::where('id_user',$check['id'])
 											->whereDate('transaction_date','>=',$date_start)
 											->whereDate('transaction_date','<=', date('Y-m-d', strtotime($check['retain_date'])))
 											->where('transaction_payment_status', 'Completed')
-											->sum('transaction_subtotal');
+                                            ->whereNull('fraud_flag')
+											->sum('transaction_grandtotal');
 
 					$total_balance = LogBalance::where('id_user',$check['id'])
 											->whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal'])
@@ -516,11 +522,13 @@ class ApiMembership extends Controller
 				else{
 					$trx_count = Transaction::where('id_user',$check['id'])
 											->where('transaction_payment_status', 'Completed')
-											->count('transaction_subtotal');
+                                            ->whereNull('fraud_flag')
+											->count('transaction_grandtotal');
 
 					$trx_value = Transaction::where('id_user',$check['id'])
 											->where('transaction_payment_status', 'Completed')
-											->sum('transaction_subtotal');
+                                            ->whereNull('fraud_flag')
+											->sum('transaction_grandtotal');
 
 					$total_balance = LogBalance::where('id_user',$check['id'])
 											->where('balance', '>', 0)
@@ -569,11 +577,13 @@ class ApiMembership extends Controller
 
 				$trx_count = Transaction::where('id_user',$check['id'])
 											->where('transaction_payment_status', 'Completed')
-											->count('transaction_subtotal');
+                                            ->whereNull('fraud_flag')
+											->count('transaction_grandtotal');
 
 				$trx_value = Transaction::where('id_user',$check['id'])
 										->where('transaction_payment_status', 'Completed')
-										->sum('transaction_subtotal');
+                                        ->whereNull('fraud_flag')
+										->sum('transaction_grandtotal');
 
 				$total_balance = LogBalance::whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal'])
 											->where('balance', '>', 0)
@@ -619,7 +629,7 @@ class ApiMembership extends Controller
 				$data['membership_name'] 				= $membership_baru['membership_name'];
 				$data['membership_name_color'] 			= $membership_baru['membership_name_color'];
 				$data['membership_image'] 				= $membership_baru['membership_image'];
-				$data['membership_next_image'] 			= $membership_baru['membership_next_image'];
+				$data['membership_bg_image'] 			= $membership_baru['membership_bg_image'];
 				$data['membership_type'] 				= $membership_baru['membership_type'];
 				$data['min_total_value'] 				= $membership_baru['min_total_value'];
 				$data['min_total_count'] 				= $membership_baru['min_total_count'];
@@ -719,7 +729,7 @@ class ApiMembership extends Controller
 				$data['membership_name'] 				= $membership_baru['membership_name'];
 				$data['membership_name_color'] 			= $membership_baru['membership_name_color'];
 				$data['membership_image'] 				= $membership_baru['membership_image'];
-				$data['membership_next_image'] 			= $membership_baru['membership_next_image'];
+				$data['membership_bg_image'] 			= $membership_baru['membership_bg_image'];
 				$data['membership_type'] 				= $membership_baru['membership_type'];
 				$data['min_total_value'] 				= $membership_baru['min_total_value'];
 				$data['min_total_count'] 				= $membership_baru['min_total_count'];
@@ -777,6 +787,9 @@ class ApiMembership extends Controller
         if (!isset($data['benefit_discount'])) {
             $data['benefit_discount'] = 0;
         }
+        if($data['benefit_text']??false){
+        	$data['benefit_text']=json_encode(array_column($data['benefit_text'],'benefit_text'));
+        }
 
         return $data;
 	}
@@ -787,11 +800,13 @@ class ApiMembership extends Controller
 
 			$trx_count = Transaction::where('id_user',$datauser->id)
 										->where('transaction_payment_status', 'Completed')
-										->count('transaction_subtotal');
+                                        ->whereNull('fraud_flag')
+										->count('transaction_grandtotal');
 
 			$trx_value = Transaction::where('id_user',$datauser->id)
 									->where('transaction_payment_status', 'Completed')
-									->sum('transaction_subtotal');
+                                    ->whereNull('fraud_flag')
+									->sum('transaction_grandtotal');
 
 			$total_balance = LogBalance::where('id_user', $datauser->id)
 										->whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal'])

@@ -62,9 +62,9 @@ class BalanceController extends Controller
         // check balance data from hashed text
         $newTopupController = new NewTopupController();
         $checkHashBefore = $newTopupController->checkHash('log_balances', $id_user);
-        if (!$checkHashBefore) {
-            return false;
-        }
+        // if (!$checkHashBefore) {
+        //     return false;
+        // }
 
         DB::beginTransaction();
         $checkLog = LogBalance::where('source', $source)->where('id_reference', $id_reference)->first();
@@ -113,7 +113,7 @@ class BalanceController extends Controller
 
         // AutoCRM Taruh sini
 
-        $enc = base64_encode(json_encode(($dataHashBalance)));
+        $enc = MyHelper::encrypt2019(json_encode(($dataHashBalance)));
         // update enc column
         $log_balance->update(['enc' => $enc]);
 
@@ -121,7 +121,7 @@ class BalanceController extends Controller
         $update_user = $user->update(['balance' => $new_user_balance]);
 
         if (!($log_balance && $update_user)) {
-            DB::rollback();
+            DB::rollBack();
             return false;
         }
 
@@ -231,7 +231,7 @@ class BalanceController extends Controller
                 $balanceNotif = app($this->notif)->balanceNotif($dataTrx);
 
                 if ($balanceNotif) {
-                    $update = Transaction::where('id_transaction', $dataTrx['id_transaction'])->update(['transaction_payment_status' => 'Completed']);
+                    $update = Transaction::where('id_transaction', $dataTrx['id_transaction'])->update(['transaction_payment_status' => 'Completed','completed_at' => date('Y-m-d H:i:s')]);
 
                     if (!$update) {
                         return [
@@ -269,6 +269,7 @@ class BalanceController extends Controller
                         ];
                     }
 
+                    \App\Lib\ConnectPOS::create()->sendTransaction($dataTrx['id_transaction']);
                     return [
                         'status'   => 'success',
                         'type'     => 'no_topup',

@@ -104,7 +104,7 @@ class ApiDealsClaim extends Controller
                                             'deals_voucher_status' => 'Sent',
                                         ]);
                                         if (!$deals_voucher) {
-                                            DB::rollback();
+                                            DB::rollBack();
                                             return response()->json([
                                                 'status'   => 'fail',
                                                 'messages' => ['Failed to save data.']
@@ -122,7 +122,7 @@ class ApiDealsClaim extends Controller
                                             $user_voucher = $this->createVoucherUser($id_user, $deals_voucher->id_deals_voucher, $dataDeals, $deals_sub, 0);
                                         }
                                         if (!$user_voucher) {
-                                            DB::rollback();
+                                            DB::rollBack();
                                             return response()->json([
                                                 'status'   => 'fail',
                                                 'messages' => ['Failed to save data.']
@@ -139,7 +139,7 @@ class ApiDealsClaim extends Controller
                                 $updateDeals = $this->updateDeals($dataDeals);
                             }
                             else {
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status'   => 'fail',
                                     'messages' => ['Voucher is runs out.']
@@ -153,7 +153,7 @@ class ApiDealsClaim extends Controller
                                 $voucher = $this->getVoucherFromTable($request->user(), $dataDeals);
 
                                 if (!$voucher) {
-                                    DB::rollback();
+                                    DB::rollBack();
                                     return response()->json([
                                         'status'   => 'fail',
                                         'messages' => ['Voucher is runs out.']
@@ -165,7 +165,7 @@ class ApiDealsClaim extends Controller
                                 $voucher = $this->getVoucherGenerate($request->user(), $dataDeals);
 
                                 if (!$voucher) {
-                                    DB::rollback();
+                                    DB::rollBack();
                                     return response()->json([
                                         'status'   => 'fail',
                                         'messages' => ['Voucher is runs out.']
@@ -176,7 +176,7 @@ class ApiDealsClaim extends Controller
 
                         // UPDATE POINT
                         if (!$this->updatePoint($voucher)) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'   => 'fail',
                                 'messages' => ['Proses pengambilan voucher gagal, silakan mencoba kembali']
@@ -200,7 +200,9 @@ class ApiDealsClaim extends Controller
                                 [
                                     'claimed_at'       => $voucher['claimed_at'],
                                     'deals_title'      => $dataDeals->deals_title,
-                                    'id_deals_user' => $voucher['id_deals_user']
+                                    'id_deals_user'    => $voucher['id_deals_user'],
+                                    'id_deals'         => $dataDeals->id_deals,
+                                    'id_brand'         => $dataDeals->id_brand
                                 ]
                             );
                         }
@@ -213,7 +215,7 @@ class ApiDealsClaim extends Controller
                         return response()->json(MyHelper::checkCreate($return));
                         }
                         else {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'   => 'fail',
                                 'messages' => ['You have participated.']
@@ -221,7 +223,7 @@ class ApiDealsClaim extends Controller
                         }
                     }
                     else {
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'   => 'fail',
                             'messages' => ['Your point is not enough.']
@@ -230,7 +232,7 @@ class ApiDealsClaim extends Controller
                 }
             }
             else {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status' => 'fail',
                     'messages' => ['Date valid '.date('d F Y', strtotime($dataDeals->deals_start)).' until '.date('d F Y', strtotime($dataDeals->deals_end))]

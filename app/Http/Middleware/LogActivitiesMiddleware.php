@@ -22,7 +22,7 @@ class LogActivitiesMiddleware
 	$response = $next($request);
 
         $arrReq = $request->except('_token');
-        if(!isset($arrReq['log_save'])){
+        if(!isset($arrReq['log_save']) || ($arrReq['log_save'] == true && $arrReq['log_save'] == 'true')){
 
             if(!isset($arrReq['page']) || (int)$arrReq['page'] <= 1){
 
@@ -70,11 +70,14 @@ class LogActivitiesMiddleware
                 if(stristr($url, 'gofood')) $module = 'Banner Go-Food';
                 if(stristr($url, 'users')) $module = 'User';
                 if(stristr($url, 'v1/pos')) $module = 'POS';
+				if(stristr($url, 'subscription')) $module = 'Subscription';
 
                 $subject = "Unknown";
 
+				//subscription
+                if(stristr($url, 'subscription')) $subject = 'Subscription';
 
-                //autocrm 
+                //autocrm
                 if(stristr($url, 'autocrm')) $subject = 'Autocrm';
 
                 //balance
@@ -151,7 +154,7 @@ class LogActivitiesMiddleware
                 if(stristr($url, 'voucher')) $subject = 'Voucher';
                 if(stristr($url, 'voucher/me')) $subject = 'My Voucher';
                 if(stristr($url, 'invalidate')) $subject = 'Invalidate Voucher';
-                
+
                 //Order
                 if(stristr($url, 'pos/order')) $subject = 'POS Order';
                 if(stristr($url, 'pos/order/detail')) $subject = 'POS Order Detail';
@@ -229,9 +232,12 @@ class LogActivitiesMiddleware
                 if(!empty($request->header('ip-address-view'))){
                     $ip = $request->header('ip-address-view');
                 }else{
-                    $ip = $request->ip();
+                    $ip = isset($_SERVER['HTTP_X_FORWARDED_FOR'])?$_SERVER['HTTP_X_FORWARDED_FOR']:$_SERVER['REMOTE_ADDR'];
+                    if(strpos($ip,',') !== false) {
+                        $ip = substr($ip,0,strpos($ip,','));
+                    }
                 }
-                
+
                 $beStatusUserAgent = 0;
                 if(!empty($request->header('user-agent-view'))){
                     $userAgent = $request->header('user-agent-view');
@@ -244,46 +250,62 @@ class LogActivitiesMiddleware
                 }else{
                     $userAgent = $request->header('user-agent');
                 }
-                
+
                 if(!empty($user) && $user != ""){
                 $data = [
                     'module' 			=> ucwords($module),
                     'url' 			=> $url,
                     'subject' 			=> $subject,
                     'phone' 			=> $phone,
-                    // 'user' 			=> MyHelper::encrypt2019(json_encode($ruser)),
-                    'user' 			=> json_encode($ruser),
-                    // 'request' 		=> MyHelper::encrypt2019($requestnya),
-                    'request' 			=> $requestnya,
+                    'user' 			=> MyHelper::encrypt2019(json_encode($ruser)),
+                    // 'user' 			=> json_encode($ruser),
+                    'request' 		=> MyHelper::encrypt2019($requestnya),
+                    // 'request' 			=> $requestnya,
                     'response_status'           => $status,
-                    // 'response'               => MyHelper::encrypt2019(json_encode($response)),
-                    'response'                  => json_encode($response),
+                    'response'               => MyHelper::encrypt2019(json_encode($response)),
+                    // 'response'                  => json_encode($response),
                     'ip'                        => $ip,
                     'useragent'                 => $userAgent
-                ];
-                } else{
+                ];} else {
                     $data = [
                         'module' 		=> ucwords($module),
                         'url' 			=> $url,
                         'subject' 		=> $subject,
                         'phone' 		=> $phone,
                         'user' 			=> null,
-                        'request' 		=> $requestnya,
-                        // 'request' 		=> MyHelper::encrypt2019($requestnya),
+                        // 'request' 		=> $requestnya,
+                        'request' 		=> MyHelper::encrypt2019($requestnya),
                         'response_status'       => $status,
-                        // 'response' 		=> MyHelper::encrypt2019(json_encode($response)),
-                        'response' 		=> json_encode($response),
+                        'response' 		=> MyHelper::encrypt2019(json_encode($response)),
+                        // 'response' 		=> json_encode($response),
                         'ip' 			=> $ip,
                         'useragent' 		=> $userAgent
                       ];
                 }
-                
+
                 if($beStatusUserAgent == 1){
+                    if (stristr($url, 'activity')) {
+                        $data = [
+                            'module' 			=> ucwords($module),
+                            'url' 			=> $url,
+                            'subject' 			=> $subject,
+                            'phone' 			=> $phone,
+                            'user' 			=> MyHelper::encrypt2019(json_encode($ruser)),
+                            // 'user' 			=> json_encode($ruser),
+                            'request' 		=> MyHelper::encrypt2019($requestnya),
+                            // 'request' 			=> $requestnya,
+                            'response_status'           => $status,
+                            'response'               => MyHelper::encrypt2019(json_encode('success')),
+                            // 'response'                  => json_encode($response),
+                            'ip'                        => $ip,
+                            'useragent'                 => $userAgent
+                        ];
+                    }
                     $log = LogActivitiesBE::create($data);
                 }else{
                     $log = LogActivitiesApps::create($data);
                 }
-                
+
             }
 
         }

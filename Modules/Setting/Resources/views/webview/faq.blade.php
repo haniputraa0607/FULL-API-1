@@ -12,58 +12,85 @@
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">
     <style type="text/css">
         @font-face {
-                font-family: "ProductSans-Bold";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('/fonts/ProductSans-Regular.ttf') }}');
+            font-family: "Ubuntu-Bold";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bold.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-BoldItalic";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-BoldItalic.ttf') }}');
+            font-family: "Ubuntu-BoldItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bolditalic.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-Italic";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Italic.ttf') }}');
+            font-family: "Ubuntu-Italic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_italic.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-Medium";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Medium.ttf') }}');
+            font-family: "Ubuntu-Light";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_light.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-MediumItalic";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-MediumItalic.ttf') }}');
+            font-family: "Ubuntu-LightItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_lightitalic.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-Regular";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Regular.ttf') }}');
+            font-family: "Ubuntu-Medium";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_medium.ttf') }}');
         }
-        .ProductSans{
-            font-family: "ProductSans-Regular";
+        @font-face {
+            font-family: "Ubuntu-MediumItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_mediumitalic.ttf') }}');
         }
-        .ProductSans-MediumItalic{
-            font-family: "ProductSans-MediumItalic";
+        @font-face {
+            font-family: "Ubuntu";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
         }
-        .ProductSans-Medium{
-            font-family: "ProductSans-Medium";
+        @font-face {
+            font-family: "Ubuntu-Regular";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
         }
-        .ProductSans-Italic{
-            font-family: "ProductSans-Italic";
+        .Ubuntu-Bold{
+            font-family: "Ubuntu-Bold";
         }
-        .ProductSans-BoldItalic{
-            font-family: "ProductSans-BoldItalic";
+        .Ubuntu-BoldItalic{
+            font-family: "Ubuntu-BoldItalic";
         }
-        .ProductSans-Bold{
-            font-family: "ProductSans-Bold";
+        .Ubuntu-Italic{
+            font-family: "Ubuntu-Italic";
+        }
+        .Ubuntu-Light{
+            font-family: "Ubuntu-Light";
+        }
+        .Ubuntu-LightItalic{
+            font-family: "Ubuntu-LightItalic";
+        }
+        .Ubuntu-Medium{
+            font-family: "Ubuntu-Medium";
+        }
+        .Ubuntu-MediumItalic{
+            font-family: "Ubuntu-MediumItalic";
+        }
+        .Ubuntu{
+            font-family: "Ubuntu";
+        }
+        .Ubuntu-Regular{
+            font-family: "Ubuntu-Regular";
         }
         .kotak {
             margin : 10px;
@@ -257,12 +284,12 @@
 	        <div class="div-panah brownishGrey">
                 <a href="#" data-toggle="collapse" data-target="#multi-collapse{{ $key }}" aria-expanded="false">
     	            <div class="row">
-    	                <div class="col-10 ProductSans text-grey-white">{{ $value['question'] }}</div>
-    	                <div class="col-2 ProductSans panah text-right" style="color: #000"> <i class="fa fa-angle-down kelas-panah add"></i></div>
+    	                <div class="col-10 Ubuntu text-grey-white" style="font-size: 13.3px;color: #666666;">{{ $value['question'] }}</div>
+    	                <div class="col-2 Ubuntu panah text-right" style="color: #000"> <i style="font-size: 20px;" class="fa fa-angle-down kelas-panah add"></i></div>
     	            </div>
                 </a>
             </div>
-            <div class="collapse ProductSans" id="multi-collapse{{ $key }}" style="color: rgb(128,0,0);padding-top: 16px">
+            <div class="collapse Ubuntu" id="multi-collapse{{ $key }}" style="color: #aaaaaa;padding-top: 16px">
                 <div class="row">
                     <div class="col-12">{{ $value['answer'] }}</div>
                 </div>
@@ -287,10 +314,10 @@
     		console.log(text);
     		if ($(this).find('.kelas-panah').hasClass('add')) {
     			$(this).find('.add').remove();
-    			$(this).find('.panah').html('<i class="fa fa-angle-up kelas-panah remove"></i>');
+    			$(this).find('.panah').html('<i style="font-size: 20px;" class="fa fa-angle-up kelas-panah remove"></i>');
     		} else {
     			$(this).find('.remove').remove();
-    			$(this).find('.panah').html('<i class="fa fa-angle-down kelas-panah add"></i>');
+    			$(this).find('.panah').html('<i style="font-size: 20px;" class="fa fa-angle-down kelas-panah add"></i>');
     		}
     	});
     </script>

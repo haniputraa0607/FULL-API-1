@@ -44,9 +44,9 @@ class NewTopupController extends Controller
         $canInput = false;
 
         $api = app($this->pos)->checkApi($post['api_key'], $post['api_secret']);
-        if ($api['status'] != 'success') { 
-            return response()->json($api); 
-        } 
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
 
         if (!isset($post['type'])) {
             $post['type'] = 'POS';
@@ -113,13 +113,13 @@ class NewTopupController extends Controller
     {
         $user = auth('api')->user();
         if (empty($user)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['User not login']]);
         }
 
         $checkHashBefore = $this->checkHash('log_topups', $user['id']);
         if (!$checkHashBefore) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction user data']]);
         }
 
@@ -128,7 +128,7 @@ class NewTopupController extends Controller
 
         $createTopUp = $this->createLogTopup($post, $user);
         if (!$createTopUp) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Transaction topup failed']]);
         }
 
@@ -145,7 +145,7 @@ class NewTopupController extends Controller
         if (isset($post['id_manual_payment_method'])) {
             $checkPaymentMethod = ManualPaymentMethod::where('id_manual_payment_method', $post['id_manual_payment_method'])->first();
             if (empty($checkPaymentMethod)) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['Payment Method Not Found']
@@ -164,7 +164,7 @@ class NewTopupController extends Controller
                 $post['payment_receipt_image'] = $save['path'];
             }
             else {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['fail upload image']
@@ -176,7 +176,7 @@ class NewTopupController extends Controller
 
         $check = LogTopup::where('id_log_topup', $post['id_log_topup'])->first();
         if (empty($check)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'   => 'fail',
                 'messages' => ['Payment Method Not Found']
@@ -203,7 +203,7 @@ class NewTopupController extends Controller
             $update = LogTopup::where('id_log_topup', $post['id_log_topup'])->update(['topup_payment_status' => 'Paid']);
 
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status' => 'fail',
                     'messages' => ['Topup Failed']
@@ -216,13 +216,13 @@ class NewTopupController extends Controller
                 'result' => $check
             ]);
         } elseif (isset($insertPayment) && $insertPayment == 'fail') {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status' => 'fail',
                 'messages' => ['Transaction Failed']
             ]);
         } else {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status' => 'fail',
                 'messages' => ['Transaction Failed']
@@ -236,7 +236,7 @@ class NewTopupController extends Controller
 
         $user = auth('api')->user();
         if (empty($user)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['User not login']]);
         }
 
@@ -248,7 +248,7 @@ class NewTopupController extends Controller
 
         $checkLog = LogTopup::where('id_log_topup', $post['id_log_topup'])->first();
         if (empty($checkLog)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Log topup not found']]);
         }
 
@@ -256,7 +256,7 @@ class NewTopupController extends Controller
         $checkLog->payment_type = 'Midtrans';
         $checkLog->update();
         if (!$checkLog) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Confirm topup failed']]);
         }
 
@@ -280,7 +280,7 @@ class NewTopupController extends Controller
         $checkLog->enc = $enc;
         $checkLog->update();
         if (!$checkLog) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Confirm topup failed']]);
         }
 
@@ -289,7 +289,7 @@ class NewTopupController extends Controller
         $connectMidtrans = Midtrans::token($receipt, $checkLog['nominal_bayar'], $dataUser);
 
         if (empty($connectMidtrans['token'])) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => [
@@ -305,7 +305,7 @@ class NewTopupController extends Controller
 
             $insertNotifMidtrans = LogTopupMidtrans::updateOrCreate(['order_id' => $receipt], $dataNotifMidtrans);
             if (!$insertNotifMidtrans) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => [
@@ -334,13 +334,13 @@ class NewTopupController extends Controller
     {
         $api = app($this->pos)->checkApi($post['api_key'], $post['api_secret']);
         if ($api['status'] != 'success') {
-            DB::rollback();
-            return response()->json($api); 
+            DB::rollBack();
+            return response()->json($api);
         }
 
         $checkOutlet = Outlet::where('outlet_code', $post['store_code'])->first();
         if (empty($checkOutlet)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Store code is not valid']]);
         }
 
@@ -353,38 +353,38 @@ class NewTopupController extends Controller
 
         $time = date('Y-m-d h:i:s', strtotime('+10 minutes', strtotime(date('Y-m-d h:i:s', $timestamp))));
         if (date('Y-m-d h:i:s') > $time) {
-            DB::rollback();
-            return response()->json(['status' => 'fail', 'messages' => ['Mohon refresh qrcode dan ulangi scan member']]); 
+            DB::rollBack();
+            return response()->json(['status' => 'fail', 'messages' => ['Mohon refresh qrcode dan ulangi scan member']]);
         }
 
-        $user = User::where('phone', $phoneqr)->first(); 
+        $user = User::where('phone', $phoneqr)->first();
         if (empty($user)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['User not found']]);
         }
 
         $checkHashBefore = $this->checkHash('log_topups', $user['id']);
         if (!$checkHashBefore) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction user data']]);
         }
 
         $createTopUp = $this->createLogTopup($post, $user);
         if (!$createTopUp) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Transaction topup failed']]);
         }
 
         $checkLogTopup = LogTopup::where('id_log_topup', $createTopUp['id_log_topup'])->first();
         if (empty($checkLogTopup)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Transaction topup not completed']]);
         }
 
         $checkHashBefore = $this->checkHash('log_balances', $checkLogTopup['id_user']);
 
         if (!$checkHashBefore) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction user data']]);
         }
 
@@ -415,13 +415,13 @@ class NewTopupController extends Controller
 
         $insertDataBalance = LogBalance::create($dataSetBalance);
         if (!$insertDataBalance) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 
         $checkUpdateEnc = LogBalance::where('id_log_balance', $insertDataBalance['id_log_balance'])->first();
         if (empty($checkUpdateEnc)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 
@@ -445,13 +445,13 @@ class NewTopupController extends Controller
         $checkUpdateEnc->enc = $enc;
         $checkUpdateEnc->update();
         if (!$checkUpdateEnc) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 
         $send = app($this->autocrm)->SendAutoCRM('Topup Success', $user['phone'], ['notif_type' => 'topup', 'name' => $user['name'], 'date' => $createTopUp['created_at'], 'status' => $createTopUp['topup_payment_status']]);
         if (!$send) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Create approval code failed']]);
         }
 
@@ -595,21 +595,12 @@ class NewTopupController extends Controller
                 'membership_cashback_percentage' => $check['membership_cashback_percentage']
             ];
         }
-        
-        // $encodeCheck = utf8_encode(json_encode($dataHash));
-        
-        // if (MyHelper::decryptkhususnew($check['enc']) == $encodeCheck) {
-        //     return true;
-        // }
 
-        $encodeCheck = base64_encode((json_encode($dataHash)));
+        $encodeCheck = json_encode($dataHash);
 
-        if ($check['enc'] == $encodeCheck) {
+        if (MyHelper::decrypt2019($check['enc']) == $encodeCheck) {
             return true;
         }
-        // if (Hash::check($encodeCheck, $check['enc'])) {
-        //     return true;
-        // }
 
         return false;
     }
@@ -621,32 +612,32 @@ class NewTopupController extends Controller
         $post = $request->json()->all();
         $check = LogTopup::where('receipt_number', $post['receipt_number'])->first();
         if (empty($check)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 
         $checkBalance = LogBalance::where(['id_reference' => $check['id_log_topup'], 'source' => 'Topup'])->first();
         if (empty($checkBalance)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 
         $check->topup_payment_status = 'Cancelled';
         $check->update();
         if (!$check) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 
         $user = User::where('id', $check['id_user'])->first();
         if (empty($user)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 
         $checkHashBefore = $this->checkHash('log_topups', $user['id']);
         if (!$checkHashBefore) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction user data']]);
         }
 
@@ -665,13 +656,13 @@ class NewTopupController extends Controller
 
         $insertDataBalance = LogBalance::create($dataSetBalance);
         if (!$insertDataBalance) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 
         $checkUpdateEnc = LogBalance::where('id_log_balance', $insertDataBalance['id_log_balance'])->first();
         if (empty($checkUpdateEnc)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 
@@ -691,13 +682,13 @@ class NewTopupController extends Controller
 
         // $encodeCheck = utf8_encode(json_encode(($dataHashBalance)));
         // $enc = MyHelper::encryptkhususnew($encodeCheck);
-        
+
         $enc = base64_encode((json_encode($dataHashBalance)));
 
         $checkUpdateEnc->enc = $enc;
         $checkUpdateEnc->update();
         if (!$checkUpdateEnc) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json(['status' => 'fail', 'messages' => ['Invalid transaction data']]);
         }
 

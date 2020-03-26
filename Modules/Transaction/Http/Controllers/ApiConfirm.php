@@ -11,11 +11,13 @@ use App\Http\Models\LogTopup;
 use App\Http\Models\LogTopupMidtrans;
 use App\Http\Models\LogTopupManual;
 use App\Http\Models\Transaction;
+use App\Http\Models\TransactionProductModifier;
 use App\Http\Models\ManualPaymentMethod;
 use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\TransactionPaymentOvo;
+use App\Http\Models\TransactionPickup;
 use App\Http\Models\LogRequest;
 use App\Http\Models\OvoReversal;
 use App\Http\Models\OvoReference;
@@ -36,6 +38,7 @@ class ApiConfirm extends Controller
         $this->notif = "Modules\Transaction\Http\Controllers\ApiNotification";
         $this->trx = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
         $this->autocrm  = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
+        $this->voucher  = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
     }
 
     public function confirmTransaction(ConfirmPayment $request) {
@@ -46,10 +49,9 @@ class ApiConfirm extends Controller
         $productMidtrans = [];
         $dataDetailProduct = [];
 
-        $check = Transaction::with('transaction_shipments', 'productTransaction.product','outlet_name')->where('transaction_receipt_number', $post['id'])->first();
-
+        $check = Transaction::with('transaction_shipments', 'productTransaction.product','outlet_name')->where('id_user',$user->id)->where('id_transaction', $post['id'])->first();
         if (empty($check)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Transaction Not Found']
@@ -57,7 +59,7 @@ class ApiConfirm extends Controller
         }
 
         if ($check['transaction_payment_status'] != 'Pending') {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Transaction Invalid']
@@ -65,14 +67,25 @@ class ApiConfirm extends Controller
         }
 
         $checkPayment = TransactionMultiplePayment::where('id_transaction', $check['id_transaction'])->first();
+
         $countGrandTotal = $check['transaction_grandtotal'];
 
         if (isset($check['productTransaction'])) {
             foreach ($check['productTransaction'] as $key => $value) {
+                // get modifiers name
+                $mods = TransactionProductModifier::select('qty','text')->where('id_transaction_product',$value['id_transaction_product'])->get()->toArray();
+                $more_name_text = '';
+                foreach ($mods as $mod) {
+                    if($mod['qty']>1){
+                        $more_name_text .= ','.$mod['qty'].'x '.$mod['text'];
+                    }else{
+                        $more_name_text .= ','.$mod['text'];
+                    }
+                }
                 $dataProductMidtrans = [
                     'id'       => $value['id_product'],
-                    'price'    => abs($value['transaction_product_price']),
-                    'name'     => $value['product']['product_name'],
+                    'price'    => abs($value['transaction_product_price']+$value['transaction_modifier_subtotal']),
+                    'name'     => $value['product']['product_name'].($more_name_text?'('.trim($more_name_text,',').')':''),
                     'quantity' => $value['transaction_product_qty'],
                 ];
 
@@ -133,7 +146,7 @@ class ApiConfirm extends Controller
             if ($checkPayment['type'] == 'Balance') {
                 $checkPaymentBalance = TransactionPaymentBalance::where('id_transaction', $check['id_transaction'])->first();
                 if (empty($checkPaymentBalance)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status' => 'fail',
                         'messages' => ['Transaction is invalid']
@@ -208,7 +221,7 @@ class ApiConfirm extends Controller
             }
 
             if (empty($connectMidtrans['token'])) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => [
@@ -232,7 +245,7 @@ class ApiConfirm extends Controller
 
             $insertNotifMidtrans = TransactionPaymentMidtran::create($dataNotifMidtrans);
             if (!$insertNotifMidtrans) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => [
@@ -250,7 +263,7 @@ class ApiConfirm extends Controller
 
             $saveMultiple = TransactionMultiplePayment::create($dataMultiple);
             if (!$saveMultiple) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['fail to confirm transaction']
@@ -264,7 +277,7 @@ class ApiConfirm extends Controller
             // $update = Transaction::where('transaction_receipt_number', $post['id'])->update(['trasaction_payment_type' => $post['payment_type']]);
 
             // if (!$update) {
-            //     DB::rollback();
+            //     DB::rollBack();
             //     return response()->json([
             //         'status'    => 'fail',
             //         'messages'  => [
@@ -308,15 +321,27 @@ class ApiConfirm extends Controller
                 $phone = '0'.$phone;
             }
 
-            $pay = $this->paymentOvo($check, $countGrandTotal, $phone, 'staging');
+            $pay = $this->paymentOvo($check, $countGrandTotal, $phone, env('OVO_ENV')?:'staging');
 
             return $pay;
+        }
+        elseif ($post['payment_type'] == 'Cimb') {
+            $cimb['MERCHANT_TRANID']    = $check->transaction_receipt_number;
+            $cimb['AMOUNT']             = $countGrandTotal;
+
+            return [
+                'status'    => 'success',
+                'result'    => [
+                    'data' => $cimb,
+                    'url'  => env('API_URL').'api/transaction/curl_cimb'
+                ]
+            ];
         }
         else {
             if (isset($post['id_manual_payment_method'])) {
                 $checkPaymentMethod = ManualPaymentMethod::where('id_manual_payment_method', $post['id_manual_payment_method'])->first();
                 if (empty($checkPaymentMethod)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'   => 'fail',
                         'messages' => ['Payment Method Not Found']
@@ -335,7 +360,7 @@ class ApiConfirm extends Controller
                     $post['payment_receipt_image'] = $save['path'];
                 }
                 else {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'   => 'fail',
                         'messages' => ['fail upload image']
@@ -366,20 +391,20 @@ class ApiConfirm extends Controller
                 $update = Transaction::where('transaction_receipt_number', $post['id'])->update(['transaction_payment_status' => 'Paid', 'trasaction_payment_type' => $post['payment_type']]);
 
                 if (!$update) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status' => 'fail',
                         'messages' => ['Transaction Failed']
                     ]);
                 }
             } elseif (isset($insertPayment) && $insertPayment == 'fail') {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status' => 'fail',
                     'messages' => ['Transaction Failed']
                 ]);
             } else {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status' => 'fail',
                     'messages' => ['Transaction Failed']
@@ -450,7 +475,7 @@ class ApiConfirm extends Controller
                 'is_production' => $is_prod
             ]);
             if (!$insertPayOvo) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => [
@@ -467,7 +492,7 @@ class ApiConfirm extends Controller
 
             $saveMultiple = TransactionMultiplePayment::create($dataMultiple);
             if (!$saveMultiple) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['fail to confirm transaction']
@@ -558,11 +583,23 @@ class ApiConfirm extends Controller
 
                             $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
                             if($update){
-                                $updatePaymentStatus = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Completed']);
+                                $updatePaymentStatus = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Completed','completed_at' => date('Y-m-d H:i:s')]);
                                 if($updatePaymentStatus){
 
+                                    \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
                                     $dataTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction')
                                     ->where('id_transaction', $payment['id_transaction'])->first();
+
+                                    //inset pickup_at when pickup_type = right now
+                                    if($dataTrx['trasaction_type'] == 'Pickup Order'){
+                                        $dataPickup = TransactionPickup::where('id_transaction', $dataTrx['id_transaction'])->first();
+                                        if(isset($dataPickup['pickup_type']) && $dataPickup['pickup_type'] == 'right now'){
+                                            $updatePickup = TransactionPickup::where('id_transaction', $dataTrx['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s')]);
+                                        }
+                                    }
+
+                                    // apply cashback to referrer
+                                    \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($dataTrx);
 
                                     $mid = [
                                         'order_id' => $dataTrx['transaction_receipt_number'],
@@ -584,7 +621,7 @@ class ApiConfirm extends Controller
                                         $savelocation = app($this->trx)->saveLocation($dataTrx['latitude'], $dataTrx['longitude'], $dataTrx['id_user'], $dataTrx['id_transaction'], $dataTrx['id_outlet']);
                                     }
 
-                                    $fraud = app($this->notif)->checkFraud($dataTrx);
+                                    //$fraud = app($this->notif)->checkFraud($dataTrx);
 
                                 }
                                 else{
@@ -644,6 +681,7 @@ class ApiConfirm extends Controller
                     $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
 
                     $updatePaymentStatus = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Cancelled', 'void_date' => date('Y-m-d H:i:s')]);
+                    $updateVoucher = app($this->voucher)->returnVoucher($trx['id_transaction']);
 
                     //return balance
                     $payBalance = TransactionMultiplePayment::where('id_transaction', $trx['id_transaction'])->where('type', 'Balance')->first();
@@ -652,7 +690,7 @@ class ApiConfirm extends Controller
                         if (!empty($checkBalance)) {
                             $insertDataLogCash = app($this->balance)->addLogBalance($trx['id_user'], $checkBalance['balance_nominal'], $trx['id_transaction'], 'Transaction Failed', $trx['transaction_grandtotal']);
                             if (!$insertDataLogCash) {
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status'    => 'fail',
                                     'messages'  => ['Insert Cashback Failed']
@@ -664,12 +702,12 @@ class ApiConfirm extends Controller
                                     "outlet_name"       => $trx['outlet_name']['outlet_name']??'',
                                     "transaction_date"  => $trx['transaction_date'],
                                     'receipt_number'    => $trx['transaction_receipt_number'],
-                                    'id_transaction'    => $trx['id_transaction'], 
+                                    'id_transaction'    => $trx['id_transaction'],
                                     'received_point'    => (string) $checkBalance['balance_nominal']
                                 ]
                             );
                             if($send != true){
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                         'status' => 'fail',
                                         'messages' => ['Failed Send notification to customer']
@@ -703,10 +741,7 @@ class ApiConfirm extends Controller
                             $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
                         }
                     }
-
                 }
-
-
             }
 
             $trx = Transaction::where('id_transaction', $trx['id_transaction'])->first();
@@ -758,6 +793,8 @@ class ApiConfirm extends Controller
 
         $updatePaymentStatus = Transaction::where('id_transaction', $payment['id_transaction'])->update(['transaction_payment_status' => 'Cancelled']);
 
+        $updateVoucher = app($this->voucher)->returnVoucher($payment['id_transaction']);
+
         //return balance
         $payBalance = TransactionMultiplePayment::where('id_transaction', $trx['id_transaction'])->where('type', 'Balance')->first();
         if (!empty($payBalance)) {
@@ -765,7 +802,7 @@ class ApiConfirm extends Controller
             if (!empty($checkBalance)) {
                 $insertDataLogCash = app($this->balance)->addLogBalance($trx['id_user'], $checkBalance['balance_nominal'], $trx['id_transaction'], 'Transaction Failed', $trx['transaction_grandtotal']);
                 if (!$insertDataLogCash) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Insert Cashback Failed']
@@ -776,13 +813,13 @@ class ApiConfirm extends Controller
                     [
                         "outlet_name"       => $trx['outlet_name']['outlet_name']??'',
                         "transaction_date"  => $trx['transaction_date'],
-                        'id_transaction'    => $trx['id_transaction'], 
+                        'id_transaction'    => $trx['id_transaction'],
                         'receipt_number'    => $trx['transaction_receipt_number'],
                         'received_point'    => (string) $checkBalance['balance_nominal']
                     ]
                 );
                 if($send != true){
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                             'status' => 'fail',
                             'messages' => ['Failed Send notification to customer']

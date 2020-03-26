@@ -1314,7 +1314,639 @@ class FeaturesTableSeeder extends Seeder
                 'feature_module' => 'Confirmation Messages',
                 'created_at' => date('Y-m-d H:00:00'),
                 'updated_at' => date('Y-m-d H:00:00'),
-            )
+            ),
+            163 =>
+            array(
+                'id_feature' => 164,
+                'feature_type' => 'List',
+                'feature_module' => 'News Category',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            164 =>
+            array(
+                'id_feature' => 165,
+                'feature_type' => 'Create',
+                'feature_module' => 'News Category',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            165 =>
+            array(
+                'id_feature' => 166,
+                'feature_type' => 'Update',
+                'feature_module' => 'News Category',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            166 =>
+            array(
+                'id_feature' => 167,
+                'feature_type' => 'Delete',
+                'feature_module' => 'News Category',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            167 =>
+            array(
+                'id_feature' => 168,
+                'feature_type' => 'List',
+                'feature_module' => 'Intro',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            168 =>
+            array(
+                'id_feature' => 169,
+                'feature_type' => 'Create',
+                'feature_module' => 'Intro',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            169 =>
+            array(
+                'id_feature' => 170,
+                'feature_type' => 'Update',
+                'feature_module' => 'Intro',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            170 =>
+            array(
+                'id_feature' => 171,
+                'feature_type' => 'Delete',
+                'feature_module' => 'Intro',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            171 =>
+            array(
+                'id_feature' => 172,
+                'feature_type' => 'Create',
+                'feature_module' => 'Subscription',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            172 =>
+            array(
+                'id_feature' => 173,
+                'feature_type' => 'List',
+                'feature_module' => 'Subscription',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            173 =>
+            array(
+                'id_feature' => 174,
+                'feature_type' => 'Detail',
+                'feature_module' => 'Subscription',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            174 =>
+            array(
+                'id_feature' => 175,
+                'feature_type' => 'Update',
+                'feature_module' => 'Subscription',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            175 =>
+            array(
+                'id_feature' => 176,
+                'feature_type' => 'Delete',
+                'feature_module' => 'Subscription',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            176 =>
+            array(
+                'id_feature' => 177,
+                'feature_type' => 'Report',
+                'feature_module' => 'Subscription',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            177 =>
+            array(
+                'id_feature' => 178,
+                'feature_type' => 'Update',
+                'feature_module' => 'Auto CRM Subscription',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            178 =>
+                array(
+                    'id_feature' => 179,
+                    'feature_type' => 'List',
+                    'feature_module' => 'Welcome Voucher',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            179 =>
+                array(
+                    'id_feature' => 180,
+                    'feature_type' => 'Detail',
+                    'feature_module' => 'Welcome Voucher',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            180 =>
+                array(
+                    'id_feature' => 181,
+                    'feature_type' => 'Create',
+                    'feature_module' => 'Welcome Voucher',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            181 =>
+                array(
+                    'id_feature' => 182,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Welcome Voucher',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            182 =>
+                array(
+                    'id_feature' => 183,
+                    'feature_type' => 'Delete',
+                    'feature_module' => 'Welcome Voucher',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            183=>
+            array(
+                'id_feature' => 184,
+                'feature_type' => 'List',
+                'feature_module' => 'User Feedback',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            184 =>
+            array(
+                'id_feature' => 185,
+                'feature_type' => 'List',
+                'feature_module' => 'Product Modifier',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            185 =>
+            array(
+                'id_feature' => 186,
+                'feature_type' => 'Create',
+                'feature_module' => 'Product Modifier',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            186 =>
+            array(
+                'id_feature' => 187,
+                'feature_type' => 'Detail',
+                'feature_module' => 'Product Modifier',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            187 =>
+            array(
+                'id_feature' => 188,
+                'feature_type' => 'Update',
+                'feature_module' => 'Product Modifier',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            188 =>
+            array(
+                'id_feature' => 189,
+                'feature_type' => 'Delete',
+                'feature_module' => 'Product Modifier',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            189 =>
+            array(
+                'id_feature' => 190,
+                'feature_type' => 'List',
+                'feature_module' => 'Product Modifier Price',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            190 =>
+            array(
+                'id_feature' => 191,
+                'feature_type' => 'Update',
+                'feature_module' => 'Product Modifier Price',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            191 =>
+                array(
+                    'id_feature' => 192,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Fraud Detection Settings',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            192 =>
+                array(
+                    'id_feature' => 193,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud Device',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            193 =>
+                array(
+                    'id_feature' => 194,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud Transaction Day',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            194 =>
+                array(
+                    'id_feature' => 195,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud Transaction Week',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            195 =>
+                array(
+                    'id_feature' => 196,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'List User Fraud',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            196 =>
+                array(
+                    'id_feature' => 197,
+                    'feature_type' => 'List',
+                    'feature_module' => 'User Rating',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            197 =>
+                array(
+                    'id_feature' => 198,
+                    'feature_type' => 'Delete',
+                    'feature_module' => 'User Rating',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            198 =>
+                array(
+                    'id_feature' => 199,
+                    'feature_type' => 'List',
+                    'feature_module' => 'Rating Option',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            199 =>
+                array(
+                    'id_feature' => 200,
+                    'feature_type' => 'Create',
+                    'feature_module' => 'Rating Option',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            200 =>
+                array(
+                    'id_feature' => 201,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Rating Option',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            201 =>
+                array(
+                    'id_feature' => 202,
+                    'feature_type' => 'Delete',
+                    'feature_module' => 'Rating Option',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            202 =>
+                array(
+                    'id_feature' => 203,
+                    'feature_type' => 'Create',
+                    'feature_module' => 'Promo Campaign',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            203 =>
+                array(
+                    'id_feature' => 204,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Promo Campaign',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            204 =>
+                array(
+                    'id_feature' => 205,
+                    'feature_type' => 'Delete',
+                    'feature_module' => 'Promo Campaign',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            205 => 
+                array(
+                    'id_feature' => 206,
+                    'feature_type' => 'List',
+                    'feature_module' => 'Point Injection',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            206 =>
+                array(
+                    'id_feature' => 207,
+                    'feature_type' => 'Detail',
+                    'feature_module' => 'Point Injection',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            207 =>
+                array(
+                    'id_feature' => 208,
+                    'feature_type' => 'Create',
+                    'feature_module' => 'Point Injection',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            208 =>
+                array(
+                    'id_feature' => 209,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Point Injection',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            209 =>
+                array(
+                    'id_feature' => 210,
+                    'feature_type' => 'Delete',
+                    'feature_module' => 'Point Injection',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            210 =>
+                array(
+                    'id_feature' => 211,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Setting Phone',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            211 =>
+                array(
+                    'id_feature' => 212,
+                    'feature_type' => 'List',
+                    'feature_module' => 'Product Variant',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            212 =>
+                array(
+                    'id_feature' => 213,
+                    'feature_type' => 'Detail',
+                    'feature_module' => 'Product Variant',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            213 =>
+                array(
+                    'id_feature' => 214,
+                    'feature_type' => 'Create',
+                    'feature_module' => 'Product Variant',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            214 =>
+                array(
+                    'id_feature' => 215,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Product Variant',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            215 =>
+                array(
+                    'id_feature' => 216,
+                    'feature_type' => 'Delete',
+                    'feature_module' => 'Product Variant',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            216 =>
+                array(
+                    'id_feature' => 217,
+                    'feature_type' => 'List',
+                    'feature_module' => 'Product Group',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            217 =>
+                array(
+                    'id_feature' => 218,
+                    'feature_type' => 'Detail',
+                    'feature_module' => 'Product Group',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            218 =>
+                array(
+                    'id_feature' => 219,
+                    'feature_type' => 'Create',
+                    'feature_module' => 'Product Group',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            219 =>
+                array(
+                    'id_feature' => 220,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Product Group',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            220 =>
+                array(
+                    'id_feature' => 221,
+                    'feature_type' => 'Delete',
+                    'feature_module' => 'Product Group',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            221 => 
+            array(
+                'id_feature' => 222,
+                'feature_type' => 'List',
+                'feature_module' => 'Promo Campaign',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            222 =>
+            array(
+                'id_feature' => 223,
+                'feature_type' => 'Detail',
+                'feature_module' => 'Promo Campaign',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            223 =>
+            array(
+                'id_feature' => 224,
+                'feature_type' => 'Create',
+                'feature_module' => 'Promo Campaign',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            224 =>
+            array(
+                'id_feature' => 225,
+                'feature_type' => 'Update',
+                'feature_module' => 'Promo Campaign',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            225 =>
+            array(
+                'id_feature' => 226,
+                'feature_type' => 'Delete',
+                'feature_module' => 'Promo Campaign',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            226 =>
+            array(
+                'id_feature' => 227,
+                'feature_type' => 'Create',
+                'feature_module' => 'Void Ovo',
+                'created_at' => date('Y-m-d H:00:00'),
+                'updated_at' => date('Y-m-d H:00:00'),
+            ),
+            227 =>
+                array(
+                    'id_feature' => 228,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Referral',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            228 =>
+                array(
+                    'id_feature' => 229,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud Transaction Point',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            229 =>
+                array(
+                    'id_feature' => 230,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud In Between Transaction',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            230 =>
+                array(
+                    'id_feature' => 231,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud Referral User',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            231 =>
+                array(
+                    'id_feature' => 232,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud Referral',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            232 =>
+                array(
+                    'id_feature' => 233,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Fraud Promo Code',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+          233 =>
+                array(
+                    'id_feature' => 234,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Promo Warning Image',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            234 =>
+                array(
+                    'id_feature' => 235,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Maintenance Mode Setting',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            235 =>
+                array(
+                    'id_feature' => 236,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Promo Cashback Setting',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            236 =>
+                array (
+                    'id_feature' => 237,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Transaction Online POS',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            237 =>
+                array (
+                    'id_feature' => 238,
+                    'feature_type' => 'List',
+                    'feature_module' => 'Product Promo Category',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            238 =>
+                array (
+                    'id_feature' => 239,
+                    'feature_type' => 'Detail',
+                    'feature_module' => 'Product Promo Category',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            239 =>
+                array (
+                    'id_feature' => 240,
+                    'feature_type' => 'Create',
+                    'feature_module' => 'Product Promo Category',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            240 =>
+                array (
+                    'id_feature' => 241,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Product Promo Category',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            241 =>
+                array (
+                    'id_feature' => 242,
+                    'feature_type' => 'Delete',
+                    'feature_module' => 'Product Promo Category',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                )
         ));
     }
 }

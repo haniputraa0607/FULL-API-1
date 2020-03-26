@@ -33,6 +33,7 @@ class User extends Authenticatable
 	protected $casts = [
 		'id_membership' => 'int',
 		'id_city' => 'int',
+		'id_province' => 'int',
 		'points' => 'int',
 		'count_transaction_day' => 'int',
 		'count_transaction_week' => 'int'
@@ -54,6 +55,7 @@ class User extends Authenticatable
 		'email',
 		'password',
 		'id_city',
+		'id_province',
 		'gender',
 		'provider',
 		'birthday',
@@ -88,6 +90,11 @@ class User extends Authenticatable
 	public function city()
 	{
 		return $this->belongsTo(\App\Http\Models\City::class, 'id_city');
+	}
+
+	public function province()
+	{
+		return $this->belongsTo(\App\Http\Models\ProvinceCustom::class, 'id_province');
 	}
 
 	public function autocrm_email_logs()
@@ -189,5 +196,24 @@ class User extends Authenticatable
 	
     public function promotionSents() {
     	return $this->hasMany(PromotionSent::class, 'id_user', 'id')->orderBy('series_no', 'ASC');
+    }
+
+    public function favorites() {
+    	return $this->hasMany(\Modules\Favorite\Entities\Favorite::class, 'id_user');
+    }
+
+    public function log_popup()
+    {
+    	return $this->hasOne(\Modules\UserRating\Entities\UserRatingLog::class,'id_user');
+    }
+
+    public function referred_user()
+    {
+    	return $this->belongsToMany(User::class,'promo_campaign_referral_transactions','id_referrer','id_user');
+    }
+
+    public function referred_transaction()
+    {
+    	return $this->hasMany(\Modules\PromoCampaign\Entities\PromoCampaignReferralTransaction::class,'id_referrer','id');
     }
 }

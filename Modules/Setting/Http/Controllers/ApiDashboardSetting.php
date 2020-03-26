@@ -24,9 +24,9 @@ class ApiDashboardSetting extends Controller
 {
 	function __construct() {
 		date_default_timezone_set('Asia/Jakarta');
-		
+
     }
-	
+
 	function updateDashboard(Request $request){
 		$user = $request->user();
 		$post = $request->json()->all();
@@ -68,7 +68,7 @@ class ApiDashboardSetting extends Controller
 			}
 			$dashboardUser['section_title'] = $post['section_title'];
 			$dashboardUser['section_order'] = $sectionOrder;
-	
+
 			$dataDashboardUser = DashboardUser::create($dashboardUser);
 			if(!$dataDashboardUser){
 				DB::rollBack();
@@ -92,12 +92,12 @@ class ApiDashboardSetting extends Controller
 				$dataCard['card_order'] = $cardOrder;
 				$dataCard['created_at'] = date('Y-m-d H:i:s');
 				$dataCard['updated_at'] = date('Y-m-d H:i:s');
-	
+
 				$cards[] = $dataCard;
 
 				$cardOrder++;
 			}
-	
+
 			$data = DashboardCard::insert($cards);
 			if(!$data){
 				DB::rollBack();
@@ -142,7 +142,7 @@ class ApiDashboardSetting extends Controller
 						'messages' => ['Create dashboard card failed.']
 					]);
 				}
-				
+
 			}
 			//update card
 			if(isset($post['card']['id']) && isset($post['card']['card_name'])){
@@ -164,7 +164,7 @@ class ApiDashboardSetting extends Controller
 						'messages' => ['Update dashboard card failed.']
 					]);
 				}
-				
+
 			}
 
 		}
@@ -207,6 +207,15 @@ class ApiDashboardSetting extends Controller
 			'result' => $dataUpdate
 		]);
 
+	}
+
+	public function updateVisibilitySection(Request $request){
+		$post = $request->json()->all();
+
+		$dataUpdate = ['section_visible'=>$post['section_visible']];
+		$update = DashboardUser::where('id_dashboard_user',$post['id_dashboard_user'])->update($dataUpdate);
+
+		return MyHelper::checkUpdate($update);
 	}
 
 	function updateOrderCard(Request $request){
@@ -326,7 +335,7 @@ class ApiDashboardSetting extends Controller
 			if(!$dateRange){
 				$dateRange['default_date_range'] = '30 days';
 			}
-			
+
 			if(strpos($dateRange['default_date_range'], 'days') !== false){
 				$day = str_replace(' days', '', $dateRange['default_date_range']);
 				$start = date('Y-m-d', strtotime('-'.$day.' days'));
@@ -338,13 +347,13 @@ class ApiDashboardSetting extends Controller
 					$month = str_replace(' months', '', $dateRange['default_date_range']);
 					$start = date('Y-m-d', strtotime('-'.$month.' months'));
 				}
-				
+
 			}
-	
+
 			$end = date('Y-m-d');
 		}
 
-		$dashboard = DashboardUser::with('dashboard_card')->where('id_user', $user->id)->orderBy('section_order', 'ASC')->get();
+		$dashboard = DashboardUser::with('dashboard_card')->where([['id_user', $user->id],['section_visible',1]])->orderBy('section_order', 'ASC')->get();
 
 		if(count($dashboard) == 0){
 			$dashboard = [];
@@ -381,7 +390,19 @@ class ApiDashboardSetting extends Controller
 								->whereDate('daily_report_trx.trx_date', '>=', $start)
 								->whereDate('daily_report_trx.trx_date', '<=', $end)
 								->groupBy('outlets.id_outlet');
-	
+
+						if(strpos($card['card_name'], 'Online Transaction')!==false){
+							$value->where('trx_type','Online');
+						}
+
+						if(strpos($card['card_name'], 'Offline Transaction Member')!==false){
+							$value->where('trx_type','Offline Member');
+						}
+
+						if(strpos($card['card_name'], 'Offline Transaction Non Member')!==false){
+							$value->where('trx_type','Offline Non Member');
+						}
+
 						if(strpos($card['card_name'], 'Count') !== false){
 							$value = $value->select(DB::raw('outlets.outlet_code, outlets.outlet_name, outlets.id_outlet as id, SUM(daily_report_trx.trx_count) as transaction_count'))
 										   ->orderBy('transaction_count', 'DESC');
@@ -398,7 +419,7 @@ class ApiDashboardSetting extends Controller
 								->whereDate('daily_report_trx_menu.trx_date', '>=', $start)
 								->whereDate('daily_report_trx_menu.trx_date', '<=', $end)
 								->groupBy('products.id_product');
-	
+
 						if(strpos($card['card_name'], 'Recurring') !== false){
 						$value = $value->select(DB::raw('products.product_name, products.id_product as id, products.product_code, SUM(daily_report_trx_menu.total_rec) as total_recurring'))
 									   ->orderBy('total_recurring', 'DESC');
@@ -506,17 +527,29 @@ class ApiDashboardSetting extends Controller
 					}
 					$value = $value->count();
 				}
-				
+
 				elseif(strpos($card['card_name'], 'Transaction') !== false){
 					$value = DailyReportTrx::whereDate('trx_date', '<=', $end)->whereDate('trx_date', '>=', $start);
 
-					if($card['card_name'] == 'Total Transaction Count'){
+					if(strpos($card['card_name'], 'Online Transaction')!==false){
+						$value->where('trx_type','Online');
+					}
+
+					if(strpos($card['card_name'], 'Offline Transaction Member')!==false){
+						$value->where('trx_type','Offline Member');
+					}
+
+					if(strpos($card['card_name'], 'Offline Transaction Non Member')!==false){
+						$value->where('trx_type','Offline Non Member');
+					}
+
+					if(strpos($card['card_name'], 'Total')!==false&&strpos($card['card_name'], 'Count')!==false){
 						$value = $value->sum('trx_count');
 					}
-					if($card['card_name'] == 'Total Transaction Value'){
+					if(strpos($card['card_name'], 'Total')!==false&&strpos($card['card_name'], 'Value')!==false){
 						$value = $value->sum('trx_grand');
 					}
-					if($card['card_name'] == 'Transaction Average'){
+					if(strpos($card['card_name'], 'Average')!==false&&strpos($card['card_name'], 'per Day')===false){
 						$sum = $value->sum('trx_grand');
 						$count = $value->sum('trx_count');
 						if($sum > 0 && $count > 0){
@@ -525,7 +558,7 @@ class ApiDashboardSetting extends Controller
 							$value = 0;
 						}
 					}
-					if($card['card_name'] == 'Transaction Average per Day'){
+					if(strpos($card['card_name'], 'Average per Day')!==false){
 						$sum = $value->sum('trx_grand');
 						$count = $value->get()->groupBy('trx_date')->count();
 						if($sum > 0 && $count > 0){
@@ -541,7 +574,7 @@ class ApiDashboardSetting extends Controller
 				$dashboard[$key]['dashboard_card'][$index]['url'] = $url;
 			}
 		}
-		
+
 		$result = ['dashboard' => $dashboard, 'daterange' => $dateRange['default_date_range']];
 
 		return response()->json(MyHelper::checkGet($result));

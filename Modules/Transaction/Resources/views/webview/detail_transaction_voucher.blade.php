@@ -6,41 +6,103 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-    <link href="{{ env('S3_URL_VIEW') }}{{('css/slide.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ env('API_URL') }}css/transaction.css">
     <style type="text/css">
         @font-face {
-                font-family: "ProductSans-Bold";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Bold.ttf') }}');
+            font-family: "Ubuntu-Bold";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bold.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-Regular";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Regular.ttf') }}');
+            font-family: "Ubuntu-BoldItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bolditalic.ttf') }}');
         }
-        .ProductSans{
-            font-family: "ProductSans-Regular";
+        @font-face {
+            font-family: "Ubuntu-Italic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_italic.ttf') }}');
         }
-        .ProductSans-Bold{
-            font-family: "ProductSans-Bold";
+        @font-face {
+            font-family: "Ubuntu-Light";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_light.ttf') }}');
+        }
+        @font-face {
+            font-family: "Ubuntu-LightItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_lightitalic.ttf') }}');
+        }
+        @font-face {
+            font-family: "Ubuntu-Medium";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_medium.ttf') }}');
+        }
+        @font-face {
+            font-family: "Ubuntu-MediumItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_mediumitalic.ttf') }}');
+        }
+        @font-face {
+            font-family: "Ubuntu";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
+        }
+        @font-face {
+            font-family: "Ubuntu-Regular";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
+        }
+        .Ubuntu-Bold{
+            font-family: "Ubuntu-Bold";
+        }
+        .Ubuntu-BoldItalic{
+            font-family: "Ubuntu-BoldItalic";
+        }
+        .Ubuntu-Italic{
+            font-family: "Ubuntu-Italic";
+        }
+        .Ubuntu-Light{
+            font-family: "Ubuntu-Light";
+        }
+        .Ubuntu-LightItalic{
+            font-family: "Ubuntu-LightItalic";
+        }
+        .Ubuntu-Medium{
+            font-family: "Ubuntu-Medium";
+        }
+        .Ubuntu-MediumItalic{
+            font-family: "Ubuntu-MediumItalic";
+        }
+        .Ubuntu{
+            font-family: "Ubuntu";
+        }
+        .Ubuntu-Regular{
+            font-family: "Ubuntu-Regular";
         }
         .kotak {
-            margin : 10px;
-            padding: 10px;
-            /*margin-right: 15px;*/
-            -webkit-box-shadow: 0px 0px 21px 0px rgba(168,168,168,1);
-            -moz-box-shadow: 0px 0px 21px 0px rgba(168,168,168,1);
-            box-shadow: 0px 0px 21px 0px rgba(168,168,168,1);
-            border-radius: 3px;
-            background: #fff;
-            font-family: 'GoogleSans';
-        }
+    		margin : 10px;
+    		padding: 16.7px 11.7px;
+    		/*margin-right: 15px;*/
+            -webkit-box-shadow: 0px 3.3px 10px 0px #eeeeee;
+            -moz-box-shadow: 0px 3.3px 10px 0px #eeeeee;
+            box-shadow: 0px 3.3px 10px 0px #eeeeee;
+			/* border-radius: 3px; */
+			background: #fff;
+			border-radius: 10px;
+    	}
 
         body {
-            background: #fafafa;
+            background: #ffffff;
         }
 
         .completed {
@@ -84,11 +146,11 @@
         }
 
         .text-black {
-            color: rgb(0, 0, 0);
+            color: #3d3d3d;
         }
 
         .text-red {
-            color: #990003;
+            color: #b72126;
         }
 
         .text-medium-grey {
@@ -153,44 +215,48 @@
     @php
         // print_r($data);die();
     @endphp
-    <div class="kotak">
-        <div class="container line-bottom ProductSans">
-            <div class="row space-bottom">
-                <div class="col-6 text-grey-black text-14-3px">Tukar Voucher</div>
-                @php $bulan = ['', 'Januari', 'Februari','Maret','April','Mei','Juni','Juli','Agustus','September','November','Desember']; @endphp
-                <div class="col-6 text-right text-grey text-13-3px">{{ date('d', strtotime($data['date'])) }} {{$bulan[date('n', strtotime($data['date']))]}} {{date('Y H:i', strtotime($data['date'])) }}</div>
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-black text-16-7px Ubuntu-Medium" style="margin-top:10px">
+                <span>Buy Voucher</span>
+                <hr style="margin: 15px 0px;border-top: dashed 1px #D7D2CB;"/>
             </div>
-            <div class="row space-text">
-                <div class="col-4"></div>
-                <div class="col-8 text-right text-black ProductSans-Bold text-13-3px">#TRX-{{ $data['voucher_hash_code'] }}</div>
-            </div>
+            <div class="col-7 text-left text-black text-14px Ubuntu-Medium">#TRX-{{ $data['voucher_hash_code'] }}</div>
+            <div style="color: #707070;" class="col-5 text-right text-13-3px Ubuntu">{{ date('d M Y H:i', strtotime($data['date'])) }}</div>
+            <div class="col-12 text-black text-13-3px Ubuntu-Medium" style="margin-top: 15px;">Your Transaction</div>
         </div>
-        <div class="container ProductSans">
-            <div class="row">
-                <div class="col-12 text-grey text-13-3px">Transaksi Anda</div>
-                <div class="col-12"><hr></div>
-            </div>
-            <div class="row">
-                <div class="col-6 text-black text-13-3px">{{ $data['deal_voucher']['deal']['deals_title'] }}</div>
-                <div class="col-6 text-right text-grey2 text-13-3px">@if (!empty($data['voucher_price_cash'])) Rp {{ str_replace(',', '.', number_format($data['voucher_price_cash'])) }} @else -{{ str_replace(',', '.', number_format($data['voucher_price_point'])) }} points @endif</div>
-            </div>
-            <div class="row">
-                @if($data['deal_voucher']['deal']['deals_second_title'])
-                <div class="col-6 text-black text-13-3px">{{ $data['deal_voucher']['deal']['deals_second_title'] }}</div>
-                @endif
-            </div>
-            <hr>
-            <div class="row">
-                <div class="col-6 text-black text-13-3px">Status</div>
-                <div class="col-6 text-right text-grey2 text-13-3px">@if (is_null($data['used_at'])) Belum Digunakan @else Digunakan @endif</div>
-            </div>
-            @if (!is_null($data['used_at'])) 
-            <hr>
-            <div class="row">
-                <div class="col-6 text-black text-13-3px">Tanggal Penggunaan</div>
-                <div class="col-6 text-right text-grey2 text-13-3px">{{ date('d', strtotime($data['used_at'])) }} {{$bulan[date('n', strtotime($data['used_at']))]}} {{date('Y H:i', strtotime($data['used_at'])) }}</div>
-            </div>
-            @endif
+    </div>
+    <div class="kotak">
+        <div class="row">
+            <div style="color: #8fd6bd;" class="col-1 text-12-7px Ubuntu-Medium">1x</div>
+            <div class="col-8 text-12-7px text-black Ubuntu-Medium">Use {{$data['deal_voucher']['deal']['deals_title']}}</div>
+            <div class="col-3 text-12-7px text-black text-right Ubuntu-Medium">@if ($data['voucher_price_point'] != null) {{number_format($data['voucher_price_point'], 0, ',', '.')}} @else {{number_format($data['voucher_price_cash'], 0, ',', '.')}} @endif</div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-black text-13-3px Ubuntu-Medium" style="margin-top: 15px;">Payment Details</div>
+        </div>
+    </div>
+    <div class="kotak" style="box-shadow: none;background-color: #f0f3f7;">
+        <div class="row">
+            <div class="col-6 text-13-3px text-black Ubuntu-Medium">Grand Total</div>
+            <div class="col-6 text-13-3px text-black text-right Ubuntu-Medium">@if ($data['voucher_price_point'] != null) {{number_format($data['voucher_price_point'], 0, ',', '.')}} @else {{number_format($data['voucher_price_cash'], 0, ',', '.')}} @endif</div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-black text-13-3px Ubuntu-Medium" style="margin-top: 15px;">Payment Method</div>
+        </div>
+    </div>
+    <div class="kotak">
+        <div class="row">
+            <div class="col-6 text-13-3px text-black Ubuntu-Medium">@if ($data['payment_method'] == 'Midtrans')
+                {{$data['payment']['payment_type']}}
+            @elseif ($data['payment_method'] == 'Balance')
+                Maxx Points
+            @endif</div>
+            <div class="col-6 text-13-3px text-black text-right Ubuntu-Medium">@if ($data['voucher_price_point'] != null) {{number_format($data['voucher_price_point'], 0, ',', '.')}} @else {{number_format($data['voucher_price_cash'], 0, ',', '.')}} @endif</div>
         </div>
     </div>
 
@@ -198,9 +264,7 @@
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.0.2/pace.js"></script>
+    <script src="{{ env('API_URL') }}js/jquery.js"></script>
+    <script src="{{ env('API_URL') }}js/transaction.js"></script>
   </body>
 </html>

@@ -30,11 +30,16 @@ class AuthServiceProvider extends ServiceProvider
         Passport::routes();
         
         Route::group(['middleware' => 'custom_auth'], function () {
+            Passport::tokensCan([
+                'be' => 'Manage admin panel scope',
+                'apps' => 'Manage mobile scope',
+                'pos' => 'Manage pos scope'
+            ]);
             Passport::routes(function ($router) {
                 return $router->forAccessTokens();
             });
         });
 
-        Passport::tokensExpireIn(now()->addDays(15000));
+        Passport::tokensExpireIn(now()->addDays(1800));
     }
 }

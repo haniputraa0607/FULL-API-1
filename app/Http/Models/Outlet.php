@@ -11,6 +11,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use SMartins\PassportMultiauth\HasMultiAuthApiTokens;
 use Hash;
+use Modules\Outlet\Entities\OutletOvo;
 
 /**
  * Class Outlet
@@ -70,6 +71,7 @@ class Outlet extends Authenticatable
 		'outlet_pin',
 		'outlet_name',
 		'outlet_address',
+		'outlet_address_detail',
 		'id_city',
 		'outlet_postal_code',
 		'outlet_phone',
@@ -79,12 +81,13 @@ class Outlet extends Authenticatable
 		'outlet_status',
 		'deep_link_gojek',
 		'deep_link_grab',
-		'big_order'
+		'big_order',
+		'is_24h'
 		// 'outlet_open_hours',
 		// 'outlet_close_hours'
 	];
 
-	protected $appends  = ['call', 'url'];
+	protected $appends  = ['call', 'url', 'detail'];
 
 	public function getCallAttribute() {
 		$call = preg_replace("/[^0-9]/", "", $this->outlet_phone);
@@ -93,7 +96,12 @@ class Outlet extends Authenticatable
 
 	public function getUrlAttribute()
 	{
-		return env('VIEW_URL').'/outlet/webview/'.$this->id_outlet;
+		return env('API_URL').'/api/outlet/webview/'.$this->id_outlet;
+	}
+
+	public function getDetailAttribute()
+	{
+		return env('API_URL').'/api/outlet/detail/'.$this->id_outlet;
 	}
 
 	public function brands(){
@@ -142,7 +150,7 @@ class Outlet extends Authenticatable
 
 	public function outlet_schedules()
 	{
-		return $this->hasMany(\App\Http\Models\OutletSchedule::class, 'id_outlet');
+		return $this->hasMany(\App\Http\Models\OutletSchedule::class, 'id_outlet')->select('id_outlet', 'day', 'open', 'close', 'is_closed', 'time_zone');
 	}
 
 	public function today()
@@ -151,34 +159,40 @@ class Outlet extends Authenticatable
 
 		switch($hari){
 			case 'Sun':
-				$hari_ini = "Minggu";
+				$hari_ini = "Sunday";
 			break;
 
 			case 'Mon':
-				$hari_ini = "Senin";
+				$hari_ini = "Monday";
 			break;
 
 			case 'Tue':
-				$hari_ini = "Selasa";
+				$hari_ini = "Tuesday";
 			break;
 
+
 			case 'Wed':
-				$hari_ini = "Rabu";
+				$hari_ini = "Wednesday";
 			break;
 
 			case 'Thu':
-				$hari_ini = "Kamis";
+				$hari_ini = "Thursday";
 			break;
 
 			case 'Fri':
-				$hari_ini = "Jumat";
+				$hari_ini = "Friday";
 			break;
 
 			default:
-				$hari_ini = "Sabtu";
+				$hari_ini = "Saturday";
 			break;
 		}
 
-		return $this->belongsTo(OutletSchedule::class, 'id_outlet', 'id_outlet')->where('day', $hari_ini);
+		return $this->belongsTo(OutletSchedule::class, 'id_outlet', 'id_outlet')->where('day', $hari_ini)->select('id_outlet', 'day', 'open', 'close', 'is_closed', 'time_zone');
+	}
+
+	public function outlet_ovo()
+	{
+		return $this->belongsTo(OutletOvo::class, 'id_outlet', 'id_outlet');
 	}
 }

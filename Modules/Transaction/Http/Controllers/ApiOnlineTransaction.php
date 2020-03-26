@@ -2,6 +2,7 @@
 
 namespace Modules\Transaction\Http\Controllers;
 
+use App\Http\Models\DailyTransactions;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -9,11 +10,16 @@ use Illuminate\Routing\Controller;
 use App\Http\Models\Setting;
 use App\Http\Models\Product;
 use App\Http\Models\ProductPrice;
+use App\Http\Models\ProductCategory;
+use Modules\Brand\Entities\Brand;
+use Modules\Brand\Entities\BrandProduct;
+use App\Http\Models\ProductModifier;
 use App\Http\Models\User;
 use App\Http\Models\UserAddress;
 use App\Http\Models\Outlet;
 use App\Http\Models\Transaction;
 use App\Http\Models\TransactionProduct;
+use App\Http\Models\TransactionProductModifier;
 use App\Http\Models\TransactionShipment;
 use App\Http\Models\TransactionPickup;
 use App\Http\Models\TransactionPickupGoSend;
@@ -28,8 +34,18 @@ use App\Http\Models\Configs;
 use App\Http\Models\Holiday;
 use App\Http\Models\OutletToken;
 use App\Http\Models\UserLocationDetail;
+use App\Http\Models\TransactionVoucher;
+use App\Http\Models\Deal;
+use App\Http\Models\DealsUser;
+use Modules\ProductVariant\Entities\ProductVariant;
+use Modules\PromoCampaign\Entities\PromoCampaign;
+use Modules\PromoCampaign\Entities\PromoCampaignPromoCode;
+use Modules\PromoCampaign\Entities\PromoCampaignReferral;
+use Modules\PromoCampaign\Entities\PromoCampaignReferralTransaction;
+use Modules\PromoCampaign\Entities\UserReferralCode;
 
 use Modules\Balance\Http\Controllers\NewTopupController;
+use Modules\PromoCampaign\Lib\PromoCampaignTools;
 
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Client;
@@ -42,9 +58,14 @@ use DB;
 use App\Lib\MyHelper;
 use App\Lib\Midtrans;
 use App\Lib\GoSend;
+use App\Lib\Ovo;
 
 use Modules\Transaction\Http\Requests\Transaction\NewTransaction;
 use Modules\Transaction\Http\Requests\Transaction\ConfirmPayment;
+use Modules\Transaction\Http\Requests\CheckTransaction;
+use DateTime;
+
+use Modules\UserRating\Entities\UserRatingLog;
 
 class ApiOnlineTransaction extends Controller
 {
@@ -59,12 +80,33 @@ class ApiOnlineTransaction extends Controller
         $this->autocrm       = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
         $this->transaction   = "Modules\Transaction\Http\Controllers\ApiTransaction";
         $this->notif         = "Modules\Transaction\Http\Controllers\ApiNotification";
-        $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiSettingFraud";
+        $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiFraud";
         $this->setting_trx   = "Modules\Transaction\Http\Controllers\ApiSettingTransactionV2";
+        $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+        $this->promo       = "Modules\PromoCampaign\Http\Controllers\ApiPromo";
     }
 
     public function newTransaction(NewTransaction $request) {
         $post = $request->json()->all();
+        $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
+        if($use_product_variant && !isset($post['from_fake'])){
+            foreach ($post['item'] as &$prod) {
+                $prd = Product::where(function($query) use ($prod){
+                    foreach($prod['variants'] as $variant){
+                        $query->whereHas('product_variants',function($query) use ($variant){
+                            $query->where('product_variants.id_product_variant',$variant);
+                        });
+                    }
+                })->where('id_product_group',$prod['id_product_group'])->first();
+                if(!$prd){
+                    return [
+                        'status' => 'fail',
+                        'messages' => ['Product not found']
+                    ];
+                }
+                $prod['id_product'] = $prd['id_product'];
+            }
+        }
         // return $post;
         $totalPrice = 0;
         $totalWeight = 0;
@@ -72,6 +114,7 @@ class ApiOnlineTransaction extends Controller
         $grandTotal = app($this->setting_trx)->grandTotal();
         $order_id = null;
         $id_pickup_go_send = null;
+        $promo_code_ref = null;
 
         if (isset($post['headers'])) {
             unset($post['headers']);
@@ -84,12 +127,15 @@ class ApiOnlineTransaction extends Controller
 
         $outlet = Outlet::where('id_outlet', $post['id_outlet'])->with('today')->first();
         if (empty($outlet)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Outlet Not Found']
                 ]);
         }
+
+        $fraudTrxDay = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 day%')->where('fraud_settings_status','Active')->first();
+        $fraudTrxWeek = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 week%')->where('fraud_settings_status','Active')->first();
 
         $issetDate = false;
         if (isset($post['transaction_date'])) {
@@ -101,10 +147,18 @@ class ApiOnlineTransaction extends Controller
 
         //cek outlet active
         if(isset($outlet['outlet_status']) && $outlet['outlet_status'] == 'Inactive'){
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Outlet tutup']
+            ]);
+        }
+
+        if($post['payment_type'] == 'Ovo' && !Ovo::checkOutletOvo($post['id_outlet'])){
+            DB::rollBack();
+            return response()->json([
+                'status'    => 'fail',
+                'messages'  => ['Ovo payment not available at this store']
             ]);
         }
 
@@ -116,14 +170,14 @@ class ApiOnlineTransaction extends Controller
                 foreach($holiday as $i => $holi){
                     if($holi['yearly'] == '0'){
                         if($holi['date'] == date('Y-m-d')){
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'    => 'fail',
                                 'messages'  => ['Outlet tutup']
                             ]);
                         }
                     }else{
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => ['Outlet tutup']
@@ -133,7 +187,7 @@ class ApiOnlineTransaction extends Controller
             }
 
             if($outlet['today']['is_closed'] == '1'){
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Outlet tutup']
@@ -145,7 +199,7 @@ class ApiOnlineTransaction extends Controller
                 $settingTime = Setting::where('key', 'processing_time')->first();
                 if($settingTime && $settingTime->value){
                     if($outlet['today']['close'] && date('H:i') > date('H:i', strtotime('-'.$settingTime->value.' minutes' ,strtotime($outlet['today']['close'])))){
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => ['Outlet tutup']
@@ -155,7 +209,7 @@ class ApiOnlineTransaction extends Controller
 
                 //cek outlet open - close hour
                 if(($outlet['today']['open'] && date('H:i') < date('H:i', strtotime($outlet['today']['open']))) || ($outlet['today']['close'] && date('H:i') > date('H:i', strtotime($outlet['today']['close'])))){
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Outlet tutup']
@@ -178,7 +232,7 @@ class ApiOnlineTransaction extends Controller
 
         $user = User::with('memberships')->where('id', $id)->first();
         if (empty($user)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['User Not Found']
@@ -187,10 +241,11 @@ class ApiOnlineTransaction extends Controller
 
         //suspend
         if(isset($user['is_suspended']) && $user['is_suspended'] == '1'){
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
-                'messages'  => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@champresto.id']
+                // 'messages'  => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
+                'messages'  => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
             ]);
         }
 
@@ -206,7 +261,7 @@ class ApiOnlineTransaction extends Controller
             $userAddress = UserAddress::where(['id_user' => $id, 'id_user_address' => $post['id_user_address']])->first();
 
             if (empty($userAddress)) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Address Not Found']
@@ -223,10 +278,93 @@ class ApiOnlineTransaction extends Controller
         }
 
         // return $totalDiscount;
+        // check promo code and referral
+        $promo_error=[];
+        $use_referral = false;
+        $discount_promo = [];
+        $promo_discount = 0;
+        $promo_source = null;
+        if($request->json('promo_code') && !$request->json('id_deals_user')){
+            $code=PromoCampaignPromoCode::where('promo_code',$request->promo_code)
+                ->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
+                ->where( function($q){
+                    $q->whereColumn('usage','<','limitation_usage')
+                        ->orWhere('code_type','Single')
+                        ->orWhere('limitation_usage',0);
+                } )
+                ->first();
+            if ($code)
+            {
+                $post['id_promo_campaign_promo_code'] = $code->id_promo_campaign_promo_code;
+                if($code->promo_type == "Referral"){
+                    $promo_code_ref = $request->json('promo_code');
+                    $use_referral = true;
+                }
+                $pct=new PromoCampaignTools();
+                $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
+
+                $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors);
+
+                if ( !empty($errore) || !empty($errors)) {
+                    DB::rollBack();
+                    return [
+                        'status'=>'fail',
+                        'messages'=>['Promo code not valid']
+                    ];
+                }
+                $promo_source = 'promo_code';
+                $promo_discount=$discount_promo['discount'];
+            }
+            else
+            {
+                return [
+                    'status'=>'fail',
+                    'messages'=>['Promo code not valid']
+                ];
+            }
+        }
+        elseif($request->json('id_deals_user') && !$request->json('promo_code'))
+        {
+        	$deals = app($this->promo_campaign)->checkVoucher($request->id_deals_user, 1);
+
+			if($deals)
+			{
+				$pct=new PromoCampaignTools();
+				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals');
+
+				if ( !empty($errors) ) {
+					DB::rollBack();
+                    return [
+                        'status'=>'fail',
+                        'messages'=>['Voucher is not valid']
+                    ];
+	            }
+
+                $promo_source = 'voucher_online';
+	            $promo_discount=$discount_promo['discount'];
+	        }
+	        else
+	        {
+	        	return [
+                    'status'=>'fail',
+                    'messages'=>['Voucher is not valid']
+                ];
+	        }
+        }
+        elseif($request->json('id_deals_user') && $request->json('promo_code'))
+        {
+        	return [
+                'status'=>'fail',
+                'messages'=>['Voucher is not valid']
+            ];
+        }
+        // end check promo
+
+        $error_msg=[];
 
         foreach ($grandTotal as $keyTotal => $valueTotal) {
             if ($valueTotal == 'subtotal') {
-                $post['sub'] = app($this->setting_trx)->countTransaction($valueTotal, $post);
+                $post['sub'] = app($this->setting_trx)->countTransaction($valueTotal, $post, $discount_promo);
                 // $post['sub'] = $this->countTransaction($valueTotal, $post);
                 if (gettype($post['sub']) != 'array') {
                     $mes = ['Data Not Valid'];
@@ -247,7 +385,7 @@ class ApiOnlineTransaction extends Controller
                         }
                     }
 
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => $mes
@@ -270,7 +408,7 @@ class ApiOnlineTransaction extends Controller
                         }
                     }
 
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => $mes
@@ -297,7 +435,7 @@ class ApiOnlineTransaction extends Controller
                             }
                         }
 
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => $mes
@@ -381,9 +519,41 @@ class ApiOnlineTransaction extends Controller
 
         $post['discount'] = -$post['discount'];
 
+        // apply cashback
+        if ($use_referral){
+            $referral_rule = PromoCampaignReferral::where('id_promo_campaign',$code->id_promo_campaign)->first();
+            if(!$referral_rule){
+                DB::rollBack();
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['Insert Referrer Cashback Failed']
+                ]);
+            }
+            $referred_cashback = 0;
+            if($referral_rule->referred_promo_type == 'Cashback'){
+                if($referral_rule->referred_promo_unit == 'Percent'){
+                    $referred_discount_percent = $referral_rule->referred_promo_value<=100?$referral_rule->referred_promo_value:100;
+                    $referred_cashback = $post['subtotal']*$referred_discount_percent/100;
+                }else{
+                    if($post['subtotal'] >= $referral_rule->referred_min_value){
+                        $referred_cashback = $referral_rule->referred_promo_value<=$post['subtotal']?$referral_rule->referred_promo_value:$post['subtotal'];
+                    }
+                }
+            }
+            $post['cashback'] = $referred_cashback;
+        }
+
         if (isset($post['payment_type']) && $post['payment_type'] == 'Balance') {
             $post['cashback'] = 0;
             $post['point']    = 0;
+        }
+
+        if ($request->json('promo_code') || $request->json('id_deals_user')) {
+        	$check = $this->checkPromoGetPoint($promo_source);
+        	if ( $check == 0 ) {
+        		$post['cashback'] = 0;
+            	$post['point']    = 0;
+        	}
         }
 
         $detailPayment = [
@@ -395,7 +565,7 @@ class ApiOnlineTransaction extends Controller
         ];
 
         // return $detailPayment;
-        $post['grandTotal'] = $post['subtotal'] + $post['discount'] + $post['service'] + $post['tax'] + $post['shipping'];
+        $post['grandTotal'] = (int)$post['subtotal'] + (int)$post['discount'] + (int)$post['service'] + (int)$post['tax'] + (int)$post['shipping'];
         // return $post;
         if ($post['type'] == 'Delivery') {
             $dataUser = [
@@ -430,7 +600,7 @@ class ApiOnlineTransaction extends Controller
             //check key GO-SEND
             $checkKey = Gosend::checkKey();
             if(isset($checkKey) && $checkKey['status'] == 'fail'){
-                DB::rollback();
+                DB::rollBack();
                 return response()->json($checkKey);
             }
 
@@ -476,9 +646,11 @@ class ApiOnlineTransaction extends Controller
         }
 
         DB::beginTransaction();
+        UserRatingLog::where('id_user',$request->user()->id)->delete();
         $transaction = [
             'id_outlet'                   => $post['id_outlet'],
             'id_user'                     => $id,
+            'id_promo_campaign_promo_code'           => $post['id_promo_campaign_promo_code']??null,
             'transaction_date'            => $post['transaction_date'],
             // 'transaction_receipt_number'  => 'TRX-'.app($this->setting_trx)->getrandomnumber(8).'-'.date('YmdHis'),
             'trasaction_type'             => $type,
@@ -505,7 +677,7 @@ class ApiOnlineTransaction extends Controller
         $newTopupController = new NewTopupController();
         $checkHashBefore = $newTopupController->checkHash('log_balances', $id);
         if (!$checkHashBefore) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Your previous transaction data is invalid']
@@ -524,33 +696,90 @@ class ApiOnlineTransaction extends Controller
         $insertTransaction = Transaction::create($transaction);
 
         if (!$insertTransaction) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Insert Transaction Failed']
             ]);
         }
+        // add report referral
+        if($use_referral){
+            $addPromoCounter = PromoCampaignReferralTransaction::create([
+                'id_promo_campaign_promo_code' =>$code->id_promo_campaign_promo_code,
+                'id_user' => $insertTransaction['id_user'],
+                'id_referrer' => UserReferralCode::select('id_user')->where('id_promo_campaign_promo_code',$code->id_promo_campaign_promo_code)->pluck('id_user')->first(),
+                'id_transaction' => $insertTransaction['id_transaction'],
+                'referred_bonus_type' => $promo_discount?'Product Discount':'Cashback',
+                'referred_bonus' => $promo_discount?:$insertTransaction['transaction_cashback_earned']
+            ]);
+            if(!$addPromoCounter){
+                DB::rollBack();
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['Insert Transaction Failed']
+                ]);
+            }
+
+            //======= Start Check Fraud Referral User =======//
+            $data = [
+                'id_user' => $insertTransaction['id_user'],
+                'referral_code' => $request->promo_code,
+                'referral_code_use_date' => $insertTransaction['transaction_date'],
+                'id_transaction' => $insertTransaction['id_transaction']
+            ];
+            app($this->setting_fraud)->fraudCheckReferralUser($data);
+            //======= End Check Fraud Referral User =======//
+        }
+        // add transaction voucher
+        if($request->json('id_deals_user')){
+        	$update_voucher = DealsUser::where('id_deals_user','=',$request->id_deals_user)->update(['used_at' => date('Y-m-d H:i:s'), 'id_outlet' => $request->json('id_outlet')]);
+        	$update_deals = Deal::where('id_deals','=',$deals->dealVoucher['deals']['id_deals'])->update(['deals_total_used' => $deals->dealVoucher['deals']['deals_total_used']+1]);
+
+            $addTransactionVoucher = TransactionVoucher::create([
+                'id_deals_voucher' => $deals['id_deals_voucher'],
+                'id_user' => $insertTransaction['id_user'],
+                'id_transaction' => $insertTransaction['id_transaction']
+            ]);
+            if(!$addTransactionVoucher){
+                DB::rollBack();
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['Insert Transaction Failed']
+                ]);
+            }
+        }
 
         //update receipt
-        $receipt = 'TRX-'.$insertTransaction['id_outlet'].$insertTransaction['id_transaction'].'-'.date('ymdHis');
+        $receipt = 'TRX-'.MyHelper::createrandom(6,'Angka').time().MyHelper::createrandom(3,'Angka').$insertTransaction['id_outlet'].MyHelper::createrandom(3,'Angka');
         $updateReceiptNumber = Transaction::where('id_transaction', $insertTransaction['id_transaction'])->update([
             'transaction_receipt_number' => $receipt
         ]);
 
         if (!$updateReceiptNumber) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Insert Transaction Failed']
             ]);
         }
 
+        $user->transaction_online = 1;
+        $user->save();
+
         $insertTransaction['transaction_receipt_number'] = $receipt;
 
         foreach ($post['item'] as $keyProduct => $valueProduct) {
-            $checkProduct = Product::where('id_product', $valueProduct['id_product'])->with('category')->first();
+            $this_discount=0;
+            if($discount_promo){
+                foreach ($discount_promo['item']??[] as $disc) {
+                    if($disc['id_product']==$valueProduct['id_product']){
+                        $this_discount=$disc['discount']??0;
+                    }
+                }
+            }
+            $checkProduct = Product::where('id_product', $valueProduct['id_product'])->first();
             if (empty($checkProduct)) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Product Not Found']
@@ -559,7 +788,7 @@ class ApiOnlineTransaction extends Controller
 
             $checkPriceProduct = ProductPrice::where(['id_product' => $checkProduct['id_product'], 'id_outlet' => $post['id_outlet']])->first();
             if (empty($checkPriceProduct)) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Product Price Not Valid']
@@ -567,7 +796,7 @@ class ApiOnlineTransaction extends Controller
             }
 
             if ($checkPriceProduct['product_stock_status'] == 'Sold Out') {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Product '.$checkProduct['product_name'].' sudah habis, silakan pilih yang lain']
@@ -581,27 +810,111 @@ class ApiOnlineTransaction extends Controller
             $dataProduct = [
                 'id_transaction'               => $insertTransaction['id_transaction'],
                 'id_product'                   => $checkProduct['id_product'],
+                'id_brand'                     => $valueProduct['id_brand'],
                 'id_outlet'                    => $insertTransaction['id_outlet'],
                 'id_user'                      => $insertTransaction['id_user'],
                 'transaction_product_qty'      => $valueProduct['qty'],
                 'transaction_product_price'    => $checkPriceProduct['product_price'],
                 'transaction_product_price_base'    => $checkPriceProduct['product_price_base'],
                 'transaction_product_price_tax'    => $checkPriceProduct['product_price_tax'],
-                'transaction_product_subtotal' => $valueProduct['qty'] * $checkPriceProduct['product_price'],
+                'transaction_product_discount'   => $this_discount,
+                'transaction_product_subtotal' => ($valueProduct['qty'] * $checkPriceProduct['product_price'])-$this_discount,
                 'transaction_product_note'     => $valueProduct['note'],
                 'created_at'                   => date('Y-m-d', strtotime($insertTransaction['transaction_date'])).' '.date('H:i:s'),
                 'updated_at'                   => date('Y-m-d H:i:s')
             ];
 
+            $trx_product = TransactionProduct::create($dataProduct);
+            if (!$trx_product) {
+                DB::rollBack();
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['Insert Product Transaction Failed']
+                ]);
+            }
+            if(strtotime($insertTransaction['transaction_date'])){
+                $trx_product->created_at = strtotime($insertTransaction['transaction_date']);
+            }
+            // array_push($dataInsertProduct, $dataProduct);
+
+            $insert_modifier = [];
+            $mod_subtotal = 0;
+            $more_mid_text = '';
+            foreach ($valueProduct['modifiers'] as $modifier) {
+                $id_product_modifier = is_numeric($modifier)?$modifier:$modifier['id_product_modifier'];
+                $qty_product_modifier = is_numeric($modifier)?1:$modifier['qty'];
+                $mod = ProductModifier::select('product_modifiers.id_product_modifier','code','type','text','product_modifier_stock_status','product_modifier_price')
+                    // produk modifier yang tersedia di outlet
+                    ->join('product_modifier_prices','product_modifiers.id_product_modifier','=','product_modifier_prices.id_product_modifier')
+                    ->where('product_modifier_prices.id_outlet',$post['id_outlet'])
+                    // produk aktif
+                    ->where('product_modifier_status','Active')
+                    // product visible
+                    ->where(function($query){
+                        $query->where('product_modifier_prices.product_modifier_visibility','=','Visible')
+                        ->orWhere(function($q){
+                            $q->whereNull('product_modifier_prices.product_modifier_visibility')
+                            ->where('product_modifiers.product_modifier_visibility', 'Visible');
+                        });
+                    })
+                    ->groupBy('product_modifiers.id_product_modifier')
+                    // product modifier dengan id
+                    ->find($id_product_modifier);
+                if(!$mod){
+                    return [
+                        'status' => 'fail',
+                        'messages' => ['Modifier not found']
+                    ];
+                }
+                if($mod['product_modifier_stock_status']!='Available'){
+                    return [
+                        'status' => 'fail',
+                        'messages' => ['Modifier not available']
+                    ];
+                }
+                $mod = $mod->toArray();
+                $insert_modifier[] = [
+                    'id_transaction_product'=>$trx_product['id_transaction_product'],
+                    'id_transaction'=>$insertTransaction['id_transaction'],
+                    'id_product'=>$checkProduct['id_product'],
+                    'id_product_modifier'=>$id_product_modifier,
+                    'id_outlet'=>$insertTransaction['id_outlet'],
+                    'id_user'=>$insertTransaction['id_user'],
+                    'type'=>$mod['type']??'',
+                    'code'=>$mod['code']??'',
+                    'text'=>$mod['text']??'',
+                    'qty'=>$qty_product_modifier,
+                    'transaction_product_modifier_price'=>$mod['product_modifier_price']*$qty_product_modifier,
+                    'datetime'=>$insertTransaction['transaction_date']??date(),
+                    'trx_type'=>$type,
+                    // 'sales_type'=>'',
+                    'created_at'                   => date('Y-m-d H:i:s'),
+                    'updated_at'                   => date('Y-m-d H:i:s')
+                ];
+                $mod_subtotal += $mod['product_modifier_price']*$qty_product_modifier;
+                if($qty_product_modifier>1){
+                    $more_mid_text .= ','.$qty_product_modifier.'x '.$mod['text'];
+                }else{
+                    $more_mid_text .= ','.$mod['text'];
+                }
+            }
+            $trx_modifier = TransactionProductModifier::insert($insert_modifier);
+            if (!$trx_modifier) {
+                DB::rollBack();
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['Insert Product Modifier Transaction Failed']
+                ]);
+            }
+            $trx_product->transaction_modifier_subtotal = $mod_subtotal;
+            $trx_product->transaction_product_subtotal += $trx_product->transaction_modifier_subtotal * $valueProduct['qty'];
+            $trx_product->save();
             $dataProductMidtrans = [
                 'id'       => $checkProduct['id_product'],
-                'price'    => $checkPriceProduct['product_price_base'],
-                'name'     => $checkProduct['product_name'],
+                'price'    => $checkPriceProduct['product_price']+$mod_subtotal,
+                'name'     => $checkProduct['product_name'].($more_mid_text?'('.trim($more_mid_text,',').')':''),
                 'quantity' => $valueProduct['qty'],
             ];
-
-
-            array_push($dataInsertProduct, $dataProduct);
             array_push($productMidtrans, $dataProductMidtrans);
             $totalWeight += $checkProduct['product_weight'] * $valueProduct['qty'];
 
@@ -648,18 +961,17 @@ class ApiOnlineTransaction extends Controller
         ];
         array_push($dataDetailProduct, $dataDis);
 
-        $insrtProduct = TransactionProduct::insert($dataInsertProduct);
-        if (!$insrtProduct) {
-            DB::rollback();
-            return response()->json([
-                'status'    => 'fail',
-                'messages'  => ['Insert Product Transaction Failed']
-            ]);
-        }
-
+        // $insrtProduct = TransactionProduct::insert($dataInsertProduct);
+        // if (!$insrtProduct) {
+        //     DB::rollBack();
+        //     return response()->json([
+        //         'status'    => 'fail',
+        //         'messages'  => ['Insert Product Transaction Failed']
+        //     ]);
+        // }
         $insertUserTrxProduct = app($this->transaction)->insertUserTrxProduct($userTrxProduct);
         if ($insertUserTrxProduct == 'fail') {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Insert Product Transaction Failed']
@@ -694,12 +1006,14 @@ class ApiOnlineTransaction extends Controller
         }
 
 
+        //sum balance
+        $sumBalance = LogBalance::where('id_user', $id)->sum('balance');
         if ($post['type'] == 'Delivery') {
             $link = '';
             if($configAdminOutlet && $configAdminOutlet['is_active'] == '1'){
                 $totalAdmin = $adminOutlet->where('delivery', 1)->first();
                 if (empty($totalAdmin)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Admin outlet is empty']
@@ -711,8 +1025,9 @@ class ApiOnlineTransaction extends Controller
 
             $order_id = MyHelper::createrandom(4, 'Besar Angka');
 
-            //cek unique order id today
+            //cek unique order id uniq today and outlet
             $cekOrderId = TransactionShipment::join('transactions', 'transactions.id_transaction', 'transaction_shipments.id_transaction')
+                                            ->where('id_outlet', $insertTransaction['id_outlet'])
                                             ->where('order_id', $order_id)
                                             ->whereDate('transaction_date', date('Y-m-d'))
                                             ->first();
@@ -720,6 +1035,7 @@ class ApiOnlineTransaction extends Controller
                 $order_id = MyHelper::createrandom(4, 'Besar Angka');
 
                 $cekOrderId = TransactionShipment::join('transactions', 'transactions.id_transaction', 'transaction_shipments.id_transaction')
+                                                ->where('id_outlet', $insertTransaction['id_outlet'])
                                                 ->where('order_id', $order_id)
                                                 ->whereDate('transaction_date', date('Y-m-d'))
                                                 ->first();
@@ -762,7 +1078,7 @@ class ApiOnlineTransaction extends Controller
 
             $insertShipment = TransactionShipment::create($dataShipment);
             if (!$insertShipment) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Insert Shipment Transaction Failed']
@@ -773,7 +1089,7 @@ class ApiOnlineTransaction extends Controller
             if($configAdminOutlet && $configAdminOutlet['is_active'] == '1'){
                 $totalAdmin = $adminOutlet->where('pickup_order', 1)->first();
                 if (empty($totalAdmin)) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Admin outlet is empty']
@@ -786,6 +1102,7 @@ class ApiOnlineTransaction extends Controller
 
             //cek unique order id today
             $cekOrderId = TransactionPickup::join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
+                                            ->where('id_outlet', $insertTransaction['id_outlet'])
                                             ->where('order_id', $order_id)
                                             ->whereDate('transaction_date', date('Y-m-d'))
                                             ->first();
@@ -793,6 +1110,7 @@ class ApiOnlineTransaction extends Controller
                 $order_id = MyHelper::createrandom(4, 'Besar Angka');
 
                 $cekOrderId = TransactionPickup::join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
+                                                ->where('id_outlet', $insertTransaction['id_outlet'])
                                                 ->where('order_id', $order_id)
                                                 ->whereDate('transaction_date', date('Y-m-d'))
                                                 ->first();
@@ -800,6 +1118,7 @@ class ApiOnlineTransaction extends Controller
 
             //cek unique order id today
             $cekOrderId = TransactionPickup::join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
+                                            ->where('id_outlet', $insertTransaction['id_outlet'])
                                             ->where('order_id', $order_id)
                                             ->whereDate('transaction_date', date('Y-m-d'))
                                             ->first();
@@ -807,6 +1126,7 @@ class ApiOnlineTransaction extends Controller
                 $order_id = MyHelper::createrandom(4, 'Besar Angka');
 
                 $cekOrderId = TransactionPickup::join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
+                                                ->where('id_outlet', $insertTransaction['id_outlet'])
                                                 ->where('order_id', $order_id)
                                                 ->whereDate('transaction_date', date('Y-m-d'))
                                                 ->first();
@@ -874,7 +1194,7 @@ class ApiOnlineTransaction extends Controller
             $insertPickup = TransactionPickup::create($dataPickup);
 
             if (!$insertPickup) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Insert Pickup Order Transaction Failed']
@@ -902,7 +1222,7 @@ class ApiOnlineTransaction extends Controller
 
                 $gosend = TransactionPickupGoSend::create($dataGoSend);
                 if (!$gosend) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Insert Transaction GO-SEND Failed']
@@ -934,7 +1254,7 @@ class ApiOnlineTransaction extends Controller
 
             $gosend = TransactionPickupGoSend::create($dataGoSend);
             if (!$gosend) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Insert Transaction GO-SEND Failed']
@@ -945,80 +1265,133 @@ class ApiOnlineTransaction extends Controller
         }
 
         if ($post['transaction_payment_status'] == 'Completed') {
+            //========= This process to check if user have fraud ============//
+            $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
+                ->where('transactions.id_user', $insertTransaction['id_user'])
+                ->whereRaw('DATE(transactions.transaction_date) = "'.date('Y-m-d', strtotime($post['transaction_date'])).'"')
+                ->where('transactions.transaction_payment_status','Completed')
+                ->whereNull('transaction_pickups.reject_at')
+                ->count();
 
-            if ($insertTransaction['transaction_point_earned'] != 0) {
-                $settingPoint = Setting::where('key', 'point_conversion_value')->first();
+            $currentWeekNumber = date('W',strtotime($post['transaction_date']));
+            $currentYear = date('Y',strtotime($post['transaction_date']));
+            $dto = new DateTime();
+            $dto->setISODate($currentYear,$currentWeekNumber);
+            $start = $dto->format('Y-m-d');
+            $dto->modify('+6 days');
+            $end = $dto->format('Y-m-d');
 
-                //check membership
-                if (!empty($user['memberships'][0]['membership_name'])) {
-                    $level = $user['memberships'][0]['membership_name'];
-                    $percentageP = $user['memberships'][0]['benefit_point_multiplier'] / 100;
-                    $percentageB = $user['memberships'][0]['benefit_cashback_multiplier'] / 100;
-                } else {
-                    $level = null;
-                    $percentageP = 0;
-                    $percentageB = 0;
+            $geCountTrxWeek = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
+                ->where('id_user', $insertTransaction['id_user'])
+                ->where('transactions.transaction_payment_status','Completed')
+                ->whereNull('transaction_pickups.reject_at')
+                ->whereRaw('Date(transactions.transaction_date) BETWEEN "'.$start.'" AND "'.$end.'"')
+                ->count();
+
+            $countTrxDay = $geCountTrxDay + 1;
+            $countTrxWeek = $geCountTrxWeek + 1;
+            //================================ End ================================//
+
+            if((($fraudTrxDay && $countTrxDay <= $fraudTrxDay['parameter_detail']) && ($fraudTrxWeek && $countTrxWeek <= $fraudTrxWeek['parameter_detail']))
+                || (!$fraudTrxDay && !$fraudTrxWeek)){
+
+                if ($insertTransaction['transaction_point_earned'] != 0) {
+                    $settingPoint = Setting::where('key', 'point_conversion_value')->first();
+
+                    //check membership
+                    if (!empty($user['memberships'][0]['membership_name'])) {
+                        $level = $user['memberships'][0]['membership_name'];
+                        $percentageP = $user['memberships'][0]['benefit_point_multiplier'] / 100;
+                        $percentageB = $user['memberships'][0]['benefit_cashback_multiplier'] / 100;
+                    } else {
+                        $level = null;
+                        $percentageP = 0;
+                        $percentageB = 0;
+                    }
+
+                    $dataLog = [
+                        'id_user'                     => $insertTransaction['id_user'],
+                        'point'                       => $insertTransaction['transaction_point_earned'],
+                        'id_reference'                => $insertTransaction['id_transaction'],
+                        'source'                      => 'Transaction',
+                        'grand_total'                 => $insertTransaction['transaction_grandtotal'],
+                        'point_conversion'            => $settingPoint['value'],
+                        'membership_level'            => $level,
+                        'membership_point_percentage' => $percentageP * 100
+                    ];
+
+                    $insertDataLog = LogPoint::create($dataLog);
+                    if (!$insertDataLog) {
+                        DB::rollBack();
+                        return response()->json([
+                            'status'    => 'fail',
+                            'messages'  => ['Insert Point Failed']
+                        ]);
+                    }
+
+                    //update point user
+                    $totalPoint = LogPoint::where('id_user',$insertTransaction['id_user'])->sum('point');
+                    $updateUserPoint = User::where('id', $insertTransaction['id_user'])->update(['points' => $totalPoint]);
                 }
 
-                $dataLog = [
-                    'id_user'                     => $insertTransaction['id_user'],
-                    'point'                       => $insertTransaction['transaction_point_earned'],
-                    'id_reference'                => $insertTransaction['id_transaction'],
-                    'source'                      => 'Transaction',
-                    'grand_total'                 => $insertTransaction['transaction_grandtotal'],
-                    'point_conversion'            => $settingPoint['value'],
-                    'membership_level'            => $level,
-                    'membership_point_percentage' => $percentageP * 100
-                ];
+                if ($insertTransaction['transaction_cashback_earned'] != 0) {
+                    $insertDataLogCash = app($this->balance)->addLogBalance( $insertTransaction['id_user'], $insertTransaction['transaction_cashback_earned'], $insertTransaction['id_transaction'], 'Transaction', $insertTransaction['transaction_grandtotal']);
+                    if (!$insertDataLogCash) {
+                        DB::rollBack();
+                        return response()->json([
+                            'status'    => 'fail',
+                            'messages'  => ['Insert Cashback Failed']
+                        ]);
+                    }
+                    $usere  = User::where('id',$insertTransaction['id_user'])->first();
+                    $outlet = Outlet::where('id_outlet',$insertTransaction['id_outlet'])->first();
+                    $send   = app($this->autocrm)->SendAutoCRM('Transaction Point Achievement', $usere->phone,
+                        [
+                            "outlet_name"       => $outlet->outlet_name,
+                            "transaction_date"  => $insertTransaction['transaction_date'],
+                            'id_transaction'    => $insertTransaction['id_transaction'],
+                            'receipt_number'    => $insertTransaction['transaction_receipt_number'],
+                            'received_point'    => (string) $insertTransaction['transaction_cashback_earned']
+                        ]
+                    );
+                    if($send != true){
+                        DB::rollBack();
+                        return response()->json([
+                            'status' => 'fail',
+                            'messages' => ['Failed Send notification to customer']
+                        ]);
+                    }
 
-                $insertDataLog = LogPoint::create($dataLog);
-                if (!$insertDataLog) {
-                    DB::rollback();
-                    return response()->json([
-                        'status'    => 'fail',
-                        'messages'  => ['Insert Point Failed']
+                }
+
+            }else{
+                if($countTrxDay > $fraudTrxDay['parameter_detail'] && $fraudTrxDay){
+                    $fraudFlag = 'transaction day';
+                }elseif($countTrxWeek > $fraudTrxWeek['parameter_detail'] && $fraudTrxWeek){
+                    $fraudFlag = 'transaction week';
+                }else{
+                    $fraudFlag = NULL;
+                }
+
+                $updatePointCashback = Transaction::where('id_transaction', $insertTransaction['id_transaction'])
+                    ->update([
+                        'transaction_point_earned' => NULL,
+                        'transaction_cashback_earned' => NULL,
+                        'fraud_flag' => $fraudFlag
                     ]);
-                }
 
-                //update point user
-                $totalPoint = LogPoint::where('id_user',$insertTransaction['id_user'])->sum('point');
-                $updateUserPoint = User::where('id', $insertTransaction['id_user'])->update(['points' => $totalPoint]);
-            }
-
-            if ($insertTransaction['transaction_cashback_earned'] != 0) {
-
-                $insertDataLogCash = app($this->balance)->addLogBalance( $insertTransaction['id_user'], $insertTransaction['transaction_cashback_earned'], $insertTransaction['id_transaction'], 'Transaction', $insertTransaction['transaction_grandtotal']);
-                if (!$insertDataLogCash) {
-                    DB::rollback();
-                    return response()->json([
-                        'status'    => 'fail',
-                        'messages'  => ['Insert Cashback Failed']
-                    ]);
-                }
-                $usere  = User::where('id',$insertTransaction['id_user'])->first();
-                $outlet = Outlet::where('id_outlet',$insertTransaction['id_outlet'])->first();
-                $send   = app($this->autocrm)->SendAutoCRM('Transaction Point Achievement', $usere->phone,
-                    [
-                        "outlet_name"       => $outlet->outlet_name,
-                        "transaction_date"  => $insertTransaction['transaction_date'],
-                        'id_transaction'    => $insertTransaction['id_transaction'], 
-                        'receipt_number'    => $insertTransaction['transaction_receipt_number'],
-                        'received_point'    => (string) $insertTransaction['transaction_cashback_earned']
-                    ]
-                );
-                if($send != true){
-                    DB::rollback();
+                if(!$updatePointCashback){
+                    DB::rollBack();
                     return response()->json([
                         'status' => 'fail',
-                        'messages' => ['Failed Send notification to customer']
+                        'messages' => ['Failed update Point and Cashback']
                     ]);
                 }
-
             }
 
             $checkMembership = app($this->membership)->calculateMembership($user['phone']);
             if (!$checkMembership) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Recount membership failed']
@@ -1032,62 +1405,30 @@ class ApiOnlineTransaction extends Controller
                 $save = app($this->balance)->topUp($insertTransaction['id_user'], $insertTransaction['transaction_grandtotal'], $insertTransaction['id_transaction']);
 
                 if (!isset($save['status'])) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json(['status' => 'fail', 'messages' => ['Transaction failed']]);
                 }
 
                 if ($save['status'] == 'fail') {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json($save);
                 }
 
                 // Fraud Detection
                 if ($post['transaction_payment_status'] == 'Completed' || $save['type'] == 'no_topup') {
-                    $trxDay = Transaction::where('id_user', $user['id'])
-                    ->whereDate('transaction_date', date('Y-m-d'))
-                    ->where('transaction_payment_status', 'Completed')->count();
 
-                    $trxWeek = Transaction::where('id_user', $user['id'])
-                    ->whereDate('transaction_date','<=', date('Y-m-d'))
-                    ->whereDate('transaction_date', '>=' ,date('Y-m-d', strtotime(' - 6 days')))
-                    ->where('transaction_payment_status', 'Completed')->count();
-
-                    //update count transaction
-                    $updateCountTrx = User::where('id', $user['id'])->update([
-                        'count_transaction_day' => $trxDay,
-                        'count_transaction_week' =>  $trxWeek,
-                    ]);
-
-                    // $updateCountTrx = User::where('id', $user['id'])->update([
-                    //     'count_transaction_day' => $user['count_transaction_day'] + 1,
-                    //     'count_transaction_week' => $user['count_transaction_week'] + 1,
-                    // ]);
-                    if (!$updateCountTrx) {
-                        DB::rollback();
-                        return response()->json([
-                            'status'    => 'fail',
-                            'messages'  => ['Update User Count Transaction Failed']
-                        ]);
+                    //inset pickup_at when pickup_type = right now
+                    if($insertPickup['pickup_type'] == 'right now'){
+                        $updatePickup = TransactionPickup::where('id_transaction', $insertTransaction['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s')]);
                     }
-
                     $userData = User::find($user['id']);
 
-                    //cek fraud detection transaction per day
-                    $fraudTrxDay = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 day%')->first();
-                    if($fraudTrxDay && $fraudTrxDay['parameter_detail'] != null){
-                        if($userData['count_transaction_day'] >= $fraudTrxDay['parameter_detail']){
-                            //send fraud detection to admin
-                            $sendFraud = app($this->setting_fraud)->SendFraudDetection($fraudTrxDay['id_fraud_setting'], $userData, $insertTransaction['id_transaction'], null);
-                        }
+                    if($fraudTrxDay){
+                        $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxDay, $userData, null, $countTrxDay, $countTrxWeek, $post['transaction_date'], 0, $insertTransaction['transaction_receipt_number']);
                     }
 
-                    //cek fraud detection transaction per week (last 7 days)
-                    $fraudTrxDay = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 week%')->first();
-                    if($fraudTrxDay && $fraudTrxDay['parameter_detail'] != null){
-                        if($userData['count_transaction_week'] >= $fraudTrxDay['parameter_detail']){
-                            //send fraud detection to admin
-                            $sendFraud = app($this->setting_fraud)->SendFraudDetection($fraudTrxDay['id_fraud_setting'], $userData, $insertTransaction['id_transaction'], $lastDeviceId = null);
-                        }
+                    if($fraudTrxWeek){
+                        $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxWeek, $userData, null, $countTrxDay, $countTrxWeek, $post['transaction_date'], 0, $insertTransaction['transaction_receipt_number']);
                     }
                 }
 
@@ -1100,7 +1441,7 @@ class ApiOnlineTransaction extends Controller
                     if ($configAdminOutlet && $configAdminOutlet['is_active'] == '1') {
                         $sendAdmin = app($this->notif)->sendNotif($insertTransaction);
                         if (!$sendAdmin) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'    => 'fail',
                                 'messages'  => ['Transaction failed']
@@ -1111,7 +1452,7 @@ class ApiOnlineTransaction extends Controller
                     $send = app($this->notif)->notification($mid, $insertTransaction);
 
                     if (!$send) {
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => ['Transaction failed']
@@ -1131,6 +1472,8 @@ class ApiOnlineTransaction extends Controller
                     if($post['latitude'] && $post['longitude']){
                         $savelocation = $this->saveLocation($post['latitude'], $post['longitude'], $insertTransaction['id_user'], $insertTransaction['id_transaction'], $insertTransaction['id_outlet']);
                      }
+
+                    PromoCampaignTools::applyReferrerCashback($insertTransaction);
 
                     DB::commit();
                     return response()->json([
@@ -1171,7 +1514,7 @@ class ApiOnlineTransaction extends Controller
 
                     $insertDataMidtrans = TransactionPaymentMidtran::create($dataInsertMidtrans);
                     if (!$insertDataMidtrans) {
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => ['Insert Data Midtrans Failed']
@@ -1190,6 +1533,27 @@ class ApiOnlineTransaction extends Controller
         // if($post['latitude'] && $post['longitude']){
         //    $savelocation = $this->saveLocation($post['latitude'], $post['longitude'], $insertTransaction['id_user'], $insertTransaction['id_transaction']);
         // }
+        /* Add to daily trasaction*/
+        $dataDailyTrx = [
+            'id_transaction'    => $insertTransaction['id_transaction'],
+            'id_outlet'         => $outlet['id_outlet'],
+            'transaction_date'  => date('Y-m-d H:i:s', strtotime($insertTransaction['transaction_date'])),
+            'id_user'           => $user['id'],
+            'referral_code'     => $promo_code_ref
+        ];
+        $createDailyTrx = DailyTransactions::create($dataDailyTrx);
+
+        if($promo_code_ref){
+            //======= Start Check Fraud Referral User =======//
+            $data = [
+                'id_user' => $insertTransaction['id_user'],
+                'referral_code' => $promo_code_ref,
+                'referral_code_use_date' => $insertTransaction['transaction_date'],
+                'id_transaction' => $insertTransaction['id_transaction']
+            ];
+            app($this->setting_fraud)->fraudCheckReferralUser($data);
+            //======= End Check Fraud Referral User =======//
+        }
 
         DB::commit();
         return response()->json([
@@ -1198,6 +1562,568 @@ class ApiOnlineTransaction extends Controller
             'result'   => $insertTransaction
         ]);
 
+    }
+
+    /**
+     * Get info from given cart data
+     * @param  CheckTransaction $request [description]
+     * @return View                    [description]
+     */
+    public function checkTransaction(CheckTransaction $request) {
+        $post = $request->json()->all();
+        $missing_product = 0;
+        $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
+        if($use_product_variant){
+            foreach ($post['item'] as $key => &$prod) {
+                $prd = Product::where(function($query) use ($prod){
+                    foreach($prod['variants'] as $variant){
+                        $query->whereHas('product_variants',function($query) use ($variant){
+                            $query->where('product_variants.id_product_variant',$variant);
+                        });
+                    }
+                })->where('id_product_group',$prod['id_product_group'])->first();
+                if(!$prd){
+                    $missing_product++;
+                    unset($post['item'][$key]);
+                }
+                $prod['id_product'] = $prd['id_product'];
+            }
+        }
+
+        $grandTotal = app($this->setting_trx)->grandTotal();
+        $user = $request->user();
+        //Check Outlet
+        $id_outlet = $post['id_outlet'];
+        $outlet = Outlet::where('id_outlet', $id_outlet)->with('today')->first();
+        $rn = $request->json('request_number');
+        $ovo_available = Ovo::checkOutletOvo($post['id_outlet']);
+        if (empty($outlet)) {
+            DB::rollBack();
+            return response()->json([
+                'status'    => 'fail',
+                'messages'  => ['Outlet Not Found']
+                ]);
+        }
+
+        $issetDate = false;
+        if (isset($post['transaction_date'])) {
+            $issetDate = true;
+            $post['transaction_date'] = date('Y-m-d H:i:s', strtotime($post['transaction_date']));
+        } else {
+            $post['transaction_date'] = date('Y-m-d H:i:s');
+        }
+        $outlet_status = 1;
+        //cek outlet active
+        if(isset($outlet['outlet_status']) && $outlet['outlet_status'] == 'Inactive'){
+            // DB::rollBack();
+            // return response()->json([
+            //     'status'    => 'fail',
+            //     'messages'  => ['Outlet tutup']
+            // ]);
+            $outlet_status = 0;
+        }
+
+        //cek outlet holiday
+        if($issetDate == false){
+            $holiday = Holiday::join('outlet_holidays', 'holidays.id_holiday', 'outlet_holidays.id_holiday')->join('date_holidays', 'holidays.id_holiday', 'date_holidays.id_holiday')
+                    ->where('id_outlet', $outlet['id_outlet'])->whereDay('date_holidays.date', date('d'))->whereMonth('date_holidays.date', date('m'))->get();
+            if(count($holiday) > 0){
+                foreach($holiday as $i => $holi){
+                    if($holi['yearly'] == '0'){
+                        if($holi['date'] == date('Y-m-d')){
+                            // DB::rollBack();
+                            // return response()->json([
+                            //     'status'    => 'fail',
+                            //     'messages'  => ['Outlet tutup']
+                            // ]);
+                            $outlet_status = 0;
+                        }
+                    }else{
+                        // DB::rollBack();
+                        // return response()->json([
+                        //     'status'    => 'fail',
+                        //     'messages'  => ['Outlet tutup']
+                        // ]);
+                        $outlet_status = 0;
+                    }
+                }
+            }
+
+            if($outlet['today']['is_closed'] == '1'){
+                // DB::rollBack();
+                // return response()->json([
+                //     'status'    => 'fail',
+                //     'messages'  => ['Outlet tutup']
+                // ]);
+                $outlet_status = 0;
+            }
+
+             if($outlet['today']['close'] && $outlet['today']['close'] != "00:00" && $outlet['today']['open'] && $outlet['today']['open'] != '00:00'){
+
+                $settingTime = Setting::where('key', 'processing_time')->first();
+                if($settingTime && $settingTime->value){
+                    if($outlet['today']['close'] && date('H:i') > date('H:i', strtotime('-'.$settingTime->value.' minutes' ,strtotime($outlet['today']['close'])))){
+                        // DB::rollBack();
+                        // return response()->json([
+                        //     'status'    => 'fail',
+                        //     'messages'  => ['Outlet tutup']
+                        // ]);
+                        $outlet_status = 0;
+                    }
+                }
+
+                //cek outlet open - close hour
+                if(($outlet['today']['open'] && date('H:i') < date('H:i', strtotime($outlet['today']['open']))) || ($outlet['today']['close'] && date('H:i') > date('H:i', strtotime($outlet['today']['close'])))){
+                    // DB::rollBack();
+                    // return response()->json([
+                    //     'status'    => 'fail',
+                    //     'messages'  => ['Outlet tutup']
+                    // ]);
+                    $outlet_status = 0;
+                }
+            }
+        }
+
+        if (!isset($post['payment_type'])) {
+            $post['payment_type'] = null;
+        }
+
+        if (!isset($post['shipping'])) {
+            $post['shipping'] = 0;
+        }
+
+        if (!isset($post['subtotal'])) {
+            $post['subtotal'] = 0;
+        }
+
+        if (!isset($post['discount'])) {
+            $post['discount'] = 0;
+        }
+
+        if (!isset($post['service'])) {
+            $post['service'] = 0;
+        }
+
+        if (!isset($post['tax'])) {
+            $post['tax'] = 0;
+        }
+
+        $post['discount'] = -$post['discount'];
+
+        // hitung product discount
+        $totalDisProduct = 0;
+        $productDis = app($this->setting_trx)->discountProduct($post);
+        if (is_numeric($productDis)) {
+            $totalDisProduct = $productDis;
+        }else{
+            return $productDis;
+        }
+        // check promo code
+        $promo_error=null;
+        $promo['description']=null;
+        $promo['detail']=null;
+        $promo['discount']=0;
+        $promo_source = null;
+        if($request->json('promo_code'))
+        {
+        	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1, 1);
+            if ($code)
+            {
+	        	if ($code['promo_campaign']['date_end'] < date('Y-m-d H:i:s')) {
+	        		$promo_error='Promo campaign is ended';
+	        	}
+	        	else
+	        	{
+		            $pct=new PromoCampaignTools();
+		            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
+
+		            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors);
+
+		            if ($discount_promo['is_free'] == 1) {
+		            	unset($discount_promo['item']);
+		            	$discount_promo['discount'] = 0;
+		            }
+		            $promo['description'] = $discount_promo['new_description'];
+		            $promo['detail'] = $discount_promo['promo_detail'];
+		            $promo['discount'] = $discount_promo['discount'];
+		            $promo['is_free'] = $discount_promo['is_free'];
+		            $promo_source = 'promo_code';
+
+		            if ( !empty($errore) || !empty($errors)) {
+		            	$promo_error = app($this->promo_campaign)->promoError('transaction', $errore, $errors);
+		            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('promo_campaign', $code['promo_campaign'])['product']??'';
+		            	$promo_error['warning_image'] = env('S3_URL_API').($code['promo_campaign_warning_image']??$promo_error['warning_image']);
+				        $promo_error['product'] = $pct->getRequiredProduct($code->id_promo_campaign)??null;
+		            	$promo_source = null;
+
+		            }
+		            $promo_discount=$discount_promo['discount'];
+	        	}
+            }
+            else
+            {
+            	$promo_error = 'Promo code invalid';
+            }
+        }
+        elseif($request->json('id_deals_user'))
+        {
+        	$deals = app($this->promo_campaign)->checkVoucher($request->id_deals_user, 1, 1);
+			if($deals)
+			{
+				$pct=new PromoCampaignTools();
+				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals');
+
+				if ($discount_promo['is_free'] == 1) {
+	            	unset($discount_promo['item']);
+	            	$discount_promo['discount'] = 0;
+	            }
+
+				$promo['description'] = $discount_promo['new_description'];
+	            $promo['detail'] = $discount_promo['promo_detail'];
+	            $promo['discount'] = $discount_promo['discount'];
+	            $promo['is_free'] = $discount_promo['is_free'];
+		        $promo_source = 'voucher_online';
+
+				if ( !empty($errors) ) {
+					$code = $deals->toArray();
+
+	            	$promo_error = app($this->promo_campaign)->promoError('transaction', null, $errors);
+	            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('deals', $code['deal_voucher']['deals'])['product']??'';
+	            	$promo_error['warning_image'] = env('S3_URL_API').($code['deal_voucher']['deals']['deals_warning_image']??$promo_error['warning_image']);
+		        	$promo_error['product'] = $pct->getRequiredProduct($deals->dealVoucher->id_deals, 'deals')??null;
+		        	$promo_source = null;
+	            }
+	            $promo_discount=$discount_promo['discount'];
+	        }
+	        else
+	        {
+	        	$promo_error = 'Voucher is not valid';
+	        }
+        }
+        // end check promo code
+
+        $tree = [];
+        // check and group product
+        $subtotal = 0;
+        $error_msg=[];
+        foreach ($discount_promo['item']??$post['item'] as &$item) {
+            // get detail product
+            if($use_product_variant){
+                $select = [
+                    'products.id_product',
+                    'products.product_code','product_groups.product_group_name as product_name','product_groups.product_group_description as product_description',
+                    'product_prices.product_price','product_prices.product_stock_status',
+                    'brand_product.id_product_category','brand_product.id_brand'
+                ];
+            }else{
+                $select = [
+                    'products.id_product',
+                    'products.product_code','products.product_name','products.product_description',
+                    'product_prices.product_price','product_prices.product_stock_status',
+                    'brand_product.id_product_category','brand_product.id_brand'
+                ];
+            }
+
+            $product = Product::select($select)
+            ->join('brand_product','brand_product.id_product','=','products.id_product')
+            // produk tersedia di outlet
+            ->join('product_prices','product_prices.id_product','=','products.id_product')
+            ->where('product_prices.id_outlet','=',$outlet->id_outlet)
+            // brand produk ada di outlet
+            ->where('brand_outlet.id_outlet','=',$outlet->id_outlet)
+            ->join('brand_outlet','brand_outlet.id_brand','=','brand_product.id_brand')
+            // produk ada di brand ini
+            ->where('brand_product.id_brand',$item['id_brand'])
+            ->where(function($query){
+                $query->where('product_prices.product_visibility','=','Visible')
+                        ->orWhere(function($q){
+                            $q->whereNull('product_prices.product_visibility')
+                            ->where('products.product_visibility', 'Visible');
+                        });
+            })
+            ->where('product_prices.product_status','=','Active')
+            ->whereNotNull('product_prices.product_price')
+            ->with([
+                'photos'=>function($query){
+                    $query->select('id_product','product_photo');
+                }
+            ])
+            ->groupBy('products.id_product')
+            ->orderBy('products.position');
+
+            if($use_product_variant){
+                $product->join('product_groups','product_groups.id_product_group','=','products.id_product_group');
+                $product->addSelect(DB::raw('products.id_product_group,product_group_code'));
+            }
+
+            $product = $product->find($item['id_product']);
+            if(!$product){
+                $missing_product++;
+                continue;
+            }
+            $product->append('photo');
+            $product = $product->toArray();
+            if($use_product_variant){
+                $variants = $item['variants'];
+                $product['variants'] = [];
+                foreach ($variants as $variant) {
+                    $product['variants'][] = ProductVariant::select('id_product_variant','product_variant_code','product_variant_name')->find($variant);
+                }
+            }
+            if($product['product_stock_status']!='Available'){
+                $error_msg[] = MyHelper::simpleReplace(
+                    '%product_name% is out of stock',
+                    [
+                        'product_name' => $product['product_name']
+                    ]
+                );
+                continue;
+            }
+            unset($product['photos']);
+            $product['id_custom'] = $item['id_custom']??null;
+            $product['qty'] = $item['qty'];
+            $product['note'] = $item['note']??'';
+            $product['promo_discount'] = $item['discount']??0;
+            $product['is_promo'] = $item['is_promo']??0;
+            $product['is_free'] = $item['is_free']??0;
+            // get modifier
+            $mod_price = 0;
+            $product['modifiers'] = [];
+            $removed_modifier = [];
+            $missing_modifier = 0;
+            foreach ($item['modifiers'] as $key => $modifier) {
+                $id_product_modifier = is_numeric($modifier)?$modifier:$modifier['id_product_modifier'];
+                $qty_product_modifier = is_numeric($modifier)?1:$modifier['qty'];
+                $mod = ProductModifier::select('product_modifiers.id_product_modifier','code','text','product_modifier_stock_status','product_modifier_price')
+                    // produk modifier yang tersedia di outlet
+                    ->join('product_modifier_prices','product_modifiers.id_product_modifier','=','product_modifier_prices.id_product_modifier')
+                    ->where('product_modifier_prices.id_outlet',$id_outlet)
+                    // produk aktif
+                    ->where('product_modifier_status','Active')
+                    // product visible
+                    ->where(function($query){
+                        $query->where('product_modifier_prices.product_modifier_visibility','=','Visible')
+                        ->orWhere(function($q){
+                            $q->whereNull('product_modifier_prices.product_modifier_visibility')
+                            ->where('product_modifiers.product_modifier_visibility', 'Visible');
+                        });
+                    })
+                    ->groupBy('product_modifiers.id_product_modifier')
+                    // product modifier dengan id
+                    ->find($id_product_modifier);
+                if(!$mod){
+                    $missing_modifier++;
+                    continue;
+                }
+                if($mod['product_modifier_stock_status']!='Available'){
+                    $removed_modifier[] = $mod['text'];
+                    continue;
+                }
+                $mod = $mod->toArray();
+                $mod['product_modifier_price_pretty'] = MyHelper::requestNumber($mod['product_modifier_price'],'_CURRENCY');
+                $mod['product_modifier_price'] = (float) $mod['product_modifier_price'];
+                $mod['qty'] = $qty_product_modifier;
+                $mod_price+=$mod['qty']*$mod['product_modifier_price'];
+                $mod['product_modifier_price'] = MyHelper::requestNumber($mod['product_modifier_price'],$rn);
+                $product['modifiers'][]=$mod;
+            }
+            if($missing_modifier){
+                $error_msg[] = MyHelper::simpleReplace(
+                    '%missing_modifier% modifiers for product %product_name% not found',
+                    [
+                        'missing_modifier' => $missing_modifier,
+                        'product_name' => $product['product_name']
+                    ]
+                );
+            }
+            if($removed_modifier){
+                $error_msg[] = MyHelper::simpleReplace(
+                    'Modifier %removed_modifier% for product %product_name% is out of stock',
+                    [
+                        'removed_modifier' => implode(',',$removed_modifier),
+                        'product_name' => $product['product_name']
+                    ]
+                );
+            }
+            if(!isset($tree[$product['id_brand']]['name_brand'])){
+                $tree[$product['id_brand']] = Brand::select('name_brand','id_brand')->find($product['id_brand'])->toArray();
+            }
+
+            $product_price_total = $product['qty'] * ($product['product_price']+$mod_price);
+            $product['product_price_total_pretty'] = MyHelper::requestNumber($product_price_total,'_CURRENCY');
+            $product['product_price_divider_pretty'] = MyHelper::requestNumber($product['product_price']+$mod_price,'_CURRENCY');
+            $product['product_price_pretty'] = MyHelper::requestNumber($product['product_price'],'_CURRENCY');
+            $product['product_price_total'] = MyHelper::requestNumber($product_price_total,$rn);
+            $product['product_price'] = MyHelper::requestNumber($product['product_price'],$rn);
+
+            $tree[$product['id_brand']]['products'][]=$product;
+            $subtotal += $product_price_total;
+        }
+        if($missing_product){
+            $error_msg[] = MyHelper::simpleReplace(
+                '%missing_product% products not found',
+                [
+                    'missing_product' => $missing_product
+                ]
+            );
+        }
+        foreach ($grandTotal as $keyTotal => $valueTotal) {
+            if ($valueTotal == 'subtotal') {
+                $post['subtotal'] = $subtotal - $totalDisProduct;
+            } elseif ($valueTotal == 'discount') {
+                // $post['dis'] = $this->countTransaction($valueTotal, $post);
+                $post['dis'] = app($this->setting_trx)->countTransaction($valueTotal, $post);
+                $mes = ['Data Not Valid'];
+
+                if (isset($post['dis']->original['messages'])) {
+                    $mes = $post['dis']->original['messages'];
+
+                    if ($post['dis']->original['messages'] == ['Price Product Not Found']) {
+                        if (isset($post['dis']->original['product'])) {
+                            $mes = ['Price Product Not Found with product '.$post['dis']->original['product'].' at outlet '.$outlet['outlet_name']];
+                        }
+                    }
+
+                    DB::rollBack();
+                    return response()->json([
+                        'status'    => 'fail',
+                        'messages'  => $mes
+                    ]);
+                }
+
+                $post['discount'] = $post['dis'] + $totalDisProduct;
+            }elseif($valueTotal == 'tax'){
+                $post['tax'] = app($this->setting_trx)->countTransaction($valueTotal, $post);
+                $mes = ['Data Not Valid'];
+
+                    if (isset($post['tax']->original['messages'])) {
+                        $mes = $post['tax']->original['messages'];
+
+                        if ($post['tax']->original['messages'] == ['Price Product Not Found']) {
+                            if (isset($post['tax']->original['product'])) {
+                                $mes = ['Price Product Not Found with product '.$post['tax']->original['product'].' at outlet '.$outlet['outlet_name']];
+                            }
+                        }
+
+                        if ($post['sub']->original['messages'] == ['Price Product Not Valid']) {
+                            if (isset($post['tax']->original['product'])) {
+                                $mes = ['Price Product Not Valid with product '.$post['tax']->original['product'].' at outlet '.$outlet['outlet_name']];
+                            }
+                        }
+
+                        DB::rollBack();
+                        return response()->json([
+                            'status'    => 'fail',
+                            'messages'  => $mes
+                        ]);
+                    }
+            }
+            else {
+                $post[$valueTotal] = app($this->setting_trx)->countTransaction($valueTotal, $post);
+            }
+        }
+        $post['discount'] = $post['discount'] + ($promo_discount??0);
+
+        $post['cashback'] = app($this->setting_trx)->countTransaction('cashback', $post);
+
+        //count some trx user
+        $countUserTrx = Transaction::where('id_user', $user->id)->where('transaction_payment_status', 'Completed')->count();
+
+        $countSettingCashback = TransactionSetting::get();
+
+        // return $countSettingCashback;
+        if ($countUserTrx < count($countSettingCashback)) {
+            // return $countUserTrx;
+            $post['cashback'] = $post['cashback'] * $countSettingCashback[$countUserTrx]['cashback_percent'] / 100;
+
+            if ($post['cashback'] > $countSettingCashback[$countUserTrx]['cashback_maximum']) {
+                $post['cashback'] = $countSettingCashback[$countUserTrx]['cashback_maximum'];
+            }
+        } else {
+
+            $maxCash = Setting::where('key', 'cashback_maximum')->first();
+
+            if (count($user['memberships']) > 0) {
+                $post['cashback'] = $post['cashback'] * ($user['memberships'][0]['benefit_cashback_multiplier']) / 100;
+
+                if($user['memberships'][0]['cashback_maximum']){
+                    $maxCash['value'] = $user['memberships'][0]['cashback_maximum'];
+                }
+            }
+
+            $statusCashMax = 'no';
+
+            if (!empty($maxCash) && !empty($maxCash['value'])) {
+                $statusCashMax = 'yes';
+                $totalCashMax = $maxCash['value'];
+            }
+
+            if ($statusCashMax == 'yes') {
+                if ($totalCashMax < $post['cashback']) {
+                    $post['cashback'] = $totalCashMax;
+                }
+            } else {
+                $post['cashback'] = $post['cashback'];
+            }
+        }
+        $cashback_text = explode('%earned_cashback%',Setting::select('value_text')->where('key', 'earned_cashback_text')->pluck('value_text')->first()?:'You\'ll receive %earned_cashback% for this transaction');
+        $cashback_earned = (int) $post['cashback'];
+
+        $cashback_text_array = [
+            $cashback_text[0],
+            count($cashback_text) >= 2?MyHelper::requestNumber($cashback_earned,'_POINT').' Point':'',
+            $cashback_text[1]??''
+        ];
+
+        $outlet = $outlet->toArray();
+        $outlet['today']['status'] = $outlet_status ? 'open' : 'closed';
+        $result['outlet'] = [
+            'id_outlet' => $outlet['id_outlet'],
+            'outlet_code' => $outlet['outlet_code'],
+            'outlet_name' => $outlet['outlet_name'],
+            'outlet_address' => $outlet['outlet_address'],
+            'today' => $outlet['today']
+        ];
+        $result['item'] = array_values($tree);
+        $result['subtotal_pretty'] = MyHelper::requestNumber($subtotal,'_CURRENCY');
+        $result['shipping_pretty'] = MyHelper::requestNumber($post['shipping'],'_CURRENCY');
+        $result['discount_pretty'] = MyHelper::requestNumber($post['discount'],'_CURRENCY');
+        $result['service_pretty'] = MyHelper::requestNumber($post['service'],'_CURRENCY');
+        $result['tax_pretty'] = MyHelper::requestNumber($post['tax'],'_CURRENCY');
+        $result['subtotal'] = MyHelper::requestNumber($subtotal,$rn);
+        $result['shipping'] = MyHelper::requestNumber($post['shipping'],$rn);
+        $result['discount'] = MyHelper::requestNumber($post['discount'],$rn);
+        $result['service'] = MyHelper::requestNumber($post['service'],$rn);
+        $result['tax'] = MyHelper::requestNumber($post['tax'],$rn);
+        $grandtotal = $post['subtotal'] + (-$post['discount']) + $post['service'] + $post['tax'] + $post['shipping'];
+        $result['grandtotal_pretty'] = MyHelper::requestNumber($grandtotal,'_CURRENCY');
+        $result['grandtotal'] = MyHelper::requestNumber($grandtotal,$rn);
+        $used_point = 0;
+        $result['used_point_pretty'] = MyHelper::requestNumber(0,'_POINT');
+        $result['used_point'] = MyHelper::requestNumber(0,$rn);
+        $balance = app($this->balance)->balanceNow($user->id);
+        $result['points_pretty'] = MyHelper::requestNumber($balance,'_POINT');
+        $result['points'] = MyHelper::requestNumber($balance,$rn);
+        $result['get_point'] = ($post['payment_type'] != 'Balance') ? $this->checkPromoGetPoint($promo_source) : 0;
+        $result['ovo_available'] = $ovo_available?1:0;
+        $result['earned_cashback_text'] = $cashback_text_array;
+        if (isset($post['payment_type'])&&$post['payment_type'] == 'Balance') {
+            if($balance>=$grandtotal){
+                $used_point = $grandtotal;
+            }else{
+                $used_point = $balance;
+                $result['used_point_pretty'] = MyHelper::requestNumber($balance,'_POINT');
+                $result['used_point'] = MyHelper::requestNumber($balance,$rn);
+            }
+            $result['used_point_pretty'] = MyHelper::requestNumber($used_point,'_POINT');
+            $result['used_point'] = MyHelper::requestNumber($used_point,$rn);
+            $result['points_pretty'] = MyHelper::requestNumber($balance - $used_point,'_POINT');
+            $result['points'] = MyHelper::requestNumber(($balance - $used_point),$rn);
+        }
+
+        $result['total_payment_pretty'] = MyHelper::requestNumber(($grandtotal-$used_point),'_CURRENCY');
+        $result['total_payment'] = MyHelper::requestNumber(($grandtotal-$used_point),$rn);
+        return MyHelper::checkGet($result)+['messages'=>$error_msg, 'promo_error'=>$promo_error, 'promo'=>$promo];
     }
 
     public function saveLocation($latitude, $longitude, $id_user, $id_transaction, $id_outlet){
@@ -1303,7 +2229,7 @@ class ApiOnlineTransaction extends Controller
         }
 
         $dataEncode = [
-            'transaction_receipt_number'   => $id,
+            'id_transaction'   => $list['id_transaction'],
             'type' => $type,
         ];
 
@@ -1312,22 +2238,22 @@ class ApiOnlineTransaction extends Controller
             $button = 'LIHAT NOTA';
         }
 
-        $title = 'Sukses';
-        if ($list['transaction_payment_status'] == 'Pending') {
-            $title = 'Pending';
-        }
+        $title = 'Transaction Detail';
+        // if ($list['transaction_payment_status'] == 'Pending') {
+        //     $title = 'Pending';
+        // }
 
-        if ($list['transaction_payment_status'] == 'Terbayar') {
-            $title = 'Terbayar';
-        }
+        // if ($list['transaction_payment_status'] == 'Terbayar') {
+        //     $title = 'Terbayar';
+        // }
 
-        if ($list['transaction_payment_status'] == 'Sukses') {
-            $title = 'Sukses';
-        }
+        // if ($list['transaction_payment_status'] == 'Sukses') {
+        //     $title = 'Sukses';
+        // }
 
-        if ($list['transaction_payment_status'] == 'Gagal') {
-            $title = 'Gagal';
-        }
+        // if ($list['transaction_payment_status'] == 'Gagal') {
+        //     $title = 'Gagal';
+        // }
 
         $encode = json_encode($dataEncode);
         $base = base64_encode($encode);
@@ -1339,7 +2265,7 @@ class ApiOnlineTransaction extends Controller
             'transaction_receipt_number' => $list['transaction_receipt_number'],
             'transaction_grandtotal'     => $list['transaction_grandtotal'],
             'type'                       => $type,
-            'url'                        => env('VIEW_URL').'/transaction/web/view/detail?data='.$base
+            'url'                        => env('API_URL').'api/transaction/web/view/detail?data='.$base
         ];
 
         return $send;
@@ -1404,7 +2330,7 @@ class ApiOnlineTransaction extends Controller
 
             $curl = $this->sendStatus('https://exp.host/--/api/v2/push/send', 'POST', $dataArraySend);
             if (!$curl) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Transaction failed']
@@ -1491,5 +2417,48 @@ class ApiOnlineTransaction extends Controller
        }
 
        return $rndstring;
+    }
+
+    public function checkPromoGetPoint($promo_source)
+    {
+    	if (empty($promo_source)) {
+    		return 1;
+    	}
+    	if ($promo_source != 'promo_code' && $promo_source != 'voucher_online' && $promo_source != 'voucher_offline') {
+    		return 0;
+    	}
+
+    	$config = app($this->promo)->promoGetCashbackRule();
+    	$getData = Configs::whereIn('config_name',['promo code get point','voucher offline get point','voucher online get point'])->get()->toArray();
+
+    	foreach ($getData as $key => $value) {
+    		$config[$value['config_name']] = $value['is_active'];
+    	}
+
+    	if ($promo_source == 'promo_code') {
+    		if ($config['promo code get point'] == 1) {
+    			return 1;
+    		}else{
+    			return 0;
+    		}
+    	}
+
+    	if ($promo_source == 'voucher_online') {
+    		if ($config['voucher online get point'] == 1) {
+    			return 1;
+    		}else{
+    			return 0;
+    		}
+    	}
+
+    	if ($promo_source == 'voucher_offline') {
+    		if ($config['voucher offline get point'] == 1) {
+    			return 1;
+    		}else{
+    			return 0;
+    		}
+    	}
+
+    	return 0;
     }
 }

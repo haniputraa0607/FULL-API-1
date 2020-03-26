@@ -18,7 +18,7 @@ use DB;
 
 class ApiDealsSubscription extends Controller
 {
-    
+
     /**
      * Show the form for creating a new resource.
      * @return Response
@@ -26,7 +26,7 @@ class ApiDealsSubscription extends Controller
     public function create(Create $request)
     {
         $post = $request->json()->all();
-        if (isset($post['voucher_subscriptions'])) { 
+        if (isset($post['voucher_subscriptions'])) {
             $voucher_subs = $post['voucher_subscriptions'];
             unset($post['voucher_subscriptions']);
         }
@@ -42,7 +42,7 @@ class ApiDealsSubscription extends Controller
                 $saveOutlet = $apiDeals->saveOutlet($save, $data['id_outlet']);
 
                 if (!$saveOutlet) {
-                    DB::rollback();
+                    DB::rollBack();
                     return [
                         'status'   => 'fail',
                         'messages' => 'Failed to save data.'
@@ -89,7 +89,7 @@ class ApiDealsSubscription extends Controller
             }
         }
         else {
-            DB::rollback();
+            DB::rollBack();
         }
 
         return response()->json(MyHelper::checkCreate($save));
@@ -98,7 +98,7 @@ class ApiDealsSubscription extends Controller
     private function checkInput($post)
     {
         $data = $post;
-        if (isset($post['deals_image'])) { 
+        if (isset($post['deals_image'])) {
             $path = "img/deals/";
             $upload = MyHelper::uploadPhotoStrict($post['deals_image'], $path, 300, 300);
 
@@ -115,19 +115,19 @@ class ApiDealsSubscription extends Controller
                 return $result;
             }
         }
-        if (!isset($post['deals_total_voucher'])) { 
+        if (!isset($post['deals_total_voucher'])) {
             $data['deals_total_voucher'] = 0;
         }
-        if (isset($post['deals_start'])) { 
+        if (isset($post['deals_start'])) {
             $data['deals_start'] = date('Y-m-d H:i:s', strtotime($post['deals_start']));
         }
-        if (isset($post['deals_end'])) { 
+        if (isset($post['deals_end'])) {
             $data['deals_end'] = date('Y-m-d H:i:s', strtotime($post['deals_end']));
         }
-        if (isset($post['deals_publish_start'])) { 
+        if (isset($post['deals_publish_start'])) {
             $data['deals_publish_start'] = date('Y-m-d H:i:s', strtotime($post['deals_publish_start']));
         }
-        if (isset($post['deals_publish_end'])) { 
+        if (isset($post['deals_publish_end'])) {
             $data['deals_publish_end'] = date('Y-m-d H:i:s', strtotime($post['deals_publish_end']));
         }
 
@@ -161,14 +161,14 @@ class ApiDealsSubscription extends Controller
     {
         $post = $request->json()->all();
         $id_deals = $post['id_deals'];
-        
+
         unset($post['prices_by']);
 
-        if (isset($post['voucher_subscriptions'])) { 
+        if (isset($post['voucher_subscriptions'])) {
             $voucher_subs = $post['voucher_subscriptions'];
             unset($post['voucher_subscriptions']);
         }
-        if (isset($post['id_outlet'])) { 
+        if (isset($post['id_outlet'])) {
             $id_outlets = $post['id_outlet'];
             unset($post['id_outlet']);
         }
@@ -186,7 +186,7 @@ class ApiDealsSubscription extends Controller
                 $saveOutlet = $apiDeals->saveOutlet($update, $id_outlets);
 
                 if (!$saveOutlet) {
-                    DB::rollback();
+                    DB::rollBack();
                     return [
                         'status'   => 'fail',
                         'messages' => 'Failed to update data.'
@@ -231,7 +231,7 @@ class ApiDealsSubscription extends Controller
                 array_push($id_subscriptions, $update_subs->id_deals_subscription);
 
                 if (!$update_subs) {
-                    DB::rollback();
+                    DB::rollBack();
                     return [
                         'status'   => 'fail',
                         'messages' => 'Failed to update data.'
@@ -243,7 +243,7 @@ class ApiDealsSubscription extends Controller
             $check_subs = DealsSubscription::where('id_deals', $id_deals)->whereNotIn('id_deals_subscription', $id_subscriptions)->get();
             foreach ($check_subs as $key => $subscription) {
                 if ($subscription->deals_vouchers->count() > 0) {
-                    DB::rollback();
+                    DB::rollBack();
                     return [
                         'status'   => 'fail',
                         'messages' => 'Failed to delete Voucher because it already claimed by user.'
@@ -256,7 +256,7 @@ class ApiDealsSubscription extends Controller
             DB::commit();
         }
         else {
-            DB::rollback();
+            DB::rollBack();
         }
 
         return response()->json(MyHelper::checkUpdate($update));
@@ -287,7 +287,7 @@ class ApiDealsSubscription extends Controller
 
             $delete = Deal::where('id_deals', $id_deals)->delete();
             if (!$delete) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['Delete data failed']

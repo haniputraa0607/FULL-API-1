@@ -7,6 +7,7 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use App\Http\Models\News;
 use App\Http\Models\Outlet;
+use App\Http\Models\Product;
 
 use App\Lib\MyHelper;
 
@@ -19,7 +20,7 @@ class ApiNewsWebview extends Controller
     }
     public function detail(Request $request, $id)
     {
-        $news = News::with('newsOutlet','newsOutlet.outlet')->find($id)->toArray();
+        $news = News::with('newsOutlet','newsOutlet.outlet','newsProduct','newsProduct.product')->find($id)->toArray();
         $totalOutlet = 0;
         $outlet = Outlet::get()->toArray();
         if ($outlet) {
@@ -27,13 +28,52 @@ class ApiNewsWebview extends Controller
         }
         
         $totalOutletNews = 0;
+
+        $totalProduct = 0;
+        $product = Product::get()->toArray();
+        if ($product) {
+            $totalProduct = count($product);
+        }
+        
+        $totalProductNews = 0;
         
         if ($news) {
             // return $news['result'];
             $totalOutletNews = count($news['news_outlet']);
-            return view('news::webview.news', ['news' => [$news], 'total_outlet' => $totalOutlet, 'total_outlet_news' => $totalOutletNews]);
+            return view('news::webview.news', ['news' => [$news], 'total_outlet' => $totalOutlet, 'total_outlet_news' => $totalOutletNews, 'total_product' => $totalProduct, 'total_product_news' => $totalProductNews]);
         }else {
             return view('error', ['msg' => 'Something went wrong, try again']);
+        }
+    }
+    public function detailNews(Request $request, $id)
+    {
+        $news = News::with('newsOutlet','newsOutlet.outlet','newsProduct','newsProduct.product')->find($id)->toArray();
+        $totalOutlet = 0;
+        $outlet = Outlet::get()->toArray();
+        if ($outlet) {
+            $totalOutlet = count($outlet);
+        }
+        
+        $totalOutletNews = 0;
+
+        $totalProduct = 0;
+        $product = Product::get()->toArray();
+        if ($product) {
+            $totalProduct = count($product);
+        }
+        
+        $totalProductNews = 0;
+        
+        if ($news) {
+            // return $news['result'];
+            $news['news_image_dalam'] = env('S3_URL_API').$news['news_image_dalam'];
+            $totalOutletNews = count($news['news_outlet']);
+            return response()->json([
+                'status'    => 'success',
+                'result'    => $news
+            ]);
+        }else {
+            return response()->json(['status' => 'fail','message' => 'Something went wrong, try again']);
         }
     }
 }

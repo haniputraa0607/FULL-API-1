@@ -44,11 +44,11 @@ class ApiDealsPaymentManual extends Controller
     }
 
     public function manualPaymentConfirm(ManualPaymentConfirm $request) {
-        $post = $request->json()->all(); 
+        $post = $request->json()->all();
         $user = $request->user();
 
         $confirm['id_user_confirming'] = $user['id'];
-        
+
         if($post['status'] == 'accept'){
             $confirm['confirmed_at'] = date('Y-m-d h:i:s');
             $confirm['payment_note_confirm'] = $post['payment_note_confirm'];
@@ -66,14 +66,14 @@ class ApiDealsPaymentManual extends Controller
                 DB::commit();
                 return response()->json(MyHelper::checkUpdate($update));
             }else{
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Manual payment confirmation failed']
                 ]);
             }
         }else{
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Manual payment confirmation failed']

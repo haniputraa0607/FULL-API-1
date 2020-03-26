@@ -21,6 +21,7 @@ use App\Http\Models\Banner;
 use App\Http\Models\FraudSetting;
 use App\Http\Models\OauthAccessToken;
 use App\Http\Models\FeaturedDeal;
+use Modules\Subscription\Entities\FeaturedSubscription;
 
 use DB;
 use App\Lib\MyHelper;
@@ -38,8 +39,9 @@ class ApiHome extends Controller
 		$this->balance  = "Modules\Balance\Http\Controllers\BalanceController";
 		$this->point  = "Modules\Deals\Http\Controllers\ApiDealsClaim";
 		$this->autocrm  = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
-        $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiSettingFraud";
+        $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiFraud";
 		$this->endPoint  = env('S3_URL_API');
+        $this->deals = "Modules\Deals\Http\Controllers\ApiDeals";
     }
 
 	public function homeNotLoggedIn(Request $request) {
@@ -84,22 +86,31 @@ class ApiHome extends Controller
         foreach ($banners as $key => $value) {
 
             $item['image_url']  = env('S3_URL_API').$value->image;
+            $item['type']       = 'none';
             $item['id_news']    = $value->id_news;
             $item['news_title'] = "";
             $item['url']        = $value->url;
 
+            if($item['url'] != null){
+                $item['type']       = 'link';
+            }
+
             if ($value->id_news != "") {
+                $item['type']       = 'news';
                 $item['news_title'] = $value->news->news_title;
                 // if news, generate webview news detail url
                 $item['url']        = env('API_URL') .'news/webview/'. $value->id_news;
-            }
-
-            if ($value->type == 'gofood') {
+            }elseif ($value->type == 'gofood') {
+                $item['type']       = 'gofood';
                 $item['id_news'] = 99999999;
                 $item['news_title'] = "GO-FOOD";
                 $item['url']     = env('APP_URL').'outlet/webview/gofood/list';
+            }elseif ($value->type == 'referral') {
+                $item['type']       = 'referral';
+                $item['id_news'] = 999999999;
+                $item['news_title'] = "Referral";
+                $item['url']     = env('API_URL') . 'api/referral/webview';
             }
-
             array_push($array, $item);
         }
 
@@ -138,6 +149,8 @@ class ApiHome extends Controller
 					'status' => 'success',
 					'result' => [
 						'total_point' => (int) $balance,
+                        'total_point_pretty' => MyHelper::requestNumber($balance,'_POINT'),
+                        'total_point_short' => MyHelper::requestNumber($balance,'short'),
 						'qr_code'        => $qrCode,
                         'expired_qr'    => $expired
 					]
@@ -285,7 +298,7 @@ class ApiHome extends Controller
                 $encode = json_encode($dataEncode);
                 $base = base64_encode($encode);
 
-                $membership['webview_detail_membership'] = env('API_URL').'api/membership/web/view?data='.$base;
+                $membership['detail_membership'] = env('API_URL').'api/membership/web/view?data='.$base;
 				if(isset($membership['membership_image']))
 					$membership['membership_image'] = env('S3_URL_API').$membership['membership_image'];
 			} else {
@@ -546,30 +559,32 @@ class ApiHome extends Controller
             ];
         }
 
-        //check fraud
-        if($user->new_login == '1'){
-            $deviceCus = UserDevice::where('device_type','=',$device_type)
-            ->where('device_id','=',$device_id)
-            // ->where('device_token','=',$device_token)
-            ->orderBy('id_device_user', 'ASC')
-            ->first();
-
-            $lastDevice = UserDevice::where('id_user','=',$user->id)->orderBy('id_device_user', 'desc')->first();
-            if($deviceCus && $deviceCus['id_user'] != $user->id){
-                // send notif fraud detection
-                $fraud = FraudSetting::where('parameter', 'LIKE', '%device ID%')->first();
-                if($fraud){
-                    $sendFraud = app($this->setting_fraud)->SendFraudDetection($fraud['id_fraud_setting'], $user, null, $lastDevice);
-                }
-            }
-        }
-
         return $result;
     }
 
     public function membership(Request $request){
+        $use_custom_province = \App\Http\Models\Configs::where('id_config',96)->pluck('is_active')->first();
         $user = $request->user();
-        $user->load(['city','city.province']);
+        if($user->first_login===0){
+            $send = app($this->autocrm)->SendAutoCRM('Login First Time', $user['phone']);
+            if (!$send) {
+                DB::rollBack();
+                return response()->json(['status' => 'fail', 'messages' => ['Send notification failed']]);
+            }
+
+            $setting = Setting::where('key','welcome_voucher_setting')->first()->value;
+            if($setting == 1){
+                $injectVoucher = app($this->deals)->injectWelcomeVoucher(['id' => $user['id']], $user['phone']);
+            }
+
+            $user->first_login=1;
+            $user->save();
+        }
+        if($use_custom_province){
+            $user->load(['province']);
+        }else{
+            $user->load(['city','city.province']);
+        }
         $birthday = "";
         if ($user->birthday != "") {
             $birthday = date("d F Y", strtotime($user->birthday));
@@ -666,7 +681,7 @@ class ApiHome extends Controller
             $encode = json_encode($dataEncode);
             $base = base64_encode($encode);
 
-            $membership['webview_detail_membership'] = env('API_URL').'api/membership/web/view?data='.$base;
+            $membership['detail_membership'] = env('API_URL').'api/membership/detail?data='.$base;
         } else {
             $membership = null;
         }
@@ -685,12 +700,16 @@ class ApiHome extends Controller
         foreach ($hidden as $hide) {
             unset($retUser[$hide]);
         }
-
+        if($retUser['province'] == ""){
+            $retUser['province'] = null;
+        }
         $retUser['membership']=$membership;
         $result = [
             'status' => 'success',
             'result' => [
                 'total_point' => (int) $user->balance??0,
+                'total_point_pretty' => MyHelper::requestNumber($user->balance,'_POINT'),
+                'total_point_short' => MyHelper::requestNumber($user->balance,'short'),
                 'user_info'     => $retUser,
                 'qr_code'       => $qrCode??'',
                 'greeting'      => $greetingss??'',
@@ -760,17 +779,77 @@ class ApiHome extends Controller
                 }else{
                     $value['deals']['percent_voucher'] = 100;
                 }
+                $value['deals']['show'] = 1;
                 $value['deals']['time_to_end']=strtotime($value['deals']['deals_end'])-time();
                 return $value;
             },$deals->toArray());
             foreach ($deals as $key => $value) {
-                if ($value['deals']['available_voucher'] == "0") {
+                if ($value['deals']['available_voucher'] == "0" && $value['deals']['deals_status'] != 'soon') {
                     unset($deals[$key]);
                 }
             }
             return [
                 'status'=>'success',
                 'result'=>$deals
+            ];
+        }else{
+            return [
+                'status' => 'fail',
+                'messages' => ['Something went wrong']
+            ];
+        }
+    }
+
+    public function featuredSubscription(Request $request){
+
+        $now=date('Y-m-d H-i-s');
+        $subs=featuredSubscription::select('id_featured_subscription','id_subscription')->with(['subscription'=>function($query){
+            $query->select('subscription_title','subscription_image','subscription_total', 'subscription_voucher_total','subscription_bought','subscription_publish_start','subscription_publish_end','subscription_start','subscription_end','id_subscription','subscription_price_point','subscription_price_cash');
+        }])
+            ->whereHas('subscription',function($query){
+                $query->where('subscription_publish_end','>=',DB::raw('CURRENT_TIMESTAMP()'));
+                $query->where('subscription_publish_start','<=',DB::raw('CURRENT_TIMESTAMP()'));
+            })
+            ->orderBy('order')
+            ->where('date_start','<=',$now)
+            ->where('date_end','>=',$now)
+            ->get();
+
+        if($subs){
+            $subs=array_map(function($value){
+                if ( empty($value['subscription']['subscription_price_point']) && empty($value['subscription']['subscription_price_cash'])) {
+                    $calc = '*';
+                }else{
+                    $calc = $value['subscription']['subscription_total'] - $value['subscription']['subscription_bought'];
+                }
+                $value['subscription']['available_subscription'] = (string) $calc;
+                if($calc&&is_numeric($calc)){
+                    $value['subscription']['percent_subscription'] = $calc*100/$value['subscription']['subscription_total'];
+                }else{
+                    $value['subscription']['percent_subscription'] = 100;
+                }
+                $value['subscription']['time_to_end']=strtotime($value['subscription']['subscription_end'])-time();
+                return $value;
+            },$subs->toArray());
+
+            $featuredList = [];
+            $tempList = [];
+            $i = 0;
+            foreach ($subs as $key => $value) {
+                if ($value['subscription']['available_subscription'] == "0" && isset($value['subscription']['total'])) {
+                    unset($subs[$key]);
+                }else{
+
+                    $featuredList[$i]['id_featured_subscription'] = $value['id_featured_subscription'];
+                    $featuredList[$i]['id_subscription'] = $value['id_subscription'];
+                    $featuredList[$i]['url_subscription_image'] = $value['subscription']['url_subscription_image'];
+                    $i++;
+                }
+
+            }
+            return [
+                'status'=>'success',
+                'result'=>$featuredList
             ];
         }else{
             return [

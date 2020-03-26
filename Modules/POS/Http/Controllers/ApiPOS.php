@@ -19,6 +19,8 @@ use App\Http\Models\TransactionPaymentOffline;
 use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionPaymentBalance;
+use App\Http\Models\TransactionPaymentOvo;
+use App\Http\Models\TransactionPaymentCimb;
 use App\Http\Models\TransactionVoucher;
 use App\Http\Models\TransactionSetting;
 use App\Http\Models\User;
@@ -26,6 +28,8 @@ use App\Http\Models\Product;
 use App\Http\Models\ProductPrice;
 use App\Http\Models\ProductPhoto;
 use App\Http\Models\ProductModifier;
+use App\Http\Models\ProductModifierPrice;
+use App\Http\Models\ProductModifierProduct;
 use App\Http\Models\Outlet;
 use App\Http\Models\Setting;
 use App\Http\Models\DealsUser;
@@ -37,10 +41,11 @@ use App\Http\Models\DealsVoucher;
 use App\Http\Models\Configs;
 use App\Http\Models\FraudSetting;
 use App\Http\Models\LogBackendError;
+use App\Http\Models\OutletSchedule;
 use App\Http\Models\SyncTransactionFaileds;
 use App\Http\Models\SyncTransactionQueues;
 use App\Lib\MyHelper;
-use Mailgun;
+use Mail;
 
 use Modules\POS\Http\Requests\reqMember;
 use Modules\POS\Http\Requests\reqVoucher;
@@ -54,11 +59,22 @@ use Modules\POS\Http\Requests\reqBulkMenu;
 use Modules\Brand\Entities\Brand;
 use Modules\Brand\Entities\BrandOutlet;
 use Modules\Brand\Entities\BrandProduct;
+use Modules\POS\Entities\SyncMenuRequest;
+use Modules\POS\Entities\SyncMenuResult;
 
 use Modules\POS\Http\Controllers\CheckVoucher;
 use Exception;
 
 use DB;
+use DateTime;
+use Illuminate\Support\Facades\Schema;
+use Modules\Outlet\Entities\OutletOvo;
+use Modules\POS\Jobs\SyncAddOnPrice;
+use Modules\POS\Jobs\SyncProductPrice;
+use Modules\Product\Entities\ProductPricePeriode;
+use Modules\ProductVariant\Entities\ProductGroup;
+use Modules\ProductVariant\Entities\ProductProductVariant;
+use Modules\ProductVariant\Entities\ProductVariant;
 
 class ApiPOS extends Controller
 {
@@ -69,7 +85,7 @@ class ApiPOS extends Controller
         $this->membership = "Modules\Membership\Http\Controllers\ApiMembership";
         $this->balance    = "Modules\Balance\Http\Controllers\BalanceController";
         $this->autocrm  = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
-        $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiSettingFraud";
+        $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiFraud";
 
         $this->pos = "Modules\POS\Http\Controllers\ApiPos";
     }
@@ -89,7 +105,9 @@ class ApiPOS extends Controller
         }
 
         $check = Transaction::join('transaction_pickups', 'transactions.id_transaction', '=', 'transaction_pickups.id_transaction')
-            ->with(['products', 'product_detail', 'vouchers', 'productTransaction.modifiers'])
+            ->with(['products', 'products.product_variants' => function ($query) {
+                $query->orderBy('parent');
+            }, 'product_detail', 'vouchers', 'productTransaction.modifiers', 'promo_campaign_promo_code'])
             ->where('order_id', '=', $post['order_id'])
             ->where('transactions.transaction_date', '>=', date("Y-m-d") . " 00:00:00")
             ->where('transactions.transaction_date', '<=', date("Y-m-d") . " 23:59:59")
@@ -111,25 +129,37 @@ class ApiPOS extends Controller
 
             $timestamp = strtotime('+' . $expired . ' minutes');
             $memberUid = MyHelper::createQR($timestamp, $user['phone']);
-
-            $transactions = [];
-            $transactions['member_uid'] = $memberUid;
-            $transactions['trx_id_behave'] = $check['transaction_receipt_number'];
-            $transactions['trx_date_time'] = $check['created_at'];
-            $transactions['qrcode'] = $qrCode;
-            $transactions['order_id'] = $check['order_id'];
-            $transactions['process_at'] = $check['pickup_type'];
-            $transactions['process_date_time'] = $check['pickup_at'];
-            $transactions['accepted_date_time'] = $check['receive_at'];
-            $transactions['ready_date_time'] = $check['ready_at'];
-            $transactions['taken_date_time'] = $check['taken_at'];
-            $transactions['total'] = $check['transaction_subtotal'];
-            $transactions['sevice'] = $check['transaction_service'];
-            $transactions['tax'] = $check['transaction_tax'];
-            $transactions['discount'] = $check['transaction_discount'];
-            $transactions['grand_total'] = $check['transaction_grandtotal'];
-
-            $transactions['payments'] = [];
+            $header['order_number'] = $check['transaction_receipt_number'];
+            $header['order_id'] = $check['order_id'];
+            $header['posting_date'] = date('Ymd', strtotime($check['transaction_date']));
+            $header['trx_date'] = date('Ymd', strtotime($check['transaction_date']));
+            $header['trx_start_time'] = date('Ymd His', strtotime($check['transaction_date']));
+            $header['trx_end_time'] = $check['completed_at'] ? date('Ymd His', strtotime($check['completed_at'])) : '';
+            $header['process_at'] = $check['pickup_type'] ?? '';
+            $header['process_date_time'] = $check['pickup_at'] ?? '';
+            $header['status_order'] = '';
+            $header['accepted_date_time'] = date('Ymd His', strtotime($check['receive_at']));
+            $header['ready_date_time'] = date('Ymd His', strtotime($check['ready_at']));
+            $header['taken_date_time'] = date('Ymd His', strtotime($check['taken_at']));
+            $header['reject_date_time'] = date('Ymd His', strtotime($check['reject_at']));
+            $header['pax'] = count($check['products']);
+            $header['order_type'] = 'take away';
+            $header['total_order'] = (float) $check['transaction_grandtotal'];
+            $header['notes'] = '';
+            $header['applied_promo'] = $check['id_promo_campaign_promo_code'] ? 'MOBILE APPS PROMO' : '';
+            $header['pos'] = [
+                'id' => 1,
+                'cash_drawer' => 2,
+                'cashier_id' => 'M1907123'
+            ];
+            $header['customer'] = [
+                'id' => $memberUid,
+                'phone' => $user['phone'],
+                'name' => $user['name'],
+                'gender' => $user['gender'] ?? '',
+                'age' => ($user['birthday'] ?? false) ? (date_diff(date_create($user['birthday']), date_create('now'))->y) : ''
+            ];
+            $payment = [];
             //cek di multi payment
             $multi = TransactionMultiplePayment::where('id_transaction', $check['id_transaction'])->get();
             if (!$multi) {
@@ -137,35 +167,86 @@ class ApiPOS extends Controller
                 $balance = TransactionPaymentBalance::where('id_transaction', $check['id_transaction'])->get();
                 if ($balance) {
                     foreach ($balance as $payBalance) {
-                        $pay['payment_type'] = 'Kenangan Points';
-                        $pay['payment_nominal'] = (int) $payBalance['balance_nominal'];
-                        $transactions['payments'][] = $pay;
+                        $pay = [
+                            'number'        => 1,
+                            'type'          => 'Points',
+                            'amount'        => (float) $payBalance['balance_nominal'],
+                            'change_amount' => 0,
+                            'card_number'   => 0,
+                            'card_owner'    => $user['name']
+                        ];
+                        $payment[] = $pay;
                     }
                 } else {
                     $midtrans = TransactionPaymentMidtran::where('id_transaction', $check['id_transaction'])->get();
                     if ($midtrans) {
                         foreach ($midtrans as $payMidtrans) {
-                            $pay['payment_type'] = 'Midtrans';
-                            $pay['payment_nominal'] = (int) $payMidtrans['gross_amount'];
-                            $transactions['payments'][] = $pay;
+                            $pay = [
+                                'number'        => 1,
+                                'type'          => 'Midtrans',
+                                'amount'        => (float) $payMidtrans['gross_amount'],
+                                'change_amount' => 0,
+                                'card_number'   => 0,
+                                'card_owner'    => $user['name']
+                            ];
+                            $payment[] = $pay;
                         }
                     }
                 }
             } else {
-                foreach ($multi as $payMulti) {
+                foreach ($multi as $key => $payMulti) {
                     if ($payMulti['type'] == 'Balance') {
                         $balance = TransactionPaymentBalance::find($payMulti['id_payment']);
                         if ($balance) {
-                            $pay['payment_type'] = 'Kenangan Points';
-                            $pay['payment_nominal'] = (int) $balance['balance_nominal'];
-                            $transactions['payments'][] = $pay;
+                            $pay = [
+                                'number'        => $key + 1,
+                                'type'          => 'Points',
+                                'amount'        => (float) $balance['balance_nominal'],
+                                'change_amount' => 0,
+                                'card_number'   => 0,
+                                'card_owner'    => $user['name']
+                            ];
+                            $payment[] = $pay;
                         }
                     } elseif ($payMulti['type'] == 'Midtrans') {
-                        $midtrans = TransactionPaymentmidtran::find($payMulti['id_payment']);
+                        $midtrans = TransactionPaymentMidtran::find($payMulti['id_payment']);
                         if ($midtrans) {
-                            $pay['payment_type'] = 'Midtrans';
-                            $pay['payment_nominal'] = (int) $midtrans['gross_amount'];
-                            $transactions['payments'][] = $pay;
+                            $pay = [
+                                'number'        => $key + 1,
+                                'type'          => 'Midtrans',
+                                'amount'        => (float) $midtrans['gross_amount'],
+                                'change_amount' => 0,
+                                'card_number'   => '',
+                                'card_owner'    => ''
+                            ];
+                            $payment[] = $pay;
+                        }
+                    } elseif ($payMulti['type'] == 'Ovo') {
+                        $ovo = TransactionPaymentOvo::find($payMulti['id_payment']);
+                        if ($ovo) {
+                            $pay = [
+                                'number'            => $key + 1,
+                                'type'              => 'Ovo',
+                                'amount'            => (float) $ovo['amount'],
+                                'change_amount'     => 0,
+                                'card_number'       => '',
+                                'card_owner'        => '',
+                                'reference_number'  => $ovo['approval_code']
+                            ];
+                            $payment[] = $pay;
+                        }
+                    } elseif ($payMulti['type'] == 'Cimb') {
+                        $cimb = TransactionPaymentCimb::find($payMulti['id_payment']);
+                        if ($cimb) {
+                            $pay = [
+                                'number'            => $key + 1,
+                                'type'              => 'Cimb',
+                                'amount'            => (float) $cimb['amount'] ?? $check['transaction_grandtotal'],
+                                'change_amount'     => 0,
+                                'card_number'       => '',
+                                'card_owner'        => ''
+                            ];
+                            $payment[] = $pay;
                         }
                     }
                 }
@@ -177,23 +258,27 @@ class ApiPOS extends Controller
             $transactions['menu'] = [];
             $transactions['tax'] = 0;
             $transactions['total'] = 0;
+            $item = [];
             foreach ($check['products'] as $key => $menu) {
-                $val = [];
-                $val['plu_id'] = $menu['product_code'];
-                $val['name'] = $menu['product_name'];
-                $val['price'] = (int) $menu['pivot']['transaction_product_price'];
-                $val['qty'] = $menu['pivot']['transaction_product_qty'];
-                $val['category'] = $menu['product_category_name'];
-                if ($menu['pivot']['transaction_product_note'] != null) {
-                    $val['open_modifier'] = $menu['pivot']['transaction_product_note'];
-                }
-                $val['modifiers'] = $check['product_transaction'][$key]['modifiers'];
-
-                array_push($transactions['menu'], $val);
-
-                $transactions['tax'] = $transactions['tax'] + ($menu['pivot']['transaction_product_qty'] * $menu['pivot']['transaction_product_price_tax']);
-                $transactions['total'] = $transactions['total'] + ($menu['pivot']['transaction_product_qty'] * $menu['pivot']['transaction_product_price_base']);
+                $val = [
+                    'number' => $key + 1,
+                    'sap_matnr' => $menu['product_code'],
+                    'qty' => (int) $menu['pivot']['transaction_product_qty'],
+                    'price' => (float) $menu['pivot']['transaction_product_price'],
+                    'type' => $menu['product_variants'][1]['product_variant_code'] == 'general_type' ? null : $menu['product_variants'][1]['product_variant_code'],
+                    'size' => $menu['product_variants'][0]['product_variant_code'] == 'general_type' ? null : $menu['product_variants'][0]['product_variant_code'],
+                    'discount' => (float) $menu['pivot']['transaction_product_discount'],
+                    'promo_number' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
+                    'promo_type' => '5',
+                    'amount' => (float) $menu['pivot']['transaction_product_subtotal']
+                ];
+                $item[] = $val;
             }
+            return [
+                'header' => $header,
+                'item' => $item,
+                'payment' => $payment
+            ];
             $transactions['tax'] = round($transactions['tax']);
             $transactions['total'] = round($transactions['total']);
 
@@ -221,11 +306,13 @@ class ApiPOS extends Controller
     {
         $post = $request->json()->all();
 
-        if(!empty($post['api_key']) && !empty($post['api_secret']) &&
-            !empty($post['store_code']) && !empty($post['uid'])){
+        if (
+            !empty($post['api_key']) && !empty($post['api_secret']) &&
+            !empty($post['store_code']) && !empty($post['uid'])
+        ) {
 
-            if(strlen($post['uid']) < 35){
-                DB::rollback();
+            if (strlen($post['uid']) < 35) {
+                DB::rollBack();
                 return ['status' => 'fail', 'messages' => 'Minimum length of member uid is 35'];
             }
 
@@ -254,7 +341,7 @@ class ApiPOS extends Controller
 
             //suspend
             if (isset($user['is_suspended']) && $user['is_suspended'] == '1') {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => 'Maaf, akun Anda sedang di-suspend'
@@ -317,7 +404,7 @@ class ApiPOS extends Controller
             $result['saldo'] = $user->balance;
 
             return response()->json(['status' => 'success', 'result' => $result]);
-        }else{
+        } else {
             return response()->json(['status' => 'fail', 'messages' => 'Input is incomplete']);
         }
     }
@@ -326,8 +413,10 @@ class ApiPOS extends Controller
     {
         $post = $request->json()->all();
 
-        if(!empty($post['api_key']) && !empty($post['api_secret']) && !empty($post['store_code']) &&
-        (!empty($post['qrcode']) || !empty($post['code']))){
+        if (
+            !empty($post['api_key']) && !empty($post['api_secret']) && !empty($post['store_code']) &&
+            (!empty($post['qrcode']) || !empty($post['code']))
+        ) {
 
             $api = $this->checkApi($post['api_key'], $post['api_secret']);
             if ($api['status'] != 'success') {
@@ -335,7 +424,7 @@ class ApiPOS extends Controller
             }
 
             return CheckVoucher::check($post);
-        }else{
+        } else {
             return response()->json(['status' => 'fail', 'messages' => ['Input is incomplete']]);
         }
     }
@@ -344,8 +433,10 @@ class ApiPOS extends Controller
     {
         $post = $request->json()->all();
 
-        if(!empty($post['api_key']) && !empty($post['api_secret']) &&
-            !empty($post['store_code']) && !empty($post['voucher_code'])){
+        if (
+            !empty($post['api_key']) && !empty($post['api_secret']) &&
+            !empty($post['store_code']) && !empty($post['voucher_code'])
+        ) {
 
             $api = $this->checkApi($post['api_key'], $post['api_secret']);
             if ($api['status'] != 'success') {
@@ -363,21 +454,21 @@ class ApiPOS extends Controller
                 ->leftJoin('transaction_vouchers', 'deals_vouchers.id_deals_voucher', 'transaction_vouchers.id_deals_voucher')
                 ->leftJoin('transaction_vouchers as transaction_vouchers2', 'deals_vouchers.voucher_code', 'transaction_vouchers2.deals_voucher_invalid')
                 ->where('deals_vouchers.voucher_code', $post['voucher_code'])
-                ->select('deals_vouchers.*','deals_users.id_outlet', 'transaction_vouchers.id_deals_voucher as id_deals_voucher_transaction', 'transaction_vouchers2.deals_voucher_invalid as voucher_code_transaction')
+                ->select('deals_vouchers.*', 'deals_users.id_outlet', 'transaction_vouchers.id_deals_voucher as id_deals_voucher_transaction', 'transaction_vouchers2.deals_voucher_invalid as voucher_code_transaction')
                 ->first();
 
             if (!$voucher) {
                 return response()->json(['status' => 'fail', 'messages' => 'Voucher not found']);
-            }elseif ($voucher['id_deals_voucher_transaction'] || $voucher['voucher_code_transaction']){
+            } elseif ($voucher['id_deals_voucher_transaction'] || $voucher['voucher_code_transaction']) {
                 return response()->json(['status' => 'fail', 'messages' => 'Void voucher failed, voucher has already been used.']);
             }
 
-            if(isset($voucher['id_outlet']) && $voucher['id_outlet'] != $outlet['id_outlet']){
+            if (isset($voucher['id_outlet']) && $voucher['id_outlet'] != $outlet['id_outlet']) {
                 $outletDeals = Outlet::find($voucher['deals_user'][0]['id_outlet']);
-                if($outletDeals){
-                    return response()->json(['status' => 'fail', 'messages' => 'Void voucher  '.$post['voucher_code'].'. Void vouchers can only be done at '.$outletDeals['outlet_name'].' outlets.']);
+                if ($outletDeals) {
+                    return response()->json(['status' => 'fail', 'messages' => 'Void voucher  ' . $post['voucher_code'] . '. Void vouchers can only be done at ' . $outletDeals['outlet_name'] . ' outlets.']);
                 }
-                return response()->json(['status' => 'fail', 'messages' => 'Void voucher failed '.$post['voucher_code'].'. Void vouchers can only be done at '.$outlet['outlet_name'].' outlets.']);
+                return response()->json(['status' => 'fail', 'messages' => 'Void voucher failed ' . $post['voucher_code'] . '. Void vouchers can only be done at ' . $outlet['outlet_name'] . ' outlets.']);
             }
 
             //update voucher redeem
@@ -406,10 +497,9 @@ class ApiPOS extends Controller
 
             DB::commit();
             return response()->json(['status' => 'success', 'messages' => 'Voucher ' . $post['voucher_code'] . ' was successfully voided']);
-        }else{
+        } else {
             return response()->json(['status' => 'fail', 'messages' => 'Input is incomplete']);
         }
-
     }
 
     public function syncOutlet(reqOutlet $request)
@@ -419,95 +509,92 @@ class ApiPOS extends Controller
         if ($api['status'] != 'success') {
             return response()->json($api);
         }
-        $getBrand = Brand::pluck('code_brand')->toArray();
-        $getBrandList = Brand::select('id_brand', 'code_brand')->get()->toArray();
+
+        $getIdBrand = Brand::select('id_brand')->first();
+        if (!$getIdBrand) {
+            return [
+                'status'    => 'fail',
+                'messages'  => ['failed get brand']
+            ];
+        }
+
         $successOutlet = [];
         $failedOutlet = [];
-        $failedBrand = [];
         foreach ($post['store'] as $key => $value) {
             DB::beginTransaction();
-            // search different brand
-            $diffBrand = array_diff($value['brand_code'], $getBrand);
-            if (!empty($diffBrand)) {
-                $failedBrand[] = 'fail to sync outlet ' . $value['store_name'] . ', because code brand ' . implode(', ', $diffBrand) . ' not found';
-                continue;
-            }
             $cekOutlet = Outlet::where('outlet_code', strtoupper($value['store_code']))->first();
             if ($cekOutlet) {
                 try {
-                    $cekOutlet->outlet_name = $value['store_name'];
-                    $cekOutlet->outlet_status = $value['store_status'];
-                    $cekOutlet->save();
-                } catch (\Exception $e) {
-                    LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
-                    $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'];
-                    continue;
-                }
-                $cekBrandOutlet = BrandOutlet::join('brands', 'brands.id_brand', 'brand_outlet.id_brand')->where('id_outlet', $cekOutlet->id_outlet)->pluck('code_brand')->toArray();
-                // delete diff brand
-                $deleteDiffBrand = array_diff($cekBrandOutlet, $value['brand_code']);
-                if (!empty($deleteDiffBrand)) {
-                    try {
-                        BrandOutlet::join('brands', 'brands.id_brand', 'brand_outlet.id_brand')->where('id_outlet', $cekOutlet->id_outlet)->whereIn('brand_outlet.id_brand', $deleteDiffBrand)->delete();
-                    } catch (\Exception $e) {
-                        DB::rollback();
-                        LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
-                        $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'];
-                        continue;
-                    }
-                }
-                $createDiffBrand = array_diff($value['brand_code'], $cekBrandOutlet);
-                if (!empty($createDiffBrand)) {
-                    try {
-                        $brandOutlet = [];
-                        foreach ($createDiffBrand as $valueBrand) {
-                            $getIdBrand = $getBrandList[array_search($valueBrand, $getBrand)]['id_brand'];
-                            $brandOutlet[] = [
-                                'id_outlet' => $cekOutlet->id_outlet,
-                                'id_brand' => $getIdBrand,
-                                'created_at' => date('Y-m-d H:i:s'),
-                                'updated_at' => date('Y-m-d H:i:s'),
-                            ];
-                        }
-                        BrandOutlet::insert($brandOutlet);
-                    } catch (Exception $e) {
-                        DB::rollback();
-                        LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
-                        $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'];
-                        continue;
-                    }
-                }
-            } else {
-                try {
-                    $save = Outlet::create([
-                        'outlet_name'   => $value['store_name'],
-                        'outlet_status' => $value['store_status'],
-                        'outlet_code'   => $value['store_code']
+                    $update = Outlet::updateOrCreate(['outlet_code' => strtoupper($value['store_code'])], [
+                        'outlet_name'       => $value['store_name'],
+                        'outlet_status'     => $value['store_status'],
+                        'outlet_address'    => $value['store_address'],
+                        'outlet_phone'      => $value['store_phone'],
+                        'outlet_latitude'   => $value['store_latitude'],
+                        'outlet_longitude'  => $value['store_longitude']
                     ]);
                 } catch (\Exception $e) {
                     LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
                     $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'];
                     continue;
                 }
-                try {
-                    $brandOutlet = [];
-                    foreach ($value['brand_code'] as $valueBrand) {
-                        $getIdBrand = $getBrandList[array_search($valueBrand, $getBrand)]['id_brand'];
-                        $brandOutlet[] = [
-                            'id_outlet' => $save->id_outlet,
-                            'id_brand' => $getIdBrand,
-                            'created_at' => date('Y-m-d H:i:s'),
-                            'updated_at' => date('Y-m-d H:i:s'),
-                        ];
+                foreach ($value['store_schedule'] as $valueSchedule) {
+                    try {
+                        $valueSchedule = $this->setTimezone($valueSchedule);
+                        OutletSchedule::updateOrCreate(['id_outlet' => $cekOutlet->id_outlet, 'day' => $valueSchedule['day']], $valueSchedule);
+                    } catch (Exception $e) {
+                        DB::rollBack();
+                        LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
+                        $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'] . '. Error at store schedule ' . $valueSchedule['day'];
+                        continue;
                     }
-                    BrandOutlet::insert($brandOutlet);
-                } catch (Exception $e) {
-                    DB::rollback();
+                }
+            } else {
+                try {
+                    $save = Outlet::create([
+                        'outlet_code'       => $value['store_code'],
+                        'outlet_name'       => $value['store_name'],
+                        'outlet_status'     => 'Inactive',
+                        'outlet_address'    => $value['store_address'],
+                        'outlet_phone'      => $value['store_phone'],
+                        'outlet_latitude'   => $value['store_latitude'],
+                        'outlet_longitude'  => $value['store_longitude']
+                    ]);
+                } catch (\Exception $e) {
                     LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
                     $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'];
                     continue;
                 }
+                if (!empty($value['store_schedule'])) {
+                    foreach ($value['store_schedule'] as $valueSchedule) {
+                        $valueSchedule['id_outlet'] = $save->id_outlet;
+                        try {
+                            $valueSchedule = $this->setTimezone($valueSchedule);
+                            OutletSchedule::create($valueSchedule);
+                        } catch (Exception $e) {
+                            DB::rollBack();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
+                            $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'] . '. Error at store schedule ' . $valueSchedule['day'];
+                            continue;
+                        }
+                    }
+                }
+                $cekOutlet = $save;
             }
+
+            //check brand outlet
+            try {
+                $brandOutlet = BrandOutlet::where('id_outlet', $cekOutlet->id_outlet)->first();
+                if (!$brandOutlet) {
+                    BrandOutlet::create([
+                        'id_brand' => $getIdBrand->id_brand,
+                        'id_outlet' => $cekOutlet->id_outlet
+                    ]);
+                }
+            } catch (\Exception $e) {
+                LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
+            }
+
             $successOutlet[] = $value['store_name'];
             DB::commit();
         }
@@ -516,24 +603,753 @@ class ApiPOS extends Controller
             'status' => 'success',
             'result' => [
                 'success_outlet' => $successOutlet,
-                'failed_outlet' => $failedOutlet,
-                'failed_brand' => $failedBrand
+                'failed_outlet' => $failedOutlet
             ]
         ]);
     }
 
-    public function syncMenu(Request $request)
+    public function syncOutletOvo(Request $request)
     {
         $post = $request->json()->all();
-
-        $syncDatetime = date('d F Y h:i');
-
         $api = $this->checkApi($post['api_key'], $post['api_secret']);
         if ($api['status'] != 'success') {
             return response()->json($api);
         }
 
-        $outlet = Outlet::where('outlet_code', strtoupper($post['store_code']))->first();
+        $successOutlet = [];
+        $failedOutlet = [];
+        foreach ($post['store'] as $key => $value) {
+            DB::beginTransaction();
+            $cekOutlet = Outlet::where('outlet_code', strtoupper($value['store_code']))->first();
+            if ($cekOutlet) {
+                try {
+                    OutletOvo::updateOrCreate([
+                        'id_outlet'     => $cekOutlet->id_outlet
+                    ], [
+                        'id_outlet'     => $cekOutlet->id_outlet,
+                        'store_code'    => $value['store_code_ovo'],
+                        'tid'           => $value['tid'],
+                        'mid'           => $value['mid']
+                    ]);
+                } catch (\Exception $e) {
+                    LogBackendError::logExceptionMessage("ApiPOS/syncOutletOvo=>" . $e->getMessage(), $e);
+                    $failedOutlet[] = 'fail to sync, outlet ' . $value['store_code'];
+                    continue;
+                }
+            } else {
+                $failedOutlet[] = 'fail to sync, outlet ' . $value['store_code'];
+            }
+
+            $successOutlet[] = $value['store_code'];
+            DB::commit();
+        }
+        // return success
+        return response()->json([
+            'status' => 'success',
+            'result' => [
+                'success_outlet'    => $successOutlet,
+                'failed_outlet'     => $failedOutlet
+            ]
+        ]);
+    }
+    /**
+     * Synch menu for single outlet
+     * @param  Request $request laravel Request object
+     * @return array        status update
+     */
+    public function syncProduct(Request $request)
+    {
+        $post = $request->json()->all();
+        $api = $this->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
+
+        $countInsert    = 0;
+        $insertProduct  = [];
+        $countUpdate    = 0;
+        $updatedProduct = [];
+        $failedProduct  = [];
+
+        $getIdBrand = Brand::select('id_brand')->first();
+        if (!$getIdBrand) {
+            return [
+                'status'    => 'fail',
+                'messages'  => ['failed get brand']
+            ];
+        }
+
+        foreach ($post['menu'] as $keyMenu => $menu) {
+            if (!isset($menu['menu_id'])) {
+                $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because menu_id not set';
+                continue;
+            }
+            if (!isset($menu['category_id'])) {
+                $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because category_id not set';
+                continue;
+            }
+            if (!isset($menu['menu_variance'])) {
+                $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because menu_variance not set';
+                continue;
+            }
+
+            DB::beginTransaction();
+            $checkGroup = ProductGroup::where('product_group_code', $menu['menu_id'])->first();
+            if ($checkGroup) {
+
+                foreach ($menu['menu_variance'] as $keyVariance => $variance) {
+                    $size = $variance['size'];
+                    //for variant null use general size
+                    if ($variance['size'] == null) {
+                        $size = 'general_size';
+                    }
+                    //for variant null use general type
+                    $type = $variance['type'];
+                    if ($variance['type'] == null) {
+                        $type = 'general_type';
+                    }
+                    $variantSize = ProductVariant::where('product_variant_code', $size)->first();
+                    if (!$variantSize) {
+                        try {
+                            $variantSize = ProductVariant::create([
+                                'product_variant_code'      => $size,
+                                'product_variant_subtitle'  => '',
+                                'product_variant_name'      => $size,
+                                'product_variant_position'  => 0,
+                                'parent'                    => 1
+                            ]);
+                        } catch (\Exception $e) {
+                            DB::rollBack();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    }
+
+
+                    $variantType = ProductVariant::where('product_variant_code', $type)->first();
+                    if (!$variantType) {
+                        try {
+                            $variantType = ProductVariant::create([
+                                'product_variant_code'       => $type,
+                                'product_variant_subtitle'  => '',
+                                'product_variant_name'      => $type,
+                                'product_variant_position'  => 0,
+                                'parent'                    => 2
+                            ]);
+                        } catch (\Exception $e) {
+                            DB::rollBack();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    }
+
+                    $product = Product::where('product_code', $variance['sap_matnr'])->first();
+                    if ($product) {
+                        try {
+                            Product::where('product_code', $variance['sap_matnr'])->update([
+                                'product_name_pos'  => implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]),
+                                'product_status'    => $variance['status'],
+                                'id_product_group'  => $checkGroup->id_product_group,
+                                'category_id_pos'   => $menu['category_id']
+                            ]);
+
+                            //check brand product
+                            $checkBrand = BrandProduct::where('id_product', $product->id_product)->first();
+                            if (!$checkBrand) {
+                                $brandProduct = [
+                                    'id_product' => $product->id_product,
+                                    'id_brand'   => $getIdBrand->id_brand
+                                ];
+                                BrandProduct::create($brandProduct);
+                            }
+
+                            $countUpdate        = $countUpdate + 1;
+                            $updatedProduct[]   = implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                        } catch (\Exception $e) {
+                            DB::rollBack();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    } else {
+                        try {
+                            $product = Product::create([
+                                'id_product_group'  => $checkGroup->id_product_group,
+                                'product_code'      => $variance['sap_matnr'],
+                                'product_name'      => implode(" ", [ucwords(strtolower($checkGroup->product_group_name)), $variance['size'], $variance['type']]),
+                                'product_name_pos'  => implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]),
+                                'product_status'    => $variance['status'],
+                                'category_id_pos'   => $menu['category_id']
+                            ]);
+
+                            //insert brand
+                            $brandProduct = [
+                                'id_product' => $product->id_product,
+                                'id_brand'   => $getIdBrand->id_brand
+                            ];
+                            BrandProduct::create($brandProduct);
+
+                            $countInsert        = $countInsert + 1;
+                            $insertProduct[]    = implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                        } catch (\Exception $e) {
+                            DB::rollBack();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    }
+
+                    try {
+                        ProductProductVariant::updateOrCreate([
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantSize->id_product_variant
+                        ], [
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantSize->id_product_variant
+                        ]);
+                        ProductProductVariant::updateOrCreate([
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantType->id_product_variant
+                        ], [
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantType->id_product_variant
+                        ]);
+                    } catch (\Exception $e) {
+                        DB::rollBack();
+                        LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                        $failedProduct[] = 'fail to sync, product ' . implode(" ", [$checkGroup->product_group_name, $variance['size'], $variance['type']]);
+                        continue;
+                    }
+                }
+            } else {
+                try {
+                    $createGroup = ProductGroup::create([
+                        'product_group_code'    => $menu['menu_id'],
+                        'product_group_name'    => ucwords(strtolower($menu['menu_name']))
+                    ]);
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                    $failedProduct[] = 'fail to sync, product ' . $menu['menu_name'];
+                    continue;
+                }
+
+                foreach ($menu['menu_variance'] as $keyVariance => $variance) {
+                    $size = $variance['size'];
+                    //for variant null use general size
+                    if ($variance['size'] == null) {
+                        $size = 'general_size';
+                    }
+                    $type = $variance['type'];
+                    //for variant null use general type
+                    if ($variance['type'] == null) {
+                        $type = 'general_type';
+                    }
+                    $variantSize = ProductVariant::where('product_variant_code', $size)->first();
+                    if (!$variantSize) {
+                        try {
+                            $variantSize = ProductVariant::create([
+                                'product_variant_code'       => $size,
+                                'product_variant_subtitle'  => '',
+                                'product_variant_name'      => $size,
+                                'product_variant_position'  => 0,
+                                'parent'                    => 1
+                            ]);
+                        } catch (\Exception $e) {
+                            DB::rollBack();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    }
+
+
+                    $variantType = ProductVariant::where('product_variant_code', $type)->first();
+                    if (!$variantType) {
+                        try {
+                            $variantType = ProductVariant::create([
+                                'product_variant_code'       => $type,
+                                'product_variant_subtitle'  => '',
+                                'product_variant_name'      => $type,
+                                'product_variant_position'  => 0,
+                                'parent'                    => 2
+                            ]);
+                        } catch (\Exception $e) {
+                            DB::rollBack();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    }
+
+                    $product = Product::where('product_code', $variance['sap_matnr'])->first();
+                    if ($product) {
+                        try {
+                            Product::where('product_code', $variance['sap_matnr'])->update([
+                                'product_name_pos'  => implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]),
+                                'product_status'    => $variance['status'],
+                                'category_id_pos'    => $menu['category_id'],
+                                'id_product_group'  => $createGroup->id_product_group
+                            ]);
+
+                            //check brand product
+                            $checkBrand = BrandProduct::where('id_product', $product->id_product)->first();
+                            if (!$checkBrand) {
+                                $brandProduct = [
+                                    'id_product' => $product->id_product,
+                                    'id_brand'   => $getIdBrand->id_brand
+                                ];
+                                BrandProduct::create($brandProduct);
+                            }
+
+                            $countUpdate        = $countUpdate + 1;
+                            $updatedProduct[]   = implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
+                        } catch (\Exception $e) {
+                            DB::rollBack();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    } else {
+                        try {
+                            $product = Product::create([
+                                'id_product_group'  => $createGroup->id_product_group,
+                                'product_code'      => $variance['sap_matnr'],
+                                'product_name'      => implode(" ", [ucwords(strtolower($createGroup->product_group_name)), $variance['size'], $variance['type']]),
+                                'product_name_pos'  => implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]),
+                                'product_status'    => $variance['status'],
+                                'category_id_pos'    => $menu['category_id']
+                            ]);
+
+                            //insert brand
+                            $brandProduct = [
+                                'id_product' => $product->id_product,
+                                'id_brand' => $getIdBrand->id_brand
+                            ];
+                            BrandProduct::create($brandProduct);
+
+                            $countInsert        = $countInsert + 1;
+                            $insertProduct[]    = implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
+                        } catch (\Exception $e) {
+                            DB::rollBack();
+                            LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                            $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
+                            continue;
+                        }
+                    }
+
+                    try {
+                        ProductProductVariant::updateOrCreate([
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantSize->id_product_variant
+                        ], [
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantSize->id_product_variant
+                        ]);
+                        ProductProductVariant::updateOrCreate([
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantType->id_product_variant
+                        ], [
+                            'id_product'            => $product->id_product,
+                            'id_product_variant'    => $variantType->id_product_variant
+                        ]);
+                    } catch (\Exception $e) {
+                        DB::rollBack();
+                        LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                        $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);;
+                    }
+                }
+            }
+            DB::commit();
+        }
+        $hasil['inserted']  = $countInsert;
+        $hasil['updated']   = $countUpdate;
+        $hasil['failed']   = $failedProduct;
+        return [
+            'status'    => 'success',
+            'result'    => $hasil,
+        ];
+    }
+
+    public function syncProductPrice(Request $request)
+    {
+        $post = $request->json()->all();
+        $api = $this->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
+
+        $countInsert    = 0;
+        $insertProduct  = [];
+        $countfailed    = 0;
+        $failedProduct  = [];
+        $dataJob        = [];
+        foreach ($post['menu'] as $keyMenu => $menu) {
+            $checkProduct = Product::where('product_code', $menu['sap_matnr'])->first();
+            if ($checkProduct) {
+                foreach ($menu['price_detail'] as $keyPrice => $price) {
+                    if ($price['start_date'] < date('Y-m-d')) {
+                        $price['start_date'] = date('Y-m-d');
+                    }
+                    if ($price['end_date'] < $price['start_date']) {
+                        $countfailed     = $countfailed + 1;
+                        $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', recheck this date';
+                        continue;
+                    }
+
+                    $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
+                    if (!$checkOutlet) {
+                        $countfailed     = $countfailed + 1;
+                        $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', no outlet';
+                        continue;
+                    }
+
+                    $dataJob[$keyMenu]['price_detail'][$keyPrice] = [
+                        'id_product'    => $checkProduct->id_product,
+                        'id_outlet'     => $checkOutlet->id_outlet,
+                        'price'         => $price['price'],
+                        'start_date'    => $price['start_date'],
+                        'end_date'      => $price['end_date']
+                    ];
+
+                    $countInsert     = $countInsert + 1;
+                    $insertProduct[] = 'Success to sync price, product ' . $menu['sap_matnr'] . ' outlet ' . $price['store_code'];
+                }
+            } else {
+                $countfailed     = $countfailed + 1;
+                $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', product not found';
+                continue;
+            }
+            if (isset($dataJob[$keyMenu]['price_detail'])) {
+                SyncProductPrice::dispatch(json_encode($dataJob[$keyMenu]));
+            }
+        }
+
+        $hasil['success_menu']['total']         = $countInsert;
+        $hasil['success_menu']['list_menu']     = $insertProduct;
+        $hasil['failed_product']['total']       = $countfailed;
+        $hasil['failed_product']['list_menu']   = $failedProduct;
+        return [
+            'status'    => 'success',
+            'result'    => $hasil,
+        ];
+    }
+
+    public function syncAddOn(Request $request)
+    {
+        $post = $request->json()->all();
+        $api = $this->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
+
+        $countInsert    = 0;
+        $insertProduct  = [];
+        $countUpdate    = 0;
+        $updatedProduct = [];
+        $failedProduct  = [];
+
+        foreach ($post['add_on'] as $keyMenu => $menu) {
+            if (!isset($menu['sap_matnr'])) {
+                $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because sap_matnr not set';
+                continue;
+            }
+            if (!isset($menu['menu_id'])) {
+                $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because menu_id not set';
+                continue;
+            }
+            if (!isset($menu['category_id'])) {
+                $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because category_id not set';
+                continue;
+            }
+            if (!isset($menu['menu'])) {
+                $failedProduct[] = 'fail to sync add on ' . $menu['name'] . ', because menu not set';
+                continue;
+            }
+
+            DB::beginTransaction();
+            $productModifier = ProductModifier::where('code', $menu['sap_matnr'])->first();
+            if ($productModifier) {
+                try {
+                    ProductModifier::where('code', $menu['sap_matnr'])->update([
+                        'text'      => $menu['name'],
+                        'type'      => $menu['group'],
+                        'modifier_type' => 'Specific',
+                        'status'    => $menu['status'] = ($menu['status'] == 'Active') ? 1 : 0,
+                        'menu_id_pos'          => $menu['menu_id'],
+                        'category_id_pos'      => $menu['category_id']
+                    ]);
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    LogBackendError::logExceptionMessage("ApiPOS/syncAddOn=>" . $e->getMessage(), $e);
+                    $failedProduct[] = 'fail to sync, add on ' . $menu['name'];
+                    continue;
+                }
+
+                foreach ($menu['menu'] as $keyVariance => $variance) {
+                    $productGroup = ProductGroup::with('products')->where('product_group_code', $variance)->first();
+                    if (!$productGroup) {
+                        $failedProduct[] = 'fail to sync, product modifier ' . $productModifier->text;
+                        continue;
+                    }
+
+                    if (isset($productGroup['products'])) {
+                        foreach ($productGroup['products'] as $product) {
+                            try {
+                                ProductModifierProduct::updateOrCreate([
+                                    'id_product'            => $product->id_product,
+                                    'id_product_modifier'   => $productModifier->id_product_modifier
+                                ], [
+                                    'id_product'            => $product->id_product,
+                                    'id_product_modifier'   => $productModifier->id_product_modifier
+                                ]);
+                                $countUpdate = $countUpdate + 1;
+                            } catch (\Exception $e) {
+                                DB::rollBack();
+                                LogBackendError::logExceptionMessage("ApiPOS/syncAddOn=>" . $e->getMessage(), $e);
+                                $failedProduct[] = 'fail to sync, product ' . $productModifier->text;
+                                continue;
+                            }
+                        }
+                    }
+                }
+            } else {
+                try {
+                    $productModifier = ProductModifier::create([
+                        'code'      => $menu['sap_matnr'],
+                        'text'      => $menu['name'],
+                        'type'      => $menu['group'],
+                        'modifier_type' => 'Specific',
+                        'status'    => $menu['status'] = ($menu['status'] == 'Active') ? 1 : 0,
+                        'menu_id_pos'          => $menu['menu_id'],
+                        'category_id_pos'      => $menu['category_id']
+                    ]);
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                    $failedProduct[] = 'fail to sync, product modifier ' . $menu['sap_matnr'];
+                    continue;
+                }
+
+                foreach ($menu['menu'] as $keyVariance => $variance) {
+                    $productGroup = ProductGroup::with('products')->where('product_group_code', $variance)->first();
+                    if (!$productGroup) {
+                        $failedProduct[] = 'fail to sync, product modifier ' . $productModifier->text;
+                        continue;
+                    }
+
+                    if (isset($productGroup['products'])) {
+                        foreach ($productGroup['products'] as $product) {
+                            try {
+                                ProductModifierProduct::updateOrCreate([
+                                    'id_product'            => $product->id_product,
+                                    'id_product_modifier'   => $productModifier->id_product_modifier
+                                ], [
+                                    'id_product'            => $product->id_product,
+                                    'id_product_modifier'   => $productModifier->id_product_modifier
+                                ]);
+                                $countUpdate = $countUpdate + 1;
+                            } catch (\Exception $e) {
+                                DB::rollBack();
+                                LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                                $failedProduct[] = 'fail to sync, product ' . $productModifier->text;
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+            DB::commit();
+        }
+        $hasil['inserted']  = $countInsert;
+        $hasil['updated']   = $countUpdate;
+        $hasil['failed']   = $failedProduct;
+        return [
+            'status'    => 'success',
+            'result'    => $hasil,
+        ];
+    }
+
+    public function syncAddOnPrice(Request $request)
+    {
+        $post = $request->json()->all();
+        $api = $this->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
+
+        $countInsert    = 0;
+        $insertProduct  = [];
+        $countfailed    = 0;
+        $failedProduct  = [];
+        $dataJob        = [];
+        foreach ($post['add_on'] as $keyMenu => $menu) {
+            $checkProduct = ProductModifier::where('code', $menu['menu_id'])->first();
+            if ($checkProduct) {
+                foreach ($menu['price_detail'] as $keyPrice => $price) {
+                    if ($price['start_date'] < date('Y-m-d')) {
+                        $price['start_date'] = date('Y-m-d');
+                    }
+                    if ($price['end_date'] < $price['start_date']) {
+                        $countfailed     = $countfailed + 1;
+                        $failedProduct[] = 'Fail to sync, product ' . $menu['menu_id'] . ', recheck this date';
+                        continue;
+                    }
+
+                    $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
+                    if (!$checkOutlet) {
+                        $countfailed     = $countfailed + 1;
+                        $failedProduct[] = 'Fail to sync, product ' . $menu['menu_id'] . ', no outlet';
+                        continue;
+                    }
+
+                    $dataJob[$keyMenu]['price_detail'][$keyPrice] = [
+                        'id_product_modifier'   => $checkProduct->id_product_modifier,
+                        'id_outlet'             => $checkOutlet->id_outlet,
+                        'price'                 => $price['price'],
+                        'start_date'            => $price['start_date'],
+                        'end_date'              => $price['end_date']
+                    ];
+
+                    $countInsert     = $countInsert + 1;
+                    $insertProduct[] = 'Success to sync price, product ' . $menu['menu_id'] . ' outlet ' . $price['store_code'];
+                }
+            } else {
+                $countfailed     = $countfailed + 1;
+                $failedProduct[] = 'Fail to sync, menu ' . $menu['menu_id'] . ', menu not found';
+                continue;
+            }
+            if (isset($dataJob[$keyMenu]['price_detail'])) {
+                SyncAddOnPrice::dispatch(json_encode($dataJob[$keyMenu]));
+            }
+        }
+
+        $hasil['success_menu']['total']         = $countInsert;
+        $hasil['success_menu']['list_menu']     = $insertProduct;
+        $hasil['failed_product']['total']       = $countfailed;
+        $hasil['failed_product']['list_menu']   = $failedProduct;
+        return [
+            'status'    => 'success',
+            'result'    => $hasil,
+        ];
+    }
+
+    public function cronProductPricePriority()
+    {
+        $getOutlet = Outlet::select('id_outlet', 'outlet_code')->where('is_24h', 1)->get()->toArray();
+        $getProduct = Product::select('id_product')->get()->toArray();
+        for ($i = 0; $i < count($getOutlet); $i++) {
+            for ($j = 0; $j < count($getProduct); $j++) {
+                try {
+                    $getPrice = DB::connection('mysql3')
+                        ->table('outlet_' . $getOutlet[$i]['outlet_code'])
+                        ->where('id_product', $getProduct[$j]['id_product'])
+                        ->where('id_outlet', $getOutlet[$i]['id_outlet'])
+                        ->where('start_date', '<=', date('Y-m-d'))
+                        ->where('end_date', '>=', date('Y-m-d'))
+                        ->orderBy('id_product_price_periode', 'DESC')->first();
+
+                    $price = $getPrice->price;
+                } catch (\Exception $e) {
+                    $price = 0;
+                }
+
+                $getProductPrice = ProductPrice::where('id_product', $getProduct[$j]['id_product'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
+                if ($getProductPrice && $price != 0) {
+                    try {
+                        ProductPrice::where('id_product_price', $getProductPrice->id_product_price)->update([
+                            'product_price' => $price
+                        ]);
+                    } catch (\Exception $e) {
+                        LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
+                    }
+                }
+            }
+        }
+    }
+
+    public function cronProductPrice()
+    {
+        $getOutlet = Outlet::select('id_outlet', 'outlet_code')->where('is_24h', 0)->get()->toArray();
+        $getProduct = Product::select('id_product')->get()->toArray();
+        for ($i = 0; $i < count($getOutlet); $i++) {
+            for ($j = 0; $j < count($getProduct); $j++) {
+                try {
+                    $getPrice = DB::connection('mysql3')
+                        ->table('outlet_' . $getOutlet[$i]['outlet_code'])
+                        ->where('id_product', $getProduct[$j]['id_product'])
+                        ->where('id_outlet', $getOutlet[$i]['id_outlet'])
+                        ->where('start_date', '<=', date('Y-m-d'))
+                        ->where('end_date', '>=', date('Y-m-d'))
+                        ->orderBy('id_product_price_periode', 'DESC')->first();
+
+                    $price = $getPrice->price;
+                } catch (\Exception $e) {
+                    $price = 0;
+                }
+
+                $getProductPrice = ProductPrice::where('id_product', $getProduct[$j]['id_product'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
+                if ($getProductPrice && $price != 0) {
+                    try {
+                        ProductPrice::where('id_product_price', $getProductPrice->id_product_price)->update([
+                            'product_price' => $price
+                        ]);
+                    } catch (\Exception $e) {
+                        LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
+                    }
+                }
+            }
+        }
+    }
+
+    public function cronAddOnPrice()
+    {
+        $getOutlet = Outlet::select('id_outlet', 'outlet_code')->get()->toArray();
+        $getAddOn = ProductModifier::select('id_product_modifier', 'code')->get()->toArray();
+        for ($i = 0; $i < count($getOutlet); $i++) {
+            for ($j = 0; $j < count($getAddOn); $j++) {
+                try {
+                    $getPrice = DB::connection('mysql3')
+                        ->table('outlet_' . $getOutlet[$i]['outlet_code'] . '_modifier_' . $getAddOn[$j]['code'])
+                        ->where('id_product_modifier', $getAddOn[$j]['id_product_modifier'])
+                        ->where('id_outlet', $getOutlet[$i]['id_outlet'])
+                        ->where('start_date', '<=', date('Y-m-d'))
+                        ->where('end_date', '>=', date('Y-m-d'))
+                        ->orderBy('id_product_price_periode', 'DESC')->first();
+
+                    $price = $getPrice->price;
+                } catch (\Exception $e) {
+                    $price = 0;
+                }
+
+                $getProductPrice = ProductModifierPrice::where('id_product_modifier', $getAddOn[$j]['id_product_modifier'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
+                if ($getProductPrice && $price != 0) {
+                    try {
+                        ProductModifierPrice::where('id_product_modifier', $getProductPrice->id_product_modifier)->update([
+                            'product_modifier_price' => $price,
+                        ]);
+                    } catch (\Exception $e) {
+                        LogBackendError::logExceptionMessage("ApiPOS/cronAddOnPrice=>" . $e->getMessage(), $e);
+                    }
+                }
+            }
+        }
+    }
+
+    public function syncMenu(Request $request)
+    {
+        $post = $request->json()->all();
+        return $this->syncMenuProcess($post, 'partial');
+    }
+
+    public function syncMenuProcess($data, $flag)
+    {
+        $syncDatetime = date('d F Y h:i');
+        $getBrand = Brand::pluck('code_brand')->toArray();
+        $getBrandList = Brand::select('id_brand', 'code_brand')->get()->toArray();
+        $outlet = Outlet::where('outlet_code', strtoupper($data['store_code']))->first();
         if ($outlet) {
             $countInsert = 0;
             $countUpdate = 0;
@@ -541,55 +1357,111 @@ class ApiPOS extends Controller
             $updatedProduct = [];
             $insertedProduct = [];
             $failedProduct = [];
-
-            foreach ($post['menu'] as $key => $menu) {
-                dd($menu['brand_code']);
+            foreach ($data['menu'] as $key => $menu) {
+                if (empty($menu['brand_code'])) {
+                    $brand = Brand::first();
+                    $value['brand_code'] = [$brand->code_brand];
+                }
+                if (!isset($menu['brand_code'])) {
+                    $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because brand_code not set';
+                    continue;
+                }
+                if (!isset($menu['plu_id'])) {
+                    $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because plu_id not set';
+                    continue;
+                }
+                if (!isset($menu['name'])) {
+                    $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because name not set';
+                    continue;
+                }
+                if (!isset($menu['category'])) {
+                    $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because category not set';
+                    continue;
+                }
+                if (!isset($menu['price'])) {
+                    $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because price not set';
+                    continue;
+                }
+                if (!isset($menu['price_base'])) {
+                    $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because price_base not set';
+                    continue;
+                }
+                if (!isset($menu['price_tax'])) {
+                    $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because price_tax not set';
+                    continue;
+                }
+                if (!isset($menu['status'])) {
+                    $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because status not set';
+                    continue;
+                }
+                $diffBrand = array_diff($menu['brand_code'], $getBrand);
+                if (!empty($diffBrand)) {
+                    $failedProduct[] = 'fail to sync product ' . $menu['name'] . ', because code brand ' . implode(', ', $diffBrand) . ' not found';
+                    continue;
+                }
                 if (isset($menu['plu_id']) && isset($menu['name'])) {
                     DB::beginTransaction();
                     $product = Product::where('product_code', $menu['plu_id'])->first();
-
-                    // return response()->json($menu);
                     // update product
                     if ($product) {
                         // cek allow sync, jika 0 product tidak di update
                         if ($product->product_allow_sync == '1') {
-
-                            foreach ($menu['brand_code'] as $valueBrand) {
-                                $brand = Brand::where('code_brand', $valueBrand)->first();
-                                if (!$brand) {
-                                    DB::rollBack();
-                                    $failedProduct[] = ['product_code' => $menu['plu_id'], 'product_name' => $menu['name']];
-                                }
+                            $cekBrandProduct = BrandProduct::join('brands', 'brands.id_brand', 'brand_product.id_brand')->where('id_product', $product->id_product)->pluck('code_brand')->toArray();
+                            // delete diff brand
+                            $deleteDiffBrand = array_diff($cekBrandProduct, $menu['brand_code']);
+                            if (!empty($deleteDiffBrand)) {
                                 try {
-                                    BrandProduct::create(
-                                        [
-                                            'id_product' => $product->id_product,
-                                            'id_brand'  => $brand->id_brand
-                                        ]
-                                    );
+                                    BrandProduct::join('brands', 'brands.id_brand', 'brand_product.id_brand')->where('id_product', $product->id_product)->whereIn('brand_product.id_brand', $deleteDiffBrand)->delete();
                                 } catch (\Exception $e) {
                                     DB::rollBack();
-                                    LogBackendError::logExceptionMessage("ApiPOS/syncMenu=>" . $e->getMessage(), $e);
+                                    LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                                    $failedProduct[] = 'fail to sync, product ' . $menu['name'];
+                                    continue;
+                                }
+                            }
+                            $createDiffBrand = array_diff($menu['brand_code'], $cekBrandProduct);
+                            if (!empty($createDiffBrand)) {
+                                try {
+                                    $brandProduct = [];
+                                    foreach ($createDiffBrand as $menuBrand) {
+                                        $getIdBrand = $getBrandList[array_search($menuBrand, $getBrand)]['id_brand'];
+                                        $brandProduct[] = [
+                                            'id_product' => $product->id_product,
+                                            'id_brand' => $getIdBrand,
+                                            'created_at' => date('Y-m-d H:i:s'),
+                                            'updated_at' => date('Y-m-d H:i:s'),
+                                        ];
+                                    }
+                                    BrandProduct::insert($brandProduct);
+                                } catch (Exception $e) {
+                                    DB::rollBack();
+                                    LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                                    $failedProduct[] = 'fail to sync, product ' . $menu['name'];
+                                    continue;
                                 }
                             }
                             // cek name pos, jika beda product tidak di update
                             if (empty($product->product_name_pos) || $product->product_name_pos == $menu['name']) {
                                 // update modifiers
                                 if (isset($menu['modifiers'])) {
+                                    ProductModifierProduct::where('id_product', $product['id_product'])->delete();
                                     foreach ($menu['modifiers'] as $mod) {
                                         $dataProductMod['type'] = $mod['type'];
                                         if (isset($mod['text']))
                                             $dataProductMod['text'] = $mod['text'];
                                         else
                                             $dataProductMod['text'] = null;
-
+                                        $dataProductMod['modifier_type'] = 'Specific';
                                         $updateProductMod = ProductModifier::updateOrCreate([
-                                            'id_product' => $product->id_product,
                                             'code'  => $mod['code']
                                         ], $dataProductMod);
+                                        $id_product_modifier = $updateProductMod['id_product_modifier'];
+                                        ProductModifierProduct::create([
+                                            'id_product_modifier' => $id_product_modifier,
+                                            'id_product' => $product['id_product']
+                                        ]);
                                     }
                                 }
-
                                 // update price
                                 $productPrice = ProductPrice::where('id_product', $product->id_product)->where('id_outlet', $outlet->id_outlet)->first();
                                 if ($productPrice) {
@@ -599,12 +1471,10 @@ class ApiPOS extends Controller
                                     $oldPrice = null;
                                     $oldUpdatedAt = null;
                                 }
-
                                 $dataProductPrice['product_price'] = (int) round($menu['price']);
                                 $dataProductPrice['product_price_base'] = round($menu['price_base'], 2);
                                 $dataProductPrice['product_price_tax'] = round($menu['price_tax'], 2);
                                 $dataProductPrice['product_status'] = $menu['status'];
-
                                 try {
                                     $updateProductPrice = ProductPrice::updateOrCreate([
                                         'id_product' => $product->id_product,
@@ -615,53 +1485,45 @@ class ApiPOS extends Controller
                                     LogBackendError::logExceptionMessage("ApiPOS/syncMenu=>" . $e->getMessage(), $e);
                                     $failedProduct[] = ['product_code' => $menu['plu_id'], 'product_name' => $menu['name']];
                                 }
-
                                 //upload photo
-                                $imageUpload = [];
-                                if (isset($menu['photo'])) {
-                                    foreach ($menu['photo'] as $photo) {
-                                        $image = file_get_contents($photo['url']);
-                                        $img = base64_encode($image);
-                                        if (!file_exists('img/product/item/')) {
-                                            mkdir('img/product/item/', 0777, true);
-                                        }
-
-                                        $upload = MyHelper::uploadPhotoStrict($img, 'img/product/item/', 300, 300);
-
-                                        if (isset($upload['status']) && $upload['status'] == "success") {
-                                            $orderPhoto = ProductPhoto::where('id_product', $product->id_product)->orderBy('product_photo_order', 'desc')->first();
-                                            if ($orderPhoto) {
-                                                $orderPhoto = $orderPhoto->product_photo_order + 1;
-                                            } else {
-                                                $orderPhoto = 1;
-                                            }
-                                            $dataPhoto['id_product'] = $product->id_product;
-                                            $dataPhoto['product_photo'] = $upload['path'];
-                                            $dataPhoto['product_photo_order'] = $orderPhoto;
-
-                                            try {
-                                                $photo = ProductPhoto::create($dataPhoto);
-                                            } catch (\Exception $e) {
-                                                DB::rollBack();
-                                                LogBackendError::logExceptionMessage("ApiPOS/syncMenu=>" . $e->getMessage(), $e);
-                                                $failedProduct[] = ['product_code' => $menu['plu_id'], 'product_name' => $menu['name']];
-                                            }
-
-                                            //add in array photo
-                                            $imageUpload[] = $photo['product_photo'];
-                                        } else {
-                                            DB::rollBack();
-                                            $failedProduct[] = ['product_code' => $menu['plu_id'], 'product_name' => $menu['name']];
-                                        }
-                                    }
-                                }
-
+                                // $imageUpload = [];
+                                // if (isset($menu['photo'])) {
+                                //     foreach ($menu['photo'] as $photo) {
+                                //         $image = file_get_contents($photo['url']);
+                                //         $img = base64_encode($image);
+                                //         if (!file_exists('img/product/item/')) {
+                                //             mkdir('img/product/item/', 0777, true);
+                                //         }
+                                //         $upload = MyHelper::uploadPhotoStrict($img, 'img/product/item/', 300, 300);
+                                //         if (isset($upload['status']) && $upload['status'] == "success") {
+                                //             $orderPhoto = ProductPhoto::where('id_product', $product->id_product)->orderBy('product_photo_order', 'desc')->first();
+                                //             if ($orderPhoto) {
+                                //                 $orderPhoto = $orderPhoto->product_photo_order + 1;
+                                //             } else {
+                                //                 $orderPhoto = 1;
+                                //             }
+                                //             $dataPhoto['id_product'] = $product->id_product;
+                                //             $dataPhoto['product_photo'] = $upload['path'];
+                                //             $dataPhoto['product_photo_order'] = $orderPhoto;
+                                //             try {
+                                //                 $photo = ProductPhoto::create($dataPhoto);
+                                //             } catch (\Exception $e) {
+                                //                 DB::rollBack();
+                                //                 LogBackendError::logExceptionMessage("ApiPOS/syncMenu=>" . $e->getMessage(), $e);
+                                //                 $failedProduct[] = ['product_code' => $menu['plu_id'], 'product_name' => $menu['name']];
+                                //             }
+                                //             //add in array photo
+                                //             $imageUpload[] = $photo['product_photo'];
+                                //         } else {
+                                //             DB::rollBack();
+                                //             $failedProduct[] = ['product_code' => $menu['plu_id'], 'product_name' => $menu['name']];
+                                //         }
+                                //     }
+                                // }
                                 $countUpdate++;
-
                                 // list updated product utk data log
                                 $newProductPrice = ProductPrice::where('id_product', $product->id_product)->where('id_outlet', $outlet->id_outlet)->first();
                                 $newUpdatedAt =  $newProductPrice->updated_at;
-
                                 $updateProd['id_product'] = $product['id_product'];
                                 $updateProd['plu_id'] = $product['product_code'];
                                 $updateProd['product_name'] = $product['product_name'];
@@ -669,15 +1531,13 @@ class ApiPOS extends Controller
                                 $updateProd['new_price'] = (int) round($menu['price']);
                                 $updateProd['old_updated_at'] = $oldUpdatedAt;
                                 $updateProd['new_updated_at'] = $newUpdatedAt;
-                                if (count($imageUpload) > 0) {
-                                    $updateProd['new_photo'] = $imageUpload;
-                                }
-
+                                // if (count($imageUpload) > 0) {
+                                //     $updateProd['new_photo'] = $imageUpload;
+                                // }
                                 $updatedProduct[] = $updateProd;
                             } else {
                                 // Add product to rejected product
                                 $productPrice = ProductPrice::where('id_outlet', $outlet->id_outlet)->where('id_product', $product->id_product)->first();
-
                                 $dataBackend['plu_id'] = $product->product_code;
                                 $dataBackend['name'] = $product->product_name_pos;
                                 if (empty($productPrice)) {
@@ -685,7 +1545,6 @@ class ApiPOS extends Controller
                                 } else {
                                     $dataBackend['price'] = number_format($productPrice->product_price, 0, ',', '.');
                                 }
-
                                 $dataRaptor['plu_id'] = $menu['plu_id'];
                                 $dataRaptor['name'] = $menu['name'];
                                 $dataRaptor['price'] = number_format($menu['price'], 0, ',', '.');
@@ -693,38 +1552,18 @@ class ApiPOS extends Controller
                             }
                         }
                     }
-
                     // insert product
                     else {
                         $create = Product::create(['product_code' => $menu['plu_id'], 'product_name_pos' => $menu['name'], 'product_name' => $menu['name']]);
-                        foreach ($menu['brand_code'] as $valueBrand) {
-                            $brand = Brand::where('code_brand', $valueBrand)->first();
-                            if (!$brand) {
-                                DB::rollBack();
-                                $failedProduct[] = ['product_code' => $menu['plu_id'], 'product_name' => $menu['name']];
-                            }
-                            try {
-                                BrandProduct::create(
-                                    [
-                                        'id_product' => $create->id_product,
-                                        'id_brand'  => $brand->id_brand
-                                    ]
-                                );
-                            } catch (\Exception $e) {
-                                DB::rollBack();
-                                LogBackendError::logExceptionMessage("ApiPOS/syncMenu=>" . $e->getMessage(), $e);
-                            }
-                        }
                         if ($create) {
                             // update price
                             $dataProductPrice['product_price'] = (int) round($menu['price']);
                             $dataProductPrice['product_price_base'] = round($menu['price_base'], 2);
                             $dataProductPrice['product_price_tax'] = round($menu['price_tax'], 2);
                             $dataProductPrice['product_status'] = $menu['status'];
-
                             try {
                                 $updateProductPrice = ProductPrice::updateOrCreate([
-                                    'id_product' => $create->id_product,
+                                    'id_product' => $create['id_product'],
                                     'id_outlet'  => $outlet->id_outlet
                                 ], $dataProductPrice);
                             } catch (\Exception $e) {
@@ -732,81 +1571,110 @@ class ApiPOS extends Controller
                                 LogBackendError::logExceptionMessage("ApiPOS/syncMenu=>" . $e->getMessage(), $e);
                                 $failedProduct[] = ['product_code' => $menu['plu_id'], 'product_name' => $menu['name']];
                             }
-
-                            $imageUpload = [];
-                            if (isset($menu['photo'])) {
-                                foreach ($menu['photo'] as $photo) {
-                                    $image = file_get_contents($photo['url']);
-                                    $img = base64_encode($image);
-                                    if (!file_exists('img/product/item/')) {
-                                        mkdir('img/product/item/', 0777, true);
-                                    }
-
-                                    $upload = MyHelper::uploadPhotoStrict($img, 'img/product/item/', 300, 300);
-
-                                    if (isset($upload['status']) && $upload['status'] == "success") {
-                                        $dataPhoto['id_product'] = $product->id_product;
-                                        $dataPhoto['product_photo'] = $upload['path'];
-                                        $dataPhoto['product_photo_order'] = 1;
-
-                                        try {
-                                            $photo = ProductPhoto::create($dataPhoto);
-                                        } catch (\Exception $e) {
-                                            DB::rollBack();
-                                            LogBackendError::logExceptionMessage("ApiPOS/syncMenu=>" . $e->getMessage(), $e);
-                                            $failedProduct[] = ['product_code' => $menu['plu_id'], 'product_name' => $menu['name']];
-                                        }
-
-                                        //add in array photo
-                                        $imageUpload[] = $photo['product_photo'];
-                                    } else {
-                                        DB::rollBack();
-                                        $failedProduct[] = ['product_code' => $menu['plu_id'], 'product_name' => $menu['name']];
-                                    }
+                            try {
+                                $brandProduct = [];
+                                foreach ($menu['brand_code'] as $valueBrand) {
+                                    $getIdBrand = $getBrandList[array_search($valueBrand, $getBrand)]['id_brand'];
+                                    $brandProduct[] = [
+                                        'id_product' => $create['id_product'],
+                                        'id_brand' => $getIdBrand,
+                                        'created_at' => date('Y-m-d H:i:s'),
+                                        'updated_at' => date('Y-m-d H:i:s'),
+                                    ];
                                 }
+                                BrandProduct::insert($brandProduct);
+                            } catch (Exception $e) {
+                                DB::rollBack();
+                                LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                                $failedProduct[] = 'fail to sync, brand ' . $menu['name'];
+                                continue;
                             }
-
+                            // $imageUpload = [];
+                            // if (isset($menu['photo'])) {
+                            //     foreach ($menu['photo'] as $photo) {
+                            //         $image = file_get_contents($photo['url']);
+                            //         $img = base64_encode($image);
+                            //         if (!file_exists('img/product/item/')) {
+                            //             mkdir('img/product/item/', 0777, true);
+                            //         }
+                            //         $upload = MyHelper::uploadPhotoStrict($img, 'img/product/item/', 300, 300);
+                            //         if (isset($upload['status']) && $upload['status'] == "success") {
+                            //             $dataPhoto['id_product'] = $product->id_product;
+                            //             $dataPhoto['product_photo'] = $upload['path'];
+                            //             $dataPhoto['product_photo_order'] = 1;
+                            //             try {
+                            //                 $photo = ProductPhoto::create($dataPhoto);
+                            //             } catch (\Exception $e) {
+                            //                 DB::rollBack();
+                            //                 LogBackendError::logExceptionMessage("ApiPOS/syncMenu=>" . $e->getMessage(), $e);
+                            //                 $failedProduct[] = ['product_code' => $menu['plu_id'], 'product_name' => $menu['name']];
+                            //             }
+                            //             //add in array photo
+                            //             $imageUpload[] = $photo['product_photo'];
+                            //         } else {
+                            //             DB::rollBack();
+                            //             $failedProduct[] = ['product_code' => $menu['plu_id'], 'product_name' => $menu['name']];
+                            //         }
+                            //     }
+                            // }
                             $countInsert++;
-
                             // list new product utk data log
                             $insertProd['id_product'] = $create['id_product'];
                             $insertProd['plu_id'] = $create['product_code'];
                             $insertProd['product_name'] = $create['product_name'];
                             $insertProd['price'] = (int) round($menu['price']);
-                            if (count($imageUpload) > 0) {
-                                $updateProd['new_photo'] = $imageUpload;
-                            }
-
+                            // if (count($imageUpload) > 0) {
+                            //     $updateProd['new_photo'] = $imageUpload;
+                            // }
                             $insertedProduct[] = $insertProd;
                         }
                     }
                     DB::commit();
                 }
             }
-
-            // send email rejected product
-            if (count($rejectedProduct) > 0) {
-                $this->syncSendEmail($syncDatetime, $outlet->outlet_code, $outlet->outlet_name, $rejectedProduct, null);
+            if ($modifier_prices = ($data['modifier'] ?? false)) {
+                foreach ($modifier_prices as $modifier) {
+                    $promod = ProductModifier::select('id_product_modifier')->where('code', $modifier['code'])->first();
+                    if (!$promod) {
+                        continue;
+                    }
+                    $data_key = [
+                        'id_outlet' => $outlet->id_outlet,
+                        'id_product_modifier' => $promod->id_product_modifier
+                    ];
+                    $data_price = [];
+                    if (isset($modifier['price'])) {
+                        $data_price['product_modifier_price'] = $modifier['price'];
+                    }
+                    if ($modifier['status'] ?? false) {
+                        $data_price['product_modifier_status'] = $modifier['status'];
+                    }
+                    ProductModifierPrice::updateOrCreate($data_key, $data_price);
+                }
             }
-            if (count($failedProduct) > 0) {
-                $this->syncSendEmail($syncDatetime, $outlet->outlet_code, $outlet->outlet_name, null, $failedProduct);
+            if ($flag == 'partial') {
+                if (count($rejectedProduct) > 0) {
+                    $this->syncSendEmail($syncDatetime, $outlet->outlet_code, $outlet->outlet_name, $rejectedProduct, null);
+                }
+                if (count($failedProduct) > 0) {
+                    $this->syncSendEmail($syncDatetime, $outlet->outlet_code, $outlet->outlet_name, null, $failedProduct);
+                }
             }
-
             $hasil['new_product']['total'] = (string) $countInsert;
             $hasil['new_product']['list_product'] = $insertedProduct;
             $hasil['updated_product']['total'] = (string) $countUpdate;
             $hasil['updated_product']['list_product'] = $updatedProduct;
+            $hasil['rejected_product']['list_product'] = $rejectedProduct;
             $hasil['failed_product']['list_product'] = $failedProduct;
-
-            return response()->json([
+            return [
                 'status'    => 'success',
                 'result'  => $hasil,
-            ]);
+            ];
         } else {
-            return response()->json([
+            return [
                 'status'    => 'fail',
-                'messages'  => 'store_code isn\'t match'
-            ]);
+                'messages'  => ['store_code ' . $data['store_code'] . ' isn\'t match']
+            ];
         }
     }
 
@@ -816,9 +1684,7 @@ class ApiPOS extends Controller
         if (!empty($emailSync) && $emailSync->value != null) {
             $emailSync = explode(',', $emailSync->value);
             foreach ($emailSync as $key => $to) {
-
                 $subject = 'Rejected product from menu sync raptor';
-
                 $content['sync_datetime'] = $syncDatetime;
                 $content['outlet_code'] = $outlet_code;
                 $content['outlet_name'] = $outlet_name;
@@ -830,7 +1696,6 @@ class ApiPOS extends Controller
                     $content['total_failed'] = count($failedProduct);
                     $content['failed_menu'] = $failedProduct;
                 }
-
                 // get setting email
                 $setting = array();
                 $set = Setting::where('key', 'email_from')->first();
@@ -839,114 +1704,100 @@ class ApiPOS extends Controller
                 } else {
                     $setting['email_from'] = null;
                 }
-
                 $set = Setting::where('key', 'email_sender')->first();
                 if (!empty($set)) {
                     $setting['email_sender'] = $set['value'];
                 } else {
                     $setting['email_sender'] = null;
                 }
-
                 $set = Setting::where('key', 'email_reply_to')->first();
                 if (!empty($set)) {
                     $setting['email_reply_to'] = $set['value'];
                 } else {
                     $setting['email_reply_to'] = null;
                 }
-
                 $set = Setting::where('key', 'email_reply_to_name')->first();
                 if (!empty($set)) {
                     $setting['email_reply_to_name'] = $set['value'];
                 } else {
                     $setting['email_reply_to_name'] = null;
                 }
-
                 $set = Setting::where('key', 'email_cc')->first();
                 if (!empty($set)) {
                     $setting['email_cc'] = $set['value'];
                 } else {
                     $setting['email_cc'] = null;
                 }
-
                 $set = Setting::where('key', 'email_cc_name')->first();
                 if (!empty($set)) {
                     $setting['email_cc_name'] = $set['value'];
                 } else {
                     $setting['email_cc_name'] = null;
                 }
-
                 $set = Setting::where('key', 'email_bcc')->first();
                 if (!empty($set)) {
                     $setting['email_bcc'] = $set['value'];
                 } else {
                     $setting['email_bcc'] = null;
                 }
-
                 $set = Setting::where('key', 'email_bcc_name')->first();
                 if (!empty($set)) {
                     $setting['email_bcc_name'] = $set['value'];
                 } else {
                     $setting['email_bcc_name'] = null;
                 }
-
                 $set = Setting::where('key', 'email_logo')->first();
                 if (!empty($set)) {
                     $setting['email_logo'] = $set['value'];
                 } else {
                     $setting['email_logo'] = null;
                 }
-
                 $set = Setting::where('key', 'email_logo_position')->first();
                 if (!empty($set)) {
                     $setting['email_logo_position'] = $set['value'];
                 } else {
                     $setting['email_logo_position'] = null;
                 }
-
                 $set = Setting::where('key', 'email_copyright')->first();
                 if (!empty($set)) {
                     $setting['email_copyright'] = $set['value'];
                 } else {
                     $setting['email_copyright'] = null;
                 }
-
                 $set = Setting::where('key', 'email_disclaimer')->first();
                 if (!empty($set)) {
                     $setting['email_disclaimer'] = $set['value'];
                 } else {
                     $setting['email_disclaimer'] = null;
                 }
-
                 $set = Setting::where('key', 'email_contact')->first();
                 if (!empty($set)) {
                     $setting['email_contact'] = $set['value'];
                 } else {
                     $setting['email_contact'] = null;
                 }
-
                 $data = array(
                     'content' => $content,
                     'setting' => $setting
                 );
-
-                Mailgun::send('pos::email_sync_menu', $data, function ($message) use ($to, $subject, $setting) {
-                    $message->to($to)->subject($subject)
-                        ->trackClicks(true)
-                        ->trackOpens(true);
+                Mail::send('pos::email_sync_menu', $data, function ($message) use ($to, $subject, $setting) {
+                    $message->to($to)->subject($subject);
+                    if (env('MAIL_DRIVER') == 'mailgun') {
+                        $message->trackClicks(true)
+                            ->trackOpens(true);
+                    }
                     if (!empty($setting['email_from']) && !empty($setting['email_sender'])) {
-                        $message->from($setting['email_from'], $setting['email_sender']);
-                    } else if (!empty($setting['email_from'])) {
-                        $message->from($setting['email_from']);
+                        $message->from($setting['email_sender'], $setting['email_from']);
+                    } else if (!empty($setting['email_sender'])) {
+                        $message->from($setting['email_sender']);
                     }
 
                     if (!empty($setting['email_reply_to'])) {
                         $message->replyTo($setting['email_reply_to'], $setting['email_reply_to_name']);
                     }
-
                     if (!empty($setting['email_cc']) && !empty($setting['email_cc_name'])) {
                         $message->cc($setting['email_cc'], $setting['email_cc_name']);
                     }
-
                     if (!empty($setting['email_bcc']) && !empty($setting['email_bcc_name'])) {
                         $message->bcc($setting['email_bcc'], $setting['email_bcc_name']);
                     }
@@ -973,16 +1824,23 @@ class ApiPOS extends Controller
         return $syncMenu;
     }
 
-    public function transaction(Request $request)
+    public function transaction(Request $request, $post = null, $cek = 1)
     {
-        $post = $request->json()->all();
+        if (!$post) {
+            $post = $request->json()->all();
+        }
 
-        if(!empty($post['api_key']) && !empty($post['api_secret']) &&
-            !empty($post['store_code']) && !empty($post['transactions'])){
+        if (($cek != 1 &&
+                !empty($post['store_code']) && !empty($post['transactions'])) ||
+            ($cek == 1 && !empty($post['api_key']) && !empty($post['api_secret']) &&
+                !empty($post['store_code']) && !empty($post['transactions']))
+        ) {
 
-            $api = $this->checkApi($post['api_key'], $post['api_secret']);
-            if ($api['status'] != 'success') {
-                return response()->json($api);
+            if ($cek == 1) {
+                $api = $this->checkApi($post['api_key'], $post['api_secret']);
+                if ($api['status'] != 'success') {
+                    return response()->json($api);
+                }
             }
 
             $checkOutlet = Outlet::where('outlet_code', strtoupper($post['store_code']))->first();
@@ -998,9 +1856,19 @@ class ApiPOS extends Controller
             $countTransactionDuplicate = 0;
             $detailTransactionFail = [];
 
-            if($countTransaction <= $x){
+            if ($countTransaction <= $x) {
+
+                $getIdBrand = Brand::select('id_brand')->first();
+                if (!$getIdBrand) {
+                    return [
+                        'status'    => 'fail',
+                        'messages'  => ['failed get brand']
+                    ];
+                }
+
                 $config['point']    = Configs::where('config_name', 'point')->first()->is_active;
                 $config['balance']  = Configs::where('config_name', 'balance')->first()->is_active;
+                $config['unique_receipt_outlet'] = Configs::where('config_name', 'unique receipt outlet')->first()->is_active;
                 $settingPoint       = Setting::where('key', 'point_conversion_value')->first()->value;
                 $transOriginal      = $post['transactions'];
 
@@ -1008,72 +1876,93 @@ class ApiPOS extends Controller
 
                 $receipt = array_column($post['transactions'], 'trx_id');
                 //exclude receipt number when already exist in outlet
-                $checkReceipt = Transaction::select('transaction_receipt_number', 'id_transaction')->where('id_outlet', $checkOutlet['id_outlet'])
-                                    ->whereIn('transaction_receipt_number', $receipt)
-                                    ->where('trasaction_type', 'Offline')
-                                    ->get();
+                $checkReceipt = Transaction::select('transaction_receipt_number', 'id_transaction');
+                if ($config['unique_receipt_outlet'] == '1') {
+                    $checkReceipt = $checkReceipt->where('id_outlet', $checkOutlet['id_outlet']);
+                }
+                $checkReceipt = $checkReceipt->whereIn('transaction_receipt_number', $receipt)
+                    ->where('trasaction_type', 'Offline')
+                    ->get();
                 $convertTranscToArray = $checkReceipt->toArray();
                 $receiptExist = $checkReceipt->pluck('transaction_receipt_number')->toArray();
 
-                $validReceipt = array_diff($receipt,$receiptExist);
-
-                $invalidReceipt = array_intersect($receipt,$receiptExist);
-                foreach($invalidReceipt as $key => $invalid){
+                $invalidReceipt = array_intersect($receipt, $receiptExist);
+                foreach ($invalidReceipt as $key => $invalid) {
                     $countTransactionDuplicate++;
                     unset($post['transactions'][$key]);
                 }
 
-                //check possibility duplicate
-                $receiptDuplicate = Transaction::where('id_outlet', '!=', $checkOutlet['id_outlet'])
-                                    ->whereIn('transaction_receipt_number', $validReceipt)
-                                    ->where('trasaction_type', 'Offline')
-                                    ->select('transaction_receipt_number')
-                                    ->get()->pluck('transaction_receipt_number')->toArray();
+                //check possibility duplicate when receipt number unique per outlet
+                if ($config['unique_receipt_outlet'] == '1') {
+                    $validReceipt = array_diff($receipt, $receiptExist);
 
-                $transactionDuplicate = TransactionDuplicate::where('id_outlet', '=', $checkOutlet['id_outlet'])
-                                        ->whereIn('transaction_receipt_number', $validReceipt)
-                                        ->select('transaction_receipt_number')
-                                        ->get()->pluck('transaction_receipt_number')->toArray();
+                    $receiptDuplicate = Transaction::where('id_outlet', '!=', $checkOutlet['id_outlet'])
+                        ->whereIn('transaction_receipt_number', $validReceipt)
+                        ->where('trasaction_type', 'Offline')
+                        ->select('transaction_receipt_number')
+                        ->get()->pluck('transaction_receipt_number')->toArray();
 
-                $receiptDuplicate = array_intersect($receipt, $receiptDuplicate);
-                $contentDuplicate = [];
-                foreach($receiptDuplicate as $key => $receipt){
-                    if(in_array($receipt, $transactionDuplicate)){
-                        $countTransactionDuplicate++;
-                        unset($post['transactions'][$key]);
-                    }else{
-                        $duplicate = $this->processDuplicate($post['transactions'][$key], $checkOutlet);
-                        if(isset($duplicate['status']) && $duplicate['status'] == 'duplicate'){
+                    $transactionDuplicate = TransactionDuplicate::where('id_outlet', '=', $checkOutlet['id_outlet'])
+                        ->whereIn('transaction_receipt_number', $validReceipt)
+                        ->select('transaction_receipt_number')
+                        ->get()->pluck('transaction_receipt_number')->toArray();
+
+                    $receiptDuplicate = array_intersect($receipt, $receiptDuplicate);
+
+                    $contentDuplicate = [];
+                    foreach ($receiptDuplicate as $key => $receipt) {
+                        if (in_array($receipt, $transactionDuplicate)) {
                             $countTransactionDuplicate++;
-                            $data = [
-                                'trx' => $duplicate['trx'],
-                                'duplicate' =>$duplicate['duplicate']
-                            ];
-                            $contentDuplicate[] = $data;
                             unset($post['transactions'][$key]);
+                        } else {
+                            $duplicate = $this->processDuplicate($post['transactions'][$key], $checkOutlet);
+                            if (isset($duplicate['status']) && $duplicate['status'] == 'duplicate') {
+                                $countTransactionDuplicate++;
+                                $data = [
+                                    'trx' => $duplicate['trx'],
+                                    'duplicate' => $duplicate['duplicate']
+                                ];
+                                $contentDuplicate[] = $data;
+                                unset($post['transactions'][$key]);
+                            }
                         }
                     }
                 }
 
+                $productList = Product::select('id_product', 'product_code')->get()->toArray();
+                $allProductCode = array_column($productList, 'product_code');
+                $groupList = ProductGroup::select('id_product_group', 'product_group_code', 'product_group_name')->get()->toArray();
+                $allGroupCode = array_column($groupList, 'product_group_code');
+                $variantList = ProductVariant::select('id_product_variant', 'product_variant_code')->get()->toArray();
+                $allVariantCode = array_column($variantList, 'product_variant_code');
+                $modList = ProductModifier::select('id_product_modifier', 'code', 'type', 'text')->get()->toArray();
+                $allModCode = array_column($modList, 'code');
+
                 $countSettingCashback = TransactionSetting::get();
-                $fraudTrxDay = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 day%')->first();
-                $fraudTrxWeek = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 week%')->first();
+                $fraudTrxDay = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 day%')->where('fraud_settings_status', 'Active')->first();
+                $fraudTrxWeek = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 week%')->where('fraud_settings_status', 'Active')->first();
                 foreach ($post['transactions'] as $key => $trx) {
-                    if(!empty($trx['date_time']) &&
+                    if (
+                        !empty($trx['date_time']) &&
                         isset($trx['total']) &&
                         isset($trx['service']) && isset($trx['tax']) &&
                         isset($trx['discount']) && isset($trx['grand_total']) &&
-                        isset($trx['menu'])){
+                        isset($trx['menu'])
+                    ) {
 
-                        $insertTrx = $this->insertTransaction($checkOutlet, $trx, $config, $settingPoint, $countSettingCashback, $fraudTrxDay, $fraudTrxWeek);
-                        if(isset($insertTrx['id_transaction'])){
-                                $countTransactionSuccess++;
-                                $result[] = $insertTrx;
-                        }else{
+                        $insertTrx = $this->insertTransaction($getIdBrand, $checkOutlet, $productList, $allProductCode, $groupList, $allGroupCode, $variantList, $allVariantCode, $modList, $allModCode, $trx, $config, $settingPoint, $countSettingCashback, $fraudTrxDay, $fraudTrxWeek);
+
+                        if (isset($insertTrx['id_transaction'])) {
+                            $countTransactionSuccess++;
+                            $result[] = $insertTrx;
+                        } else {
                             $countTransactionFail++;
-                            if(isset($trx['trx_id'])){
-                                $id = $trx['trx_id'];
-                            }else{
+                            if (isset($trx['trx_id'])) {
+                                $id = 'failed save trx_id : ' . $trx['trx_id'];
+                                if (isset($insertTrx['message'])) {
+                                    $id = $id . ', ' . $insertTrx['message'];
+                                }
+                            } else {
                                 $id = 'trx_id does not exist';
                             }
                             array_push($detailTransactionFail, $id);
@@ -1086,11 +1975,11 @@ class ApiPOS extends Controller
                             ];
                             SyncTransactionFaileds::create($data);
                         }
-                    }else{
+                    } else {
                         $countTransactionFail++;
-                        if(isset($trx['trx_id'])){
-                            $id = $trx['trx_id'];
-                        }else{
+                        if (isset($trx['trx_id'])) {
+                            $id = 'failed save trx_id : ' . $trx['trx_id'] . ', There is an incomplete input in the transaction list';
+                        } else {
                             $id = 'trx_id does not exist';
                         }
 
@@ -1115,16 +2004,16 @@ class ApiPOS extends Controller
                         'detail_transaction_failed' => $detailTransactionFail
                     ]
                 ]);
-            }else{
+            } else {
                 $countDataTransToSave = $countTransaction / $x;
                 $checkFloat = is_float($countDataTransToSave);
                 $getDataFrom = 0;
 
-                if($checkFloat === true){
-                    $countDataTransToSave = (int)$countDataTransToSave + 1;
+                if ($checkFloat === true) {
+                    $countDataTransToSave = (int) $countDataTransToSave + 1;
                 }
 
-                for($i=0;$i<$countDataTransToSave;$i++){
+                for ($i = 0; $i < $countDataTransToSave; $i++) {
                     $dataTransToSave = array_slice($post['transactions'], $getDataFrom, $x);
                     $data = [
                         'outlet_code' => $post['store_code'],
@@ -1132,17 +2021,16 @@ class ApiPOS extends Controller
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s')
                     ];
-                    try{
+                    try {
                         $insertTransactionQueue = SyncTransactionQueues::create($data);
 
-                        if(!$insertTransactionQueue){
+                        if (!$insertTransactionQueue) {
                             $countTransactionFail = $countTransactionFail + count($dataTransToSave);
                             array_push($detailTransactionFail, array_column($dataTransToSave, 'trx_id'));
-                        }else{
+                        } else {
                             $countTransactionSuccess = $countTransactionSuccess + count($dataTransToSave);
                         }
-
-                    }catch (Exception $e) {
+                    } catch (Exception $e) {
                         $countTransactionFail = $countTransactionFail + count($dataTransToSave);
                         array_push($detailTransactionFail, array_column($dataTransToSave, 'trx_id'));
                     }
@@ -1160,35 +2048,37 @@ class ApiPOS extends Controller
                     ]
                 ]);
             }
-
-        }else{
+        } else {
             return response()->json(['status' => 'fail', 'messages' => 'Input is incomplete']);
         }
     }
 
-    function insertTransaction($outlet, $trx, $config, $settingPoint, $countSettingCashback, $fraudTrxDay, $fraudTrxWeek){
+    function insertTransaction($getIdBrand, $outlet, &$productList, &$allProductCode, &$groupList, &$allGroupCode, &$variantList, &$allVariantCode, &$modList, &$allModCode, $trx, $config, $settingPoint, $countSettingCashback, $fraudTrxDay, $fraudTrxWeek)
+    {
         DB::beginTransaction();
-        try{
-            if(!isset($trx['order_id'])){
-                if(count($trx['menu']) >= 0 && isset($trx['trx_id'])){
+        try {
+            if (!isset($trx['order_id'])) {
+                if (count($trx['menu']) >= 0 && isset($trx['trx_id'])) {
+                    $countTrxDay = 0;
+                    $countTrxWeek = 0;
 
                     $dataTrx = [
-                            'id_outlet'                   => $outlet['id_outlet'],
-                            'transaction_date'            => date('Y-m-d H:i:s', strtotime($trx['date_time'])),
-                            'transaction_receipt_number'  => $trx['trx_id'],
-                            'trasaction_type'             => 'Offline',
-                            'transaction_subtotal'        => $trx['total'],
-                            'transaction_service'         => $trx['service'],
-                            'transaction_discount'        => $trx['discount'],
-                            'transaction_tax'             => $trx['tax'],
-                            'transaction_grandtotal'      => $trx['grand_total'],
-                            'transaction_point_earned'    => null,
-                            'transaction_cashback_earned' => null,
-                            'trasaction_payment_type'     => 'Offline',
-                            'transaction_payment_status'  => 'Completed'
+                        'id_outlet'                   => $outlet['id_outlet'],
+                        'transaction_date'            => date('Y-m-d H:i:s', strtotime($trx['date_time'])),
+                        'transaction_receipt_number'  => $trx['trx_id'],
+                        'trasaction_type'             => 'Offline',
+                        'transaction_subtotal'        => $trx['total'],
+                        'transaction_service'         => $trx['service'],
+                        'transaction_discount'        => $trx['discount'],
+                        'transaction_tax'             => $trx['tax'],
+                        'transaction_grandtotal'      => $trx['grand_total'],
+                        'transaction_point_earned'    => null,
+                        'transaction_cashback_earned' => null,
+                        'trasaction_payment_type'     => 'Offline',
+                        'transaction_payment_status'  => 'Completed'
                     ];
 
-                    if(!empty($trx['sales_type'])){
+                    if (!empty($trx['sales_type'])) {
                         $dataTrx['sales_type']  = $trx['sales_type'];
                     }
 
@@ -1197,8 +2087,8 @@ class ApiPOS extends Controller
                     $pointValue = 0;
 
                     if (isset($trx['member_uid'])) {
-                        if(strlen($trx['member_uid']) < 35){
-                            DB::rollback();
+                        if (strlen($trx['member_uid']) < 35) {
+                            DB::rollBack();
                             return ['status' => 'fail', 'messages' => 'Minimum length of member uid is 35'];
                         }
                         $qr         = MyHelper::readQR($trx['member_uid']);
@@ -1207,13 +2097,40 @@ class ApiPOS extends Controller
                         $user       = User::where('phone', $phoneqr)->with('memberships')->first();
 
                         if (empty($user)) {
-                            DB::rollback();
+                            DB::rollBack();
                             return ['status' => 'fail', 'messages' => 'User not found'];
-                        }elseif(isset($user['is_suspended']) && $user['is_suspended'] == '1'){
+                        } elseif (isset($user['is_suspended']) && $user['is_suspended'] == '1') {
                             $user['id'] = null;
                             $dataTrx['membership_level']    = null;
                             $dataTrx['membership_promo_id'] = null;
-                        }else{
+                        } else {
+                            //========= This process to check if user have fraud ============//
+                            $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
+                                ->where('transactions.id_user', $user['id'])
+                                ->whereRaw('DATE(transactions.transaction_date) = "' . date('Y-m-d', strtotime($trx['date_time'])) . '"')
+                                ->where('transactions.transaction_payment_status', 'Completed')
+                                ->whereNull('transaction_pickups.reject_at')
+                                ->count();
+
+                            $currentWeekNumber = date('W', strtotime($trx['date_time']));
+                            $currentYear = date('Y', strtotime($trx['date_time']));
+                            $dto = new DateTime();
+                            $dto->setISODate($currentYear, $currentWeekNumber);
+                            $start = $dto->format('Y-m-d');
+                            $dto->modify('+6 days');
+                            $end = $dto->format('Y-m-d');
+
+                            $geCountTrxWeek = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
+                                ->where('id_user', $user['id'])
+                                ->where('transactions.transaction_payment_status', 'Completed')
+                                ->whereNull('transaction_pickups.reject_at')
+                                ->whereRaw('Date(transactions.transaction_date) BETWEEN "' . $start . '" AND "' . $end . '"')
+                                ->count();
+
+                            $countTrxDay = $geCountTrxDay + 1;
+                            $countTrxWeek = $geCountTrxWeek + 1;
+                            //================================ End ================================//
+
                             if (count($user['memberships']) > 0) {
                                 $dataTrx['membership_level']    = $user['memberships'][0]['membership_name'];
                                 $dataTrx['membership_promo_id'] = $user['memberships'][0]['benefit_promo_id'];
@@ -1223,25 +2140,25 @@ class ApiPOS extends Controller
                             if (!empty($trx['voucher'])) {
                                 foreach ($trx['voucher'] as $keyV => $valueV) {
                                     $checkVoucher = DealsVoucher::join('deals_users', 'deals_vouchers.id_deals_voucher', 'deals_users.id_deals_voucher')
-                                                        ->leftJoin('transaction_vouchers', 'deals_vouchers.id_deals_voucher', 'transaction_vouchers.id_deals_voucher')
-                                                        ->where('voucher_code', $valueV['voucher_code'])
-                                                        ->where('deals_users.id_outlet', $outlet['id_outlet'])
-                                                        ->where('deals_users.id_user', $user['id'])
-                                                        ->whereNotNull('deals_users.used_at')
-                                                        ->whereNull('transaction_vouchers.id_transaction_voucher')
-                                                        ->select('deals_vouchers.*')
-                                                        ->first();
+                                        ->leftJoin('transaction_vouchers', 'deals_vouchers.id_deals_voucher', 'transaction_vouchers.id_deals_voucher')
+                                        ->where('voucher_code', $valueV['voucher_code'])
+                                        ->where('deals_users.id_outlet', $outlet['id_outlet'])
+                                        ->where('deals_users.id_user', $user['id'])
+                                        ->whereNotNull('deals_users.used_at')
+                                        ->whereNull('transaction_vouchers.id_transaction_voucher')
+                                        ->select('deals_vouchers.*')
+                                        ->first();
 
                                     if (empty($checkVoucher)) {
                                         // for invalid voucher
                                         $dataVoucher['deals_voucher_invalid'] = $valueV['voucher_code'];
-                                    }else{
+                                    } else {
                                         $dataVoucher['id_deals_voucher'] =  $checkVoucher['id_deals_voucher'];
                                     }
                                     $trxVoucher[] = $dataVoucher;
                                 }
-                            }else{
-                                if($config['point'] == '1'){
+                            } else {
+                                if ($config['point'] == '1') {
                                     if (isset($user['memberships'][0]['membership_name'])) {
                                         $level = $user['memberships'][0]['membership_name'];
                                         $percentageP = $user['memberships'][0]['benefit_point_multiplier'] / 100;
@@ -1254,7 +2171,7 @@ class ApiPOS extends Controller
                                     $dataTrx['transaction_point_earned'] = $point;
                                 }
 
-                                if($config['balance'] == '1'){
+                                if ($config['balance'] == '1') {
                                     if (isset($user['memberships'][0]['membership_name'])) {
                                         $level = $user['memberships'][0]['membership_name'];
                                         $percentageB = $user['memberships'][0]['benefit_cashback_multiplier'] / 100;
@@ -1269,14 +2186,18 @@ class ApiPOS extends Controller
                                     $cashback = floor(app($this->pos)->count('cashback', $data) * $percentageB);
 
                                     //count some trx user
-                                    $countUserTrx = Transaction::where('id_user', $user['id'])->count();
+                                    $countUserTrx = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
+                                        ->where('id_user', $user['id'])
+                                        ->where('transactions.transaction_payment_status', 'Completed')
+                                        ->whereNull('transaction_pickups.reject_at')
+                                        ->count();
                                     if ($countUserTrx < count($countSettingCashback)) {
                                         $cashback = $cashback * $countSettingCashback[$countUserTrx]['cashback_percent'] / 100;
                                         if ($cashback > $countSettingCashback[$countUserTrx]['cashback_maximum']) {
                                             $cashback = $countSettingCashback[$countUserTrx]['cashback_maximum'];
                                         }
-                                    } else{
-                                        if(isset($cashMax) && $cashback > $cashMax){
+                                    } else {
+                                        if (isset($cashMax) && $cashback > $cashMax) {
                                             $cashback = $cashMax;
                                         }
                                     }
@@ -1287,24 +2208,28 @@ class ApiPOS extends Controller
                         $dataTrx['id_user'] = $user['id'];
                     }
 
-                    if(isset($qr['device'])){
+                    if (isset($qr['device'])) {
                         $dataTrx['transaction_device_type'] = $qr['device'];
                     }
-                    if(isset($trx['cashier'])){
+                    if (isset($trx['cashier'])) {
                         $dataTrx['transaction_cashier'] = $trx['cashier'];
                     }
 
+                    $dataTrx['show_rate_popup'] = 1;
+
                     $createTrx = Transaction::create($dataTrx);
                     if (!$createTrx) {
-                        DB::rollback();
+                        DB::rollBack();
                         return ['status' => 'fail', 'messages' => 'Transaction sync failed'];
                     }
 
                     $dataPayments = [];
-                    if(!empty($trx['payments'])){
+                    if (!empty($trx['payments'])) {
                         foreach ($trx['payments'] as $col => $pay) {
-                            if(isset($pay['type']) && isset($pay['name'])
-                                && isset($pay['nominal'])){
+                            if (
+                                isset($pay['type']) && isset($pay['name'])
+                                && isset($pay['nominal'])
+                            ) {
                                 $dataPay = [
                                     'id_transaction' => $createTrx['id_transaction'],
                                     'payment_type'   => $pay['type'],
@@ -1313,18 +2238,18 @@ class ApiPOS extends Controller
                                     'created_at' => date('Y-m-d H:i:s'),
                                     'updated_at' => date('Y-m-d H:i:s')
                                 ];
-                                array_push($dataPayments,$dataPay);
-                            }else{
-                                DB::rollback();
+                                array_push($dataPayments, $dataPay);
+                            } else {
+                                DB::rollBack();
                                 return ['status' => 'fail', 'messages' => 'There is an incomplete input in the payment list'];
                             }
                         }
-                    }else{
+                    } else {
                         $dataPayments = [
                             'id_transaction' => $createTrx['id_transaction'],
                             'payment_type'   => 'offline',
                             'payment_bank'   => null,
-                            'payment_amount' => 10000,
+                            'payment_amount' => $trx['grand_total'],
                             'created_at' => date('Y-m-d H:i:s'),
                             'updated_at' => date('Y-m-d H:i:s')
                         ];
@@ -1332,271 +2257,406 @@ class ApiPOS extends Controller
 
                     $insertPayments = TransactionPaymentOffline::insert($dataPayments);
                     if (!$insertPayments) {
-                        DB::rollback();
+                        DB::rollBack();
                         return ['status' => 'fail', 'messages' => 'Failed insert transaction payments'];
                     }
 
                     $userTrxProduct = [];
-                    $allMenuId = array_column($trx['menu'], 'plu_id');
-                    $checkProduct = Product::select('id_product', 'product_code')->whereIn('product_code', $allMenuId)->get()->toArray();
-
-                    $allProductCode = array_column($checkProduct, 'product_code');
                     foreach ($trx['menu'] as $row => $menu) {
-                        if(!empty($menu['plu_id']) && !empty($menu['name'])
-                            && isset($menu['price']) && isset($menu['qty'])){
+                        //only for product not add on
+                        if ($menu['category_id'] != '1') {
+                            if (
+                                isset($menu['menu_variance']['sap_matnr']) && isset($menu['menu_id']) && isset($menu['menu_name']) && isset($menu['category_id'])
+                                && isset($menu['menu_variance']['status']) && isset($menu['price']) && isset($menu['qty'])
+                            ) {
 
-                            $getIndexProduct = array_search($menu['plu_id'], $allProductCode);
+                                $getIndexProduct = array_search($menu['menu_variance']['sap_matnr'], $allProductCode);
 
-                            if($getIndexProduct === false){
-                                //create new product
-                                $dataProduct['product_code']      = $menu['plu_id'];
-                                $dataProduct['product_name']      = $menu['name'];
-                                $dataProduct['product_name_pos'] = $menu['name'];
+                                if ($getIndexProduct === false) {
+                                    //check product group
+                                    $getIndexProductGroup = array_search($menu['menu_id'], $allGroupCode);
+                                    if ($getIndexProductGroup === false) {
+                                        try {
+                                            $productGroup = ProductGroup::create([
+                                                'product_group_code'    => $menu['menu_id'],
+                                                'product_group_name'    => ucwords(strtolower($menu['menu_name']))
+                                            ]);
+                                        } catch (\Exception $e) {
+                                            DB::rollBack();
+                                            LogBackendError::logExceptionMessage("ApiPOS/transactionSync=>" . $e->getMessage(), $e);
+                                            return ['status' => 'fail', 'messages' => 'Failed create new product group'];
+                                        }
 
-                                $newProduct = Product::create($dataProduct);
-                                if (!$newProduct) {
-                                    DB::rollback();
-                                    return ['status' => 'fail', 'messages' => 'Failed create new product'];
-                                }
+                                        $groupList[] = [
+                                            'id_product_group' => $productGroup->id_product_group,
+                                            'product_group_code' => $productGroup->product_group_code
+                                        ];
+                                        $allGroupCode[] = $productGroup->product_group_code;
 
-                                $productPriceData['id_product']         = $newProduct['id_product'];
-                                $productPriceData['id_outlet']             = $outlet['id_outlet'];
-                                $productPriceData['product_price_base'] = $menu['price'];
-                                $newProductPrice = ProductPrice::create($productPriceData);
-                                if (!$newProductPrice) {
-                                    DB::rollback();
-                                    return ['status' => 'fail', 'messages' => 'Failed create new product'];
-                                }
-
-                                $product = $newProduct;
-                            }else{
-                                $product = $checkProduct[$getIndexProduct];
-                            }
-                            $dataProduct = [
-                                'id_transaction'               => $createTrx['id_transaction'],
-                                'id_product'                   => $product['id_product'],
-                                'id_outlet'                    => $outlet['id_outlet'],
-                                'id_user'                      => $createTrx['id_user'],
-                                'transaction_product_qty'      => $menu['qty'],
-                                'transaction_product_price'    => round($menu['price'], 2),
-                                'transaction_product_subtotal' => $menu['qty'] * round($menu['price'], 2)
-                            ];
-                            if (isset($menu['open_modifier'])) {
-                                $dataProduct['transaction_product_note'] = $menu['open_modifier'];
-                            }
-
-                            $createProduct = TransactionProduct::create($dataProduct);
-
-                            // update modifiers
-                            if (!empty($menu['modifiers'])) {
-
-                                $allModCode = array_column($menu['modifiers'], 'code');
-                                $detailMod = ProductModifier::select('id_product_modifier','type','text','code')
-                                        ->whereIn('code', $allModCode)
-                                        ->where('id_product', '=', $product['id_product'])->get()->toArray();
-
-                                $allMenuModifier = array_column($detailMod, 'code');
-                                foreach ($menu['modifiers'] as $mod) {
-                                    $getIndexMod = array_search($mod['code'], $allMenuModifier);
-
-                                    if ($getIndexMod !== false) {
-                                        $id_product_modifier = $detailMod[$getIndexMod]['id_product_modifier'];
-                                        $type = $detailMod[$getIndexMod]['type'];
-                                        $text = $detailMod[$getIndexMod]['text'];
+                                        $getIndexProductGroup = count($allProductCode);
                                     } else {
-                                        if (isset($mod['text'])) {
-                                            $text = $mod['text'];
-                                        } else {
-                                            $text = null;
-                                        }
-                                        if (isset($mod['type'])) {
-                                            $type = $mod['type'];
-                                        } else {
-                                            $type = "";
-                                        }
-                                        $newModifier = ProductModifier::create([
-                                            'id_product' => $product['id_product'],
-                                            'type' => $type,
-                                            'code' => $mod['code'],
-                                            'text' => $text
-                                        ]);
-                                        $id_product_modifier = $newModifier['id_product_modifier'];
+                                        $productGroup = $groupList[$getIndexProductGroup];
                                     }
-                                    $dataProductMod['id_transaction_product'] = $createProduct['id_transaction_product'];
-                                    $dataProductMod['id_transaction'] = $createTrx['id_transaction'];
-                                    $dataProductMod['id_product'] = $product['id_product'];
-                                    $dataProductMod['id_product_modifier'] = $id_product_modifier;
-                                    $dataProductMod['id_outlet'] = $outlet['id_outlet'];
-                                    $dataProductMod['id_user'] = $createTrx['id_user'];
-                                    $dataProductMod['type'] = $type;
-                                    $dataProductMod['code'] = $mod['code'];
-                                    $dataProductMod['text'] = $text;
-                                    $dataProductMod['qty'] = $menu['qty'];
-                                    $dataProductMod['datetime'] = $createTrx['created_at'];
-                                    $dataProductMod['trx_type'] = $createTrx['trasaction_type'];
-                                    $dataProductMod['sales_type'] = $createTrx['sales_type'];
 
-                                    $updateProductMod = TransactionProductModifier::updateOrCreate([
-                                        'id_transaction' => $createTrx['id_transaction'],
-                                        'code'  => $mod['code']
-                                    ], $dataProductMod);
+                                    $variance = $menu['menu_variance'];
+                                    $size = $variance['size'];
+                                    //for variant null use general size
+                                    if ($variance['size'] == null) {
+                                        $size = 'general_size';
+                                    }
+                                    $type = $variance['type'];
+                                    //for variant null use general type
+                                    if ($variance['type'] == null) {
+                                        $type = 'general_type';
+                                    }
+
+                                    $getIndexVariantSize = array_search($size, $allVariantCode);
+                                    if ($getIndexVariantSize === false) {
+                                        try {
+                                            $variantSize = ProductVariant::create([
+                                                'product_variant_code'       => $size,
+                                                'product_variant_subtitle'  => '',
+                                                'product_variant_name'      => $size,
+                                                'product_variant_position'  => 0,
+                                                'parent'                    => 1
+                                            ]);
+                                        } catch (\Exception $e) {
+                                            DB::rollBack();
+                                            LogBackendError::logExceptionMessage("ApiPOS/transactionSync=>" . $e->getMessage(), $e);
+                                            return ['status' => 'fail', 'messages' => 'Failed create new product variant size'];
+                                        }
+
+                                        $variantList[] = [
+                                            'id_product_variant' => $variantSize->id_product_variant,
+                                            'product_variant_code' => $variantSize->product_variant_code
+                                        ];
+                                        $allvariantCode[] = $variantSize->product_variant_code;
+                                    } else {
+                                        $variantSize = $variantList[$getIndexVariantSize];
+                                    }
+
+                                    $getIndexVariantType = array_search($type, $allVariantCode);
+                                    if ($getIndexVariantType === false) {
+                                        try {
+                                            $variantType = ProductVariant::create([
+                                                'product_variant_code'       => $type,
+                                                'product_variant_subtitle'  => '',
+                                                'product_variant_name'      => $type,
+                                                'product_variant_position'  => 0,
+                                                'parent'                    => 2
+                                            ]);
+                                        } catch (\Exception $e) {
+                                            DB::rollBack();
+                                            LogBackendError::logExceptionMessage("ApiPOS/transactionSync=>" . $e->getMessage(), $e);
+                                            return ['status' => 'fail', 'messages' => 'Failed create new product variant type'];
+                                        }
+
+                                        $variantList[] = [
+                                            'id_product_variant' => $variantType->id_product_variant,
+                                            'product_variant_code' => $variantType->product_variant_code
+                                        ];
+                                        $allvariantCode[] = $variantType->product_variant_code;
+                                    } else {
+                                        $variantType = $variantList[$getIndexVariantType];
+                                    }
+
+
+                                    try {
+                                        $product = Product::create([
+                                            'product_code'    => $menu['menu_variance']['sap_matnr'],
+                                            'product_name_pos'  => implode(" ", [$productGroup['product_group_name'], $variance['size'], $variance['type']]),
+                                            'product_name'  => implode(" ", [ucwords(strtolower($productGroup['product_group_name'])), $variance['size'], $variance['type']]),
+                                            'product_status'    => $variance['status'],
+                                            'id_product_group'  => $productGroup['id_product_group']
+                                        ]);
+
+                                        $brandProduct = [
+                                            'id_product' => $product->id_product,
+                                            'id_brand'   => $getIdBrand->id_brand
+                                        ];
+                                        BrandProduct::create($brandProduct);
+                                    } catch (\Exception $e) {
+                                        DB::rollBack();
+                                        LogBackendError::logExceptionMessage("ApiPOS/transactionSync=>" . $e->getMessage(), $e);
+                                        return ['status' => 'fail', 'messages' => 'Failed create new product'];
+                                    }
+
+                                    try {
+                                        ProductProductVariant::updateOrCreate([
+                                            'id_product'            => $product->id_product,
+                                            'id_product_variant'    => $variantSize['id_product_variant']
+                                        ], [
+                                            'id_product'            => $product->id_product,
+                                            'id_product_variant'    => $variantSize['id_product_variant']
+                                        ]);
+                                        ProductProductVariant::updateOrCreate([
+                                            'id_product'            => $product->id_product,
+                                            'id_product_variant'    => $variantType['id_product_variant']
+                                        ], [
+                                            'id_product'            => $product->id_product,
+                                            'id_product_variant'    => $variantType['id_product_variant']
+                                        ]);
+                                    } catch (\Exception $e) {
+                                        DB::rollBack();
+                                        LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                                        return ['status' => 'fail', 'messages' => 'Failed create product variant detail'];
+                                    }
+
+                                    $productPriceData['id_product']         = $product['id_product'];
+                                    $productPriceData['id_outlet']             = $outlet['id_outlet'];
+                                    $productPriceData['product_price_base'] = $menu['price'];
+                                    $newProductPrice = ProductPrice::create($productPriceData);
+                                    if (!$newProductPrice) {
+                                        DB::rollBack();
+                                        return ['status' => 'fail', 'messages' => 'Failed create new product price'];
+                                    }
+                                } else {
+                                    $product = $productList[$getIndexProduct];
                                 }
-                            }
-                            if (!$createProduct) {
-                                DB::rollback();
-                                return ['status' => 'fail', 'messages' => 'Transaction product sync failed'];
-                            }
-                        }else{
-                            DB::rollback();
-                            return['status' => 'fail', 'messages' => 'There is an incomplete input in the menu list'];
-                        }
+                                $dataProduct = [
+                                    'id_transaction'               => $createTrx['id_transaction'],
+                                    'id_product'                   => $product['id_product'],
+                                    'id_outlet'                    => $outlet['id_outlet'],
+                                    'id_user'                      => $createTrx['id_user'],
+                                    'transaction_product_qty'      => $menu['qty'],
+                                    'transaction_product_price'    => round($menu['price'], 2),
+                                    'transaction_product_subtotal' => $menu['qty'] * round($menu['price'], 2)
+                                ];
+                                if (isset($menu['open_modifier'])) {
+                                    $dataProduct['transaction_product_note'] = $menu['open_modifier'];
+                                }
 
+                                $createProduct = TransactionProduct::create($dataProduct);
+
+                                if (!$createProduct) {
+                                    DB::rollBack();
+                                    return ['status' => 'fail', 'messages' => 'Failed create transaction product'];
+                                }
+                                $modSubtotal = 0;
+                                // add modifiers
+                                $number = $row + 1;
+                                while (isset($trx['menu'][$number]['category_id']) && $trx['menu'][$number]['category_id'] == '1') {
+
+                                    if (
+                                        isset($trx['menu'][$number]['menu_variance']['sap_matnr']) && isset($trx['menu'][$number]['menu_name'])
+                                        && isset($trx['menu'][$number]['price']) && isset($trx['menu'][$number]['qty'])
+                                    ) {
+
+                                        $getIndexMod = array_search($trx['menu'][$number]['menu_variance']['sap_matnr'], $allModCode);
+
+                                        if ($getIndexMod !== false) {
+                                            $productModifier = $modList[$getIndexMod];
+                                        } else {
+                                            try {
+                                                $productModifier = ProductModifier::create([
+                                                    'code'      => $trx['menu'][$number]['menu_variance']['sap_matnr'],
+                                                    'text'      => $trx['menu'][$number]['menu_name'],
+                                                    'type'      => isset($trx['menu'][$number]['group']) ?? "",
+                                                    'modifier_type' => 'Specific',
+                                                    'status'    => $trx['menu'][$number]['menu_variance']['status'],
+                                                ]);
+                                            } catch (\Exception $e) {
+                                                dd($e);
+                                                DB::rollBack();
+                                                LogBackendError::logExceptionMessage("ApiPOS/transactionSync=>" . $e->getMessage(), $e);
+                                                return ['status' => 'fail', 'messages' => 'Failed create new add on'];
+                                            }
+
+                                            $modList[] = [
+                                                'id_product_modifier' => $productModifier->id_product_modifier,
+                                                'code' => $productModifier->code,
+                                                'text' => $productModifier->text,
+                                                'type' => $productModifier->type,
+                                            ];
+                                            $allModCode[] = $productModifier->code;
+
+                                            try {
+                                                ProductModifierProduct::create([
+                                                    'id_product'            => $product->id_product,
+                                                    'id_product_modifier'   => $productModifier->id_product_modifier
+                                                ]);
+                                            } catch (\Exception $e) {
+                                                DB::rollBack();
+                                                LogBackendError::logExceptionMessage("ApiPOS/transactionSync=>" . $e->getMessage(), $e);
+                                                return ['status' => 'fail', 'messages' => 'Failed create add on product'];
+                                            }
+                                        }
+
+                                        $dataProductMod['id_transaction_product'] = $createProduct['id_transaction_product'];
+                                        $dataProductMod['id_transaction'] = $createTrx['id_transaction'];
+                                        $dataProductMod['id_product'] = $product['id_product'];
+                                        $dataProductMod['id_product_modifier'] = $productModifier['id_product_modifier'];
+                                        $dataProductMod['id_outlet'] = $outlet['id_outlet'];
+                                        $dataProductMod['id_user'] = $createTrx['id_user'];
+                                        $dataProductMod['type'] = $productModifier['type'];
+                                        $dataProductMod['code'] = $productModifier['code'];
+                                        $dataProductMod['text'] = $productModifier['text'];
+                                        $dataProductMod['qty'] = $trx['menu'][$number]['qty'];
+                                        $dataProductMod['datetime'] = $createTrx['created_at'];
+                                        $dataProductMod['trx_type'] = $createTrx['trasaction_type'];
+                                        $dataProductMod['sales_type'] = $createTrx['sales_type'];
+                                        $dataProductMod['transaction_product_modifier_price'] = $trx['menu'][$number]['qty'] * $trx['menu'][$number]['price'];
+
+                                        $modSubtotal += $dataProductMod['transaction_product_modifier_price'];
+
+                                        try {
+                                            TransactionProductModifier::create($dataProductMod);
+                                        } catch (\Exception $e) {
+                                            DB::rollBack();
+                                            LogBackendError::logExceptionMessage("ApiPOS/transactionSync=>" . $e->getMessage(), $e);
+                                            return ['status' => 'fail', 'messages' => 'Failed create transaction product add on'];
+                                        }
+                                    }
+
+                                    $number++;
+                                }
+
+                                if ($modSubtotal > 0) {
+                                    TransactionProduct::where('id_transaction_product', $createProduct['id_transction_product'])->update(['transaction_modifier_subtotal' => $modSubtotal]);
+                                }
+                            } else {
+                                DB::rollBack();
+                                return ['status' => 'fail', 'messages' => 'There is an incomplete input in the menu list'];
+                            }
+                        }
                     }
 
-                    if ($createTrx['transaction_point_earned']) {
-                        $dataLog = [
-                            'id_user'                     => $createTrx['id_user'],
-                            'point'                       => $createTrx['transaction_point_earned'],
-                            'id_reference'                => $createTrx['id_transaction'],
-                            'source'                      => 'Transaction',
-                            'grand_total'                 => $createTrx['transaction_grandtotal'],
-                            'point_conversion'            => $settingPoint,
-                            'membership_level'            => $level,
-                            'membership_point_percentage' => $percentageP * 100
-                        ];
+                    if ((($fraudTrxDay && $countTrxDay <= $fraudTrxDay['parameter_detail']) && ($fraudTrxWeek && $countTrxWeek <= $fraudTrxWeek['parameter_detail']))
+                        || (!$fraudTrxDay && !$fraudTrxWeek)
+                    ) {
 
-                        $insertDataLog = LogPoint::updateOrCreate(['id_user' => $createTrx['id_user'], 'id_reference' => $createTrx['id_transaction']], $dataLog);
-                        if (!$insertDataLog) {
-                            DB::rollback();
-                            return [
+                        if ($createTrx['transaction_point_earned']) {
+                            $dataLog = [
+                                'id_user'                     => $createTrx['id_user'],
+                                'point'                       => $createTrx['transaction_point_earned'],
+                                'id_reference'                => $createTrx['id_transaction'],
+                                'source'                      => 'Transaction',
+                                'grand_total'                 => $createTrx['transaction_grandtotal'],
+                                'point_conversion'            => $settingPoint,
+                                'membership_level'            => $level,
+                                'membership_point_percentage' => $percentageP * 100
+                            ];
+
+                            $insertDataLog = LogPoint::updateOrCreate(['id_user' => $createTrx['id_user'], 'id_reference' => $createTrx['id_transaction']], $dataLog);
+                            if (!$insertDataLog) {
+                                DB::rollBack();
+                                return [
                                     'status'    => 'fail',
                                     'messages'  => 'Insert Point Failed'
-                            ];
-                        }
+                                ];
+                            }
 
-                        $pointValue = $insertDataLog->point;
+                            $pointValue = $insertDataLog->point;
 
-                        //update user point
-                        $user->points = $pointBefore + $pointValue;
-                        $user->update();
-                        if (!$user) {
-                            DB::rollback();
-                            return [
+                            //update user point
+                            $user->points = $pointBefore + $pointValue;
+                            $user->update();
+                            if (!$user) {
+                                DB::rollBack();
+                                return [
                                     'status'    => 'fail',
                                     'messages'  => 'Insert Point Failed'
-                            ];
+                                ];
+                            }
                         }
-                    }
 
-                    if ($createTrx['transaction_cashback_earned']) {
+                        if ($createTrx['transaction_cashback_earned']) {
 
-                        $insertDataLogCash = app($this->balance)->addLogBalance($createTrx['id_user'], $createTrx['transaction_cashback_earned'], $createTrx['id_transaction'], 'Transaction', $createTrx['transaction_grandtotal']);
-                        if (!$insertDataLogCash) {
-                            DB::rollback();
-                            return [
-                                'status'    => 'fail',
-                                'messages'  => 'Insert Cashback Failed'
-                            ];
-                        }
-                        $usere= User::where('id',$createTrx['id_user'])->first();
-                        $send = app($this->autocrm)->SendAutoCRM('Transaction Point Achievement', $usere->phone,
-                            [
-                                "outlet_name"       => $outlet['outlet_name'],
-                                "transaction_date"  => $createTrx['transaction_date'],
-                                'id_transaction'    => $createTrx['id_transaction'],
-                                'receipt_number'    => $createTrx['transaction_receipt_number'],
-                                'received_point'    => (string) $createTrx['transaction_cashback_earned']
-                            ]
-                        );
-                        if($send != true){
-                            DB::rollback();
-                            return response()->json([
+                            $insertDataLogCash = app($this->balance)->addLogBalance($createTrx['id_user'], $createTrx['transaction_cashback_earned'], $createTrx['id_transaction'], 'Transaction', $createTrx['transaction_grandtotal']);
+                            if (!$insertDataLogCash) {
+                                DB::rollBack();
+                                return [
+                                    'status'    => 'fail',
+                                    'messages'  => 'Insert Cashback Failed'
+                                ];
+                            }
+                            $usere = User::where('id', $createTrx['id_user'])->first();
+                            $send = app($this->autocrm)->SendAutoCRM(
+                                'Transaction Point Achievement',
+                                $usere->phone,
+                                [
+                                    "outlet_name"       => $outlet['outlet_name'],
+                                    "transaction_date"  => $createTrx['transaction_date'],
+                                    'id_transaction'    => $createTrx['id_transaction'],
+                                    'receipt_number'    => $createTrx['transaction_receipt_number'],
+                                    'received_point'    => (string) $createTrx['transaction_cashback_earned']
+                                ]
+                            );
+                            if ($send != true) {
+                                DB::rollBack();
+                                return response()->json([
                                     'status' => 'fail',
                                     'messages' => 'Failed Send notification to customer'
                                 ]);
+                            }
+                            $pointValue = $insertDataLogCash->balance;
                         }
-                        $pointValue = $insertDataLogCash->balance;
-                    }
-
-                    if (isset($user['phone'])) {
-                        $checkMembership = app($this->membership)->calculateMembership($user['phone']);
-
-                        //update count transaction
-                        if (date('Y-m-d', strtotime($createTrx['transaction_date'])) == date('Y-m-d')) {
-                            $updateCountTrx = User::where('id', $user['id'])->update([
-                                'count_transaction_day' => $user['count_transaction_day'] + 1,
-                            ]);
-
-                            if (!$updateCountTrx) {
-                                DB::rollback();
-                                return [
-                                    'status'    => 'fail',
-                                    'messages'  => 'Update User Count Transaction Failed'
-                                ];
-                            }
-
-                            $userData = User::find($user['id']);
-
-                            //cek fraud detection transaction per day
-                            if ($fraudTrxDay && $fraudTrxDay['parameter_detail'] != null) {
-                                if ($userData['count_transaction_day'] >= $fraudTrxDay['parameter_detail']) {
-                                    //send fraud detection to admin
-                                    $sendFraud = app($this->setting_fraud)->SendFraudDetection($fraudTrxDay['id_fraud_setting'], $userData, $createTrx['id_transaction'], null);
-                                }
-                            }
+                    } else {
+                        if ($countTrxDay > $fraudTrxDay['parameter_detail'] && $fraudTrxDay) {
+                            $fraudFlag = 'transaction day';
+                        } elseif ($countTrxWeek > $fraudTrxWeek['parameter_detail'] && $fraudTrxWeek) {
+                            $fraudFlag = 'transaction week';
+                        } else {
+                            $fraudFlag = NULL;
                         }
 
-                        if (date('Y-m-d', strtotime($createTrx['transaction_date'])) >= date('Y-m-d', strtotime(' - 6 days')) && date('Y-m-d', strtotime($createTrx['transaction_date'])) <= date('Y-m-d')) {
-                            $updateCountTrx = User::where('id', $user['id'])->update([
-                                'count_transaction_week' => $user['count_transaction_week'] + 1,
+                        $updatePointCashback = Transaction::where('id_transaction', $createTrx['id_transaction'])
+                            ->update([
+                                'transaction_point_earned' => NULL,
+                                'transaction_cashback_earned' => NULL,
+                                'fraud_flag' => $fraudFlag
                             ]);
 
-                            if (!$updateCountTrx) {
-                                DB::rollback();
-                                return [
-                                    'status'    => 'fail',
-                                    'messages'  => 'Update User Count Transaction Failed'
-                                ];
-                            }
-
-                            $userData = User::find($user['id']);
-                            //cek fraud detection transaction per week (last 7 days)
-                            if ($fraudTrxWeek && $fraudTrxWeek['parameter_detail'] != null) {
-                                if ($userData['count_transaction_week'] >= $fraudTrxWeek['parameter_detail']) {
-                                    //send fraud detection to admin
-                                    $sendFraud = app($this->setting_fraud)->SendFraudDetection($fraudTrxWeek['id_fraud_setting'], $userData, $createTrx['id_transaction'], $lastDeviceId = null);
-                                }
-                            }
+                        if (!$updatePointCashback) {
+                            DB::rollBack();
+                            return response()->json([
+                                'status' => 'fail',
+                                'messages' => ['Failed update Point and Cashback']
+                            ]);
                         }
                     }
 
                     //insert voucher
-                    foreach($trxVoucher as $dataTrxVoucher){
+                    foreach ($trxVoucher as $dataTrxVoucher) {
                         $dataTrxVoucher['id_transaction'] = $createTrx['id_transaction'];
                         $create = TransactionVoucher::create($dataTrxVoucher);
+                    }
+
+                    if (isset($user['phone'])) {
+                        $checkMembership = app($this->membership)->calculateMembership($user['phone']);
+                        $userData = User::find($user['id']);
+                        //cek fraud detection transaction per day
+                        if ($fraudTrxDay) {
+                            $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxDay, $userData, null, $countTrxDay, $countTrxWeek, $trx['date_time'], 0, $trx['trx_id']);
+                        }
+                        //cek fraud detection transaction per week
+                        if ($fraudTrxWeek) {
+                            $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxWeek, $userData, null, $countTrxDay, $countTrxWeek, $trx['date_time'], 0, $trx['trx_id']);
+                        }
                     }
 
                     DB::commit();
                     return [
                         'id_transaction'    => $createTrx->id_transaction,
-                        'point_before'      => (int)$pointBefore,
+                        'point_before'      => (int) $pointBefore,
                         'point_after'       => $pointBefore + $pointValue,
                         'point_value'       => $pointValue
                     ];
-                }else{
-                    DB::rollback();
+                } else {
+                    DB::rollBack();
                     return ['status' => 'fail', 'messages' => 'trx_id does not exist'];
                 }
             }
-        }catch (Exception $e) {
-            DB::rollback();
+        } catch (Exception $e) {
+            DB::rollBack();
             return ['status' => 'fail', 'messages' => $e];
         }
     }
 
-    function processDuplicate($trx, $outlet){
+    function processDuplicate($trx, $outlet)
+    {
         DB::beginTransaction();
-        try{
+        try {
             $trxDuplicate = Transaction::where('transaction_receipt_number',  $trx['trx_id'])
                 ->with('user', 'outlet', 'productTransaction.product')
                 ->whereNotIn('transactions.id_outlet', [$outlet['id_outlet']])
@@ -1605,12 +2665,12 @@ class ApiPOS extends Controller
                 ->where('transaction_subtotal', $trx['total'])
                 ->where('trasaction_type', 'Offline');
 
-            if(isset($trx['cashier'])){
+            if (isset($trx['cashier'])) {
                 $trxDuplicate = $trxDuplicate->where('transaction_cashier', $trx['cashier']);
             }
 
             $trxDuplicate = $trxDuplicate->first();
-            if($trxDuplicate){
+            if ($trxDuplicate) {
                 //cek detail productnya
                 $statusDuplicate = true;
 
@@ -1619,10 +2679,10 @@ class ApiPOS extends Controller
 
                 foreach ($trx['menu'] as $row => $menu) {
                     $productDuplicate = false;
-                    foreach($trxDuplicate['productTransaction'] as $i => $dataProduct){
-                        if($menu['plu_id'] == $dataProduct['product']['product_code']){
+                    foreach ($trxDuplicate['productTransaction'] as $i => $dataProduct) {
+                        if ($menu['menu_variance']['sap_matnr'] == $dataProduct['product']['product_code']) {
                             //cek jumlah quantity
-                            if($menu['qty'] == $dataProduct['transaction_product_qty']){
+                            if ($menu['qty'] == $dataProduct['transaction_product_qty']) {
                                 //set status product duplicate true
                                 $productDuplicate = true;
                                 $menu['id_product'] = $dataProduct['id_product'];
@@ -1635,7 +2695,7 @@ class ApiPOS extends Controller
                     }
 
                     //jika status product duplicate false maka detail product ada yg berbeda
-                    if($productDuplicate == false){
+                    if ($productDuplicate == false) {
                         $statusDuplicate = false;
                         break;
                     }
@@ -1643,7 +2703,7 @@ class ApiPOS extends Controller
 
                 $trxDuplicate['product'] = $detailproduct;
 
-                if($statusDuplicate == true){
+                if ($statusDuplicate == true) {
                     //insert into table transaction_duplicates
                     if (isset($trx['member_uid'])) {
                         $qr = MyHelper::readQR($trx['member_uid']);
@@ -1664,16 +2724,16 @@ class ApiPOS extends Controller
                     $dataDuplicate['outlet_name_duplicate'] = $trxDuplicate['outlet']['outlet_name'];
                     $dataDuplicate['outlet_name'] = $outlet['outlet_name'];
 
-                    if(isset($user['name'])){
+                    if (isset($user['name'])) {
                         $dataDuplicate['user_name'] = $user['name'];
                     }
 
-                    if(isset($user['phone'])){
+                    if (isset($user['phone'])) {
                         $dataDuplicate['user_phone'] = $user['phone'];
                     }
 
                     $dataDuplicate['transaction_cashier'] = $trx['cashier'];
-                    $dataDuplicate['transaction_date'] = date('Y-m-d H:i:s',strtotime($trx['date_time']));
+                    $dataDuplicate['transaction_date'] = date('Y-m-d H:i:s', strtotime($trx['date_time']));
                     $dataDuplicate['transaction_subtotal'] = $trx['total'];
                     $dataDuplicate['transaction_tax'] = $trx['tax'];
                     $dataDuplicate['transaction_service'] = $trx['service'];
@@ -1681,8 +2741,8 @@ class ApiPOS extends Controller
                     $dataDuplicate['sync_datetime_duplicate'] = $trxDuplicate['created_at'];
                     $dataDuplicate['sync_datetime'] = date('Y-m-d H:i:s');
                     $insertDuplicate = TransactionDuplicate::create($dataDuplicate);
-                    if(!$insertDuplicate){
-                        DB::rollback();
+                    if (!$insertDuplicate) {
+                        DB::rollBack();
                         return ['status' => 'Transaction sync failed'];
                     }
 
@@ -1692,12 +2752,12 @@ class ApiPOS extends Controller
                         $dataTrxDuplicateProd['id_transaction_duplicate'] = $insertDuplicate['id_transaction_duplicate'];
 
                         $dataTrxDuplicateProd['id_product'] = $menu['id_product'];
-                        $dataTrxDuplicateProd['transaction_product_code'] = $menu['plu_id'];
+                        $dataTrxDuplicateProd['transaction_product_code'] = $menu['menu_variance']['sap_matnr'];
                         $dataTrxDuplicateProd['transaction_product_name'] = $menu['product_name'];
                         $dataTrxDuplicateProd['transaction_product_qty'] = $menu['qty'];
                         $dataTrxDuplicateProd['transaction_product_price'] = $menu['price'];
                         $dataTrxDuplicateProd['transaction_product_subtotal'] = $menu['qty'] * $menu['price'];
-                        if(isset($menu['open_modifier'])){
+                        if (isset($menu['open_modifier'])) {
                             $dataTrxDuplicateProd['transaction_product_note'] = $menu['open_modifier'];
                         }
                         $dataTrxDuplicateProd['created_at'] = date('Y-m-d H:i:s');
@@ -1707,15 +2767,15 @@ class ApiPOS extends Controller
                     }
 
                     $insertTrxDuplicateProd = TransactionDuplicateProduct::insert($prodDuplicate);
-                    if(!$insertTrxDuplicateProd){
-                        DB::rollback();
+                    if (!$insertTrxDuplicateProd) {
+                        DB::rollBack();
                         return ['status' => 'Transaction sync failed'];
                     }
 
                     //insert payment
                     $payDuplicate = [];
-                    if(!empty($trx['payments'])){
-                        foreach($trx['payments'] as $pay){
+                    if (!empty($trx['payments'])) {
+                        foreach ($trx['payments'] as $pay) {
                             $dataTrxDuplicatePay['id_transaction_duplicate'] = $insertDuplicate['id_transaction_duplicate'];
                             $dataTrxDuplicatePay['payment_name'] = $pay['name'];
                             $dataTrxDuplicatePay['payment_type'] = $pay['type'];
@@ -1724,8 +2784,7 @@ class ApiPOS extends Controller
                             $dataTrxDuplicatePay['updated_at'] = date('Y-m-d H:i:s');
                             $payDuplicate[] = $dataTrxDuplicatePay;
                         }
-
-                    }else{
+                    } else {
                         $dataTrxDuplicatePay = [
                             'id_transaction_duplicate' => $insertDuplicate['id_transaction_duplicate'],
                             'payment_name' => 'Offline',
@@ -1738,8 +2797,8 @@ class ApiPOS extends Controller
                     }
 
                     $insertTrxDuplicatePay = TransactionDuplicatePayment::create($dataTrxDuplicatePay);
-                    if(!$insertTrxDuplicatePay){
-                        DB::rollback();
+                    if (!$insertTrxDuplicatePay) {
+                        DB::rollBack();
                         return ['status' => 'Transaction sync failed'];
                     }
 
@@ -1757,102 +2816,133 @@ class ApiPOS extends Controller
             }
 
             return ['status' => 'not duplicate'];
-        }catch (Exception $e){
-            DB::rollback();
+        } catch (Exception $e) {
+            DB::rollBack();
             return ['status' => 'fail', 'messages' => $e];
         }
     }
 
-    public function transactionRefund(reqTransactionRefund $request)
+    public function transactionRefund(Request $request)
     {
         $post = $request->json()->all();
 
-        DB::beginTransaction();
         $api = $this->checkApi($post['api_key'], $post['api_secret']);
         if ($api['status'] != 'success') {
-            DB::rollback();
+            DB::rollBack();
             return response()->json($api);
         }
 
-        $checkTrx = Transaction::where('transaction_receipt_number', $post['trx_id'])->first();
-        if (empty($checkTrx)) {
-            DB::rollback();
-            return response()->json(['status' => 'fail', 'messages' => 'Transaction not found']);
+
+        $countSuccess    = 0;
+        $countFailed   = 0;
+        $successRefund = [];
+        $failedRefund  = [];
+
+        if (!isset($post['data'])) {
+            return response()->json(['status' => 'fail', 'messages' => 'field data is required']);
         }
 
-        //if use voucher, cannot refund
-        $trxVou = TransactionVoucher::where('id_transaction', $checkTrx->id_transaction)->first();
-        if ($trxVou) {
-            DB::rollback();
-            return response()->json(['status' => 'fail', 'messages' => 'Transaction cannot be refund. This transaction use voucher']);
-        }
-
-        if ($checkTrx->id_user) {
-            $user = User::where('id', $checkTrx->id_user)->first();
-            if (empty($user)) {
-                DB::rollback();
-                return response()->json(['status' => 'fail', 'messages' => 'User not found']);
-            }
-        }
-
-        $checkTrx->transaction_payment_status = 'Cancelled';
-        $checkTrx->void_date = date('Y-m-d H:i:s');
-        $checkTrx->transaction_notes = $post['reason'];
-        $checkTrx->update();
-        if (!$checkTrx) {
-            DB::rollback();
-            return response()->json(['status' => 'fail', 'messages' => 'Transaction refund sync failed1']);
-        }
-
-        $user = User::where('id', $checkTrx->id_user)->first();
-        if ($user) {
-            $point = LogPoint::where('id_reference', $checkTrx->id_transaction)->where('source', 'Transaction')->first();
-            if (!empty($point)) {
-                $point->delete();
-                if (!$point) {
-                    DB::rollback();
-                    return response()->json(['status' => 'fail', 'messages' => 'Transaction refund sync failed2']);
-                }
-
-                //update user point
-                $sumPoint = LogPoint::where('id_user', $user['id'])->sum('point');
-                $user->points = $sumPoint;
-                $user->update();
-                if (!$user) {
-                    DB::rollback();
-                    return response()->json([
-                        'status'    => 'fail',
-                        'messages'  => 'Update point failed'
-                    ]);
-                }
+        foreach ($post['data'] as $trx) {
+            $outlet = Outlet::where('outlet_code', strtoupper($trx['store_code']))->first();
+            if (empty($outlet)) {
+                return response()->json(['status' => 'fail', 'messages' => 'Store not found']);
             }
 
-            $balance = LogBalance::where('id_reference', $checkTrx->id_transaction)->where('source', 'Transaction')->first();
-            if (!empty($balance)) {
-                $balance->delete();
-                if (!$balance) {
-                    DB::rollback();
-                    return response()->json(['status' => 'fail', 'messages' => 'Transaction refund sync failed']);
-                }
 
-                //update user balance
-                $sumBalance = LogBalance::where('id_user', $user['id'])->sum('balance');
-                $user->balance = $sumBalance;
-                $user->update();
-                if (!$user) {
-                    DB::rollback();
-                    return response()->json([
-                        'status'    => 'fail',
-                        'messages'  => 'Update cashback failed'
-                    ]);
+            // if(!isset($trx['trx_id']) || !isset($trx['reason'])){
+            //     $countFailed += 1;
+            //     $failedRefund[] = 'fail to refund, trx_id and reason is required';
+            //     continue;
+            // }
+
+            DB::beginTransaction();
+            $checkTrx = Transaction::where('transaction_receipt_number', $trx['trx_id'])->where('id_outlet', $outlet->id_outlet)->first();
+            if (empty($checkTrx)) {
+                $countFailed += 1;
+                $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', transaction not found';
+                continue;
+            }
+
+            //if use voucher, cannot refund
+            $trxVou = TransactionVoucher::where('id_transaction', $checkTrx->id_transaction)->first();
+            if ($trxVou) {
+                $countFailed += 1;
+                $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', This transaction use voucher';
+                continue;
+            }
+
+            $checkTrx->transaction_payment_status = 'Cancelled';
+            $checkTrx->void_date = date('Y-m-d H:i:s');
+            $checkTrx->transaction_notes = $trx['reason'];
+            $checkTrx->update();
+            if (!$checkTrx) {
+                DB::rollBack();
+                $countFailed += 1;
+                $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update transaction status';
+                continue;
+            }
+
+            if ($checkTrx->id_user) {
+
+                $user = User::where('id', $checkTrx->id_user)->first();
+                if ($user) {
+                    $point = LogPoint::where('id_reference', $checkTrx->id_transaction)->where('source', 'Transaction')->first();
+                    if (!empty($point)) {
+                        $point->delete();
+                        if (!$point) {
+                            DB::rollBack();
+                            $countFailed += 1;
+                            $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed delete point';
+                            continue;
+                        }
+
+                        //update user point
+                        $sumPoint = LogPoint::where('id_user', $user['id'])->sum('point');
+                        $user->points = $sumPoint;
+                        $user->update();
+                        if (!$user) {
+                            DB::rollBack();
+                            $countFailed += 1;
+                            $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update point';
+                            continue;
+                        }
+                    }
+
+                    $balance = LogBalance::where('id_reference', $checkTrx->id_transaction)->where('source', 'Transaction')->first();
+                    if (!empty($balance)) {
+                        $balance->delete();
+                        if (!$balance) {
+                            $countFailed += 1;
+                            $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed delete point';
+                            continue;
+                        }
+
+                        //update user balance
+                        $sumBalance = LogBalance::where('id_user', $user['id'])->sum('balance');
+                        $user->balance = $sumBalance;
+                        $user->update();
+                        if (!$user) {
+                            DB::rollBack();
+                            $countFailed += 1;
+                            $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update point';
+                            continue;
+                        }
+                    }
+                    $checkMembership = app($this->membership)->calculateMembership($user['phone']);
+                    $countSuccess += 1;
+                    $successRefund[] = 'success to refund ' . $trx['trx_id'];
                 }
             }
-            $checkMembership = app($this->membership)->calculateMembership($user['phone']);
+
+            DB::commit();
         }
 
-        DB::commit();
-
-        return response()->json(['status' => 'success']);
+        return response()->json(['status' => 'success', 'result' => [
+            'count_success' => $countSuccess,
+            'success' => $successRefund,
+            'count_failed' => $countFailed,
+            'failed'  => $failedRefund
+        ]]);
     }
 
     public static function checkApi($key, $secret)
@@ -2008,434 +3098,103 @@ class ApiPOS extends Controller
         return response()->json(MyHelper::checkGet($trx));
     }
 
-    public function syncOutletMenu(reqBulkMenu $request)
+    public function syncOutletMenu(Request $request)
     {
         $post = $request->json()->all();
-
-        $syncDatetime = date('d F Y h:i');
-
-        $apikey = Setting::where('key', 'api_key')->first()->value;
-        $apisecret = Setting::where('key', 'api_secret')->first()->value;
-        if ($post['api_key'] != $apikey) {
-            return response()->json([
-                'status'    => 'fail',
-                'messages'  => 'Api key doesn\'t match.'
-            ]);
+        $api = $this->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
         }
-        if ($post['api_secret'] != $apisecret) {
-            return response()->json([
-                'status'    => 'fail',
-                'messages'  => 'Api secret doesn\'t match.'
-            ]);
-        }
-
-        DB::beginTransaction();
-        $hasil = [];
-        $isReject = false;
-        foreach ($post['store'] as $dataoutlet) {
-            $outlet = Outlet::where('outlet_code', strtoupper($dataoutlet['store_code']))->first();
-            //update
-            if ($outlet) {
-                if (isset($dataoutlet['store_name'])) {
-                    $outlet->outlet_name = $dataoutlet['store_name'];
-                }
-                if (isset($dataoutlet['store_address'])) {
-                    $outlet->outlet_address = $dataoutlet['store_address'];
-                }
-                if (isset($dataoutlet['store_phone'])) {
-                    $outlet->outlet_phone = $dataoutlet['store_phone'];
-                }
-                $outlet->save();
-            }
-            //insert
-            else {
-                $dataInsert['outlet_code'] = strtoupper($dataoutlet['store_code']);
-                if (!isset($dataoutlet['store_name'])) {
-                    DB::rollback();
-                    return response()->json([
-                        'status'   => 'fail',
-                        'messages' => 'Store with code ' . $dataoutlet['store_code'] . ' not found.', 'Add store_name to create a new data store.'
-                    ]);
-                }
-                $dataInsert['outlet_name'] = $dataoutlet['store_name'];
-                if (isset($dataoutlet['store_address'])) {
-                    $outlet->outlet_address = $dataoutlet['store_address'];
-                }
-                if (isset($dataoutlet['store_phone'])) {
-                    $outlet->outlet_phone = $dataoutlet['store_phone'];
-                }
-                $dataInsert['outlet_status'] = 'Inactive';
-                $outlet = Outlet::create($dataInsert);
-            }
-
-            if (!$outlet) {
-                DB::rollback();
-                return response()->json([
-                    'status'   => 'fail',
-                    'messages' => 'fail to sync'
-                ]);
-            }
-
-            if ($outlet) {
-                $countInsert = 0;
-                $countUpdate = 0;
-                $rejectedProduct = [];
-                $updatedProduct = [];
-                $insertedProduct = [];
-
-                $idProduct = [];
-                foreach ($dataoutlet['menu'] as $key => $menu) {
-                    $product = Product::where('product_code', $menu['plu_id'])->first();
-                    // return response()->json($menu);
-                    // update product
-                    if ($product) {
-                        // cek allow sync, jika 0 product tidak di update
-                        if ($product->product_allow_sync == '1') {
-
-                            // cek name pos, jika beda product tidak di update
-                            if (empty($product->product_name_pos) || $product->product_name_pos == $menu['name']) {
-                                $update = $product->update(['product_name_pos' => $menu['name']]);
-                                if ($update) {
-                                    // update modifiers
-                                    if (isset($menu['modifiers'])) {
-                                        if (!empty($menu['modifiers'])) {
-                                            foreach ($menu['modifiers'] as $mod) {
-                                                $dataProductMod['type'] = $mod['type'];
-                                                if (isset($mod['text']))
-                                                    $dataProductMod['text'] = $mod['text'];
-                                                else
-                                                    $dataProductMod['text'] = null;
-
-                                                $updateProductMod = ProductModifier::updateOrCreate([
-                                                    'id_product' => $product->id_product,
-                                                    'code'  => $mod['code']
-                                                ], $dataProductMod);
-                                            }
-                                        }
-                                    }
-
-                                    // update price
-                                    $productPrice = ProductPrice::where('id_product', $product->id_product)->where('id_outlet', $outlet->id_outlet)->first();
-                                    if ($productPrice) {
-                                        $oldPrice =  $productPrice->product_price;
-                                        $oldUpdatedAt =  $productPrice->updated_at;
-                                    } else {
-                                        $oldPrice = null;
-                                        $oldUpdatedAt = null;
-                                    }
-
-                                    $dataProductPrice['product_price'] = (int) round($menu['price']);
-                                    $dataProductPrice['product_price_base'] = round($menu['price_base'], 2);
-                                    $dataProductPrice['product_price_tax'] = round($menu['price_tax'], 2);
-                                    $dataProductPrice['product_status'] = $menu['status'];
-
-                                    $updateProductPrice = ProductPrice::updateOrCreate([
-                                        'id_product' => $product->id_product,
-                                        'id_outlet'  => $outlet->id_outlet
-                                    ], $dataProductPrice);
-
-                                    if (!$updateProductPrice) {
-                                        DB::rollBack();
-                                        return response()->json([
-                                            'status'    => 'fail',
-                                            'messages'  => 'Something went wrong.'
-                                        ]);
-                                    } else {
-
-                                        //upload photo
-                                        $imageUpload = [];
-                                        if (isset($menu['photo'])) {
-                                            foreach ($menu['photo'] as $photo) {
-                                                $image = file_get_contents($photo['url']);
-                                                $img = base64_encode($image);
-                                                if (!file_exists('img/product/item/')) {
-                                                    mkdir('img/product/item/', 0777, true);
-                                                }
-
-                                                $upload = MyHelper::uploadPhotoStrict($img, 'img/product/item/', 300, 300);
-
-                                                if (isset($upload['status']) && $upload['status'] == "success") {
-                                                    $orderPhoto = ProductPhoto::where('id_product', $product->id_product)->orderBy('product_photo_order', 'desc')->first();
-                                                    if ($orderPhoto) {
-                                                        $orderPhoto = $orderPhoto->product_photo_order + 1;
-                                                    } else {
-                                                        $orderPhoto = 1;
-                                                    }
-                                                    $dataPhoto['id_product'] = $product->id_product;
-                                                    $dataPhoto['product_photo'] = $upload['path'];
-                                                    $dataPhoto['product_photo_order'] = $orderPhoto;
-
-                                                    $photo = ProductPhoto::create($dataPhoto);
-                                                    if (!$photo) {
-                                                        DB::rollBack();
-                                                        $result = [
-                                                            'status'   => 'fail',
-                                                            'messages' => 'fail upload image'
-                                                        ];
-
-                                                        return response()->json($result);
-                                                    }
-
-                                                    //add in array photo
-                                                    $imageUpload[] = $photo['product_photo'];
-                                                } else {
-                                                    DB::rollBack();
-                                                    $result = [
-                                                        'status'   => 'fail',
-                                                        'messages' => 'fail upload image'
-                                                    ];
-
-                                                    return response()->json($result);
-                                                }
-                                            }
-                                        }
-
-                                        $countUpdate++;
-
-                                        // list updated product utk data log
-                                        $newProductPrice = ProductPrice::where('id_product', $product->id_product)->where('id_outlet', $outlet->id_outlet)->first();
-                                        $newUpdatedAt =  $newProductPrice->updated_at;
-
-                                        $updateProd['id_product'] = $product['id_product'];
-                                        $updateProd['plu_id'] = $product['product_code'];
-                                        $updateProd['product_name'] = $product['product_name'];
-                                        $updateProd['old_price'] = $oldPrice;
-                                        $updateProd['new_price'] = (int) $menu['price'];
-                                        $updateProd['old_updated_at'] = $oldUpdatedAt;
-                                        $updateProd['new_updated_at'] = $newUpdatedAt;
-                                        if (count($imageUpload) > 0) {
-                                            $updateProd['new_photo'] = $imageUpload;
-                                        }
-
-                                        $updatedProduct[] = $updateProd;
-                                    }
-                                } else {
-                                    DB::rollBack();
-                                    return response()->json([
-                                        'status'    => 'fail',
-                                        'messages'  =>  'Something went wrong.'
-                                    ]);
-                                }
-                            } else {
-                                // Add product to rejected product
-                                $productPrice = ProductPrice::where('id_outlet', $outlet->id_outlet)->where('id_product', $product->id_product)->first();
-
-                                $dataBackend['plu_id'] = $product->product_code;
-                                $dataBackend['name'] = $product->product_name_pos;
-                                if (empty($productPrice)) {
-                                    $dataBackend['price'] = '';
-                                } else {
-                                    $dataBackend['price'] = number_format($productPrice->product_price, 0, ',', '.');
-                                }
-
-                                $dataRaptor['plu_id'] = $menu['plu_id'];
-                                $dataRaptor['name'] = $menu['name'];
-                                $dataRaptor['price'] = number_format($menu['price'], 0, ',', '.');
-                                array_push($rejectedProduct, ['backend' => $dataBackend, 'raptor' => $dataRaptor]);
-                                $isReject = true;
-                            }
-                        }
-                        array_push($idProduct, $product->id_product);
-                        // $idProduct[] = $product->id_product;
-                    }
-
-                    // insert product
-                    else {
-                        $create = Product::create(['product_code' => $menu['plu_id'], 'product_name_pos' => $menu['name'], 'product_name' => $menu['name']]);
-                        if ($create) {
-                            // update price
-                            $dataProductPrice['product_price'] = (int) round($menu['price']);
-                            $dataProductPrice['product_price_base'] = round($menu['price_base'], 2);
-                            $dataProductPrice['product_price_tax'] = round($menu['price_tax'], 2);
-                            $dataProductPrice['product_status'] = $menu['status'];
-
-                            $updateProductPrice = ProductPrice::updateOrCreate([
-                                'id_product' => $create->id_product,
-                                'id_outlet'  => $outlet->id_outlet
-                            ], $dataProductPrice);
-
-                            if (!$updateProductPrice) {
-                                DB::rollBack();
-                                return response()->json([
-                                    'status'    => 'fail',
-                                    'messages'  => 'Something went wrong.'
-                                ]);
-                            } else {
-
-                                //upload photo
-                                $imageUpload = [];
-                                if (isset($menu['photo'])) {
-                                    foreach ($menu['photo'] as $photo) {
-                                        $image = file_get_contents($photo['url']);
-                                        $img = base64_encode($image);
-                                        if (!file_exists('img/product/item/')) {
-                                            mkdir('img/product/item/', 0777, true);
-                                        }
-
-                                        $upload = MyHelper::uploadPhotoStrict($img, 'img/product/item/', 300, 300);
-
-                                        if (isset($upload['status']) && $upload['status'] == "success") {
-                                            $dataPhoto['id_product'] = $product->id_product;
-                                            $dataPhoto['product_photo'] = $upload['path'];
-                                            $dataPhoto['product_photo_order'] = 1;
-
-                                            $photo = ProductPhoto::create($dataPhoto);
-                                            if (!$photo) {
-                                                DB::rollBack();
-                                                $result = [
-                                                    'status'   => 'fail',
-                                                    'messages' => 'fail upload image'
-                                                ];
-
-                                                return response()->json($result);
-                                            }
-
-                                            //add in array photo
-                                            $imageUpload[] = $photo['product_photo'];
-                                        } else {
-                                            DB::rollBack();
-                                            $result = [
-                                                'status'   => 'fail',
-                                                'messages' => 'fail upload image'
-                                            ];
-
-                                            return response()->json($result);
-                                        }
-                                    }
-                                }
-
-                                $countInsert++;
-
-                                // list new product utk data log
-                                $insertProd['id_product'] = $create['id_product'];
-                                $insertProd['plu_id'] = $create['product_code'];
-                                $insertProd['product_name'] = $create['product_name'];
-                                $insertProd['price'] = (int) $menu['price'];
-                                if (count($imageUpload) > 0) {
-                                    $updateProd['new_photo'] = $imageUpload;
-                                }
-
-                                $insertedProduct[] = $insertProd;
-                            }
-
-                            array_push($idProduct, $create->id_product);
-                            // $idProduct = $create->id_product;
-                        }
-                    }
-                }
-
-                //update inactive
-                $inactive = ProductPrice::where('id_outlet', $outlet->id_outlet)->whereNotIn('id_product', $idProduct)->update(['product_status' => 'Inactive']);
-                $hasil[] = [
-                    "outlet"  => [
-                        "id_outlet" => $outlet->id_outlet,
-                        "outlet_code" => $outlet->outlet_code,
-                        "outlet_name" => $outlet->outlet_name
-                    ],
-                    "new_product" => [
-                        "total" => $countInsert,
-                        "list_product" => $insertedProduct
-                    ],
-                    "updated_product" => [
-                        "total" => $countUpdate,
-                        "list_product" => $updatedProduct
-                    ],
-                    "rejected_product" => [
-                        "total" => count($rejectedProduct),
-                        "list_product" => $rejectedProduct,
-                    ],
-                    "inactive_product" => $inactive
-                ];
+        $lastData = end($post['store']);
+        foreach ($post['store'] as $key => $value) {
+            $data[$key]['store_code']   = $value['store_code'];
+            if ($value == $lastData) {
+                $data[$key]['is_end']   = 1;
             } else {
-                DB::rollback();
-                return response()->json([
-                    'status'    => 'fail',
-                    'messages'  => 'store_code ' . $dataoutlet['store_code'] . ' isn\'t match'
-                ]);
+                $data[$key]['is_end']   = 0;
             }
+            $data[$key]['request']      = json_encode($value);
+            $data[$key]['created_at']   = date('Y-m-d H:i:s');
+            $data[$key]['updated_at']   = date('Y-m-d H:i:s');
         }
-
+        DB::beginTransaction();
+        try {
+            $insertRequest = SyncMenuRequest::insert($data);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            LogBackendError::logExceptionMessage("ApiPOS/syncOutletMenu=>" . $e->getMessage(), $e);
+        }
         DB::commit();
-
-        // send email rejected product
-        if ($isReject == true) {
-
-            $emailSync = Setting::where('key', 'email_sync_menu')->first();
-            if (!empty($emailSync) && $emailSync->value != null) {
-                $emailSync = explode(',', $emailSync->value);
-                foreach ($emailSync as $key => $to) {
-
-                    $subject = 'Rejected product from outlet menu sync raptor';
-
-                    $content['sync_datetime'] = $syncDatetime;
-                    $content['data'] = $hasil;
-
-                    // get setting email
-                    $getSetting = Setting::where('key', 'LIKE', 'email%')->get()->toArray();
-                    $setting = array();
-                    foreach ($getSetting as $key => $value) {
-                        $setting[$value['key']] = $value['value'];
-                    }
-
-                    $data = array(
-                        'content' => $content,
-                        'setting' => $setting
-                    );
-
-                    Mailgun::send('pos::email_sync_outlet_menu', $data, function ($message) use ($to, $subject, $setting) {
-                        $message->to($to)->subject($subject)
-                            ->trackClicks(true)
-                            ->trackOpens(true);
-                        if (!empty($setting['email_from']) && !empty($setting['email_sender'])) {
-                            $message->from($setting['email_from'], $setting['email_sender']);
-                        } else if (!empty($setting['email_from'])) {
-                            $message->from($setting['email_from']);
-                        }
-
-                        if (!empty($setting['email_reply_to'])) {
-                            $message->replyTo($setting['email_reply_to'], $setting['email_reply_to_name']);
-                        }
-
-                        if (!empty($setting['email_cc']) && !empty($setting['email_cc_name'])) {
-                            $message->cc($setting['email_cc'], $setting['email_cc_name']);
-                        }
-
-                        if (!empty($setting['email_bcc']) && !empty($setting['email_bcc_name'])) {
-                            $message->bcc($setting['email_bcc'], $setting['email_bcc_name']);
-                        }
-                    });
-                }
-            }
-        }
-
-        return response()->json([
-            'status'    => 'success',
-            'result'  => $hasil,
-        ]);
+        return response()->json(MyHelper::checkGet($insertRequest));
     }
 
-    public function syncOutletMenuReturn(reqBulkMenu $request)
+    public function syncOutletMenuCron(Request $request)
     {
-        // call function syncMenu
-        $url = env('API_URL') . 'api/v1/pos/outlet/menu/sync';
-        $syncMenu = MyHelper::post($url, MyHelper::getBearerToken(), $request->json()->all());
-
-        // return sesuai api raptor
-        if (isset($syncMenu['status']) && $syncMenu['status'] == 'success') {
-            $hasil = [];
-            foreach ($syncMenu['result'] as $result) {
-                $hasil[] = [
-                    "store_code" => $result['outlet']['outlet_code'],
-                    "inserted" => $result['new_product']['total'],
-                    "updated" => $result['updated_product']['total'],
-                    "rejected" => $result['rejected_product']['total']
-                ];
-            }
-            return response()->json([
-                'status'    => 'success',
-                'result'  => $hasil
-            ]);
+        $syncDatetime = date('d F Y h:i');
+        $getRequest = SyncMenuRequest::get()->first();
+        // is $getRequest null
+        if (!$getRequest) {
+            return '';
         }
-        return $syncMenu;
+        $getRequest = $getRequest->toArray();
+        $getRequest['request'] = json_decode($getRequest['request'], true);
+        $syncMenu = $this->syncMenuProcess($getRequest['request'], 'bulk');
+        if ($syncMenu['status'] == 'success') {
+            SyncMenuResult::create(['result' => json_encode($syncMenu['result'])]);
+        } else {
+            SyncMenuResult::create(['result' => json_encode($syncMenu['messages'])]);
+        }
+        if ($getRequest['is_end'] == 1) {
+            $getResult = SyncMenuResult::pluck('result');
+            $totalReject    = 0;
+            $totalFailed    = 0;
+            $listFailed     = [];
+            $listRejected     = [];
+            foreach ($getResult as $value) {
+                $data[] = json_decode($value, true);
+                if (isset(json_decode($value, true)[0])) {
+                    $result['fail'][] = json_decode($value, true)[0];
+                }
+                if (isset(json_decode($value, true)['rejected_product'])) {
+                    $totalReject    = $totalReject + count(json_decode($value, true)['rejected_product']['list_product']);
+                    foreach (json_decode($value, true)['rejected_product']['list_product'] as $valueRejected) {
+                        array_push($listRejected, $valueRejected);
+                    }
+                }
+                if (isset(json_decode($value, true)['failed_product'])) {
+                    $totalFailed    = $totalFailed + count(json_decode($value, true)['failed_product']['list_product']);
+                    foreach (json_decode($value, true)['failed_product']['list_product'] as $valueFailed) {
+                        array_push($listFailed, $valueFailed);
+                    }
+                }
+            }
+
+            // if (count($listRejected) > 0) {
+            //     $this->syncSendEmail($syncDatetime, $outlet->outlet_code, $outlet->outlet_name, $rejectedProduct, null);
+            // }
+            // if (count($listFailed) > 0) {
+            //     $this->syncSendEmail($syncDatetime, $outlet->outlet_code, $outlet->outlet_name, null, $failedProduct);
+            // }
+        }
+        SyncMenuRequest::where('id', $getRequest['id'])->delete();
+    }
+
+    public function setTimezone($data)
+    {
+        switch ($data['time_zone']) {
+            case 'Asia/Makassar':
+                $data['open'] = date('H:i', strtotime('-1 hour', strtotime($data['open'])));
+                $data['close'] = date('H:i', strtotime('-1 hour', strtotime($data['close'])));
+                break;
+            case 'Asia/Jayapura':
+                $data['open'] = date('H:i', strtotime('-2 hours', strtotime($data['open'])));
+                $data['close'] = date('H:i', strtotime('-2 hours', strtotime($data['close'])));
+                break;
+            case 'Asia/Singapore':
+                $data['open'] = date('H:i', strtotime('-1 hour', strtotime($data['open'])));
+                $data['close'] = date('H:i', strtotime('-1 hour', strtotime($data['close'])));
+                break;
+        }
+        return $data;
     }
 }

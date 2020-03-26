@@ -25,7 +25,7 @@ class ApiSettingTransaction extends Controller
         $post = $request->json()->all();
         $outlet = Outlet::where('id_outlet', $post['id_outlet'])->first();
         if (empty($outlet)) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Outlet Not Found']
@@ -44,8 +44,8 @@ class ApiSettingTransaction extends Controller
         $count = $this->count($post);
         $order = Setting::where('key', 'transaction_grand_total_order')->value('value');
         $exp   = explode(',', $order);
-        
-        for ($i=0; $i < count($exp); $i++) { 
+
+        for ($i=0; $i < count($exp); $i++) {
             if (substr($exp[$i], 0, 5) == 'empty') {
                 unset($exp[$i]);
                 continue;
@@ -136,7 +136,7 @@ class ApiSettingTransaction extends Controller
         }
 
         array_values($result);
-        
+
         return response()->json([
             'status' => 'success',
             'result' => $result
@@ -162,7 +162,7 @@ class ApiSettingTransaction extends Controller
                         }
                     }
 
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => $mes
@@ -184,7 +184,7 @@ class ApiSettingTransaction extends Controller
                         }
                     }
 
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => $mes

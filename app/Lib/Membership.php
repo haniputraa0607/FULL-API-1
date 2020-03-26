@@ -28,13 +28,13 @@ use App\Lib\MyHelper;
 
 class Membership {
 
-    public function __construct() 
+    public function __construct()
     {
         date_default_timezone_set('Asia/Jakarta');
     }
 
     /* CALCULATE */
-    static function calculate($id_user=null, $phone=null) 
+    static function calculate($id_user=null, $phone=null)
     {
         DB::beginTransaction();
         $id_user = Self::getuser($id_user, $phone);
@@ -49,12 +49,12 @@ class Membership {
             }
         }
 
-        DB::rollback();
+        DB::rollBack();
         return true;
     }
 
     /* ID USER */
-    static function getUser($id_user=null, $phone=null) 
+    static function getUser($id_user=null, $phone=null)
     {
         if (!is_null($phone)) {
             $id_user = User::where('phone', $phone)->first();
@@ -71,7 +71,7 @@ class Membership {
 
 
     /* TRANSAKSI */
-    static function callTransaction($id_user) 
+    static function callTransaction($id_user)
     {
         $dataTrans = [];
         $transaction = Transaction::where('id_user', $id_user)->where('transaction_payment_status', 'Completed')->get()->toArray();
@@ -102,7 +102,7 @@ class Membership {
                 $dataUser['id_user'] = $id_user;
 
                 if ($trx['trxAmount'] >= $value['min_total_value'] && $trx['trxCount'] >= $value['min_total_count']) {
-                    
+
                     foreach ($value as $k => $v) {
                         $dataUser[$k] = $v;
                     }

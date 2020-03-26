@@ -46,7 +46,7 @@ class ApiSpinTheWheelController extends Controller
     public function setting(Request $request)
     {
         $post = $request->json()->all();
-        
+
         $response = DB::transaction(function () use($post) {
             // insert spin point to setting
             $data_setting = [ 'key' => 'spin_the_wheel_point', 'value' => $post['spin_the_wheel_point'] ];
@@ -63,7 +63,7 @@ class ApiSpinTheWheelController extends Controller
                     $id = $item['id_spin_the_wheel'];
                     unset($item['id_spin_the_wheel']);
                 }
-                
+
                 $check_expiry = Deal::where('id_deals', $item['id_deals'])->first();
                 if ( isset($check_expiry->deals_voucher_expired)){
                     $expiry_date = date('Y-m-d', strtotime($check_expiry->deals_voucher_expired));
@@ -107,7 +107,7 @@ class ApiSpinTheWheelController extends Controller
 
     /**
      * Get items and temporary spin prize
-     * 
+     *
      * Spin algorithm taken from https://stackoverflow.com/questions/28155800/organize-array-in-certain-way-roulette-wheel-items
      * @return selected item
      */
@@ -137,7 +137,7 @@ class ApiSpinTheWheelController extends Controller
 
         // total, needed to work out the weight
         $total = array_sum($items);
-        
+
         // find out the weight somehow
         $items_w = [];
         foreach ($items as $key => $item) {
@@ -150,7 +150,7 @@ class ApiSpinTheWheelController extends Controller
         // save temp prize
         $temp_prize = ["id_deals" => $prize, "id_user" => $user->id];
         $create = SpinPrizeTemporary::create($temp_prize);
-        
+
         $deals = Deal::findOrFail( ['id_deals' => $prize] )->first()->toArray();
 
         $data['spin_point'] = $spin_the_wheel_point;
@@ -182,7 +182,7 @@ class ApiSpinTheWheelController extends Controller
         else{
             return ['status' => 'fail', 'messages' => 'Your point is not enough.'];
         }
-        
+
         // get temp prize
         $temp_prize = SpinPrizeTemporary::with('deals')->where('id_user', $user->id)->latest()->first();
         $deals = $temp_prize->deals;
@@ -239,7 +239,7 @@ class ApiSpinTheWheelController extends Controller
 
             // if not updated
             if ( !($log && $user_update && $dealsVoucher && $dealsVoucher) ) {
-                DB::rollback();
+                DB::rollBack();
                 return ['status' => 'fail', 'messages' => 'Something went wrong. Please try again'];
             }
         DB::commit();

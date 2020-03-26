@@ -25,12 +25,12 @@ use App\Lib\MyHelper;
 use App\Lib\PushNotificationHelper;
 use App\Lib\classTexterSMS;
 use App\Lib\classMaskingJson;
+use App\Lib\classJatisSMS;
 use App\Lib\apiwha;
 use Validator;
 use Hash;
 use DB;
 use Mail;
-use Mailgun;
 
 class ApiAutoCrm extends Controller
 {
@@ -41,10 +41,11 @@ class ApiAutoCrm extends Controller
         date_default_timezone_set('Asia/Jakarta');
 		$this->textersms = new classTexterSMS();
 		$this->rajasms = new classMaskingJson();
+		$this->jatissms = new classJatisSMS();
 		$this->apiwha = new apiwha();
     }
 
-	function SendAutoCRM($autocrm_title, $receipient, $variables = null, $useragent = null){
+	function SendAutoCRM($autocrm_title, $receipient, $variables = null, $useragent = null, $forward_only = false){
 		$query = Autocrm::where('autocrm_title','=',$autocrm_title)->with('whatsapp_content')->get()->toArray();
 		$users = User::where('phone','=',$receipient)->get()->toArray();
 		if(empty($users)){
@@ -53,7 +54,7 @@ class ApiAutoCrm extends Controller
 		if($query){
 			$crm 	= $query[0];
 			$user 	= $users[0];
-			if($crm['autocrm_email_toogle'] == 1){
+			if($crm['autocrm_email_toogle'] == 1 && !$forward_only){
 				if(!empty($user['email'])){
 					if($user['name'] != "")
 						$name	 = "";
@@ -79,22 +80,23 @@ class ApiAutoCrm extends Controller
 
 					if($autocrm_title == 'Transaction Success'){
 
-						Mailgun::send('emails.test2', $data, function($message) use ($to,$subject,$name,$setting,$variables)
+						Mail::send('emails.test2', $data, function($message) use ($to,$subject,$name,$setting,$variables)
 						{
 
 							if(stristr($to, 'gmail.con')){
 								$to = str_replace('gmail.con', 'gmail.com', $to);
 							}
 
-
-							$message->to($to, $name)->subject($subject)
-											->trackClicks(true)
-											->trackOpens(true);
-							if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
-								$message->from($setting['email_from'], $setting['email_sender']);
-							}else if(!empty($setting['email_from'])){
-								$message->from($setting['email_from']);
+							$message->to($to, $name)->subject($subject);
+							if(env('MAIL_DRIVER') == 'mailgun'){
+								$message->trackClicks(true)
+										->trackOpens(true);
 							}
+                            if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
+                                $message->from($setting['email_sender'], $setting['email_from']);
+                            }else if(!empty($setting['email_sender'])){
+                                $message->from($setting['email_sender']);
+                            }
 
 							if(!empty($setting['email_reply_to'])){
 								$message->replyTo($setting['email_reply_to'], $setting['email_reply_to_name']);
@@ -120,16 +122,18 @@ class ApiAutoCrm extends Controller
 							}
 						});
 					}else{
-						Mailgun::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting,$variables)
+						Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting,$variables)
 						{
-							$message->to($to, $name)->subject($subject)
-											->trackClicks(true)
-											->trackOpens(true);
-							if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
-								$message->from($setting['email_from'], $setting['email_sender']);
-							}else if(!empty($setting['email_from'])){
-								$message->from($setting['email_from']);
+							$message->to($to, $name)->subject($subject);
+							if(env('MAIL_DRIVER') == 'mailgun'){
+								$message->trackClicks(true)
+										->trackOpens(true);
 							}
+                            if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
+                                $message->from($setting['email_sender'], $setting['email_from']);
+                            }else if(!empty($setting['email_sender'])){
+                                $message->from($setting['email_sender']);
+                            }
 
 							if(!empty($setting['email_reply_to'])){
 								$message->replyTo($setting['email_reply_to'], $setting['email_reply_to_name']);
@@ -192,16 +196,18 @@ class ApiAutoCrm extends Controller
 							'setting' => $setting
 						);
 
-						Mailgun::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting)
+						Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting)
 						{
-							$message->to($to, $name)->subject($subject)
-											->trackClicks(true)
-											->trackOpens(true);
-							if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
-								$message->from($setting['email_from'], $setting['email_sender']);
-							}else if(!empty($setting['email_from'])){
-								$message->from($setting['email_from']);
+							$message->to($to, $name)->subject($subject);
+							if(env('MAIL_DRIVER') == 'mailgun'){
+								$message->trackClicks(true)
+										->trackOpens(true);
 							}
+                            if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
+                                $message->from($setting['email_sender'], $setting['email_from']);
+                            }else if(!empty($setting['email_sender'])){
+                                $message->from($setting['email_sender']);
+                            }
 
 							if(!empty($setting['email_reply_to'])){
 								$message->replyTo($setting['email_reply_to'], $setting['email_reply_to_name']);
@@ -227,30 +233,81 @@ class ApiAutoCrm extends Controller
 				}
 			}
 
-			if($crm['autocrm_sms_toogle'] == 1){
+			if($crm['autocrm_sms_toogle'] == 1 && !$forward_only){
 				if(!empty($user['phone'])){
-					$senddata = array(
-						'apikey' => env('SMS_KEY'),
-						'callbackurl' => env('APP_URL'),
-						'datapacket'=>array()
-					);
+					switch (env('SMS_GATEWAY')) {
+						case 'Jatis':
+							$senddata = [
+								'userid'	=> env('SMS_USER'),
+								'password'	=> env('SMS_PASSWORD'),
+								'msisdn'	=> '62'.substr($user['phone'],1),
+								'sender'	=> env('SMS_SENDER'),
+								'division'	=> env('SMS_DIVISION'),
+								'batchname'	=> env('SMS_BATCHNAME'),
+								'uploadby'	=> env('SMS_UPLOADBY')
+							];
 
-					//add <#> and Hash Key in pin sms content
-					if($crm['autocrm_title'] == 'Pin Sent' || $crm['autocrm_title'] == 'Pin Forgot'){
-						if($useragent && $useragent == "Android"){
-							$crm['autocrm_sms_content'] = '<#> '.$crm['autocrm_sms_content'].' '.ENV('HASH_KEY_'.ENV('HASH_KEY_TYPE'));
-						}
+							if($crm['autocrm_title'] == 'Pin Sent' || $crm['autocrm_title'] == 'Pin Forgot'){
+								if($useragent && $useragent == "Android"){
+									$crm['autocrm_sms_content'] = '<#> '.$crm['autocrm_sms_content'].' '.ENV('HASH_KEY_'.ENV('HASH_KEY_TYPE'));
+								}
+								$senddata['message'] 	= $this->TextReplace($crm['autocrm_sms_content'], $user['phone'], $variables);
+								$senddata['channel']	= 2;
+							} else {
+								$senddata['message'] 	= $this->TextReplace($crm['autocrm_sms_content'], $user['phone'], $variables);
+								$senddata['channel']	= env('SMS_CHANNEL');
+							}
+
+							$this->jatissms->setData($senddata);
+							$send = $this->jatissms->send();
+
+							break;
+						case 'RajaSMS':
+							$senddata = array(
+								'apikey' => env('SMS_KEY'),
+								'callbackurl' => env('APP_URL'),
+								'datapacket'=>array()
+							);
+
+							//add <#> and Hash Key in pin sms content
+							if($crm['autocrm_title'] == 'Pin Sent' || $crm['autocrm_title'] == 'Pin Forgot'){
+								if($useragent && $useragent == "Android"){
+									$crm['autocrm_sms_content'] = '<#> '.$crm['autocrm_sms_content'].' '.ENV('HASH_KEY_'.ENV('HASH_KEY_TYPE'));
+								}
+							}
+
+							array_push($senddata['datapacket'],array(
+									'number' => trim($user['phone']),
+									'message' => urlencode(stripslashes(utf8_encode($content))),
+									'sendingdatetime' => ""));
+
+							$this->rajasms->setData($senddata);
+							$send = $this->rajasms->send();
+							break;
+						default:
+							$senddata = array(
+								'apikey' => env('SMS_KEY'),
+								'callbackurl' => env('APP_URL'),
+								'datapacket'=>array()
+							);
+
+							//add <#> and Hash Key in pin sms content
+							if($crm['autocrm_title'] == 'Pin Sent' || $crm['autocrm_title'] == 'Pin Forgot'){
+								if($useragent && $useragent == "Android"){
+									$crm['autocrm_sms_content'] = '<#> '.$crm['autocrm_sms_content'].' '.ENV('HASH_KEY_'.ENV('HASH_KEY_TYPE'));
+								}
+							}
+
+							array_push($senddata['datapacket'],array(
+									'number' => trim($user['phone']),
+									'message' => urlencode(stripslashes(utf8_encode($content))),
+									'sendingdatetime' => ""));
+
+							$this->rajasms->setData($senddata);
+							$send = $this->rajasms->send();
+							break;
 					}
-
-					$content 	= $this->TextReplace($crm['autocrm_sms_content'], $user['phone'], $variables);
-					array_push($senddata['datapacket'],array(
-							'number' => trim($user['phone']),
-							'message' => urlencode(stripslashes(utf8_encode($content))),
-							'sendingdatetime' => ""));
-
-					$this->rajasms->setData($senddata);
-					$send = $this->rajasms->send();
-
+                    $content 	= $this->TextReplace($crm['autocrm_sms_content'], $user['phone'], $variables);
 					$logData = [];
 					$logData['id_user'] = $user['id'];
 					$logData['sms_log_to'] = $user['phone'];
@@ -260,7 +317,7 @@ class ApiAutoCrm extends Controller
 				}
 			}
 
-			if($crm['autocrm_whatsapp_toogle'] == 1){
+			if($crm['autocrm_whatsapp_toogle'] == 1 && !$forward_only){
 				if(!empty($user['phone'])){
 					//cek api key whatsapp
 					$api_key = Setting::where('key', 'api_key_whatsapp')->first();
@@ -314,7 +371,7 @@ class ApiAutoCrm extends Controller
 				}
 			}
 
-			if($crm['autocrm_push_toogle'] == 1){
+			if($crm['autocrm_push_toogle'] == 1 && !$forward_only){
 				if(!empty($user['phone'])){
 					try {
 						$dataOptional          = [];
@@ -366,6 +423,7 @@ class ApiAutoCrm extends Controller
 								// $dataOptional['id_reference'] = $variables['id_reference'];
 								$dataOptional['id_reference'] = 0;
 							}elseif ($dataOptional['type'] == 'Transaction Detail') {
+								$dataOptional['type'] == 'Transaction';
 								if (isset($variables['id_transaction'])) {
 									$dataOptional['id_reference'] = $variables['id_transaction'];
 								} else {
@@ -379,6 +437,11 @@ class ApiAutoCrm extends Controller
 								} else {
 									$dataOptional['id_reference'] = 0;
 								}
+							}elseif ($dataOptional['type'] == 'Deals') {
+								$dataOptional['id_reference'] = $variables['id_brand'];
+							}elseif ($dataOptional['type'] == 'Deals Detail') {
+								$dataOptional['id_reference'] = $variables['id_deals'];
+								$dataOptional['id_brand'] = $variables['id_brand'];
 							}
 							else {
 								$dataOptional['id_reference'] = 0;
@@ -425,7 +488,7 @@ class ApiAutoCrm extends Controller
 				}
 			}
 
-			if($crm['autocrm_inbox_toogle'] == 1){
+			if($crm['autocrm_inbox_toogle'] == 1 && !$forward_only){
 				if(!empty($user['id'])){
 
 					$inbox['id_user'] 	  	  = $user['id'];
@@ -447,6 +510,7 @@ class ApiAutoCrm extends Controller
 								// $inbox['inboxes_id_reference'] = $variables['id_reference'];
 								$inbox['inboxes_id_reference'] = 0;
 						}elseif ($crm['autocrm_inbox_clickto'] == 'Transaction Detail') {
+							$inbox['inboxes_clickto'] == 'Transaction';
 							if (isset($variables['id_transaction'])) {
 								$inbox['inboxes_id_reference'] = $variables['id_transaction'];
 							} else {
@@ -461,8 +525,12 @@ class ApiAutoCrm extends Controller
 							} else {
 								$inbox['inboxes_id_reference'] = 0;
 							}
-						}
-						else {
+						}elseif ($crm['autocrm_inbox_clickto'] == 'Deals') {
+							$inbox['inboxes_id_reference'] = $variables['id_brand'];
+						}elseif ($crm['autocrm_inbox_clickto'] == 'Deals Detail') {
+							$inbox['inboxes_id_reference'] = $variables['id_deals'];
+							$inbox['id_brand'] = $variables['id_brand'];
+						}else {
 							$inbox['inboxes_id_reference'] = 0;
 						}
 					}
@@ -470,6 +538,7 @@ class ApiAutoCrm extends Controller
 					$inbox['inboxes_send_at'] = date("Y-m-d H:i:s");
 					$inbox['created_at'] = date("Y-m-d H:i:s");
 					$inbox['updated_at'] = date("Y-m-d H:i:s");
+
 					$inboxQuery = UserInbox::insert($inbox);
 				}
 			}
@@ -739,7 +808,7 @@ class ApiAutoCrm extends Controller
 
 	public function listPushNotif(){
 		$query = Setting::where('key', 'push_notification_list')->get()->first();
-		
+
 		if (!$query) {
 			$data = [
 				'key' 			=> 'push_notification_list',
@@ -782,8 +851,13 @@ class ApiAutoCrm extends Controller
 		return response()->json(MyHelper::checkGet($result));
 	}
 
-	public function listAutoCrm(){
-		$query = Autocrm::with('whatsapp_content')->get()->toArray();
+	public function listAutoCrm(Request $request){
+		$query = Autocrm::with('whatsapp_content');
+		if($request->autocrm_title){
+			$query = $query->where('autocrm_title',$request->autocrm_title)->first();
+		}else{
+			$query = $query->get()->toArray();			
+		}
 		return response()->json(MyHelper::checkGet($query));
 	}
 

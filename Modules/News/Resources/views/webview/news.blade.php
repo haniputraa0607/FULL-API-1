@@ -3,64 +3,88 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-        <link href="https://fonts.googleapis.com/css?family=Open+Sans|Questrial" rel="stylesheet">
-        <link href="{{ env('S3_URL_VIEW') }}{{('css/slide.css') }}" rel="stylesheet">
+        <link href="{{ env('API_URL') }}css/general.css" rel="stylesheet">
         <style type="text/css">
         @font-face {
-                font-family: "ProductSans-Bold";
+                font-family: "Ubuntu-Bold";
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Bold.ttf') }}');
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bold.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-BoldItalic";
+                font-family: "Ubuntu-BoldItalic";
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-BoldItalic.ttf') }}');
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bolditalic.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-Italic";
+                font-family: "Ubuntu-Italic";
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Italic.ttf') }}');
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_italic.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-Medium";
+                font-family: "Ubuntu-Light";
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Medium.ttf') }}');
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_light.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-MediumItalic";
+                font-family: "Ubuntu-LightItalic";
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-MediumItalic.ttf') }}');
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_lightitalic.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-Regular";
+                font-family: "Ubuntu-Medium";
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Regular.ttf') }}');
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_medium.ttf') }}');
         }
-        .ProductSans{
-            font-family: "ProductSans-Regular";
+        @font-face {
+                font-family: "Ubuntu-MediumItalic";
+                font-style: normal;
+                font-weight: 400;
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_mediumitalic.ttf') }}');
         }
-        .ProductSans-MediumItalic{
-            font-family: "ProductSans-MediumItalic";
+        @font-face {
+                font-family: "Ubuntu";
+                font-style: normal;
+                font-weight: 400;
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
         }
-        .ProductSans-Medium{
-            font-family: "ProductSans-Medium";
+        @font-face {
+                font-family: "Ubuntu-Regular";
+                font-style: normal;
+                font-weight: 400;
+                src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
         }
-        .ProductSans-Italic{
-            font-family: "ProductSans-Italic";
+        .Ubuntu-Bold{
+            font-family: "Ubuntu-Bold";
         }
-        .ProductSans-BoldItalic{
-            font-family: "ProductSans-BoldItalic";
+        .Ubuntu-BoldItalic{
+            font-family: "Ubuntu-BoldItalic";
         }
-        .ProductSans-Bold{
-            font-family: "ProductSans-Bold";
+        .Ubuntu-Italic{
+            font-family: "Ubuntu-Italic";
+        }
+        .Ubuntu-Light{
+            font-family: "Ubuntu-Light";
+        }
+        .Ubuntu-LightItalic{
+            font-family: "Ubuntu-LightItalic";
+        }
+        .Ubuntu-Medium{
+            font-family: "Ubuntu-Medium";
+        }
+        .Ubuntu-MediumItalic{
+            font-family: "Ubuntu-MediumItalic";
+        }
+        .Ubuntu{
+            font-family: "Ubuntu";
+        }
+        .Ubuntu-Regular{
+            font-family: "Ubuntu-Regular";
         }
         .kotak1 {
             padding-top: 10px;
@@ -68,7 +92,7 @@
             padding-left: 21.3px;
             padding-right: 21.3px;
             background: #fff;
-            font-family: 'Seravek', sans-serif;
+            font-family: 'Ubuntu';
         }
 
         .kotak-title {
@@ -76,7 +100,7 @@
             padding-left: 41.3px;
             padding-right: 41.3px;
             background: #fff;
-            font-family: 'Seravek', sans-serif;
+            font-family: 'Ubuntu';
             height: 100%
         }
 
@@ -86,7 +110,7 @@
             padding-left: 26.3px;
             padding-right: 26.3px;
             background: #fff;
-            font-family: 'Open Sans', sans-serif;
+            font-family: 'Ubuntu';
             height: 100%
         }
 
@@ -96,7 +120,7 @@
             padding-left: 26.3px;
             padding-right: 26.3px;
             background: #fff;
-            font-family: 'Open Sans', sans-serif;
+            font-family: 'Ubuntu';
             height: 100%
         }
 
@@ -183,8 +207,8 @@
             color: rgba(4,154,74,1);
         }
 
-        .text-red{
-            color: #990003;
+        .text-dark{
+            color: #333333;
         }
 
 
@@ -297,8 +321,8 @@
         }
         </style>
 
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css">
+        <link rel="stylesheet" href="{{ env('API_URL') }}css/owl.carousel.css">
+        <link rel="stylesheet" href="{{ env('API_URL') }}css/owl.theme.default.css">
     </head>
     {{-- <body> --}}
         @php
@@ -310,12 +334,10 @@
             <div class="container">
                 <div class="row space-bottom">
                     <div class="row container kotak-title">
-                        @php $hari=['','Senin','Selasa','Rabu','Kamis',"Jum'at",'Sabtu','Minggu']; @endphp
-                        <div class="col-12 text-bot text-custom-px ProductSans space-text"> <span> {{ $hari[date('N', strtotime($news[0]['news_post_date']))] }}, {{ date('d F Y', strtotime($news[0]['news_post_date'])) }} &nbsp;&nbsp;&nbsp; {{ date('H:i', strtotime($news[0]['news_post_date'])) }}  </span></div>
-                        <div class="col-12 text-bot text-black ProductSans-Medium" style=" line-height: 21px;padding-bottom: 10px;padding-top: 4px;"> <strong> @if($news[0]['news_second_title'] == null){{ strtoupper($news[0]['news_title']) }} @else {{ strtoupper($news[0]['news_second_title']) }} @endif</strong></div>
+                        <div class="col-12 text-bot text-custom-px Ubuntu space-text"> <span> {{ date('l', strtotime($news[0]['news_post_date'])) }}, {{ date('d F Y', strtotime($news[0]['news_post_date'])) }} &nbsp;&nbsp;&nbsp; {{ date('H:i', strtotime($news[0]['news_post_date'])) }}  </span></div>
+                        <div class="col-12 text-bot text-black Ubuntu-Medium" style=" line-height: 21px;padding-bottom: 10px;padding-top: 4px;"> <strong> @if($news[0]['news_second_title'] == null){{ strtoupper($news[0]['news_title']) }} @else {{ strtoupper($news[0]['news_second_title']) }} @endif</strong></div>
                     </div>
                     <img src="{{ $news[0]['url_news_image_dalam'] }}" style="height: 50vw;">
-                    <div id="grad1" style="margin-bottom: -20px;"></div>
                 </div>
             </div>
         </div>
@@ -326,47 +348,47 @@
             @if (isset($news[0]['news_event_date_start']))
                 @if ($news[0]['news_event_date_start'] == $news[0]['news_event_date_end'])
                     <div class="row space-bottom">
-                        <div class="col-12 text-red text-11-7px ProductSans-Medium">TANGGAL</div>
-                         <div class="col-12 text-grey-black text13-3px ProductSans-Medium"> {{ date('d F Y', strtotime($news[0]['news_event_date_start'])) }}</div>
+                        <div class="col-12 text-dark text13-3px Ubuntu-Bold">DATE</div>
+                         <div class="col-12 text-grey-black text13-3px Ubuntu-Medium"> {{ date('d F Y', strtotime($news[0]['news_event_date_start'])) }}</div>
                     </div>
                 @else
                     <div class="row space-bottom">
-                         <div class="col-12 text-red text-11-7px ProductSans-Medium">TANGGAL</div>
-                         <div class="col-12 text-grey-black text-13-3px ProductSans"> {{ date('d F', strtotime($news[0]['news_event_date_start'])) }} - {{ date('d F Y', strtotime($news[0]['news_event_date_end'])) }}</div>
+                         <div class="col-12 text-dark text13-3px Ubuntu-Bold">DATE</div>
+                         <div class="col-12 text-grey-black text-13-3px Ubuntu"> {{ date('d F', strtotime($news[0]['news_event_date_start'])) }} - {{ date('d F Y', strtotime($news[0]['news_event_date_end'])) }}</div>
                     </div>
                 @endif
             @endif
             @if (isset($news[0]['news_event_time_start']))
                 @if ($news[0]['news_event_time_start'] == $news[0]['news_event_time_end'])
                     <div class="row space-bottom">
-                        <div class="col-12 text-red text-11-7px ProductSans-Medium">JAM</div>
-                        <div class="col-12 text-grey-black text-13-3px ProductSans"> {{ date('H:i', strtotime($news[0]['news_event_time_start'])) }}</div>
+                        <div class="col-12 text-dark text13-3px Ubuntu-Bold">HOURS</div>
+                        <div class="col-12 text-grey-black text-13-3px Ubuntu"> {{ date('H:i', strtotime($news[0]['news_event_time_start'])) }}</div>
                     </div>
                 @else
                     <div class="row space-bottom">
-                        <div class="col-12 text-red text-11-7px ProductSans-Medium">JAM</div>
-                        <div class="col-12 text-grey-black text-13-3px ProductSans">{{ date('H:i', strtotime($news[0]['news_event_time_start'])) }} - {{ date('H:i', strtotime($news[0]['news_event_time_end'])) }}</div>
+                        <div class="col-12 text-dark text13-3px Ubuntu-Bold">HOURS</div>
+                        <div class="col-12 text-grey-black text-13-3px Ubuntu">{{ date('H:i', strtotime($news[0]['news_event_time_start'])) }} - {{ date('H:i', strtotime($news[0]['news_event_time_end'])) }}</div>
                     </div>
                 @endif
             @endif
             @if (isset($news[0]['news_event_location_name']))
                 <div class="row space-bottom">
-                    <div class="col-12 text-red text-11-7px ProductSans-Medium">LOKASI</div>
-                    <div class="col-12 text-grey-black text-13-3px ProductSans"> {{ $news[0]['news_event_location_name'] }} </div>
+                    <div class="col-12 text-dark text13-3px Ubuntu-Bold">LOCATION</div>
+                    <div class="col-12 text-grey-black text-13-3px Ubuntu"> {{ $news[0]['news_event_location_name'] }} </div>
                 </div>
             @endif
 
             @if (isset($news[0]['news_event_location_address']))
                 <div class="row space-bottom">
-                     <div class="col-12 text-red text-11-7px ProductSans-Medium">ALAMAT</div>
-                     <div class="col-12 text-grey-black text-13-3px ProductSans">{{ $news[0]['news_event_location_address'] }} </div>
+                     <div class="col-12 text-dark text13-3px Ubuntu-Bold">ADDRESS</div>
+                     <div class="col-12 text-grey-black text-13-3px Ubuntu">{{ $news[0]['news_event_location_address'] }} </div>
                 </div>
             @endif
 
             @if (isset($news[0]['news_event_location_phone']))
                 <div class="row space-bottom">
-                    <div class="col-12 text-red text-11-7px ProductSans-Medium">TELEPON</div>
-                    <div class="col-12 text-grey-black text-13-3px ProductSans"> {{ $news[0]['news_event_location_phone'] }} </div>
+                    <div class="col-12 text-dark text13-3px Ubuntu-Bold">CALL</div>
+                    <div class="col-12 text-grey-black text-13-3px Ubuntu"> {{ $news[0]['news_event_location_phone'] }} </div>
                 </div>
             @endif
 
@@ -382,8 +404,10 @@
         @endif
 
         <div class="kotak2">
-            <div class="container">
-                <div class="row space-bottom text-13-3px ProductSans">{!! $news[0]['news_content_long'] !!}
+            <div class="container" style="padding: 0px;">
+                <div class="text-13-3px Ubuntu">{!! $news[0]['news_content_long'] !!}
+                </div>
+                <div class="line-bottom">
                 </div>
             </div>
         </div>
@@ -393,7 +417,7 @@
                 <div class="container">
                     @if (isset($news[0]['news_video_text']))
                         <div class="row space-bottom">
-                            <div class="col-12 text-bot text-black text-15px ProductSans"> <span> {{ $news[0]['news_video_text'] }} :  </span></div>
+                            <div class="col-12 text-bot text-black text-15px Ubuntu"> <span> {{ $news[0]['news_video_text'] }} :  </span></div>
                         </div>
                     @endif
 
@@ -418,7 +442,7 @@
                 <div class="container">
                 @if (isset($news[0]['news_outlet_text']))
                     <div class="row space-bottom">
-                        <div class="col-12 text-bot text-black text-15px ProductSans"> <span> {{ $news[0]['news_outlet_text'] }} :  </span></div>
+                        <div class="col-12 text-bot text-black text-15px Ubuntu"> <span> {{ $news[0]['news_outlet_text'] }} :  </span></div>
                     </div>
                 @endif
 
@@ -450,7 +474,7 @@
                 <div class="container">
                     @if (isset($news[0]['news_product_text']))
                         <div class="row space-bottom">
-                            <div class="col-12 text-bot text-black text-15px ProductSans"> <span> {{ $news[0]['news_product_text'] }} :  </span></div>
+                            <div class="col-12 text-bot text-black text-15px Ubuntu"> <span> {{ $news[0]['news_product_text'] }} :  </span></div>
                         </div>
                     @endif
                     @if (isset($news[0]['news_product']))
@@ -471,13 +495,13 @@
         @endif
 
         {{ csrf_field() }}
-        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+        <script src="{{ env('API_URL') }}js/jquery.js"></script>
+        <script src="{{ env('API_URL') }}js/popper.js"></script>
+        <script src="{{ env('API_URL') }}js/general.js"></script>
         <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCOHBNv3Td9_zb_7uW-AJDU6DHFYk-8e9Y&v=3.exp&signed_in=true&libraries=places"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.0.2/pace.js"></script>
+        <script src="{{ env('API_URL') }}js/pace.js"></script>
 
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
+        <script src="{{ env('API_URL') }}js/owl.carousel.js"></script>
         <script>
             $(document).ready(function(){
                 $("#frame1").contents().find(".ytp-chrome-top-buttons").attr("style","display:none");

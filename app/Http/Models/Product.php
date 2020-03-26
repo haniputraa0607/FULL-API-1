@@ -8,7 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Modules\ProductVariant\Entities\ProductGroup;
 /**
  * Class Product
  *
@@ -39,11 +39,14 @@ class Product extends Model
 
 	protected $casts = [
 		'id_product_category' => 'int',
+		'id_product_group' => 'int',
 		'product_weight' => 'int'
 	];
 
 	protected $fillable = [
 		'id_product_category',
+		'id_product_group',
+		'category_id_pos',
 		'product_code',
 		'product_name',
 		'product_name_pos',
@@ -54,7 +57,12 @@ class Product extends Model
 		'product_visibility',
 		'position'
 	];
-
+	public function getProductCodesAttribute($value) {
+		return explode(',', $value);
+	}
+	public function getPhotoAttribute() {
+		return env('S3_URL_API').($this->photos[0]['product_photo']??'img/product/item/default.png');
+	}
 	public function product_category()
 	{
 		return $this->belongsTo(\App\Http\Models\ProductCategory::class, 'id_product_category');
@@ -62,7 +70,11 @@ class Product extends Model
 
 	 public function category()
     {
-        return $this->belongsTo(ProductCategory::class, 'id_product_category', 'id_product_category');
+    	$use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
+    	if($use_product_variant){
+	        return $this->hasMany(ProductGroup::class,'id_product_group', 'id_product_group')->join('product_categories','product_groups.id_product_category','=','product_categories.id_product_category')->select('product_groups.id_product_group','product_categories.*');
+    	}
+        return $this->belongsToMany(ProductCategory::class,'brand_product', 'id_product', 'id_product_category');
     }
 
     public function photos() {
@@ -95,7 +107,7 @@ class Product extends Model
 
 	public function product_prices()
 	{
-		return $this->hasMany(\App\Http\Models\ProductPrice::class, 'id_product')->where('product_visibility', 'Visible');
+		return $this->hasMany(\App\Http\Models\ProductPrice::class, 'id_product');
 	}
 
 	public function prices()
@@ -126,5 +138,27 @@ class Product extends Model
 	public function brands()
     {
         return $this->belongsToMany(\Modules\Brand\Entities\Brand::class, 'brand_product','id_product','id_brand');
+    }
+	public function brand_category()
+    {
+        return $this->hasMany(\Modules\Brand\Entities\BrandProduct::class, 'id_product','id_product')->select('id_brand','id_product_category','id_product');
+    }
+    public function modifiers(){
+        return $this->hasMany(ProductModifier::class, 'id_product','id_product');
+    }
+    public function product_variants(){
+        return $this->belongsToMany(\Modules\ProductVariant\Entities\ProductVariant::class, 'product_product_variants', 'id_product', 'id_product_variant');
+    }
+
+    public function discountActive()
+    {
+        $now = date('Y-m-d');
+        $time = date('H:i:s');
+        $day = date('l');
+
+        return $this->hasMany(ProductDiscount::class, 'id_product', 'id_product')->where('discount_days', 'like', '%'.$day.'%')->where('discount_start', '<=', $now)->where('discount_end', '>=', $now)->where('discount_time_start', '<=', $time)->where('discount_time_end', '>=', $time);
+    }
+    public function product_group(){
+        return $this->belongsTo(\Modules\ProductVariant\Entities\ProductGroup::class, 'id_product_group', 'id_product_group');
     }
 }

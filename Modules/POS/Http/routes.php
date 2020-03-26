@@ -5,35 +5,39 @@ Route::group(['middleware' => 'web', 'prefix' => 'pos', 'namespace' => 'Modules\
 });
 Route::group(['prefix' => 'api/v1/pos/', 'namespace' => 'Modules\POS\Http\Controllers'], function()
 {
-    Route::group(['middleware' => ['auth_client','log_activities_pos']], function() {
+    Route::group(['middleware' => ['auth_client','log_activities_pos', 'scopes:pos']], function() {
         Route::any('check/member', 'ApiPOS@checkMember');
         Route::any('check/voucher', 'ApiPOS@checkVoucher');
         Route::any('voucher/void', 'ApiPOS@voidVoucher');
         Route::post('outlet/sync', 'ApiPOS@syncOutlet');
-        Route::any('menu', 'ApiPOS@syncMenuReturn');
+        Route::post('outlet/sync/ovo', 'ApiPOS@syncOutletOvo');
+        // Route::any('menu', 'ApiPOS@syncMenuReturn');
         Route::any('outlet/menu', 'ApiPOS@syncOutletMenu');
-        Route::post('menu/sync', 'ApiPOS@syncMenu');
+        Route::post('menu', 'ApiPOS@syncProduct');
+        Route::post('add-on', 'ApiPOS@syncAddOn');
+        Route::post('menu/sync/price', 'ApiPOS@syncProductPrice');
+        Route::post('add-on/sync/price', 'ApiPOS@syncAddOnPrice');
         Route::any('transaction/refund', 'ApiPOS@transactionRefund');
         Route::any('transaction/detail', 'ApiPOS@transactionDetail');
     });
-    Route::group(['middleware' => 'auth_client'], function() {
+    Route::group(['middleware' => 'auth_client', 'scopes:pos'], function() {
         Route::post('transaction/last', 'ApiPOS@getLastTransaction');
         Route::post('order/detail/view', 'ApiOrder@detailWebviewPage');
     });
 });
-Route::group(['middleware' => ['auth_client','log_activities_pos'], 'prefix' => 'api/v1/pos/', 'namespace' => 'Modules\Brand\Http\Controllers'], function()
+Route::group(['middleware' => ['auth_client','log_activities_pos', 'scopes:pos'], 'prefix' => 'api/v1/pos/', 'namespace' => 'Modules\Brand\Http\Controllers'], function()
 {
     Route::post('brand', 'ApiSyncBrandController@syncBrand');
 });
 Route::group(['prefix' => 'api/v1/pos/', 'namespace' => 'Modules\POS\Http\Controllers'], function()
 {
-    Route::group(['middleware' => ['auth_client','log_activities_pos_transaction']], function() {
+    Route::group(['middleware' => ['auth_client','log_activities_pos_transaction', 'scopes:pos']], function() {
         Route::any('transaction', 'ApiPOS@transaction');
     });
 });
 Route::group(['prefix' => 'api/v1/pos/', 'namespace' => 'Modules\POS\Http\Controllers'], function()
 {
-    Route::group(['middleware' => ['auth_client','log_activities']], function() {
+    Route::group(['middleware' => ['auth_client','log_activities_pos', 'scopes:pos']], function() {
         Route::any('/order', 'ApiOrder@listOrder');
         Route::post('order/detail', 'ApiOrder@detailOrder');
         Route::post('order/accept', 'ApiOrder@acceptOrder');
@@ -51,13 +55,8 @@ Route::group(['prefix' => 'api/quinos', 'namespace' => 'Modules\POS\Http\Control
         Route::any('log', 'ApiQuinos@log');
         Route::get('log/detail/{id}', 'ApiQuinos@detailLog');
     });
-    Route::group(['middleware' => ['auth_client']], function() {
+    Route::group(['middleware' => ['auth_client', 'scopes:pos']], function() {
         Route::post('user/new', 'ApiQuinos@createQuinosUser');
         Route::post('user/update', 'ApiQuinos@updateQuinosUser');
     });
-});
-Route::group(['prefix' => 'api/v1/pos/', 'namespace' => 'Modules\POS\Http\Controllers'], function()
-{
-    Route::post('outlet/menu/cron', 'ApiPOS@syncOutletMenuCron');
-    Route::any('transaction/queue/cron', 'ApiTransactionSync@transaction');
 });

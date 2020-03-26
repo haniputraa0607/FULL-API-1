@@ -299,7 +299,7 @@ class ApiNews extends Controller
                         $saveForm = NewsFormStructure::create($dataForm);
 
                         if ( !($save && $saveForm) ) {
-                            DB::rollback();
+                            DB::rollBack();
                         }
                     }
                 }
@@ -523,7 +523,7 @@ class ApiNews extends Controller
             }
 
             if(!isset($post['id_news'])){
-                $news->select('id_news','id_news_category','news_title','news_publish_date','news_expired_date','news_slug','news_content_short','news_image_luar','news_image_dalam');
+                $news->select('id_news','id_news_category','news_title', 'news_post_date', 'news_publish_date','news_expired_date','news_slug','news_content_short','news_image_luar','news_image_dalam');
             }else{
                 $news->with('news_form_structures');
             }
@@ -570,9 +570,10 @@ class ApiNews extends Controller
             }
             array_walk($updateNews, function(&$newsItem) use ($post){
                 $newsItem['news_category']=$newsItem['news_category']?:['id_news_category'=>0,'category_name'=>'Uncategories'];
+                $newsItem['news_post_date']=date('l', strtotime($newsItem['news_post_date'])).', '.date('d F Y H:i', strtotime($newsItem['news_post_date']));
             });
             if(!$updateNews){
-                return response()->json(MyHelper::checkGet([], 'Belum ada berita'));
+                return response()->json(MyHelper::checkGet([], 'Empty News'));
             }
             return response()->json(MyHelper::checkGet($news));
     }
@@ -625,7 +626,7 @@ class ApiNews extends Controller
                 foreach ($post['news_form'] as $key => $news_form) {
                     $value = $this->checkCustomFormValue($news_form);
                     if(!$value && $news_form['input_value']!=""){
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'   => 'fail',
                             'messages' => ['Fail to save data.'],
@@ -654,7 +655,7 @@ class ApiNews extends Controller
                     ]);
 
                     if ( !($newsFormData && $newsFormDataDetail) ) {
-                        DB::rollback();
+                        DB::rollBack();
 
                         return response()->json([
                             'status'   => 'fail',

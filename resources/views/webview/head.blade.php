@@ -2,77 +2,97 @@
 	<title>{{ $title }}</title>
 	<meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
-
-    <script src="{{ env('S3_URL_VIEW') }}{{ ('assets/global/plugins/pace/pace.min.js') }}" type="text/javascript"></script>
-    <link href="{{ env('S3_URL_VIEW') }}{{ ('assets/webview/css/pace-flash.css') }}" rel="stylesheet" type="text/css" />
-    <!-- BEGIN GLOBAL MANDATORY STYLES -->
-    <link href="{{ env('S3_URL_VIEW') }}{{ ('assets/global/plugins/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet" type="text/css" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.2/css/all.min.css" rel="stylesheet" type="text/css" />
-    <!-- END GLOBAL MANDATORY STYLES -->
-
+    
     <!-- another css plugin -->
 	@yield('page-style-plugin')
 
     <style type="text/css">
         @font-face {
-                font-family: "Seravek";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('/fonts/Seravek.ttf') }}');
+            font-family: "Ubuntu-Bold";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bold.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-Bold";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Bold.ttf') }}');
+            font-family: "Ubuntu-BoldItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_bolditalic.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-BoldItalic";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-BoldItalic.ttf') }}');
+            font-family: "Ubuntu-Italic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_italic.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-Italic";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Italic.ttf') }}');
+            font-family: "Ubuntu-Light";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_light.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-Regular";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Regular.ttf') }}');
+            font-family: "Ubuntu-LightItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_lightitalic.ttf') }}');
         }
         @font-face {
-                font-family: "ProductSans-Medium";
-                font-style: normal;
-                font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('fonts/ProductSans-Medium.ttf') }}');
+            font-family: "Ubuntu-Medium";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_medium.ttf') }}');
         }
-        .Seravek{
-            font-family: "Seravek";
+        @font-face {
+            font-family: "Ubuntu-MediumItalic";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_mediumitalic.ttf') }}');
         }
-        .ProductSans{
-            font-family: "ProductSans-Regular";
+        @font-face {
+            font-family: "Ubuntu";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
         }
-        .ProductSans-Medium{
-            font-family: "ProductSans-Medium";
+        @font-face {
+            font-family: "Ubuntu-Regular";
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
         }
-        .ProductSans-Italic{
-            font-family: "ProductSans-Italic";
+        .Ubuntu-Bold{
+            font-family: "Ubuntu-Bold";
         }
-        .ProductSans-BoldItalic{
-            font-family: "ProductSans-BoldItalic";
+        .Ubuntu-BoldItalic{
+            font-family: "Ubuntu-BoldItalic";
         }
-        .ProductSans-Bold{
-            font-family: "ProductSans-Bold";
+        .Ubuntu-Italic{
+            font-family: "Ubuntu-Italic";
+        }
+        .Ubuntu-Light{
+            font-family: "Ubuntu-Light";
+        }
+        .Ubuntu-LightItalic{
+            font-family: "Ubuntu-LightItalic";
+        }
+        .Ubuntu-Medium{
+            font-family: "Ubuntu-Medium";
+        }
+        .Ubuntu-MediumItalic{
+            font-family: "Ubuntu-MediumItalic";
+        }
+        .Ubuntu{
+            font-family: "Ubuntu";
+        }
+        .Ubuntu-Regular{
+            font-family: "Ubuntu-Regular";
         }
         body{
             cursor: pointer;
             background-color: #fff;
             color: #858585;
-            font-family: {{env('FONT_FAMILY', "Seravek")}}, sans-serif !important;
+            font-family: {{env('FONT_FAMILY', "Ubuntu")}}, sans-serif !important;
         }
         .pace .pace-progress{
             top: 0;

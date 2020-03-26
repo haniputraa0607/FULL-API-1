@@ -34,12 +34,12 @@ class LogActivitiesPOSMiddleware
                 $reqnya = $request->json()->all();
                 $requestnya = json_encode($reqnya);
                 $requeste = json_decode($requestnya, true);
-                
+
                 $outletCode = null;
                 if(isset($request['store_code'])){
                     $outletCode = $request['store_code'];
                 }
-                
+
                 if($requestnya == '[]') $requestnya = null;
                 $urlexp = explode('/',$url);
 
@@ -48,7 +48,7 @@ class LogActivitiesPOSMiddleware
                 }elseif(isset($urlexp[4])){
                     $module = $urlexp[4];
                 }
-                
+
                 if(stristr($url, 'v1/pos')) $module = 'POS';
 
                 $subject = "Unknown";
@@ -110,21 +110,24 @@ class LogActivitiesPOSMiddleware
                 if(stristr($url, 'pos/transaction/detail')) $subject = 'Fetch Pre Order';
                 if(stristr($url, 'pos/transaction/refund')) $subject = 'POS Transaction Refund';
                 if(stristr($url, 'pos/brand')) $subject = 'POS Brand Sync';
-                
+
                 if(!empty($request->header('ip-address-view'))){
                     $ip = $request->header('ip-address-view');
                 }else{
-                    $ip = $request->ip();
+                    $ip = isset($_SERVER['HTTP_X_FORWARDED_FOR'])?$_SERVER['HTTP_X_FORWARDED_FOR']:$_SERVER['REMOTE_ADDR'];
+                    if(strpos($ip,',') !== false) {
+                        $ip = substr($ip,0,strpos($ip,','));
+                    }
                 }
 
                 $userAgent = $request->header('user-agent');
-                
+
                 $dtUser = null;
-                
+
                 if(!empty($user) && $user != ""){
                     $dtUser = json_encode($request->user());
                 }
-                
+
                 $data = [
                     'url' 		=> $url,
                     'subject' 		=> $subject,
@@ -142,6 +145,6 @@ class LogActivitiesPOSMiddleware
 
         }
         return $response;
-    
+
     }
 }

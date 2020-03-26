@@ -14,10 +14,11 @@ class OutletSchedule extends Model
 		'open',
 		'close',
 		'is_closed',
+		'time_zone',
 		'created_at',
 		'updated_at',
 	];
-	
+
     public function getOpenAttribute($value) {
 		return date('H:i', strtotime($value));
 	}

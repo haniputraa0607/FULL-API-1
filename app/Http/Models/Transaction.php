@@ -61,6 +61,7 @@ class Transaction extends Model
 	protected $fillable = [
 		'id_user',
 		'id_outlet',
+		'id_promo_campaign_promo_code',
 		'transaction_receipt_number',
 		'transaction_notes',
 		'transaction_subtotal',
@@ -86,7 +87,8 @@ class Transaction extends Model
 		'id_deals_voucher',
 		'latitude',
 		'longitude',
-		'membership_promo_id'
+		'membership_promo_id',
+		'completed_at'
 	];
 
 	public function user()
@@ -128,8 +130,13 @@ class Transaction extends Model
 		return $this->belongsToMany(\App\Http\Models\Product::class, 'transaction_products', 'id_transaction', 'id_product')
 					->select('product_categories.*','products.*')
 					->leftJoin('product_categories', 'product_categories.id_product_category', '=', 'products.id_product_category')
-					->withPivot('id_transaction_product', 'transaction_product_qty', 'transaction_product_price', 'transaction_product_price_base', 'transaction_product_price_tax', 'transaction_product_subtotal', 'transaction_product_note')
+					->withPivot('id_transaction_product', 'transaction_product_qty', 'transaction_product_price', 'transaction_product_price_base', 'transaction_product_price_tax', 'transaction_product_subtotal', 'transaction_product_discount', 'transaction_product_note')
 					->withTimestamps();
+	}
+
+	public function modifiers()
+	{
+		return $this->hasMany(\App\Http\Models\TransactionProductModifier::class,'id_transaction');
 	}
 
 	public function transaction_shipments()
@@ -169,5 +176,10 @@ class Transaction extends Model
 	public function transaction_vouchers()
 	{
 		return $this->hasMany(\App\Http\Models\TransactionVoucher::class, 'id_transaction', 'id_transaction');
+	}
+
+	public function promo_campaign_promo_code()
+	{
+		return $this->belongsTo(\Modules\PromoCampaign\Entities\PromoCampaignPromoCode::class, 'id_promo_campaign_promo_code', 'id_promo_campaign_promo_code');
 	}
 }

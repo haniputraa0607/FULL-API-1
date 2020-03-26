@@ -2,6 +2,7 @@
 
 namespace Modules\Users\Http\Controllers;
 
+use App\Http\Models\UsersDeviceLogin;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -24,6 +25,7 @@ use App\Http\Models\Setting;
 use App\Http\Models\Feature;
 use App\Http\Models\OauthAccessToken;
 use App\Http\Models\LogBalance;
+use Modules\Favorite\Entities\Favorite;
 
 use Modules\Users\Http\Requests\users_list;
 use Modules\Users\Http\Requests\users_forgot;
@@ -58,7 +60,7 @@ class ApiUser extends Controller
         }
         $this->membership  = "Modules\Membership\Http\Controllers\ApiMembership";
         $this->inbox  = "Modules\InboxGlobal\Http\Controllers\ApiInbox";
-        $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiSettingFraud";
+        $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiFraud";
     }
 
     function LogActivityFilter($rule='and', $conditions = null, $order_field='id', $order_method='asc', $skip=0, $take=999999999999){
@@ -119,10 +121,10 @@ class ApiUser extends Controller
             }
         }
 
-        $resultApps = $queryApps->skip($skip)->take($take)->get()->toArray();
         $resultCountApps = $queryApps->count();
-        $resultBe = $queryBe->skip($skip)->take($take)->get()->toArray();
         $resultCountBe = $queryBe->count();
+        $resultApps = $queryApps->skip($skip)->take($take)->get()->toArray();
+        $resultBe = $queryBe->skip($skip)->take($take)->get()->toArray();
 
         if($resultApps || $resultBe){
             $response = ['status'	=> 'success',
@@ -156,6 +158,7 @@ class ApiUser extends Controller
             foreach ($conditions as $key => $cond) {
                 $query = User::leftJoin('cities','cities.id_city','=','users.id_city')
                     ->leftJoin('provinces','provinces.id_province','=','cities.id_province')
+                    ->leftJoin('province_customs','province_customs.id_province_custom','=','users.id_province')
                     ->orderBy($order_field, $order_method);
 
                 if($cond != null){
@@ -166,6 +169,7 @@ class ApiUser extends Controller
                     $userTrxProduct = false;
                     $exceptUserTrxProduct = false;
                     $scanOtherProduct = false;
+                    $trxOutlet = false;
 
                     $rule = $cond['rule'];
                     unset($cond['rule']);
@@ -191,17 +195,13 @@ class ApiUser extends Controller
                         }
 
                         if($condition['subject'] == 'trx_product'){
-                            if(isset($condition['subject']) && $condition['subject'] == 'trx_product'){
-                                array_push($arr_tmp_product,$condition);
-                                unset($cond[$i]);
-                            }
+                            array_push($arr_tmp_product,$condition);
+                            unset($cond[$i]);
                         }
 
                         if($condition['subject'] == 'trx_outlet'){
-                            if(isset($condition['subject']) && $condition['subject'] == 'trx_outlet'){
-                                array_push($arr_tmp_outlet,$condition);
-                                unset($cond[$i]);
-                            }
+                            array_push($arr_tmp_outlet,$condition);
+                            unset($cond[$i]);
                         }
 
                         if($condition['subject'] == 'trx_product' || $condition['subject'] == 'trx_product_count' || $condition['subject'] == 'trx_product_tag' || $condition['subject'] == 'trx_product_tag_count'){
@@ -225,7 +225,7 @@ class ApiUser extends Controller
                         $userTrxProduct = false;
                     }
                     /*================================== END check ==================================*/
-                    if(!is_array($cond)) $cond = [];
+                    if(is_object($cond)) $cond = $cond->toArray();
                     if(count($arr_tmp_outlet) > 0)array_push($cond, ['outlets' => $arr_tmp_outlet]);
 
                     if($scanTrx == true){
@@ -265,12 +265,14 @@ class ApiUser extends Controller
                         $query = $query->select('users.*',
                             'cities.*',
                             'provinces.*',
+                            'province_customs.province_name as province_custom_name',
                             DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
                         );
                     } else {
                         $query = $query->select('users.*',
                             'cities.*',
                             'provinces.*',
+                            'province_customs.province_name as province_custom_name',
                             DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
                         );
                     }
@@ -286,6 +288,7 @@ class ApiUser extends Controller
                     $query = $query->select('users.*',
                         'cities.*',
                         'provinces.*',
+                        'province_customs.province_name as province_custom_name',
                         DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
                     );
                 }
@@ -309,22 +312,26 @@ class ApiUser extends Controller
             /*============= Final query when condition not null =============*/
             $finalResult = User::leftJoin('cities','cities.id_city','=','users.id_city')
                 ->leftJoin('provinces','provinces.id_province','=','cities.id_province')
+                ->leftJoin('province_customs','province_customs.id_province_custom','=','users.id_province')
                 ->orderBy($order_field, $order_method)
                 ->select('users.*',
                     'cities.*',
                     'provinces.*',
+                    'province_customs.province_name as province_custom_name',
                     DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
                 )
                 ->whereIn('users.id', $prevResult);
         }else {
             $query = User::leftJoin('cities','cities.id_city','=','users.id_city')
                 ->leftJoin('provinces','provinces.id_province','=','cities.id_province')
+                ->leftJoin('province_customs','province_customs.id_province_custom','=','users.id_province')
                 ->orderBy($order_field, $order_method);
 
             /*============= Final query when condition is null =============*/
             $finalResult = $query->select('users.*',
                 'cities.*',
                 'provinces.*',
+                'province_customs.province_name as province_custom_name',
                 DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
             );
         }
@@ -391,7 +398,8 @@ class ApiUser extends Controller
                         else if($condition['subject'] == 'province_name') $var = "provinces.".$condition['subject'];
                         else $var = "users.".$condition['subject'];
 
-                        $query = $query->where($var,'=',$conditionParameter);
+                        if(isset($conditionParameter))$query = $query->where($var,'=',$conditionParameter);
+                        else $query = $query->where($var,'=',$condition['parameter']);
                     }
 
                     if($condition['subject'] == 'device'){
@@ -564,7 +572,8 @@ class ApiUser extends Controller
                         else if($condition['subject'] == 'province_name') $var = "provinces.".$condition['subject'];
                         else $var = "users.".$condition['subject'];
 
-                        $query = $query->orWhere($var,'=',$conditionParameter);
+                        if(isset($conditionParameter))$query = $query->orWhere($var,'=',$conditionParameter);
+                        else $query = $query->orWhere($var,'=',$condition['parameter']);
                     }
 
                     if($condition['subject'] == 'device'){
@@ -837,22 +846,15 @@ class ApiUser extends Controller
 
         $phone = preg_replace("/[^0-9]/", "", $phone);
 
-        if(substr($phone, 0, 2) == '62'){
-            $phone = substr($phone,2);
-        }elseif(substr($phone, 0, 3) == '+62'){
-            $phone = substr($phone,3);
-        }
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
 
-        if(substr($phone, 0, 1) != '0'){
-            $phone = '0'.$phone;
-        }
-
-        $charAt2 = substr($phone, 1, 1);
-        if($charAt2 != '8'){
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
             return response()->json([
                 'status' => 'fail',
-                'messages' => ['Hanya dapat digunakan untuk nomor Indonesia dengan format 08xxx atau +628xxx']
+                'messages' => [$checkPhoneFormat['messages']]
             ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
         }
 
         $data = User::with('city')->where('phone', '=', $phone)->get()->toArray();
@@ -861,7 +863,8 @@ class ApiUser extends Controller
             return response()->json([
                 'status' => 'success',
                 'result' => $data,
-                'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@champresto.id']
+                // 'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
+                'messages' => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
             ]);
         }
 
@@ -892,15 +895,17 @@ class ApiUser extends Controller
 
         $phone = preg_replace("/[^0-9]/", "", $phone);
 
-        if(substr($phone, 0, 2) == '62'){
-            $phone = substr($phone,2);
-        }elseif(substr($phone, 0, 3) == '+62'){
-            $phone = substr($phone,3);
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
+
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => [$checkPhoneFormat['messages']]
+            ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
         }
 
-        if(substr($phone, 0, 1) != '0'){
-            $phone = '0'.$phone;
-        }
         $data = User::where('phone', '=', $phone)
             ->get()
             ->toArray();
@@ -967,12 +972,20 @@ class ApiUser extends Controller
 
             }
 
-            $result = ['status'	=> 'success',
-                'result'	=> ['phone'	=>	$create->phone,
-                    'autocrm'	=>	$autocrm,
-                    'pin'	=>	$pin
-                ]
-            ];
+            if(env('APP_ENV') == 'production'){
+                $result = ['status'	=> 'success',
+                    'result'	=> ['phone'	=>	$create->phone,
+                        'autocrm'	=>	$autocrm
+                    ]
+                ];
+            }else{
+                $result = ['status'	=> 'success',
+                    'result'	=> ['phone'	=>	$create->phone,
+                        'autocrm'	=>	$autocrm,
+                        'pin'	=>	MyHelper::encPIN($pin)
+                    ]
+                ];
+            }
             return response()->json($result);
 
         } else {
@@ -1003,7 +1016,10 @@ class ApiUser extends Controller
             if(!empty($request->header('ip-address-view'))){
                 $ip = $request->header('ip-address-view');
             }else{
-                $ip = $_SERVER["REMOTE_ADDR"];
+                $ip = isset($_SERVER['HTTP_X_FORWARDED_FOR'])?$_SERVER['HTTP_X_FORWARDED_FOR']:$_SERVER['REMOTE_ADDR'];
+                if(strpos($ip,',') !== false) {
+                    $ip = substr($ip,0,strpos($ip,','));
+                }
             }
         }
 
@@ -1054,14 +1070,15 @@ class ApiUser extends Controller
 
         $phone = preg_replace("/[^0-9]/", "", $phone);
 
-        if(substr($phone, 0, 2) == '62'){
-            $phone = substr($phone,2);
-        }elseif(substr($phone, 0, 3) == '+62'){
-            $phone = substr($phone,3);
-        }
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
 
-        if(substr($phone, 0, 1) != '0'){
-            $phone = '0'.$phone;
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => [$checkPhoneFormat['messages']]
+            ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
         }
 
         $datauser = User::where('phone', '=', $phone)
@@ -1071,28 +1088,12 @@ class ApiUser extends Controller
         $cekFraud = 0;
         if($datauser){
             if(Auth::attempt(['phone' => $phone, 'password' => $request->json('pin')])){
+                //untuk verifikasi admin panel
+                if($request->json('admin_panel')){
+                    return ['status'=>'success'];
+                }
                 //kalo login success
                 if($is_android != 0 || $is_ios != 0){
-
-                    //check fraud
-                    if($device_type && $device_id && $device_token){
-                        $cekFraud = 1;
-                        $deviceCus = UserFraud::where('device_id','=',$device_id)
-                            ->groupBy('id_user')
-                            ->get()->toArray();
-
-                        $lastDevice = UserDevice::where('id_user','=',$datauser[0]['id'])->orderBy('id_device_user', 'desc')->first();
-
-                        if($deviceCus && count($deviceCus) >= 3){
-                            // send notif fraud detection
-                            $fraud = FraudSetting::where('parameter', 'LIKE', '%device ID%')->first();
-                            if($fraud){
-                                $sendFraud = app($this->setting_fraud)->SendFraudDetection($fraud['id_fraud_setting'], $datauser[0], null, $lastDevice);
-                            }
-                        } else {
-                            UserFraud::updateOrCreate(['id_user' => $datauser[0]['id']], ['device_id' => $device_id, 'device_type' => $device_type]);
-                        }
-                    }
 
                     //kalo dari device
                     $checkdevice = UserDevice::where('device_type','=',$device_type)
@@ -1134,13 +1135,6 @@ class ApiUser extends Controller
                 if(stristr($useragent,'iOS')) $useragent = 'iOS';
                 if(stristr($useragent,'okhttp')) $useragent = 'Android';
                 if(stristr($useragent,'GuzzleHttp')) $useragent = 'Browser';
-                if(\Module::collections()->has('Autocrm')) {
-                    $autocrm = app($this->autocrm)->SendAutoCRM('Login Success', $phone,
-                        ['ip' => $ip,
-                            'useragent' => $useragent,
-                            'now' => date('Y-m-d H:i:s')
-                        ]);
-                }
 
                 //update count login failed
                 if($datauser[0]['count_login_failed'] > 0){
@@ -1160,12 +1154,52 @@ class ApiUser extends Controller
                         'lng' => $request->json('longitude'),
                         'action' => 'Login'
                     ]);
-
                 }
 
-                if($cekFraud == 0){
-                    $updateUserLogin = User::where('phone', $datauser[0]['phone'])->update(['new_login' => '1']);
+                if($device_id) {
+                    $fraud = FraudSetting::where('parameter', 'LIKE', '%device ID%')->where('fraud_settings_status', 'Active')->first();
+                    if ($fraud) {
+                        app($this->setting_fraud)->createUpdateDeviceLogin($datauser[0], $device_id);
+                        $deviceCus = UsersDeviceLogin::where('device_id', '=' ,$device_id)
+                            ->where('status','Active')
+                            ->select('id_user')
+                            ->orderBy('created_at','asc')
+                            ->groupBy('id_user')
+                            ->get()->toArray('id_user');
+
+                        $count = count($deviceCus);
+                        $check = array_slice($deviceCus, (int)$fraud['parameter_detail']);
+                        $check = array_column($check,'id_user');
+
+                        if($deviceCus && count($deviceCus) > (int)$fraud['parameter_detail'] && array_search($datauser[0]['id'], $check) !== false){
+                            $sendFraud = app($this->setting_fraud)->SendFraudDetection($fraud['id_fraud_setting'], $datauser[0], null, ['device_id' => $device_id, 'device_type' => $request->json('device_type')], 0, 0, null, 0);
+                            $data = User::with('city')->where('phone', '=', $datauser[0]['phone'])->get()->toArray();
+
+                            if ($data[0]['is_suspended'] == 1) {
+                                return response()->json([
+                                    'status' => 'fail',
+                                    // 'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
+                                    'messages' => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
+                                ]);
+                            } else {
+                                return response()->json([
+                                    'status' => 'fail',
+                                    // 'messages' => ['Akun Anda tidak dapat login di device ini karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
+                                    'messages' => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
+                                ]);
+                            }
+                        }
+                    }
                 }
+
+                if(\Module::collections()->has('Autocrm')) {
+                    $autocrm = app($this->autocrm)->SendAutoCRM('Login Success', $phone,
+                        ['ip' => $ip,
+                            'useragent' => $useragent,
+                            'now' => date('Y-m-d H:i:s')
+                        ]);
+                }
+
             } else{
                 //kalo login gagal
                 if($datauser){
@@ -1210,19 +1244,41 @@ class ApiUser extends Controller
         return response()->json($result);
     }
 
+	function checkPinBackend(users_phone_pin $request){
+        $phone = $request->json('phone');
+
+        $datauser = User::where('phone', '=', $phone)
+            ->get()
+            ->toArray();
+
+        if($datauser){
+            if(Auth::attempt(['phone' => $phone, 'password' => $request->json('pin')]) && $request->json('admin_panel')){
+                return ['status'=>'success'];
+            } else{
+                $result 			= [];
+                $result['status'] 	= 'fail';
+            }
+        }
+        else {
+            $result['status'] 	= 'fail';
+            $result['messages'] = ['Nomor HP belum terdaftar'];
+        }
+        return response()->json($result);
+    }
     function resendPin(users_phone $request){
         $phone = $request->json('phone');
 
         $phone = preg_replace("/[^0-9]/", "", $phone);
 
-        if(substr($phone, 0, 2) == '62'){
-            $phone = substr($phone,2);
-        }elseif(substr($phone, 0, 3) == '+62'){
-            $phone = substr($phone,3);
-        }
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
 
-        if(substr($phone, 0, 1) != '0'){
-            $phone = '0'.$phone;
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => [$checkPhoneFormat['messages']]
+            ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
         }
 
         $data = User::where('phone', '=', $phone)
@@ -1248,12 +1304,20 @@ class ApiUser extends Controller
                         'now' => date('Y-m-d H:i:s')], $useragent);
             }
 
-            $result = [
-                'status'	=> 'success',
-                'result'	=> ['phone'	=>	$data[0]['phone'],
-                    'pin'	=>	$pinnya
-                ]
-            ];
+            if(env('APP_ENV') == 'production'){
+                $result = [
+                    'status'	=> 'success',
+                    'result'	=> ['phone'	=>	$data[0]['phone'],
+                    ]
+                ];
+            }else{
+                $result = [
+                    'status'	=> 'success',
+                    'result'	=> ['phone'	=>	$data[0]['phone'],
+                    'pin'	=>	MyHelper::encPIN($pinnya)
+                    ]
+                ];
+            }
             /*} else {
                 $result = [
                         'status'	=> 'fail',
@@ -1274,14 +1338,15 @@ class ApiUser extends Controller
 
         $phone = preg_replace("/[^0-9]/", "", $phone);
 
-        if(substr($phone, 0, 2) == '62'){
-            $phone = substr($phone,2);
-        }elseif(substr($phone, 0, 3) == '+62'){
-            $phone = substr($phone,3);
-        }
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
 
-        if(substr($phone, 0, 1) != '0'){
-            $phone = '0'.$phone;
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => [$checkPhoneFormat['messages']]
+            ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
         }
 
         $user = User::where('phone', '=', $phone)->first();
@@ -1327,12 +1392,20 @@ class ApiUser extends Controller
                     'useragent' => $useragent,
                     'now' => date('Y-m-d H:i:s')], $useragent);
 
-            $result = [
-                'status'	=> 'success',
-                'result'	=> ['phone'	=>	$phone,
-                    'pin'	=>	$pin
-                ]
-            ];
+            if(env('APP_ENV') == 'production'){
+                $result = [
+                    'status'	=> 'success',
+                    'result'	=> ['phone'	=>	$phone
+                    ]
+                ];
+            }else{
+                $result = [
+                    'status'	=> 'success',
+                    'result'	=> ['phone'	=>	$phone,
+                    'pin'	    =>	MyHelper::encPIN($pin)
+                    ]
+                ];
+            }
             return response()->json($result);
 
         } else {
@@ -1347,17 +1420,19 @@ class ApiUser extends Controller
     function verifyPin(users_phone_pin $request){
 
         $phone = $request->json('phone');
+        $post = $request->json()->all();
 
         $phone = preg_replace("/[^0-9]/", "", $phone);
 
-        if(substr($phone, 0, 2) == '62'){
-            $phone = substr($phone,2);
-        }elseif(substr($phone, 0, 3) == '+62'){
-            $phone = substr($phone,3);
-        }
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
 
-        if(substr($phone, 0, 1) != '0'){
-            $phone = '0'.$phone;
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => [$checkPhoneFormat['messages']]
+            ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
         }
 
         $data = User::where('phone', '=', $phone)
@@ -1372,6 +1447,45 @@ class ApiUser extends Controller
             }
             if($data[0]['phone_verified'] == 0){
                 if(Auth::attempt(['phone' => $phone, 'password' => $request->json('pin')])){
+                    if(isset($post['device_id']) && isset($post['device_type'])) {
+                        $device_id = $post['device_id'];
+                        $device_type = $post['device_type'];
+                        $fraud = FraudSetting::where('parameter', 'LIKE', '%device ID%')->where('fraud_settings_status', 'Active')->first();
+                        if ($fraud) {
+                            app($this->setting_fraud)->createUpdateDeviceLogin($data[0], $device_id);
+
+                            $deviceCus = UsersDeviceLogin::where('device_id', '=' ,$device_id)
+                                ->where('status','Active')
+                                ->select('id_user')
+                                ->orderBy('created_at','asc')
+                                ->groupBy('id_user')
+                                ->get()->toArray('id_user');
+
+                            $count = count($deviceCus);
+                            $check = array_slice($deviceCus, (int)$fraud['parameter_detail']);
+                            $check = array_column($check,'id_user');
+
+                            if($deviceCus && count($deviceCus) > (int)$fraud['parameter_detail'] && array_search($data[0]['id'], $check) !== false){
+                                $sendFraud = app($this->setting_fraud)->SendFraudDetection($fraud['id_fraud_setting'], $data[0], null, ['device_id' => $device_id, 'device_type' => $device_type], 0, 0, null, 0);
+                                $data = User::with('city')->where('phone', '=', $phone)->get()->toArray();
+
+                                if ($data[0]['is_suspended'] == 1) {
+                                    return response()->json([
+                                        'status' => 'fail',
+                                        // 'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
+                                        'messages' => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
+                                    ]);
+                                } else {
+                                    return response()->json([
+                                        'status' => 'fail',
+                                        // 'messages' => ['Akun Anda tidak dapat di daftarkan karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee']
+                                        'messages' => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
+                                    ]);
+                                }
+                            }
+                        }
+                    }
+
                     $update = User::where('id','=',$data[0]['id'])->update(['phone_verified' => '1']);
                     if($update){
                         $profile = User::select('phone','email','name','id_city','gender','phone_verified', 'email_verified')
@@ -1381,18 +1495,27 @@ class ApiUser extends Controller
                         if(\Module::collections()->has('Autocrm')) {
                             $autocrm = app($this->autocrm)->SendAutoCRM('Pin Verify', $phone);
                         }
+
+                        //get response for confirmation pin didn't match
+                        $confirmPin = Setting::where('key', 'confirmation_pin_message')->first();
+                        if(isset($confirmPin['value'])){
+                            $confirmPin = $confirmPin['value'];
+                        }else{
+                            $confirmPin = 'Pin that you entered does not match';
+                        }
+
                         $result = [
                             'status'	=> 'success',
                             'result'	=> ['phone'	=>	$data[0]['phone'],
-                                'pin'	=>	$request->json('pin'),
                                 'profile'=> $profile
-                            ]
+                            ],
+                            'error_pin_message'	=> [$confirmPin]
                         ];
                     }
                 } else {
                     $result = [
                         'status'	=> 'fail',
-                        'messages'	=> ['OTP yang kamu masukkan salah']
+                        'messages'	=> ['The OTP you entered is incorrect']
                     ];
                 }
             } else {
@@ -1416,14 +1539,15 @@ class ApiUser extends Controller
 
         $phone = preg_replace("/[^0-9]/", "", $phone);
 
-        if(substr($phone, 0, 2) == '62'){
-            $phone = substr($phone,2);
-        }elseif(substr($phone, 0, 3) == '+62'){
-            $phone = substr($phone,3);
-        }
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
 
-        if(substr($phone, 0, 1) != '0'){
-            $phone = '0'.$phone;
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => [$checkPhoneFormat['messages']]
+            ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
         }
 
         $data = User::where('phone', '=', $phone)
@@ -1448,8 +1572,7 @@ class ApiUser extends Controller
                 }
                 $result = [
                     'status'	=> 'success',
-                    'result'	=> ['phone'	=>	$data[0]['phone'],
-                        'pin'	=>	$request->json('pin_new')
+                    'result'	=> ['phone'	=>	$data[0]['phone']
                     ]
                 ];
             } else {
@@ -1539,7 +1662,22 @@ class ApiUser extends Controller
     }
 
     function profileUpdate(users_profile $request){
-        $data = User::where('phone', '=', $request->json('phone'))
+        $use_custom_province = \App\Http\Models\Configs::where('id_config',96)->pluck('is_active')->first();
+
+        $phone = preg_replace("/[^0-9]/", "", $request->json('phone'));
+
+        $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
+
+        if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => [$checkPhoneFormat['messages']]
+            ]);
+        }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+            $phone = $checkPhoneFormat['phone'];
+        }
+
+        $data = User::where('phone', '=', $phone)
             ->get()
             ->toArray();
 
@@ -1550,7 +1688,7 @@ class ApiUser extends Controller
                     ->get()
                     ->first();
                 if($checkEmail){
-                    if($checkEmail['phone'] != $request->json('phone')){
+                    if($checkEmail['phone'] != $phone){
                         $result = [
                             'status'	=> 'fail',
                             'messages'	=> ['This email has already been registered to another account. Please choose other email.']
@@ -1574,8 +1712,14 @@ class ApiUser extends Controller
                 if($request->json('birthday')){
                     $dataupdate['birthday'] = $request->json('birthday');
                 }
-                if($request->json('id_city')){
-                    $dataupdate['id_city'] = $request->json('id_city');
+                if($use_custom_province){
+                    if($request->json('id_province')){
+                        $dataupdate['id_province'] = $request->json('id_province');
+                    }
+                }else{
+                    if($request->json('id_city')){
+                        $dataupdate['id_city'] = $request->json('id_city');
+                    }
                 }
                 if($request->json('relationship')){
                     $dataupdate['relationship'] = $request->json('relationship');
@@ -1592,13 +1736,23 @@ class ApiUser extends Controller
 
                 DB::beginTransaction();
 
+                $referral = \Modules\PromoCampaign\Lib\PromoCampaignTools::createReferralCode($data[0]['id']);
+
+                if(!$referral){
+                    DB::rollBack();
+                    return [
+                        'status'=>'fail',
+                        'messages' => ['failed create referral code']
+                    ];
+                }
+
                 $update = User::where('id','=',$data[0]['id'])->update($dataupdate);
 
                 $datauser = User::where('id','=',$data[0]['id'])->get()->toArray();
 
                 //cek complete profile ?
                 if($datauser[0]['complete_profile'] != "1"){
-                    if($datauser[0]['name'] != "" && $datauser[0]['email'] != "" && $datauser[0]['gender'] != "" && $datauser[0]['birthday'] != "" && $datauser[0]['id_city'] != "" && $datauser[0]['celebrate'] != "" && $datauser[0]['job'] != "" && $datauser[0]['address'] != ""){
+                    if($datauser[0]['name'] != "" && $datauser[0]['email'] != "" && $datauser[0]['gender'] != "" && $datauser[0]['birthday'] != "" && $datauser[0]['id_province'] != ""){
                         //get point
 
                         $complete_profile_cashback = 0;
@@ -1635,10 +1789,10 @@ class ApiUser extends Controller
                         $balance_nominal = $complete_profile_cashback;
                         // add log balance & update user balance
                         $balanceController = new BalanceController();
-                        $addLogBalance = $balanceController->addLogBalance($datauser[0]['id'], $balance_nominal, null, "Completing User Profile", 0);
+                        $addLogBalance = $balanceController->addLogBalance($datauser[0]['id'], $balance_nominal, null, "Welcome Point", 0);
 
                         if ( !$addLogBalance ) {
-                            DB::rollback();
+                            DB::rollBack();
                             return [
                                 'status' => 'fail',
                                 'messages' => 'Failed to save data'
@@ -1651,7 +1805,7 @@ class ApiUser extends Controller
                                 ]
                             );
                             if($send != true){
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status' => 'fail',
                                     'messages' => ['Failed Send notification to customer']
@@ -1668,12 +1822,10 @@ class ApiUser extends Controller
                 $result = [
                     'status'	=> 'success',
                     'result'	=> ['phone'	=>	$data[0]['phone'],
-                        // 'pin'	=>	$request->json('pin'),
                         'name' => $datauser[0]['name'],
                         'email' => $datauser[0]['email'],
                         'gender' => $datauser[0]['gender'],
                         'birthday' => $datauser[0]['birthday'],
-                        'id_city' => $datauser[0]['id_city'],
                         'relationship' => $datauser[0]['relationship'],
                         'celebrate' => $datauser[0]['celebrate'],
                         'job' => $datauser[0]['job'],
@@ -1681,6 +1833,11 @@ class ApiUser extends Controller
                     ],
                     'message'	=> 'Data telah berhasil diubah'
                 ];
+                if($use_custom_province){
+                    $result['result']['id_province'] = $datauser[0]['id_province'];
+                }else{
+                    $result['result']['id_city'] = $datauser[0]['id_city'];
+                }
                 // } else {
                 // 	$result = [
                 //         'status'	=> 'fail',
@@ -1767,12 +1924,10 @@ class ApiUser extends Controller
     }
     function list(Request $request){
         $post = $request->json()->all();
-        // return response()->json($post);
         if(isset($post['order_field'])) $order_field = $post['order_field']; else $order_field = 'id';
         if(isset($post['order_method'])) $order_method = $post['order_method']; else $order_method = 'desc';
         if(isset($post['skip'])) $skip = $post['skip']; else $skip = '0';
         if(isset($post['take'])) $take = $post['take']; else $take = '10';
-        // if(isset($post['rule'])) $rule = $post['rule']; else $rule = 'and';
         if(isset($post['conditions'])) $conditions = $post['conditions']; else $conditions = null;
 
         $query = $this->UserFilter($conditions, $order_field, $order_method, $skip, $take);
@@ -1782,7 +1937,7 @@ class ApiUser extends Controller
 
     function activity(Request $request){
         $post = $request->json()->all();
-
+        // return $post;
         if(isset($post['order_field'])) $order_field = $post['order_field']; else $order_field = 'id';
         if(isset($post['order_method'])) $order_method = $post['order_method']; else $order_method = 'desc';
         if(isset($post['skip'])) $skip = $post['skip']; else $skip = '0';
@@ -1845,6 +2000,38 @@ class ApiUser extends Controller
                 $result = [
                     'status'	=> 'fail',
                     'messages'	=> ['User Not Found']
+                ];
+            }
+        }
+        return response()->json($result);
+    }
+
+    public function deleteLog(Request $request)
+    {
+        $post = $request->json()->all();
+
+        if (isset($post['id_log_activities_apps'])) {
+            $deleteLog = LogActivitiesApps::where('id_log_activities_apps','=',$post['id_log_activities_apps'])->delete();
+            if($deleteLog){
+                $result = ['status'	=> 'success',
+                    'result'	=> ['User Log has been deleted']
+                ];
+            } else {
+                $result = [
+                    'status'	=> 'fail',
+                    'messages'	=> ['User Admin & Super Admin Cannot be deleted']
+                ];
+            }
+        } elseif (isset($post['id_log_activities_be'])) {
+            $deleteLog = LogActivitiesBE::where('id_log_activities_be','=',$post['id_log_activities_be'])->delete();
+            if($deleteLog){
+                $result = ['status'	=> 'success',
+                    'result'	=> ['User Log has been deleted']
+                ];
+            } else {
+                $result = [
+                    'status'	=> 'fail',
+                    'messages'	=> ['User Admin & Super Admin Cannot be deleted']
                 ];
             }
         }
@@ -1961,14 +2148,19 @@ class ApiUser extends Controller
 
     public function show(Request $request)
     {
+        $use_custom_province = \App\Http\Models\Configs::where('id_config',96)->pluck('is_active')->first();
         $post = $request->json()->all();
 
-        $query = User::leftJoin('cities','cities.id_city','=','users.id_city')
-            ->leftJoin('provinces','provinces.id_province','=','cities.id_province')
+        $query = User::select('*')
             ->with('history_transactions.outlet_name', 'history_balance.detail_trx', 'user_membership')
-            ->where('phone','=',$post['phone'])
-            ->get()
-            ->first();
+            ->where('phone','=',$post['phone']);
+        if($use_custom_province){
+            $query->leftJoin('province_customs','province_customs.id_province_custom','=','users.id_province');
+        }else{
+            $query->leftJoin('cities','cities.id_city','=','users.id_city')
+            ->leftJoin('provinces','provinces.id_province','=','cities.id_province');
+        }
+        $query = $query->get()->first();
 
 
         if($query){
@@ -2129,21 +2321,9 @@ class ApiUser extends Controller
         }
 
         if($log){
-            if($log['response']){
-                $res = MyHelper::decrypt2019($log['response']);
-                if(!$log['response']){
-                    $log['response'] = $res;
-                }
-                // $log['response'] = str_replace('}','\r\n}',str_replace(',',',\r\n&emsp;',str_replace('{','{\r\n&emsp;',strip_tags($log['response']))));
-            }
-
-            if($log['request']){
-                $req = MyHelper::decrypt2019($log['request']);
-                if(!$log['request']){
-                    $log['request'] = $request;
-                }
-                // $log['request'] = str_replace('}','\r\n}',str_replace(',',',\r\n&emsp;',str_replace('{','{\r\n&emsp;',strip_tags($log['request']))));
-            }
+            $log->user      = MyHelper::decrypt2019($log->user);
+            $log->request   = MyHelper::decrypt2019($log->request);
+            $log->response  = MyHelper::decrypt2019($log->response);
         }
 
         return response()->json(MyHelper::checkGet($log));
@@ -2364,15 +2544,30 @@ class ApiUser extends Controller
             return response()->json($result);
         }
 
-        $user = User::where('phone',$post['phone'])->get()->toArray();
-
+        $user = User::where('phone',$post['phone'])->first();
+        if(!$user){
+            return [
+                'status'=>'fail',
+                'messages'=>'User not found'
+            ];
+        }
+        DB::beginTransaction();
         $create = null;
         if(isset($post['module'])){
+            $delete=UserFeature::where('id_user',$user->id)->delete();
             foreach($post['module'] as $id_feature){
-                $create = DB::insert('insert into user_features (id_user, id_feature) values (?, ?)', [$user[0]['id'], $id_feature]);
-
+                $create = UserFeature::updateOrCreate(['id_user'=>$user->id,'id_feature'=>$id_feature]);
+                // $create = DB::insert('insert into user_features (id_user, id_feature) values (?, ?)', [$user->id, $id_feature]);
+                if(!$create){
+                    DB::rollBack();
+                    return [
+                        'status'=>'fail',
+                        'messages'=>['Update user permission failed']
+                    ];
+                }
             }
         }
+        DB::commit();
         $result = ['status'	=> 'success'];
         return response()->json($result);
     }
@@ -2648,5 +2843,27 @@ class ApiUser extends Controller
         }
 
         return response()->json(MyHelper::checkGet($user));
+    }
+
+    public function favorite(Request $request) {
+        $data = Favorite::whereHas('user',function($query) use ($request){
+            $query->where('phone',$request->json('phone'));
+        })->with([
+            'product'=>function($query){
+                $query->select('id_product','product_name','product_code');
+            },
+            'outlet'=>function($query){
+                $query->select('id_outlet','outlet_name','outlet_code');
+            },
+            'modifiers'=>function($query){
+                $query->select('text');
+            }
+        ]);
+        if($request->page){
+            $data = $data->paginate(10);
+        }else{
+            $data = $data->get();
+        }
+        return MyHelper::checkGet($data??[]);
     }
 }

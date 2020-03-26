@@ -54,6 +54,7 @@ class Membership extends Model
 		'membership_name_color',
 		'membership_image',
 		'membership_next_image',
+		'membership_bg_image',
 		'min_total_value',
 		'min_total_count',
 		'min_total_balance',
@@ -65,6 +66,7 @@ class Membership extends Model
 		'benefit_cashback_multiplier',
 		'benefit_promo_id',
 		'benefit_discount',
+		'benefit_text',
 		'cashback_maximum'
 	];
 

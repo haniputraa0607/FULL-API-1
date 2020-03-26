@@ -9,6 +9,7 @@ use App\Http\Models\ProductPhoto;
 use App\Http\Models\NewsProduct;
 use App\Http\Models\TransactionProduct;
 use App\Http\Models\ProductPrice;
+use App\Http\Models\ProductModifier;
 use App\Http\Models\Outlet;
 
 use Illuminate\Http\Request;
@@ -152,10 +153,22 @@ class ApiProductController extends Controller
     public function categoryAssign(Request $request) {
 		$post = $request->json()->all();
 		foreach ($post['id_product'] as $key => $idprod) {
-			if($post['id_product_category'][$key] == 0)
+            $count = BrandProduct::where('id_product',$idprod)->count();
+			if($post['id_product_category'][$key] == 0){
 				$update = Product::where('id_product','=',$idprod)->update(['id_product_category' => null, 'product_name' => $post['product_name'][$key]]);
-			else
+                if($count){
+                    BrandProduct::where(['id_product'=>$idprod])->update(['id_product_category' => null]);
+                }else{
+                    BrandProduct::create(['id_product'=>$idprod,'id_product_category' => null]);
+                }
+			}else{
 				$update = Product::where('id_product','=',$idprod)->update(['id_product_category' => $post['id_product_category'][$key], 'product_name' => $post['product_name'][$key]]);
+                if($count){
+                    BrandProduct::where(['id_product'=>$idprod])->update(['id_product_category' => $post['id_product_category'][$key]]);
+                }else{
+                    BrandProduct::create(['id_product'=>$idprod,'id_product_category' => $post['id_product_category'][$key]]);
+                }
+            }
 		}
 		return response()->json(MyHelper::checkUpdate($update));
 	}
@@ -250,7 +263,7 @@ class ApiProductController extends Controller
 		}
 
         if (isset($post['id_product'])) {
-            $product->where('products.id_product', $post['id_product'])->with(['brands']);
+            $product->with('modifiers')->where('products.id_product', $post['id_product'])->with(['brands']);
         }
 
         if (isset($post['product_code'])) {
@@ -368,7 +381,8 @@ class ApiProductController extends Controller
             foreach ($brands as $id_brand) {
                 BrandProduct::create([
                     'id_product'=>$request->json('id_product'),
-                    'id_brand'=>$id_brand
+                    'id_brand'=>$id_brand,
+                    'id_product_category'=>$request->json('id_product_category')
                 ]);
             }
         }
@@ -576,6 +590,38 @@ class ApiProductController extends Controller
     	}
     }
 
+    function uploadPhotoProductAjax(Request $request) {
+    	$post = $request->json()->all();
+    	$data = [];
+        $checkCode = Product::where('product_code', $post['name'])->first();
+    	if ($checkCode) {
+            $upload = MyHelper::uploadPhotoStrict($post['photo'], $this->saveImage, 300, 300);
+
+    	    if (isset($upload['status']) && $upload['status'] == "success") {
+    	        $data['product_photo'] = $upload['path'];
+    	    }
+    	    else {
+    	        $result = [
+    	            'status'   => 'fail',
+    	            'messages' => ['fail upload image']
+    	        ];
+    	        return response()->json($result);
+    	    }
+    	}
+    	if (empty($data)) {
+    		return reponse()->json([
+    			'status' => 'fail',
+    			'messages' => ['fail save to database']
+    		]);
+    	}
+    	else {
+            $data['id_product']          = $checkCode->id_product;
+            $data['product_photo_order'] = $this->cekUrutanPhoto($checkCode->id_product);
+            $save                        = ProductPhoto::updateOrCreate(['id_product' => $checkCode->id_product],$data);
+    		return response()->json(MyHelper::checkCreate($save));
+    	}
+    }
+
     /*
     cek urutan
     */
@@ -763,5 +809,73 @@ class ApiProductController extends Controller
     function getNextID($id){
         $product = Product::where('id_product', '>', $id)->orderBy('id_product')->first();
         return response()->json(MyHelper::checkGet($product));
+    }
+    public function detail(Request $request) {
+        $post = $request->json()->all();
+        //get product
+        $product = Product::select('id_product','product_code','product_name','product_description','product_code','product_visibility')
+        ->where('id_product',$post['id_product'])
+        ->whereHas('brand_category')
+        ->whereHas('product_prices',function($query) use ($post){
+            $query->where('id_outlet',$post['id_outlet'])
+            ->whereNotNull('product_price')
+            ->where('product_status','=','Active');
+        })
+        ->with(['photos','brand_category'=>function($query) use ($post){
+            $query->where('id_product',$post['id_product']);
+            $query->where('id_brand',$post['id_brand']);
+        },'product_prices'=>function($query) use ($post){
+            $query->select('id_product','product_price','id_outlet','product_status','product_visibility');
+            $query->where('id_outlet',$post['id_outlet']);
+        }])->first();
+        if(!$product){
+            return MyHelper::checkGet([]);
+        }else{
+            // toArray error jika $product Null,
+            $product = $product->append('photo')->toArray();
+            unset($product['photos']);
+        }
+        $product['product_price'] = $product['product_prices'][0]['product_price'];
+        if(!(empty($product['product_prices']['product_visibility'])&&$product['product_visibility']=='Visible') && ($product['product_prices'][0]['product_visibility']??false)!='Visible'){
+            return MyHelper::checkGet([]);
+        }
+        unset($product['product_prices']);
+        $post['id_product_category'] = $product['brand_category'][0]['id_product_category']??0;
+        if($post['id_product_category'] === 0){
+            return MyHelper::checkGet([]);
+        }
+        //get modifiers
+        $product['modifiers'] = ProductModifier::select('product_modifiers.id_product_modifier','code','text','product_modifier_stock_status','product_modifier_price as price')
+            ->where(function($query) use($post){
+                $query->where('modifier_type','Global')
+                ->orWhere(function($query) use ($post){
+                    $query->whereHas('products',function($query) use ($post){
+                        $query->where('products.id_product',$post['id_product']);
+                    });
+                    $query->orWhereHas('product_categories',function($query) use ($post){
+                        $query->where('product_categories.id_product_category',$post['id_product_category']);
+                    });
+                    $query->orWhereHas('brands',function($query) use ($post){
+                        $query->where('brands.id_brand',$post['id_brand']);
+                    });
+                });
+            })
+            ->join('product_modifier_prices',function($join) use ($post){
+                $join->on('product_modifier_prices.id_product_modifier','=','product_modifiers.id_product_modifier');
+                $join->where('product_modifier_prices.id_outlet',$post['id_outlet']);
+            })->where('product_modifier_status','Active')
+            ->where(function($query){
+                $query->where('product_modifier_prices.product_modifier_visibility','=','Visible')
+                        ->orWhere(function($q){
+                            $q->whereNull('product_modifier_prices.product_modifier_visibility')
+                            ->where('product_modifiers.product_modifier_visibility', 'Visible');
+                        });
+            })
+            ->get()->toArray();
+        foreach ($product['modifiers'] as $key => &$modifier) {
+            $modifier['price'] = (int) $modifier['price'];
+            unset($modifier['product_modifier_prices']);
+        }
+        return MyHelper::checkGet($product);
     }
 }

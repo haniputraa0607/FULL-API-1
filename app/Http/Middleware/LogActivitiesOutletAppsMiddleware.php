@@ -37,12 +37,12 @@ class LogActivitiesOutletAppsMiddleware
                 if(isset($reqnya['pin_new'])) $reqnya['pin'] = "******";
                 $requestnya = json_encode($reqnya);
                 $requeste = json_decode($requestnya, true);
-                
+
                 $outletCode = null;
                 if(isset($user['outlet_code'])){
                     $outletCode = $user['outlet_code'];
                 }
-                
+
                 if($requestnya == '[]') $requestnya = null;
                 $urlexp = explode('/',$url);
 
@@ -51,10 +51,10 @@ class LogActivitiesOutletAppsMiddleware
                 }elseif(isset($urlexp[4])){
                     $module = $urlexp[4];
                 }
-                
-                
+
+
                 if(stristr($url, 'outletapp')) $module = 'Outlet App';
-                
+
                 if(stristr($url, 'outletapp')) $subject = 'Outlet App';
                 if(stristr($url, 'outletapp/order')) $subject = 'Outlet Order';
                 if(stristr($url, 'outletapp/order/detail')) $subject = 'Outlet Order Detail';
@@ -68,21 +68,24 @@ class LogActivitiesOutletAppsMiddleware
                 if(stristr($url, 'outletapp/delete-token')) $subject = 'Delete Device Token';
                 if(stristr($url, 'outletapp/update-token')) $subject = 'Update Device Token';
                 if(stristr($url, 'outletapp/order/detail/view')) $subject = 'Outlet Product Detail View';
-                
+
                 if(!empty($request->header('ip-address-view'))){
                     $ip = $request->header('ip-address-view');
                 }else{
-                    $ip = $request->ip();
+                    $ip = isset($_SERVER['HTTP_X_FORWARDED_FOR'])?$_SERVER['HTTP_X_FORWARDED_FOR']:$_SERVER['REMOTE_ADDR'];
+                    if(strpos($ip,',') !== false) {
+                        $ip = substr($ip,0,strpos($ip,','));
+                    }
                 }
 
                 $userAgent = $request->header('user-agent');
-                
+
                 $dtUser = null;
-                
+
                 if(!empty($user) && $user != ""){
                     $dtUser = json_encode($request->user());
                 }
-                
+
                 $data = [
                     'url' 		=> $url,
                     'subject' 		=> $subject,

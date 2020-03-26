@@ -39,7 +39,7 @@ class LogActivitiesPOSTransactionMiddleware
                 if(isset($request['store_code'])){
                     $outletCode = $request['store_code'];
                 }
-                
+
                 if($requestnya == '[]') $requestnya = null;
                 $urlexp = explode('/',$url);
 
@@ -48,25 +48,28 @@ class LogActivitiesPOSTransactionMiddleware
                 }elseif(isset($urlexp[4])){
                     $module = $urlexp[4];
                 }
-                
+
                 if(stristr($url, 'v1/pos')) $module = 'POS';
 
                 $subject = "Unknown";
-                
+
                 if(!empty($request->header('ip-address-view'))){
                     $ip = $request->header('ip-address-view');
                 }else{
-                    $ip = $request->ip();
+                    $ip = isset($_SERVER['HTTP_X_FORWARDED_FOR'])?$_SERVER['HTTP_X_FORWARDED_FOR']:$_SERVER['REMOTE_ADDR'];
+                    if(strpos($ip,',') !== false) {
+                        $ip = substr($ip,0,strpos($ip,','));
+                    }
                 }
 
                 $userAgent = $request->header('user-agent');
-                
+
                 $dtUser = null;
-                
+
                 if(!empty($user) && $user != ""){
                     $dtUser = json_encode($request->user());
                 }
-                
+
                 $data = [
                     'url' 		=> $url,
                     'outlet_code' 	=> $outletCode,

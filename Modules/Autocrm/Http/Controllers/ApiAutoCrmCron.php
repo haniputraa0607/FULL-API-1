@@ -11,8 +11,8 @@ use App\Http\Models\AutocrmRuleParent;
 use App\Http\Models\User;
 use App\Http\Models\WhatsappContent;
 
-use Modules\Autocrm\Http\Requests\CreateCron; 
-use Modules\Autocrm\Http\Requests\UpdateCron; 
+use Modules\Autocrm\Http\Requests\CreateCron;
+use Modules\Autocrm\Http\Requests\UpdateCron;
 
 use App\Lib\MyHelper;
 use Validator;
@@ -32,7 +32,7 @@ class ApiAutoCrmCron extends Controller
 	public function listAutoCrmCron(Request $request){
 		$post = $request->json()->all();
 		if(isset($post['id_autocrm'])){
-			$query = Autocrm::with('autocrm_rule_parents', 'autocrm_rule_parents.rules', 'whatsapp_content')->where('id_autocrm','=',$post['id_autocrm'])->first(); 
+			$query = Autocrm::with('autocrm_rule_parents', 'autocrm_rule_parents.rules', 'whatsapp_content')->where('id_autocrm','=',$post['id_autocrm'])->first();
 		 }else{
 			 $query = Autocrm::where('autocrm_type', 'Cron')->orderBy('updated_at', 'desc')->get()->toArray();
 		 }
@@ -81,7 +81,7 @@ class ApiAutoCrmCron extends Controller
 				return response()->json($result);
 			}
 		}
-		
+
 		if(isset($post['whatsapp_content'])){
 			$contentWa = $post['whatsapp_content'];
 			unset($post['whatsapp_content']);
@@ -89,7 +89,7 @@ class ApiAutoCrmCron extends Controller
 			$contentWa = null;
 		}
 
-		DB::beginTransaction();	
+		DB::beginTransaction();
 		$query = Autocrm::create($post);
 
 		if($query && isset($conditions)){
@@ -136,7 +136,7 @@ class ApiAutoCrmCron extends Controller
 	public function updateAutocrmCron(UpdateCron $request){
 		$post = $request->json()->all();
 		$post = $this->clearInputDisable($post);
-		
+
 		if(isset($post['conditions'])){
 			$conditions = $post['conditions'];
 			unset($post['conditions']);
@@ -183,7 +183,7 @@ class ApiAutoCrmCron extends Controller
 			$contentWa = null;
 		}
 
-		DB::beginTransaction();	
+		DB::beginTransaction();
 		$query = Autocrm::where('id_autocrm', $post['id_autocrm'])->update($post);
 		if($query && isset($conditions)){
 			$autocrmRuleParent = AutocrmRuleParent::where('id_autocrm', $post['id_autocrm'])->get();
@@ -361,7 +361,7 @@ class ApiAutoCrmCron extends Controller
 					return 'fail';
 				}
 			}
-			
+
 		}
 
 		return 'success';
@@ -371,7 +371,7 @@ class ApiAutoCrmCron extends Controller
 		$delete = Autocrm::where('id_autocrm', $request->json('id_autocrm'))->delete();
 		return response()->json(MyHelper::checkDelete($delete));
 	}
-	
+
 	public function cronAutocrmCron(Request $request){
 		$week = $this->getWeek();
 		$cronLists = Autocrm::with(['autocrm_rule_parents', 'autocrm_rule_parents.rules'])->where('autocrm_type', 'Cron')
@@ -397,23 +397,23 @@ class ApiAutoCrmCron extends Controller
 					})->get();
 
 		$countUser = 0;
-		
+
 		foreach ($cronLists as $key => $cronList) {
 			$filter = app($this->user)->UserFilter($cronList['autocrm_rule_parents']);
 			if($filter['status'] == 'success'){
 				$hasil = $filter['result'];
-				foreach ($hasil as $key => $datahasil) { 
-					$autocrm = app($this->autocrm)->SendAutoCRM($cronList['autocrm_title'], $datahasil['phone'], $variables = null); 
+				foreach ($hasil as $key => $datahasil) {
+					$autocrm = app($this->autocrm)->SendAutoCRM($cronList['autocrm_title'], $datahasil['phone'], $variables = null);
 					$countUser = $countUser + 1;
-				} 
+				}
 			}
 		}
-		
-		$result = [ 
-			'status'  => 'success', 
+
+		$result = [
+			'status'  => 'success',
 			'messages'  => 'Auto CRM has been sent to '.$countUser.' users'
-		]; 
-		return $result; 
+		];
+		return $result;
 	}
 
 	public function getWeek(){

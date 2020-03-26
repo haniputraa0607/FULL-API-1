@@ -18,7 +18,6 @@ use Validator;
 use Hash;
 use DB;
 use Mail;
-use Mailgun;
 
 use App\Jobs\CronBalance;
 
@@ -41,6 +40,7 @@ class ApiCronTrxController extends Controller
         ini_set('max_execution_time', 0);
         $this->autocrm = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
         $this->balance  = "Modules\Balance\Http\Controllers\BalanceController";
+        $this->voucher  = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
     }
 
     public function cron(Request $request)
@@ -49,13 +49,15 @@ class ApiCronTrxController extends Controller
         $dateLine  = date('Y-m-d H:i:s', strtotime('- 1days'));
         $now       = date('Y-m-d H:i:s');
 
-        $getTrx = Transaction::where('transaction_payment_status', 'Pending')->where('created_at', '<=', $now)->get();
+        $getTrx = Transaction::where('transaction_payment_status', 'Pending')->where('transaction_date', '<=', $now)->get();
 
         if (empty($getTrx)) {
             return response()->json(['empty']);
         }
-
+        $count = 0;
         foreach ($getTrx as $key => $value) {
+
+        	db::begintransaction();
             $singleTrx = Transaction::where('id_transaction', $value->id_transaction)->with('outlet_name')->first();
             if (empty($singleTrx)) {
                 continue;
@@ -88,6 +90,7 @@ class ApiCronTrxController extends Controller
             $singleTrx->transaction_payment_status = 'Cancelled';
             $singleTrx->void_date = $now;
             $singleTrx->save();
+
             if (!$singleTrx) {
                 continue;
             }
@@ -96,27 +99,34 @@ class ApiCronTrxController extends Controller
             $logBalance = LogBalance::where('id_reference', $singleTrx->id_transaction)->where('source', 'Transaction')->where('balance', '<', 0)->get();
             foreach($logBalance as $logB){
                 $reversal = app($this->balance)->addLogBalance( $singleTrx->id_user, abs($logB['balance']), $singleTrx->id_transaction, 'Reversal', $singleTrx->transaction_grandtotal);
+	            if (!$reversal) {
+	            	db::rollBack();
+	            	continue;
+	            }
                 $usere= User::where('id',$singleTrx->id_user)->first();
-                $send = app($this->autocrm)->SendAutoCRM('Transaction Failed Point Refund', $usere->phone, 
+                $send = app($this->autocrm)->SendAutoCRM('Transaction Failed Point Refund', $usere->phone,
                     [
-                        "outlet_name"       => $singleTrx->outlet_name->outlet_name, 
+                        "outlet_name"       => $singleTrx->outlet_name->outlet_name,
                         "transaction_date"  => $singleTrx->transaction_date,
-                        'id_transaction'    => $singleTrx->id_transaction, 
+                        'id_transaction'    => $singleTrx->id_transaction,
                         'receipt_number'    => $singleTrx->transaction_receipt_number,
                         'received_point'    => (string) abs($logB['balance'])
                     ]
                 );
-                if($send != true){
-                    DB::rollback();
-                    return response()->json([
-                            'status' => 'fail',
-                            'messages' => ['Failed Send notification to customer']
-                        ]);
-                }
             }
+
+            // return voucher
+            $update_voucher = app($this->voucher)->returnVoucher($value->id_transaction);
+            if (!$update_voucher) {
+            	db::rollBack();
+            	continue;
+            }
+            $count++;
+            db::commit();
+
         }
 
-        return response()->json(['success']);
+        return response()->json([$count]);
     }
 
     public function checkSchedule()
@@ -142,8 +152,8 @@ class ApiCronTrxController extends Controller
 
 
             $encodeCheck = json_encode($dataHash);
-            // if (MyHelper::decryptkhususnew($val['enc']) != $encodeCheck) {
-            if (base64_decode($val['enc']) != $encodeCheck) {
+
+            if (MyHelper::decrypt2019($val['enc']) != $encodeCheck) {
                 $result[] = $val;
             }
         }
@@ -178,15 +188,17 @@ class ApiCronTrxController extends Controller
                             'setting'      => $setting
                         );
 
-                        Mailgun::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting)
+                        Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting)
                         {
-                            $message->to($to, $name)->subject($subject)
-                                            ->trackClicks(true)
-                                            ->trackOpens(true);
+                            $message->to($to, $name)->subject($subject);
+							if(env('MAIL_DRIVER') == 'mailgun'){
+								$message->trackClicks(true)
+										->trackOpens(true);
+							}
                             if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
-                                $message->from($setting['email_from'], $setting['email_sender']);
-                            }else if(!empty($setting['email_from'])){
-                                $message->from($setting['email_from']);
+                                $message->from($setting['email_sender'], $setting['email_from']);
+                            }else if(!empty($setting['email_sender'])){
+                                $message->from($setting['email_sender']);
                             }
 
                             if(!empty($setting['email_reply_to'])){
@@ -226,7 +238,7 @@ class ApiCronTrxController extends Controller
         $label = '';
         foreach ($data as $key => $value) {
             // $real = json_decode(MyHelper::decryptkhususnew($value['enc']));
-            $real = json_decode(base64_decode($value['enc']));
+            $real = json_decode(MyHelper::decrypt2019($value['enc']));
             // dd($real->source);
             $user = User::where('id', $value['id_user'])->first();
             if ($value['source'] == 'Transaction' || $value['source'] == 'Rejected Order' || $value['source'] == 'Reverse Point from Rejected Order') {
@@ -320,7 +332,6 @@ class ApiCronTrxController extends Controller
                                     ->whereNull('reject_at')
                                     ->whereNull('taken_by_system_at')
                                     ->update(['taken_by_system_at' => date('Y-m-d 00:00:00')]);
-
         return response()->json(['status' => 'success']);
 
     }

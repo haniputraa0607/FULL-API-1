@@ -12,6 +12,7 @@ use App\Http\Models\City;
 use App\Http\Models\User;
 use App\Http\Models\Courier;
 use App\Http\Models\Product;
+use App\Http\Models\ProductModifierPrice;
 use App\Http\Models\Setting;
 use App\Http\Models\StockLog;
 use App\Http\Models\UserAddress;
@@ -32,6 +33,7 @@ use App\Http\Models\DealsUser;
 use App\Http\Models\DealsPaymentMidtran;
 use App\Http\Models\DealsPaymentManual;
 use App\Http\Models\UserTrxProduct;
+use Modules\Brand\Entities\Brand;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -213,7 +215,7 @@ class ApiTransaction extends Controller
             $update->save();
 
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -290,7 +292,7 @@ class ApiTransaction extends Controller
             $update->save();
 
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -307,7 +309,7 @@ class ApiTransaction extends Controller
             $updateDelPricing = Setting::where('key', 'transaction_delivery_pricing')->first();
 
             if (!$updateMinValue || !$updateMaxDis || !$updateDelPrice || !$updateDelPricing) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting not found']
@@ -325,7 +327,7 @@ class ApiTransaction extends Controller
             $updateDelPricing->save();
 
             if (!$updateMinValue || !$updateMaxDis || !$updateDelPrice || !$updateDelPricing) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -390,7 +392,7 @@ class ApiTransaction extends Controller
             $update->save();
 
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -491,7 +493,7 @@ class ApiTransaction extends Controller
             $update->save();
 
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -574,7 +576,7 @@ class ApiTransaction extends Controller
             $update->save();
 
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -657,7 +659,7 @@ class ApiTransaction extends Controller
             $update->save();
 
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -675,7 +677,7 @@ class ApiTransaction extends Controller
             $updateCashback->value = $post['value']/100;
             $updateCashback->save();
             if (!$updateCashback) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -693,7 +695,7 @@ class ApiTransaction extends Controller
             $updateCashbackMax->value = $post['max'];
             $updateCashbackMax->save();
             if (!$updateCashbackMax) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -706,7 +708,7 @@ class ApiTransaction extends Controller
         } elseif ($post['key'] == 'outlet') {
             $update = Setting::where('key', 'default_outlet')->first();
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting not found']
@@ -717,7 +719,7 @@ class ApiTransaction extends Controller
             $update->save();
 
             if (!$update) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Data setting update failed']
@@ -727,7 +729,7 @@ class ApiTransaction extends Controller
             DB::commit();
             return response()->json(MyHelper::checkUpdate($update));
         }
-        
+
     }
 
     public function internalCourier() {
@@ -754,7 +756,7 @@ class ApiTransaction extends Controller
 
             // set picture name
             $pictName = mt_rand(0, 1000).''.time().''.$ext;
-            
+
             // path
             $upload = $this->saveImage.$pictName;
 
@@ -764,7 +766,7 @@ class ApiTransaction extends Controller
             if ($img) {
                 $data['manual_payment_logo'] = $upload;
             } else {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['fail upload image']
@@ -777,14 +779,14 @@ class ApiTransaction extends Controller
             //     $data['manual_payment_logo'] = $save['path'];
             // }
             // else {
-            //     DB::rollback();
+            //     DB::rollBack();
             //     return response()->json([
             //         'status'   => 'fail',
             //         'messages' => ['fail upload image']
             //     ]);
             // }
         }
-  
+
         if (isset($post['is_virtual_account'])) {
             $data['is_virtual_account'] = $post['is_virtual_account'];
         }
@@ -802,9 +804,9 @@ class ApiTransaction extends Controller
         }
 
         $save = ManualPayment::create($data);
-   
+
         if (!$save) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Create manual payment failed']
@@ -817,7 +819,7 @@ class ApiTransaction extends Controller
 
     public function manualPaymentEdit(ManualPaymentEdit $request) {
         $id = $request->json('id');
-        
+
         $list = ManualPayment::with('manual_payment_methods')->where('id_manual_payment', $id)->first();
 
         if (count($list['manual_payment_methods']) > 0) {
@@ -845,7 +847,7 @@ class ApiTransaction extends Controller
 
             // set picture name
             $pictName = mt_rand(0, 1000).''.time().''.$ext;
-            
+
             // path
             $upload = $this->saveImage.$pictName;
 
@@ -855,7 +857,7 @@ class ApiTransaction extends Controller
             if ($img) {
                 $data['manual_payment_logo'] = $upload;
             } else {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['fail upload image']
@@ -867,14 +869,14 @@ class ApiTransaction extends Controller
             //     $data['manual_payment_logo'] = $save['path'];
             // }
             // else {
-            //     DB::rollback();
+            //     DB::rollBack();
             //     return response()->json([
             //         'status'   => 'fail',
             //         'messages' => ['fail upload image']
             //     ]);
             // }
         }
-  
+
         if (isset($post['post']['is_virtual_account'])) {
             $data['is_virtual_account'] = $post['post']['is_virtual_account'];
         }
@@ -894,7 +896,7 @@ class ApiTransaction extends Controller
         $save = ManualPayment::where('id_manual_payment', $post['id'])->update($data);
         // return $save;
         if (!$save) {
-            DB::rollback();
+            DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
                 'messages'  => ['Update manual payment failed']
@@ -905,14 +907,14 @@ class ApiTransaction extends Controller
         // $new = explode(',', $post['post']['method_name_new']);
         // // return $old;
         // // return response()->json($old[0]);
-        
+
         // foreach ($old as $key => $o) {
         //     if (!in_array($o, $new)) {
         //         $delete = ManualPaymentMethod::where('payment_method_name', $o)->delete();
         //         // return $delete;
 
         //         if (!$delete) {
-        //             DB::rollback();
+        //             DB::rollBack();
         //             return response()->json([
         //                 'status'    => 'fail',
         //                 'messages'  => ['Update manual payment failed1']
@@ -931,7 +933,7 @@ class ApiTransaction extends Controller
         //         $insert = ManualPaymentMethod::create($data);
 
         //         if (!$insert) {
-        //             DB::rollback();
+        //             DB::rollBack();
         //             return response()->json([
         //                 'status'    => 'fail',
         //                 'messages'  => ['Update manual payment failed']
@@ -990,7 +992,7 @@ class ApiTransaction extends Controller
             $delete = ManualPaymentMethod::where('id_manual_payment', $post['id'])->delete();
 
             if (!$delete) {
-                DB::rollback();
+                DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Failed']
@@ -1011,14 +1013,14 @@ class ApiTransaction extends Controller
                         $delete = ManualPaymentTutorial::where('id_manual_payment_method', $post['id_method'][$key])->delete();
 
                         if (!$delete) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'    => 'fail',
                                 'messages'  => ['Failed']
                             ]);
                         }
                     }
-                    
+
                     $id = $method['id_manual_payment_method'];
                 } else {
                     $insert = ManualPaymentMethod::create($data);
@@ -1026,7 +1028,7 @@ class ApiTransaction extends Controller
                 }
 
                 if (!$insert) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Failed']
@@ -1044,7 +1046,7 @@ class ApiTransaction extends Controller
                         $insert = ManualPaymentTutorial::create($dataTutor);
 
                         if (!$insert) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'    => 'fail',
                                 'messages'  => ['Insert Failed']
@@ -1060,7 +1062,7 @@ class ApiTransaction extends Controller
                         $delete = ManualPaymentMethod::where('id_manual_payment_method', $value)->delete();
 
                         if (!$delete) {
-                            DB::rollback();
+                            DB::rollBack();
                             return response()->json([
                                 'status'    => 'fail',
                                 'messages'  => ['Insert Failed']
@@ -1074,7 +1076,7 @@ class ApiTransaction extends Controller
         DB::commit();
 
         return response()->json([
-            'status'    => 'success', 
+            'status'    => 'success',
             'messages'  => ['Success']
         ]);
     }
@@ -1199,7 +1201,7 @@ class ApiTransaction extends Controller
                     } else {
                         $var = $con['subject'];
                     }
-                    
+
                     if ($post['rule'] == 'and') {
                         if ($con['operator'] == 'like') {
                             $query = $query->where($var, $con['operator'], '%'.$con['parameter'].'%');
@@ -1223,7 +1225,7 @@ class ApiTransaction extends Controller
         }
 
         $akhir = $query->paginate(10);
-      
+
         if ($akhir) {
             $result = [
                 'status'     => 'success',
@@ -1256,7 +1258,7 @@ class ApiTransaction extends Controller
         $list = TransactionPaymentManual::with('transaction', 'manual_payment_method')->get()->toArray();
         return response()->json(MyHelper::checkGet($list));
     }
-	
+
     public function transactionList($key){
         $start = date('Y-m-01 00:00:00');
         $end = date('Y-m-d 23:59:59');
@@ -1395,39 +1397,71 @@ class ApiTransaction extends Controller
         $id = $request->json('id_transaction');
         $type = $request->json('type');
 
+        $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
+
         if ($type == 'trx') {
-            $list = Transaction::where('id_transaction', $id)->with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->first();
+            if($use_product_variant){
+                $list = Transaction::where([['id_transaction', $id],
+                ['id_user',$request->user()->id]])->with(
+                    'user.city.province',
+                    'productTransaction.product.product_group',
+                    'productTransaction.product.product_variants',
+                    'productTransaction.product.product_group.product_category',
+                    'productTransaction.modifiers',
+                    'productTransaction.product.product_photos',
+                    'productTransaction.product.product_discounts',
+                    'transaction_payment_offlines',
+                    'outlet.city')->first();
+            }else{
+                $list = Transaction::where([['id_transaction', $id],
+                ['id_user',$request->user()->id]])->with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->first();
+            }
+            if(!$list){
+                return MyHelper::checkGet([],'empty');
+            }
+            $list = $list->toArray();
             $label = [];
             $label2 = [];
-
+            $product_count=0;
+            if(!$use_product_variant){
+                $list['product_transaction'] = MyHelper::groupIt($list['product_transaction'],'id_brand',null,function($key,&$val) use (&$product_count){
+                    $product_count += array_sum(array_column($val,'transaction_product_qty'));
+                    $brand = Brand::select('name_brand')->find($key);
+                    if(!$brand){
+                        return 'No Brand';
+                    }
+                    return $brand->name_brand;
+                });
+            }
             $cart = $list['transaction_subtotal'] + $list['transaction_shipment'] + $list['transaction_service'] + $list['transaction_tax'] - $list['transaction_discount'];
 
             $list['transaction_carttotal'] = $cart;
+            $list['transaction_item_total'] = $product_count;
 
             $order = Setting::where('key', 'transaction_grand_total_order')->value('value');
             $exp   = explode(',', $order);
             $exp2   = explode(',', $order);
-            
+
             foreach ($exp as $i => $value) {
                 if ($exp[$i] == 'subtotal') {
                     unset($exp[$i]);
                     unset($exp2[$i]);
                     continue;
-                } 
+                }
 
                 if ($exp[$i] == 'tax') {
                     $exp[$i] = 'transaction_tax';
                     $exp2[$i] = 'transaction_tax';
                     array_push($label, 'Tax');
                     array_push($label2, 'Tax');
-                } 
+                }
 
                 if ($exp[$i] == 'service') {
                     $exp[$i] = 'transaction_service';
                     $exp2[$i] = 'transaction_service';
                     array_push($label, 'Service Fee');
                     array_push($label2, 'Service Fee');
-                } 
+                }
 
                 if ($exp[$i] == 'shipping') {
                     if ($list['trasaction_type'] == 'Pickup Order') {
@@ -1440,7 +1474,7 @@ class ApiTransaction extends Controller
                         array_push($label, 'Delivery Cost');
                         array_push($label2, 'Delivery Cost');
                     }
-                } 
+                }
 
                 if ($exp[$i] == 'discount') {
                     $exp2[$i] = 'transaction_discount';
@@ -1453,7 +1487,7 @@ class ApiTransaction extends Controller
                     unset($exp[$i]);
                     unset($exp2[$i]);
                     continue;
-                } 
+                }
             }
 
             if ($list['trasaction_payment_type'] == 'Balance') {
@@ -1517,15 +1551,15 @@ class ApiTransaction extends Controller
                 $detail = TransactionPickup::where('id_transaction', $list['id_transaction'])->first()->toArray();
                 if($detail){
                     $qr      = $detail['order_id'].strtotime($list['transaction_date']);
-                    
+
                     $qrCode = 'https://chart.googleapis.com/chart?chl='.$qr.'&chs=250x250&cht=qr&chld=H%7C0';
                     $qrCode =   html_entity_decode($qrCode);
 
                     $newDetail = [];
                     foreach($detail as $key => $value){
-                        $newDetail[$key] = $value; 
+                        $newDetail[$key] = $value;
                         if($key == 'order_id'){
-                            $newDetail['order_id_qrcode'] = $qrCode; 
+                            $newDetail['order_id_qrcode'] = $qrCode;
                         }
                     }
 
@@ -1566,8 +1600,62 @@ class ApiTransaction extends Controller
 
             return response()->json(MyHelper::checkGet($list));
         }
-        
-        
+
+
+    }
+
+    public function transactionDetailTrx(Request $request) {
+        $trid = $request->json('id_transaction');
+        $rn = $request->json('request_number');
+        $trx = Transaction::select('id_transaction','id_outlet')->where([
+            'id_transaction' => $trid,
+            'id_user' => $request->user()->id
+        ])->first();
+        if(!$trx){
+            return [
+                'status'=>'fail',
+                'messages'=>['Transaction not found']
+            ];
+        }
+        $id_transaction = $trx['id_transaction'];
+        $pt = TransactionProduct::select(DB::raw('
+            0 as id_custom,
+            transaction_products.id_product,
+            id_transaction_product,
+            id_brand,
+            transaction_products.id_outlet,
+            outlets.outlet_code,
+            transaction_product_qty as qty,
+            product_prices.product_price,
+            products.product_name,
+            products.product_code,
+            transaction_products.transaction_product_note as note
+            '))
+        ->join('products','products.id_product','=','transaction_products.id_product')
+        ->join('product_prices','product_prices.id_product','=','products.id_product')
+        ->join('outlets','outlets.id_outlet','=','transaction_products.id_outlet')
+        ->whereRaw('product_prices.id_outlet = transaction_products.id_outlet')
+        ->where(['id_transaction'=>$id_transaction])
+        ->with(['modifiers'=>function($query){
+                    $query->select('id_transaction_product','product_modifiers.code','transaction_product_modifiers.id_product_modifier','qty','product_modifiers.text')->join('product_modifiers','product_modifiers.id_product_modifier','=','transaction_product_modifiers.id_product_modifier');
+                }])->first()->toArray();
+        if(!$pt){
+            return MyHelper::checkGet($pt);
+        }
+        $id_outlet = $pt['id_outlet'];
+        $total_mod_price = 0;
+        foreach ($pt['modifiers'] as &$modifier) {
+            $price = ProductModifierPrice::select('product_modifier_price')->where([
+                'id_product_modifier'=>$modifier['id_product_modifier'],
+                'id_outlet' => $id_outlet
+            ])->pluck('product_modifier_price')->first();
+            $total_mod_price+=$price*$modifier['qty'];
+            $modifier['product_modifier_price'] = MyHelper::requestNumber($price,$rn);
+        }
+        $pt['product_price_total'] = MyHelper::requestNumber($total_mod_price + $pt['product_price'],$rn);
+        $pt['product_price'] = MyHelper::requestNumber($pt['product_price'],$rn);
+        $pt['note'] = $pt['note']?:'';
+        return MyHelper::checkGet($pt);
     }
 
     public function transactionPointDetail(Request $request) {
@@ -1586,7 +1674,7 @@ class ApiTransaction extends Controller
             } else {
                 $data['online'] = 1;
             }
-            
+
         } else {
             $select = DealsUser::with('dealVoucher.deal')->where('id_deals_user', $data['id_reference'])->first();
             $data['type']   = 'voucher';
@@ -1605,17 +1693,18 @@ class ApiTransaction extends Controller
         $data   = LogBalance::where('id_log_balance', $id)->first();
 
         if ($data['source'] == 'Transaction' || $data['source'] == 'Rejected Order') {
-            $select = Transaction::with('outlet')->where('id_transaction', $data['id_reference'])->first();
+            $select = Transaction::select(DB::raw('transactions.*,sum(transaction_products.transaction_product_qty) item_total'))->leftJoin('transaction_products','transactions.id_transaction','=','transaction_products.id_transaction')->with('outlet')->where('transactions.id_transaction', $data['id_reference'])->groupBy('transactions.id_transaction')->first();
 
             $data['date'] = $select['transaction_date'];
             $data['type'] = 'trx';
+            $data['item_total'] = $select['item_total'];
             $data['outlet'] = $select['outlet']['outlet_name'];
             if ($select['trasaction_type'] == 'Offline') {
                 $data['online'] = 0;
             } else {
                 $data['online'] = 1;
             }
-            
+
         } else {
             $select = DealsUser::with('dealVoucher.deal')->where('id_deals_user', $data['id_reference'])->first();
             $data['type']   = 'voucher';
@@ -1630,7 +1719,7 @@ class ApiTransaction extends Controller
 
     public function setting($value) {
         $setting = Setting::where('key', $value)->first();
-        
+
         if (empty($setting->value)) {
             return response()->json(['Setting Not Found']);
         }
@@ -1645,8 +1734,8 @@ class ApiTransaction extends Controller
 		} else {
 			$user = User::where('phone', $request->json('phone'))->get->first();
 			$id = $user['id'];
-		}			
-			
+		}
+
         $transaction = Transaction::where('id_user', $id)->with('user', 'productTransaction', 'user.city', 'user.city.province', 'productTransaction.product', 'productTransaction.product.category', 'productTransaction.product.photos', 'productTransaction.product.discount')->get()->toArray();
 
         return response()->json(MyHelper::checkGet($transaction));
@@ -1663,7 +1752,7 @@ class ApiTransaction extends Controller
         $province = $province->with('cities')->get();
 
         return response()->json(MyHelper::checkGet($province));
-        
+
     }
 
     public function getCity(GetCity $request) {
@@ -1677,7 +1766,7 @@ class ApiTransaction extends Controller
         $city = $city->with('province')->get();
 
         return response()->json(MyHelper::checkGet($city));
-        
+
     }
 
     public function getSubdistrict(GetSub $request) {
@@ -1728,7 +1817,7 @@ class ApiTransaction extends Controller
 
                 if (!$select) {
                     return response()->json([
-                        'status' => 'fail', 
+                        'status' => 'fail',
                         'messages'  => ['Failed']
                     ]);
                 }
@@ -1743,7 +1832,7 @@ class ApiTransaction extends Controller
         $data['id_city']     = isset($post['id_city']) ? $post['id_city'] : null;
         $data['postal_code'] = isset($post['postal_code']) ? $post['postal_code'] : null;
         $data['description'] = isset($post['description']) ? $post['description'] : null;
-     
+
         $insert = UserAddress::create($data);
         return response()->json(MyHelper::checkCreate($insert));
     }
@@ -1768,7 +1857,7 @@ class ApiTransaction extends Controller
 
                 if (!$select) {
                     return response()->json([
-                        'status' => 'fail', 
+                        'status' => 'fail',
                         'messages'  => ['Failed']
                     ]);
                 }
@@ -1783,7 +1872,7 @@ class ApiTransaction extends Controller
         $data['id_city']     = isset($post['id_city']) ? $post['id_city'] : null;
         $data['postal_code'] = isset($post['postal_code']) ? $post['postal_code'] : null;
         $data['description'] = isset($post['description']) ? $post['description'] : null;
-     
+
         $update = UserAddress::where('id_user_address', $post['id_user_address'])->update($data);
         return response()->json(MyHelper::checkUpdate($update));
     }
@@ -1812,7 +1901,7 @@ class ApiTransaction extends Controller
 
     public function getShippingFee(TransactionShipping $request) {
         $post = $request->json()->all();
-     
+
         if (isset($post['from'])) {
             $from = $post['from'];
         }
@@ -1836,11 +1925,11 @@ class ApiTransaction extends Controller
         if (isset($post['courier'])) {
             $courier = $post['courier'];
         }
-        
+
         $data = "origin=".$from."&originType=".$fromType."&destination=".$to."&destinationType=".$toType."&weight=".$weight."&courier=".$courier;
 
         $shiping = MyHelper::urlTransaction('http://pro.rajaongkir.com/api/cost', 'POST', $data, 'application/x-www-form-urlencoded');
-        
+
         if (isset($shiping->rajaongkir->status->code) && $shiping->rajaongkir->status->code == 200) {
             if (!empty($shiping->rajaongkir->results[0]->costs)) {
                 $data = [
@@ -1853,7 +1942,7 @@ class ApiTransaction extends Controller
                     'messages'    => ['Maaf, pengiriman ke kota tersebut belum tersedia']
                 ];
             }
-            
+
         } elseif (isset($shiping->rajaongkir->status->code) && $shiping->rajaongkir->status->code == 400) {
             $data = [
                 'status'    => 'fail',
@@ -1865,7 +1954,7 @@ class ApiTransaction extends Controller
                 'messages'    => ['Data invalid!!']
             ];
         }
-        
+
         return response()->json($data);
     }
 
@@ -1936,7 +2025,7 @@ class ApiTransaction extends Controller
 
         if (count($checkTransaction) > 0) {
             $url = 'https://api.sandbox.midtrans.com/v2/'.$result->order_id.'/status';
-          
+
             $getStatus = $this->getToken(false, $url, false);
 
             if ($getStatus->status_code != 200) {
@@ -1975,7 +2064,7 @@ class ApiTransaction extends Controller
                             $insertPoint = PointLog::create($dataPoint);
 
                             if (!$insertPoint) {
-                                DB::rollback();
+                                DB::rollBack();
                                 return response()->json([
                                     'status'    => 'fail',
                                     'messages'  => ['insert point failed']
@@ -1990,7 +2079,7 @@ class ApiTransaction extends Controller
                     $checkTransaction->save();
 
                     if (!$checkTransaction) {
-                        DB::rollback();
+                        DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => ['Update status payment failed']
@@ -2020,19 +2109,19 @@ class ApiTransaction extends Controller
                 $insertPayment = TransactionPayment::create($dataPayment);
 
                 if (!$insertPayment) {
-                    DB::rollback();
+                    DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Transaction payment cannot be create']
                     ]);
                 }
-                
+
                 DB::commit();
                 return $response->json([
                     'status'    => 'success',
                     'result'    => $dataPayment
                 ]);
-                
+
             }
         }
     }
@@ -2050,14 +2139,14 @@ class ApiTransaction extends Controller
         foreach ($data as $key => $value) {
             # code...
             $check = UserTrxProduct::where('id_user', $value['id_user'])->where('id_product', $value['id_product'])->first();
-            
+
             if(empty($check)){
                 $insertData = UserTrxProduct::create($value);
             }else{
                 $value['product_qty'] = $check->product_qty + $value['product_qty'];
                 $insertData = $check->update($value);
             }
-    
+
             if(!$insertData){
                 return 'fail';
             }
@@ -2067,11 +2156,11 @@ class ApiTransaction extends Controller
 
     public function shippingCostGoSend(ShippingGosend $request){
         $post = $request->json()->all();
-        
+
         $outlet = Outlet::find($post['id_outlet']);
         if(!$outlet){
             return response()->json(['status' => 'fail', 'messages' => ['Outlet not found.']]);
-        } 
+        }
 
         $origin['latitude'] = $outlet['latitude'];
         $origin['longitude'] = $outlet['longitude'];
@@ -2087,7 +2176,7 @@ class ApiTransaction extends Controller
                 foreach($setting as $dataSetting){
                     $freeDev[$dataSetting['key']] = $dataSetting['value'];
                 }
-    
+
                 if(isset($freeDev['free_delivery_type'])){
                     if($freeDev['free_delivery_type'] == 'free' || isset($freeDev['free_delivery_nominal'])){
                         if(isset($freeDev['free_delivery_requirement_type']) && $freeDev['free_delivery_requirement_type'] == 'total item' && isset($freeDev['free_delivery_min_item'])){
@@ -2113,7 +2202,7 @@ class ApiTransaction extends Controller
             }
 
             $result['shipping_cost_go_send'] = $shippingCost;
-            
+
             if($shippingFree != null){
                 if($shippingFree == 'FREE'){
                     $result['shipping_cost_discount'] = $shippingCost;
@@ -2151,5 +2240,7 @@ class ApiTransaction extends Controller
         }
 
     }
-
+    public function testing2(Request $request){
+        return MyHelper::checkGet(\App\Lib\ConnectPOS::create()->sendTransaction($request->id_transaction));
+    }
 }
