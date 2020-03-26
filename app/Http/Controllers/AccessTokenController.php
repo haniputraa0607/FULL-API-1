@@ -30,7 +30,7 @@ class AccessTokenController extends PassportAccessTokenController
                     $user = User::where('phone', $request->getParsedBody()['username'])->first();
                     if($user){
                         if($user->is_suspended == '1'){
-                            return response()->json(['status' => 'fail', 'messages' => 'Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di suarapelanggan@champ-group.com']);
+                            return response()->json(['status' => 'fail', 'messages' => 'Your account has been blocked because it shows suspicious activity. For more information please contact our customer service at hello@maxxcoffee.id']);
                         }
 
                         if(isset($request->getParsedBody()['scope'])){
