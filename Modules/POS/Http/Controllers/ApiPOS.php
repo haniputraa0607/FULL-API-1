@@ -105,9 +105,9 @@ class ApiPOS extends Controller
         }
 
         $check = Transaction::join('transaction_pickups', 'transactions.id_transaction', '=', 'transaction_pickups.id_transaction')
-            ->with(['products','products.product_variants'=>function($query){
+            ->with(['products', 'products.product_variants' => function ($query) {
                 $query->orderBy('parent');
-            }, 'product_detail', 'vouchers', 'productTransaction.modifiers','promo_campaign_promo_code'])
+            }, 'product_detail', 'vouchers', 'productTransaction.modifiers', 'promo_campaign_promo_code'])
             ->where('order_id', '=', $post['order_id'])
             ->where('transactions.transaction_date', '>=', date("Y-m-d") . " 00:00:00")
             ->where('transactions.transaction_date', '<=', date("Y-m-d") . " 23:59:59")
@@ -131,33 +131,33 @@ class ApiPOS extends Controller
             $memberUid = MyHelper::createQR($timestamp, $user['phone']);
             $header['order_number'] = $check['transaction_receipt_number'];
             $header['order_id'] = $check['order_id'];
-            $header['posting_date'] = date('Ymd',strtotime($check['transaction_date']));
-            $header['trx_date'] = date('Ymd',strtotime($check['transaction_date']));
-            $header['trx_start_time'] = date('Ymd His',strtotime($check['transaction_date']));
-            $header['trx_end_time'] = $check['completed_at']?date('Ymd His',strtotime($check['completed_at'])):'';
-            $header['process_at'] = $check['pickup_type']??'';
-            $header['process_date_time'] = $check['pickup_at']??'';
+            $header['posting_date'] = date('Ymd', strtotime($check['transaction_date']));
+            $header['trx_date'] = date('Ymd', strtotime($check['transaction_date']));
+            $header['trx_start_time'] = date('Ymd His', strtotime($check['transaction_date']));
+            $header['trx_end_time'] = $check['completed_at'] ? date('Ymd His', strtotime($check['completed_at'])) : '';
+            $header['process_at'] = $check['pickup_type'] ?? '';
+            $header['process_date_time'] = $check['pickup_at'] ?? '';
             $header['status_order'] = '';
-            $header['accepted_date_time'] = date('Ymd His',strtotime($check['receive_at']));
-            $header['ready_date_time'] = date('Ymd His',strtotime($check['ready_at']));
-            $header['taken_date_time'] = date('Ymd His',strtotime($check['taken_at']));
-            $header['reject_date_time'] = date('Ymd His',strtotime($check['reject_at']));
+            $header['accepted_date_time'] = date('Ymd His', strtotime($check['receive_at']));
+            $header['ready_date_time'] = date('Ymd His', strtotime($check['ready_at']));
+            $header['taken_date_time'] = date('Ymd His', strtotime($check['taken_at']));
+            $header['reject_date_time'] = date('Ymd His', strtotime($check['reject_at']));
             $header['pax'] = count($check['products']);
             $header['order_type'] = 'take away';
             $header['total_order'] = (float) $check['transaction_grandtotal'];
             $header['notes'] = '';
-            $header['applied_promo'] = $check['id_promo_campaign_promo_code']?'MOBILE APPS PROMO':'';
+            $header['applied_promo'] = $check['id_promo_campaign_promo_code'] ? 'MOBILE APPS PROMO' : '';
             $header['pos'] = [
-                'id'=>1,
-                'cash_drawer'=>2,
-                'cashier_id'=>'M1907123'
+                'id' => 1,
+                'cash_drawer' => 2,
+                'cashier_id' => 'M1907123'
             ];
             $header['customer'] = [
-                'id'=>$memberUid,
-                'phone'=>$user['phone'],
-                'name'=>$user['name'],
-                'gender'=>$user['gender']??'',
-                'age'=>($user['birthday']??false)?(date_diff(date_create($user['birthday']), date_create('now'))->y):''
+                'id' => $memberUid,
+                'phone' => $user['phone'],
+                'name' => $user['name'],
+                'gender' => $user['gender'] ?? '',
+                'age' => ($user['birthday'] ?? false) ? (date_diff(date_create($user['birthday']), date_create('now'))->y) : ''
             ];
             $payment = [];
             //cek di multi payment
@@ -241,7 +241,7 @@ class ApiPOS extends Controller
                             $pay = [
                                 'number'            => $key + 1,
                                 'type'              => 'Cimb',
-                                'amount'            => (float) $cimb['amount']??$check['transaction_grandtotal'],
+                                'amount'            => (float) $cimb['amount'] ?? $check['transaction_grandtotal'],
                                 'change_amount'     => 0,
                                 'card_number'       => '',
                                 'card_owner'        => ''
@@ -265,19 +265,19 @@ class ApiPOS extends Controller
                     'sap_matnr' => $menu['product_code'],
                     'qty' => (int) $menu['pivot']['transaction_product_qty'],
                     'price' => (float) $menu['pivot']['transaction_product_price'],
-                    'type' => $menu['product_variants'][1]['product_variant_code'] == 'general_type'?null:$menu['product_variants'][1]['product_variant_code'],
-                    'size' => $menu['product_variants'][0]['product_variant_code'] == 'general_type'?null:$menu['product_variants'][0]['product_variant_code'],
+                    'type' => $menu['product_variants'][1]['product_variant_code'] == 'general_type' ? null : $menu['product_variants'][1]['product_variant_code'],
+                    'size' => $menu['product_variants'][0]['product_variant_code'] == 'general_type' ? null : $menu['product_variants'][0]['product_variant_code'],
                     'discount' => (float) $menu['pivot']['transaction_product_discount'],
-                    'promo_number' => $check['id_promo_campaign_promo_code']?$check['promo_campaign_promo_code']['promo_code']:'',
+                    'promo_number' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
                     'promo_type' => '5',
                     'amount' => (float) $menu['pivot']['transaction_product_subtotal']
                 ];
                 $item[] = $val;
             }
             return [
-                'header'=>$header,
-                'item'=>$item,
-                'payment'=>$payment
+                'header' => $header,
+                'item' => $item,
+                'payment' => $payment
             ];
             $transactions['tax'] = round($transactions['tax']);
             $transactions['total'] = round($transactions['total']);
@@ -306,10 +306,12 @@ class ApiPOS extends Controller
     {
         $post = $request->json()->all();
 
-        if(!empty($post['api_key']) && !empty($post['api_secret']) &&
-            !empty($post['store_code']) && !empty($post['uid'])){
+        if (
+            !empty($post['api_key']) && !empty($post['api_secret']) &&
+            !empty($post['store_code']) && !empty($post['uid'])
+        ) {
 
-            if(strlen($post['uid']) < 35){
+            if (strlen($post['uid']) < 35) {
                 DB::rollBack();
                 return ['status' => 'fail', 'messages' => 'Minimum length of member uid is 35'];
             }
@@ -402,7 +404,7 @@ class ApiPOS extends Controller
             $result['saldo'] = $user->balance;
 
             return response()->json(['status' => 'success', 'result' => $result]);
-        }else{
+        } else {
             return response()->json(['status' => 'fail', 'messages' => 'Input is incomplete']);
         }
     }
@@ -411,8 +413,10 @@ class ApiPOS extends Controller
     {
         $post = $request->json()->all();
 
-        if(!empty($post['api_key']) && !empty($post['api_secret']) && !empty($post['store_code']) &&
-        (!empty($post['qrcode']) || !empty($post['code']))){
+        if (
+            !empty($post['api_key']) && !empty($post['api_secret']) && !empty($post['store_code']) &&
+            (!empty($post['qrcode']) || !empty($post['code']))
+        ) {
 
             $api = $this->checkApi($post['api_key'], $post['api_secret']);
             if ($api['status'] != 'success') {
@@ -420,7 +424,7 @@ class ApiPOS extends Controller
             }
 
             return CheckVoucher::check($post);
-        }else{
+        } else {
             return response()->json(['status' => 'fail', 'messages' => ['Input is incomplete']]);
         }
     }
@@ -429,8 +433,10 @@ class ApiPOS extends Controller
     {
         $post = $request->json()->all();
 
-        if(!empty($post['api_key']) && !empty($post['api_secret']) &&
-            !empty($post['store_code']) && !empty($post['voucher_code'])){
+        if (
+            !empty($post['api_key']) && !empty($post['api_secret']) &&
+            !empty($post['store_code']) && !empty($post['voucher_code'])
+        ) {
 
             $api = $this->checkApi($post['api_key'], $post['api_secret']);
             if ($api['status'] != 'success') {
@@ -448,21 +454,21 @@ class ApiPOS extends Controller
                 ->leftJoin('transaction_vouchers', 'deals_vouchers.id_deals_voucher', 'transaction_vouchers.id_deals_voucher')
                 ->leftJoin('transaction_vouchers as transaction_vouchers2', 'deals_vouchers.voucher_code', 'transaction_vouchers2.deals_voucher_invalid')
                 ->where('deals_vouchers.voucher_code', $post['voucher_code'])
-                ->select('deals_vouchers.*','deals_users.id_outlet', 'transaction_vouchers.id_deals_voucher as id_deals_voucher_transaction', 'transaction_vouchers2.deals_voucher_invalid as voucher_code_transaction')
+                ->select('deals_vouchers.*', 'deals_users.id_outlet', 'transaction_vouchers.id_deals_voucher as id_deals_voucher_transaction', 'transaction_vouchers2.deals_voucher_invalid as voucher_code_transaction')
                 ->first();
 
             if (!$voucher) {
                 return response()->json(['status' => 'fail', 'messages' => 'Voucher not found']);
-            }elseif ($voucher['id_deals_voucher_transaction'] || $voucher['voucher_code_transaction']){
+            } elseif ($voucher['id_deals_voucher_transaction'] || $voucher['voucher_code_transaction']) {
                 return response()->json(['status' => 'fail', 'messages' => 'Void voucher failed, voucher has already been used.']);
             }
 
-            if(isset($voucher['id_outlet']) && $voucher['id_outlet'] != $outlet['id_outlet']){
+            if (isset($voucher['id_outlet']) && $voucher['id_outlet'] != $outlet['id_outlet']) {
                 $outletDeals = Outlet::find($voucher['deals_user'][0]['id_outlet']);
-                if($outletDeals){
-                    return response()->json(['status' => 'fail', 'messages' => 'Void voucher  '.$post['voucher_code'].'. Void vouchers can only be done at '.$outletDeals['outlet_name'].' outlets.']);
+                if ($outletDeals) {
+                    return response()->json(['status' => 'fail', 'messages' => 'Void voucher  ' . $post['voucher_code'] . '. Void vouchers can only be done at ' . $outletDeals['outlet_name'] . ' outlets.']);
                 }
-                return response()->json(['status' => 'fail', 'messages' => 'Void voucher failed '.$post['voucher_code'].'. Void vouchers can only be done at '.$outlet['outlet_name'].' outlets.']);
+                return response()->json(['status' => 'fail', 'messages' => 'Void voucher failed ' . $post['voucher_code'] . '. Void vouchers can only be done at ' . $outlet['outlet_name'] . ' outlets.']);
             }
 
             //update voucher redeem
@@ -491,10 +497,9 @@ class ApiPOS extends Controller
 
             DB::commit();
             return response()->json(['status' => 'success', 'messages' => 'Voucher ' . $post['voucher_code'] . ' was successfully voided']);
-        }else{
+        } else {
             return response()->json(['status' => 'fail', 'messages' => 'Input is incomplete']);
         }
-
     }
 
     public function syncOutlet(reqOutlet $request)
@@ -506,7 +511,7 @@ class ApiPOS extends Controller
         }
 
         $getIdBrand = Brand::select('id_brand')->first();
-        if(!$getIdBrand){
+        if (!$getIdBrand) {
             return [
                 'status'    => 'fail',
                 'messages'  => ['failed get brand']
@@ -521,13 +526,13 @@ class ApiPOS extends Controller
             if ($cekOutlet) {
                 try {
                     $update = Outlet::updateOrCreate(['outlet_code' => strtoupper($value['store_code'])], [
-                            'outlet_name'       => $value['store_name'],
-                            'outlet_status'     => $value['store_status'],
-                            'outlet_address'    => $value['store_address'],
-                            'outlet_phone'      => $value['store_phone'],
-                            'outlet_latitude'   => $value['store_latitude'],
-                            'outlet_longitude'  => $value['store_longitude']
-                        ]);
+                        'outlet_name'       => $value['store_name'],
+                        'outlet_status'     => $value['store_status'],
+                        'outlet_address'    => $value['store_address'],
+                        'outlet_phone'      => $value['store_phone'],
+                        'outlet_latitude'   => $value['store_latitude'],
+                        'outlet_longitude'  => $value['store_longitude']
+                    ]);
                 } catch (\Exception $e) {
                     LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
                     $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'];
@@ -540,7 +545,7 @@ class ApiPOS extends Controller
                     } catch (Exception $e) {
                         DB::rollBack();
                         LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
-                        $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'] . '. Error at store schedule '.$valueSchedule['day'];
+                        $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'] . '. Error at store schedule ' . $valueSchedule['day'];
                         continue;
                     }
                 }
@@ -569,7 +574,7 @@ class ApiPOS extends Controller
                         } catch (Exception $e) {
                             DB::rollBack();
                             LogBackendError::logExceptionMessage("ApiPOS/syncOutlet=>" . $e->getMessage(), $e);
-                            $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'] . '. Error at store schedule '.$valueSchedule['day'];
+                            $failedOutlet[] = 'fail to sync, outlet ' . $value['store_name'] . '. Error at store schedule ' . $valueSchedule['day'];
                             continue;
                         }
                     }
@@ -580,7 +585,7 @@ class ApiPOS extends Controller
             //check brand outlet
             try {
                 $brandOutlet = BrandOutlet::where('id_outlet', $cekOutlet->id_outlet)->first();
-                if(!$brandOutlet){
+                if (!$brandOutlet) {
                     BrandOutlet::create([
                         'id_brand' => $getIdBrand->id_brand,
                         'id_outlet' => $cekOutlet->id_outlet
@@ -652,7 +657,8 @@ class ApiPOS extends Controller
      * @param  Request $request laravel Request object
      * @return array        status update
      */
-    public function syncProduct(Request $request) {
+    public function syncProduct(Request $request)
+    {
         $post = $request->json()->all();
         $api = $this->checkApi($post['api_key'], $post['api_secret']);
         if ($api['status'] != 'success') {
@@ -666,7 +672,7 @@ class ApiPOS extends Controller
         $failedProduct  = [];
 
         $getIdBrand = Brand::select('id_brand')->first();
-        if(!$getIdBrand){
+        if (!$getIdBrand) {
             return [
                 'status'    => 'fail',
                 'messages'  => ['failed get brand']
@@ -694,12 +700,12 @@ class ApiPOS extends Controller
                 foreach ($menu['menu_variance'] as $keyVariance => $variance) {
                     $size = $variance['size'];
                     //for variant null use general size
-                    if($variance['size'] == null){
+                    if ($variance['size'] == null) {
                         $size = 'general_size';
                     }
                     //for variant null use general type
                     $type = $variance['type'];
-                    if($variance['type'] == null){
+                    if ($variance['type'] == null) {
                         $type = 'general_type';
                     }
                     $variantSize = ProductVariant::where('product_variant_code', $size)->first();
@@ -751,7 +757,7 @@ class ApiPOS extends Controller
 
                             //check brand product
                             $checkBrand = BrandProduct::where('id_product', $product->id_product)->first();
-                            if(!$checkBrand){
+                            if (!$checkBrand) {
                                 $brandProduct = [
                                     'id_product' => $product->id_product,
                                     'id_brand'   => $getIdBrand->id_brand
@@ -833,12 +839,12 @@ class ApiPOS extends Controller
                 foreach ($menu['menu_variance'] as $keyVariance => $variance) {
                     $size = $variance['size'];
                     //for variant null use general size
-                    if($variance['size'] == null){
+                    if ($variance['size'] == null) {
                         $size = 'general_size';
                     }
                     $type = $variance['type'];
                     //for variant null use general type
-                    if($variance['type'] == null){
+                    if ($variance['type'] == null) {
                         $type = 'general_type';
                     }
                     $variantSize = ProductVariant::where('product_variant_code', $size)->first();
@@ -890,7 +896,7 @@ class ApiPOS extends Controller
 
                             //check brand product
                             $checkBrand = BrandProduct::where('id_product', $product->id_product)->first();
-                            if(!$checkBrand){
+                            if (!$checkBrand) {
                                 $brandProduct = [
                                     'id_product' => $product->id_product,
                                     'id_brand'   => $getIdBrand->id_brand
@@ -952,8 +958,7 @@ class ApiPOS extends Controller
                     } catch (\Exception $e) {
                         DB::rollBack();
                         LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
-                        $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);
-                        ;
+                        $failedProduct[] = 'fail to sync, product ' . implode(" ", [$createGroup->product_group_name, $variance['size'], $variance['type']]);;
                     }
                 }
             }
@@ -968,7 +973,8 @@ class ApiPOS extends Controller
         ];
     }
 
-    public function syncProductPrice(Request $request) {
+    public function syncProductPrice(Request $request)
+    {
         $post = $request->json()->all();
         $api = $this->checkApi($post['api_key'], $post['api_secret']);
         if ($api['status'] != 'success') {
@@ -979,216 +985,45 @@ class ApiPOS extends Controller
         $insertProduct  = [];
         $countfailed    = 0;
         $failedProduct  = [];
-        $dataJob = [];
+        $dataJob        = [];
         foreach ($post['menu'] as $keyMenu => $menu) {
             $checkProduct = Product::where('product_code', $menu['sap_matnr'])->first();
             if ($checkProduct) {
-                $dataJob[$keyMenu]['sap_matnr']   = $menu['sap_matnr'];
                 foreach ($menu['price_detail'] as $keyPrice => $price) {
-                    $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
-
-                    if (!Schema::connection('mysql3')->hasTable('outlet_' . $price['store_code'])) {
-                        Schema::connection('mysql3')->create('outlet_' . $price['store_code'], function ($table) {
-                            $table->bigIncrements('id_product_price_periode');
-                            $table->unsignedInteger('id_product');
-                            $table->unsignedInteger('id_outlet');
-                            $table->float('price', 10, 2)->nullable();
-                            $table->dateTime('start_date')->nullable();
-                            $table->dateTime('end_date')->nullable();
-                            $table->timestamps();
-
-                            $table->index(['id_product', 'id_outlet', 'start_date', 'end_date'], 'index_product_price');
-                        });
-                    }
-
                     if ($price['start_date'] < date('Y-m-d')) {
                         $price['start_date'] = date('Y-m-d');
                     }
-
-                    DB::beginTransaction();
-
-                    $flagOne = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
-                        ->where('start_date', $price['start_date'])->where('end_date', $price['end_date'])
-                        ->orderBy('start_date')->get()->toArray();
-
-                    if (empty($flagOne)) {
-                        $flagTwo = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
-                            ->where('start_date', '<=', $price['start_date'])->where('end_date', '>=', $price['start_date'])
-                            ->orderBy('start_date')->get()->toArray();
-
-                        if (!empty($flagTwo) && end($flagTwo)->end_date >= $price['end_date']) {
-                            $flagBetween = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
-                                ->whereBetween('end_date', [$price['start_date'], $price['end_date']])->get()->toArray();
-                            if (!empty($flagBetween)) {
-                                foreach ($flagBetween as $keyFlagBetween => $between) {
-                                    if ($keyFlagBetween != 0) {
-                                        DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', $between->id_product_price_periode)->delete();
-                                    }
-                                }
-                            }
-
-                            if (date('Y-m-d', strtotime(end($flagTwo)->start_date)) == $price['start_date']) {
-                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagTwo)->id_product_price_periode)->delete();
-                            } else {
-                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagTwo)->id_product_price_periode)->update([
-                                    'id_product'    => $checkProduct->id_product,
-                                    'id_outlet'     => $checkOutlet->id_outlet,
-                                    'price'         => end($flagTwo)->price,
-                                    'start_date'    => date('Y-m-d', strtotime(end($flagTwo)->start_date)),
-                                    'end_date'      => date('Y-m-d', strtotime($price['start_date'] . ' -' . 1 . ' day'))
-                                ]);
-                            }
-
-                            DB::connection('mysql3')->table('outlet_' . $price['store_code'])->insert([[
-                                'id_product'    => $checkProduct->id_product,
-                                'id_outlet'     => $checkOutlet->id_outlet,
-                                'price'         => $price['price'],
-                                'start_date'    => $price['start_date'],
-                                'end_date'      => $price['end_date']
-                            ], [
-                                'id_product'    => $checkProduct->id_product,
-                                'id_outlet'     => $checkOutlet->id_outlet,
-                                'price'         => end($flagTwo)->price,
-                                'start_date'    => date('Y-m-d', strtotime($price['end_date'] . ' +' . 1 . ' day')),
-                                'end_date'      => date('Y-m-d', strtotime(end($flagTwo)->end_date))
-                            ]]);
-                        } elseif (!empty($flagTwo) && end($flagTwo)->end_date <= $price['end_date']) {
-                            $flagBetween = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
-                                ->whereBetween('end_date', [$price['start_date'], $price['end_date']])
-                                ->orderBy('start_date')->get()->toArray();
-
-                            if (!empty($flagBetween)) {
-                                foreach ($flagBetween as $keyFlagBetween => $between) {
-                                    if ($keyFlagBetween != 0) {
-                                        DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', $between->id_product_price_periode)->delete();
-                                    }
-                                }
-                            }
-
-                            $flagThree = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
-                                ->where('end_date', '>=', $price['end_date'])
-                                ->orderBy('start_date')->get()->toArray();
-
-                            if (date('Y-m-d', strtotime(end($flagTwo)->start_date)) == $price['start_date']) {
-                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagTwo)->id_product_price_periode)->delete();
-                            } else {
-                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagTwo)->id_product_price_periode)->update([
-                                    'id_product'    => $checkProduct->id_product,
-                                    'id_outlet'     => $checkOutlet->id_outlet,
-                                    'price'         => end($flagTwo)->price,
-                                    'start_date'    => date('Y-m-d', strtotime(end($flagTwo)->start_date)),
-                                    'end_date'      => date('Y-m-d', strtotime($price['start_date'] . ' -' . 1 . ' day'))
-                                ]);
-                            }
-
-                            if (!empty($flagTwo) && !empty($flagThree)) {
-                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagThree)->id_product_price_periode)->update([
-                                    'id_product'    => $checkProduct->id_product,
-                                    'id_outlet'     => $checkOutlet->id_outlet,
-                                    'price'         => $price['price'],
-                                    'start_date'    => $price['start_date'],
-                                    'end_date'      => $price['end_date']
-                                ]);
-                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->insert([
-                                    'id_product'    => $checkProduct->id_product,
-                                    'id_outlet'     => $checkOutlet->id_outlet,
-                                    'price'         => end($flagThree)->price,
-                                    'start_date'    => date('Y-m-d', strtotime($price['end_date'] . ' +' . 1 . ' day')),
-                                    'end_date'      => date('Y-m-d', strtotime(end($flagThree)->end_date))
-                                ]);
-                            } else {
-                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->insert([
-                                    'id_product'    => $checkProduct->id_product,
-                                    'id_outlet'     => $checkOutlet->id_outlet,
-                                    'price'         => $price['price'],
-                                    'start_date'    => $price['start_date'],
-                                    'end_date'      => $price['end_date']
-                                ]);
-                            }
-                        } else {
-                            $flagBetween = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
-                                ->whereBetween('end_date', [$price['start_date'], $price['end_date']])
-                                ->orderBy('start_date')->get()->toArray();
-
-                            if (!empty($flagBetween)) {
-                                foreach ($flagBetween as $keyFlagBetween => $between) {
-                                    if ($keyFlagBetween != 0) {
-                                        DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', $between->id_product_price_periode)->delete();
-                                    }
-                                }
-                            }
-
-                            $flagThree = DB::connection('mysql3')->table('outlet_' . $price['store_code'])
-                                ->where('end_date', '>=', $price['end_date'])
-                                ->orderBy('start_date')->get()->toArray();
-
-                            if (empty($flagThree)) {
-                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->insert([
-                                    'id_product'    => $checkProduct->id_product,
-                                    'id_outlet'     => $checkOutlet->id_outlet,
-                                    'price'         => $price['price'],
-                                    'start_date'    => $price['start_date'],
-                                    'end_date'      => $price['end_date']
-                                ]);
-                            } elseif (empty($flagTwo) && !empty($flagThree)) {
-                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', reset($flagThree)->id_product_price_periode)->update([
-                                    'id_product'    => $checkProduct->id_product,
-                                    'id_outlet'     => $checkOutlet->id_outlet,
-                                    'price'         => reset($flagThree)->price,
-                                    'start_date'    => date('Y-m-d', strtotime($price['end_date'] . ' +' . 1 . ' day')),
-                                    'end_date'      => date('Y-m-d', strtotime(reset($flagThree)->end_date)),
-                                ]);
-                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->insert([
-                                    'id_product'    => $checkProduct->id_product,
-                                    'id_outlet'     => $checkOutlet->id_outlet,
-                                    'price'         => $price['price'],
-                                    'start_date'    => $price['start_date'],
-                                    'end_date'      => $price['end_date']
-                                ]);
-                            } else {
-                                if (date('Y-m-d', strtotime(end($flagTwo)->start_date)) == $price['start_date']) {
-                                    DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagTwo)->id_product_price_periode)->delete();
-                                } else {
-                                    DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagTwo)->id_product_price_periode)->update([
-                                        'id_product'    => $checkProduct->id_product,
-                                        'id_outlet'     => $checkOutlet->id_outlet,
-                                        'price'         => end($flagTwo)->price,
-                                        'start_date'    => date('Y-m-d', strtotime(end($flagTwo)->start_date)),
-                                        'end_date'      => date('Y-m-d', strtotime($price['start_date'] . ' -' . 1 . ' day'))
-                                    ]);
-                                }
-                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->insert([[
-                                    'id_product'    => $checkProduct->id_product,
-                                    'id_outlet'     => $checkOutlet->id_outlet,
-                                    'price'         => $price['price'],
-                                    'start_date'    => $price['start_date'],
-                                    'end_date'      => $price['end_date']
-                                ]]);
-                                DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagThree)->id_product_price_periode)->update([
-                                    'id_product'    => $checkProduct->id_product,
-                                    'id_outlet'     => $checkOutlet->id_outlet,
-                                    'price'         => end($flagThree)->price,
-                                    'start_date'    => date('Y-m-d', strtotime($price['end_date'] . ' +' . 1 . ' day')),
-                                    'end_date'      => end($flagThree)->end_date
-                                ]);
-                            }
-                        }
-                    } else {
-                        DB::connection('mysql3')->table('outlet_' . $price['store_code'])->where('id_product_price_periode', end($flagOne)->id_product_price_periode)->update([
-                            'id_product'    => $checkProduct->id_product,
-                            'id_outlet'     => $checkOutlet->id_outlet,
-                            'price'         => $price['price'],
-                        ]);
+                    if ($price['end_date'] < $price['start_date']) {
+                        $countfailed     = $countfailed + 1;
+                        $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', recheck this date';
+                        continue;
                     }
+
+                    $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
+                    if (!$checkOutlet) {
+                        $countfailed     = $countfailed + 1;
+                        $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', no outlet';
+                        continue;
+                    }
+
+                    $dataJob[$keyMenu]['price_detail'][$keyPrice] = [
+                        'id_product'    => $checkProduct->id_product,
+                        'id_outlet'     => $checkOutlet->id_outlet,
+                        'price'         => $price['price'],
+                        'start_date'    => $price['start_date'],
+                        'end_date'      => $price['end_date']
+                    ];
+
+                    $countInsert     = $countInsert + 1;
+                    $insertProduct[] = 'Success to sync price, product ' . $menu['sap_matnr'] . ' outlet ' . $price['store_code'];
                 }
-                // dd('no');
-                // if (isset($dataJob[$keyMenu]['price_detail'])) {
-                // SyncProductPrice::dispatch(json_encode($dataJob[$keyMenu]));
-                // }
             } else {
                 $countfailed     = $countfailed + 1;
                 $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', product not found';
                 continue;
+            }
+            if (isset($dataJob[$keyMenu]['price_detail'])) {
+                SyncProductPrice::dispatch(json_encode($dataJob[$keyMenu]));
             }
         }
 
@@ -1198,7 +1033,7 @@ class ApiPOS extends Controller
         $hasil['failed_product']['list_menu']   = $failedProduct;
         return [
             'status'    => 'success',
-            'result'  => $hasil,
+            'result'    => $hasil,
         ];
     }
 
@@ -1260,8 +1095,8 @@ class ApiPOS extends Controller
                         continue;
                     }
 
-                    if(isset($productGroup['products'])){
-                        foreach($productGroup['products'] as $product){
+                    if (isset($productGroup['products'])) {
+                        foreach ($productGroup['products'] as $product) {
                             try {
                                 ProductModifierProduct::updateOrCreate([
                                     'id_product'            => $product->id_product,
@@ -1273,7 +1108,7 @@ class ApiPOS extends Controller
                                 $countUpdate = $countUpdate + 1;
                             } catch (\Exception $e) {
                                 DB::rollBack();
-                                LogBackendError::logExceptionMessage("ApiPOS/syncProduct=>" . $e->getMessage(), $e);
+                                LogBackendError::logExceptionMessage("ApiPOS/syncAddOn=>" . $e->getMessage(), $e);
                                 $failedProduct[] = 'fail to sync, product ' . $productModifier->text;
                                 continue;
                             }
@@ -1305,8 +1140,8 @@ class ApiPOS extends Controller
                         continue;
                     }
 
-                    if(isset($productGroup['products'])){
-                        foreach($productGroup['products'] as $product){
+                    if (isset($productGroup['products'])) {
+                        foreach ($productGroup['products'] as $product) {
                             try {
                                 ProductModifierProduct::updateOrCreate([
                                     'id_product'            => $product->id_product,
@@ -1337,7 +1172,8 @@ class ApiPOS extends Controller
         ];
     }
 
-    public function syncAddOnPrice(Request $request) {
+    public function syncAddOnPrice(Request $request)
+    {
         $post = $request->json()->all();
         $api = $this->checkApi($post['api_key'], $post['api_secret']);
         if ($api['status'] != 'success') {
@@ -1350,28 +1186,43 @@ class ApiPOS extends Controller
         $failedProduct  = [];
         $dataJob        = [];
         foreach ($post['add_on'] as $keyMenu => $menu) {
-            $checkProduct = ProductModifier::where('code', $menu['sap_matnr'])->first();
+            $checkProduct = ProductModifier::where('code', $menu['menu_id'])->first();
             if ($checkProduct) {
-                $dataJob[$keyMenu]['menu_id'] = $menu['sap_matnr'];
                 foreach ($menu['price_detail'] as $keyPrice => $price) {
-                    $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
-                    if ($checkOutlet) {
-                        $dataJob[$keyMenu]['price_detail'][$keyPrice]  = $price;
-                        $countInsert     = $countInsert + 1;
-                        $insertProduct[] = 'Success to sync, product modifier ' . $menu['sap_matnr'] . ' at outlet ' . $price['store_code'];
-                    } else {
+                    if ($price['start_date'] < date('Y-m-d')) {
+                        $price['start_date'] = date('Y-m-d');
+                    }
+                    if ($price['end_date'] < $price['start_date']) {
                         $countfailed     = $countfailed + 1;
-                        $failedProduct[] = 'Fail to sync, product modifier ' . $menu['sap_matnr'] . ' at outlet ' . $price['store_code'] . ', outlet not found';
+                        $failedProduct[] = 'Fail to sync, product ' . $menu['menu_id'] . ', recheck this date';
                         continue;
                     }
-                }
-                if (isset($dataJob[$keyMenu]['price_detail'])) {
-                    SyncAddOnPrice::dispatch(json_encode($dataJob[$keyMenu]));
+
+                    $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
+                    if (!$checkOutlet) {
+                        $countfailed     = $countfailed + 1;
+                        $failedProduct[] = 'Fail to sync, product ' . $menu['menu_id'] . ', no outlet';
+                        continue;
+                    }
+
+                    $dataJob[$keyMenu]['price_detail'][$keyPrice] = [
+                        'id_product_modifier'   => $checkProduct->id_product_modifier,
+                        'id_outlet'             => $checkOutlet->id_outlet,
+                        'price'                 => $price['price'],
+                        'start_date'            => $price['start_date'],
+                        'end_date'              => $price['end_date']
+                    ];
+
+                    $countInsert     = $countInsert + 1;
+                    $insertProduct[] = 'Success to sync price, product ' . $menu['menu_id'] . ' outlet ' . $price['store_code'];
                 }
             } else {
                 $countfailed     = $countfailed + 1;
-                $failedProduct[] = 'Fail to sync, menu ' . $menu['sap_matnr'] . ', menu not found';
+                $failedProduct[] = 'Fail to sync, menu ' . $menu['menu_id'] . ', menu not found';
                 continue;
+            }
+            if (isset($dataJob[$keyMenu]['price_detail'])) {
+                SyncAddOnPrice::dispatch(json_encode($dataJob[$keyMenu]));
             }
         }
 
@@ -1381,21 +1232,24 @@ class ApiPOS extends Controller
         $hasil['failed_product']['list_menu']   = $failedProduct;
         return [
             'status'    => 'success',
-            'result'  => $hasil,
+            'result'    => $hasil,
         ];
     }
 
-    public function cronProductPrice() {
-        $getOutlet = Outlet::select('id_outlet','outlet_code')->get()->toArray();
+    public function cronProductPricePriority()
+    {
+        $getOutlet = Outlet::select('id_outlet', 'outlet_code')->where('is_24h', 1)->get()->toArray();
         $getProduct = Product::select('id_product')->get()->toArray();
         for ($i = 0; $i < count($getOutlet); $i++) {
             for ($j = 0; $j < count($getProduct); $j++) {
                 try {
                     $getPrice = DB::connection('mysql3')
-                    ->table('outlet_'.$getOutlet[$i]['outlet_code'])
-                    ->where('id_product', $getProduct[$j]['id_product'])
-                    ->where('id_outlet', $getOutlet[$i]['id_outlet'])
-                    ->where('date', date('Y-m-d'))->first();
+                        ->table('outlet_' . $getOutlet[$i]['outlet_code'])
+                        ->where('id_product', $getProduct[$j]['id_product'])
+                        ->where('id_outlet', $getOutlet[$i]['id_outlet'])
+                        ->where('start_date', '<=', date('Y-m-d'))
+                        ->where('end_date', '>=', date('Y-m-d'))
+                        ->orderBy('id_product_price_periode', 'DESC')->first();
 
                     $price = $getPrice->price;
                 } catch (\Exception $e) {
@@ -1406,33 +1260,7 @@ class ApiPOS extends Controller
                 if ($getProductPrice && $price != 0) {
                     try {
                         ProductPrice::where('id_product_price', $getProductPrice->id_product_price)->update([
-                            'product_price' => $price,
-                            'product_status'=> 'Active',
-                        ]);
-                    } catch (\Exception $e) {
-                        LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
-                    }
-                } elseif (!$getProductPrice && $price != 0)  {
-                    try {
-                        ProductPrice::create([
-                            'id_product'            => $getProduct[$j]['id_product'],
-                            'id_outlet'             => $getOutlet[$i]['id_outlet'],
-                            'product_price'         => $price,
-                            'product_status'        => 'Active',
-                        ]);
-                    } catch (\Exception $e) {
-                        LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
-                    }
-                } else {
-                    try {
-                        ProductPrice::updateOrCreate([
-                            'id_product'            => $getProduct[$j]['id_product'],
-                            'id_outlet'             => $getOutlet[$i]['id_outlet']
-                        ], [
-                            'id_product'            => $getProduct[$j]['id_product'],
-                            'id_outlet'             => $getOutlet[$i]['id_outlet'],
-                            'product_price'         => $price,
-                            'product_status'        => 'Inactive',
+                            'product_price' => $price
                         ]);
                     } catch (\Exception $e) {
                         LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
@@ -1442,17 +1270,54 @@ class ApiPOS extends Controller
         }
     }
 
-    public function cronAddOnPrice() {
-        $getOutlet = Outlet::select('id_outlet','outlet_code')->get()->toArray();
+    public function cronProductPrice()
+    {
+        $getOutlet = Outlet::select('id_outlet', 'outlet_code')->where('is_24h', 0)->get()->toArray();
+        $getProduct = Product::select('id_product')->get()->toArray();
+        for ($i = 0; $i < count($getOutlet); $i++) {
+            for ($j = 0; $j < count($getProduct); $j++) {
+                try {
+                    $getPrice = DB::connection('mysql3')
+                        ->table('outlet_' . $getOutlet[$i]['outlet_code'])
+                        ->where('id_product', $getProduct[$j]['id_product'])
+                        ->where('id_outlet', $getOutlet[$i]['id_outlet'])
+                        ->where('start_date', '<=', date('Y-m-d'))
+                        ->where('end_date', '>=', date('Y-m-d'))
+                        ->orderBy('id_product_price_periode', 'DESC')->first();
+
+                    $price = $getPrice->price;
+                } catch (\Exception $e) {
+                    $price = 0;
+                }
+
+                $getProductPrice = ProductPrice::where('id_product', $getProduct[$j]['id_product'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
+                if ($getProductPrice && $price != 0) {
+                    try {
+                        ProductPrice::where('id_product_price', $getProductPrice->id_product_price)->update([
+                            'product_price' => $price
+                        ]);
+                    } catch (\Exception $e) {
+                        LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
+                    }
+                }
+            }
+        }
+    }
+
+    public function cronAddOnPrice()
+    {
+        $getOutlet = Outlet::select('id_outlet', 'outlet_code')->get()->toArray();
         $getAddOn = ProductModifier::select('id_product_modifier', 'code')->get()->toArray();
         for ($i = 0; $i < count($getOutlet); $i++) {
             for ($j = 0; $j < count($getAddOn); $j++) {
                 try {
                     $getPrice = DB::connection('mysql3')
-                    ->table('outlet_'.$getOutlet[$i]['outlet_code'].'_modifier_'.$getAddOn[$j]['code'])
-                    ->where('id_product_modifier', $getAddOn[$j]['id_product_modifier'])
-                    ->where('id_outlet', $getOutlet[$i]['id_outlet'])
-                    ->where('date', date('Y-m-d'))->first();
+                        ->table('outlet_' . $getOutlet[$i]['outlet_code'] . '_modifier_' . $getAddOn[$j]['code'])
+                        ->where('id_product_modifier', $getAddOn[$j]['id_product_modifier'])
+                        ->where('id_outlet', $getOutlet[$i]['id_outlet'])
+                        ->where('start_date', '<=', date('Y-m-d'))
+                        ->where('end_date', '>=', date('Y-m-d'))
+                        ->orderBy('id_product_price_periode', 'DESC')->first();
 
                     $price = $getPrice->price;
                 } catch (\Exception $e) {
@@ -1464,44 +1329,19 @@ class ApiPOS extends Controller
                     try {
                         ProductModifierPrice::where('id_product_modifier', $getProductPrice->id_product_modifier)->update([
                             'product_modifier_price' => $price,
-                            'product_modifier_status'=> 'Active',
                         ]);
                     } catch (\Exception $e) {
                         LogBackendError::logExceptionMessage("ApiPOS/cronAddOnPrice=>" . $e->getMessage(), $e);
-                    }
-                } elseif (!$getProductPrice && $price != 0)  {
-                    try {
-                        ProductModifierPrice::create([
-                            'id_product_modifier'            => $getAddOn[$j]['id_product_modifier'],
-                            'id_outlet'                      => $getOutlet[$i]['id_outlet'],
-                            'product_modifier_price'         => $price,
-                            'product_modifier_status'        => 'Active',
-                        ]);
-                    } catch (\Exception $e) {
-                        LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
-                    }
-                } else {
-                    try {
-                        ProductModifierPrice::updateOrCreate([
-                            'id_product_modifier'            => $getAddOn[$j]['id_product'],
-                            'id_outlet'                      => $getOutlet[$i]['id_outlet']
-                        ], [
-                            'id_product_modifier'            => $getAddOn[$j]['id_product_modifier'],
-                            'id_outlet'                      => $getOutlet[$i]['id_outlet'],
-                            'product_modifier_price'         => $price,
-                            'product_modifier_status'        => 'Inactive',
-                        ]);
-                    } catch (\Exception $e) {
-                        LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
                     }
                 }
             }
         }
     }
 
-    public function syncMenu(Request $request) {
+    public function syncMenu(Request $request)
+    {
         $post = $request->json()->all();
-        return $this->syncMenuProcess($post,'partial');
+        return $this->syncMenuProcess($post, 'partial');
     }
 
     public function syncMenuProcess($data, $flag)
@@ -1604,7 +1444,7 @@ class ApiPOS extends Controller
                             if (empty($product->product_name_pos) || $product->product_name_pos == $menu['name']) {
                                 // update modifiers
                                 if (isset($menu['modifiers'])) {
-                                    ProductModifierProduct::where('id_product',$product['id_product'])->delete();
+                                    ProductModifierProduct::where('id_product', $product['id_product'])->delete();
                                     foreach ($menu['modifiers'] as $mod) {
                                         $dataProductMod['type'] = $mod['type'];
                                         if (isset($mod['text']))
@@ -1792,10 +1632,10 @@ class ApiPOS extends Controller
                     DB::commit();
                 }
             }
-            if($modifier_prices = ($data['modifier']??false)){
+            if ($modifier_prices = ($data['modifier'] ?? false)) {
                 foreach ($modifier_prices as $modifier) {
-                    $promod = ProductModifier::select('id_product_modifier')->where('code',$modifier['code'])->first();
-                    if(!$promod){
+                    $promod = ProductModifier::select('id_product_modifier')->where('code', $modifier['code'])->first();
+                    if (!$promod) {
                         continue;
                     }
                     $data_key = [
@@ -1803,13 +1643,13 @@ class ApiPOS extends Controller
                         'id_product_modifier' => $promod->id_product_modifier
                     ];
                     $data_price = [];
-                    if(isset($modifier['price'])){
+                    if (isset($modifier['price'])) {
                         $data_price['product_modifier_price'] = $modifier['price'];
                     }
-                    if($modifier['status']??false){
+                    if ($modifier['status'] ?? false) {
                         $data_price['product_modifier_status'] = $modifier['status'];
                     }
-                    ProductModifierPrice::updateOrCreate($data_key,$data_price);
+                    ProductModifierPrice::updateOrCreate($data_key, $data_price);
                 }
             }
             if ($flag == 'partial') {
@@ -1942,13 +1782,13 @@ class ApiPOS extends Controller
                 );
                 Mail::send('pos::email_sync_menu', $data, function ($message) use ($to, $subject, $setting) {
                     $message->to($to)->subject($subject);
-                    if(env('MAIL_DRIVER') == 'mailgun'){
+                    if (env('MAIL_DRIVER') == 'mailgun') {
                         $message->trackClicks(true)
-                                ->trackOpens(true);
+                            ->trackOpens(true);
                     }
-                    if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
+                    if (!empty($setting['email_from']) && !empty($setting['email_sender'])) {
                         $message->from($setting['email_sender'], $setting['email_from']);
-                    }else if(!empty($setting['email_sender'])){
+                    } else if (!empty($setting['email_sender'])) {
                         $message->from($setting['email_sender']);
                     }
 
@@ -1986,17 +1826,17 @@ class ApiPOS extends Controller
 
     public function transaction(Request $request, $post = null, $cek = 1)
     {
-        if(!$post){
+        if (!$post) {
             $post = $request->json()->all();
         }
 
-        if(( $cek != 1 &&
-            !empty($post['store_code']) && !empty($post['transactions']) ) ||
+        if (($cek != 1 &&
+                !empty($post['store_code']) && !empty($post['transactions'])) ||
             ($cek == 1 && !empty($post['api_key']) && !empty($post['api_secret']) &&
-            !empty($post['store_code']) && !empty($post['transactions']))
-        ){
+                !empty($post['store_code']) && !empty($post['transactions']))
+        ) {
 
-            if($cek == 1){
+            if ($cek == 1) {
                 $api = $this->checkApi($post['api_key'], $post['api_secret']);
                 if ($api['status'] != 'success') {
                     return response()->json($api);
@@ -2016,10 +1856,10 @@ class ApiPOS extends Controller
             $countTransactionDuplicate = 0;
             $detailTransactionFail = [];
 
-            if($countTransaction <= $x){
+            if ($countTransaction <= $x) {
 
                 $getIdBrand = Brand::select('id_brand')->first();
-                if(!$getIdBrand){
+                if (!$getIdBrand) {
                     return [
                         'status'    => 'fail',
                         'messages'  => ['failed get brand']
@@ -2037,50 +1877,50 @@ class ApiPOS extends Controller
                 $receipt = array_column($post['transactions'], 'trx_id');
                 //exclude receipt number when already exist in outlet
                 $checkReceipt = Transaction::select('transaction_receipt_number', 'id_transaction');
-                if($config['unique_receipt_outlet'] == '1'){
+                if ($config['unique_receipt_outlet'] == '1') {
                     $checkReceipt = $checkReceipt->where('id_outlet', $checkOutlet['id_outlet']);
                 }
                 $checkReceipt = $checkReceipt->whereIn('transaction_receipt_number', $receipt)
-                                    ->where('trasaction_type', 'Offline')
-                                    ->get();
+                    ->where('trasaction_type', 'Offline')
+                    ->get();
                 $convertTranscToArray = $checkReceipt->toArray();
                 $receiptExist = $checkReceipt->pluck('transaction_receipt_number')->toArray();
 
-                $invalidReceipt = array_intersect($receipt,$receiptExist);
-                foreach($invalidReceipt as $key => $invalid){
+                $invalidReceipt = array_intersect($receipt, $receiptExist);
+                foreach ($invalidReceipt as $key => $invalid) {
                     $countTransactionDuplicate++;
                     unset($post['transactions'][$key]);
                 }
 
                 //check possibility duplicate when receipt number unique per outlet
-                if($config['unique_receipt_outlet'] == '1'){
-                    $validReceipt = array_diff($receipt,$receiptExist);
+                if ($config['unique_receipt_outlet'] == '1') {
+                    $validReceipt = array_diff($receipt, $receiptExist);
 
                     $receiptDuplicate = Transaction::where('id_outlet', '!=', $checkOutlet['id_outlet'])
-                                        ->whereIn('transaction_receipt_number', $validReceipt)
-                                        ->where('trasaction_type', 'Offline')
-                                        ->select('transaction_receipt_number')
-                                        ->get()->pluck('transaction_receipt_number')->toArray();
+                        ->whereIn('transaction_receipt_number', $validReceipt)
+                        ->where('trasaction_type', 'Offline')
+                        ->select('transaction_receipt_number')
+                        ->get()->pluck('transaction_receipt_number')->toArray();
 
                     $transactionDuplicate = TransactionDuplicate::where('id_outlet', '=', $checkOutlet['id_outlet'])
-                                            ->whereIn('transaction_receipt_number', $validReceipt)
-                                            ->select('transaction_receipt_number')
-                                            ->get()->pluck('transaction_receipt_number')->toArray();
+                        ->whereIn('transaction_receipt_number', $validReceipt)
+                        ->select('transaction_receipt_number')
+                        ->get()->pluck('transaction_receipt_number')->toArray();
 
                     $receiptDuplicate = array_intersect($receipt, $receiptDuplicate);
 
                     $contentDuplicate = [];
-                    foreach($receiptDuplicate as $key => $receipt){
-                        if(in_array($receipt, $transactionDuplicate)){
+                    foreach ($receiptDuplicate as $key => $receipt) {
+                        if (in_array($receipt, $transactionDuplicate)) {
                             $countTransactionDuplicate++;
                             unset($post['transactions'][$key]);
-                        }else{
+                        } else {
                             $duplicate = $this->processDuplicate($post['transactions'][$key], $checkOutlet);
-                            if(isset($duplicate['status']) && $duplicate['status'] == 'duplicate'){
+                            if (isset($duplicate['status']) && $duplicate['status'] == 'duplicate') {
                                 $countTransactionDuplicate++;
                                 $data = [
                                     'trx' => $duplicate['trx'],
-                                    'duplicate' =>$duplicate['duplicate']
+                                    'duplicate' => $duplicate['duplicate']
                                 ];
                                 $contentDuplicate[] = $data;
                                 unset($post['transactions'][$key]);
@@ -2099,28 +1939,30 @@ class ApiPOS extends Controller
                 $allModCode = array_column($modList, 'code');
 
                 $countSettingCashback = TransactionSetting::get();
-                $fraudTrxDay = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 day%')->where('fraud_settings_status','Active')->first();
-                $fraudTrxWeek = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 week%')->where('fraud_settings_status','Active')->first();
+                $fraudTrxDay = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 day%')->where('fraud_settings_status', 'Active')->first();
+                $fraudTrxWeek = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 week%')->where('fraud_settings_status', 'Active')->first();
                 foreach ($post['transactions'] as $key => $trx) {
-                    if(!empty($trx['date_time']) &&
+                    if (
+                        !empty($trx['date_time']) &&
                         isset($trx['total']) &&
                         isset($trx['service']) && isset($trx['tax']) &&
                         isset($trx['discount']) && isset($trx['grand_total']) &&
-                        isset($trx['menu'])){
+                        isset($trx['menu'])
+                    ) {
 
                         $insertTrx = $this->insertTransaction($getIdBrand, $checkOutlet, $productList, $allProductCode, $groupList, $allGroupCode, $variantList, $allVariantCode, $modList, $allModCode, $trx, $config, $settingPoint, $countSettingCashback, $fraudTrxDay, $fraudTrxWeek);
 
-                        if(isset($insertTrx['id_transaction'])){
-                                $countTransactionSuccess++;
-                                $result[] = $insertTrx;
-                        }else{
+                        if (isset($insertTrx['id_transaction'])) {
+                            $countTransactionSuccess++;
+                            $result[] = $insertTrx;
+                        } else {
                             $countTransactionFail++;
-                            if(isset($trx['trx_id'])){
-                                $id = 'failed save trx_id : '.$trx['trx_id'];
-                                if(isset($insertTrx['message'])){
-                                    $id = $id. ', '.$insertTrx['message'];
+                            if (isset($trx['trx_id'])) {
+                                $id = 'failed save trx_id : ' . $trx['trx_id'];
+                                if (isset($insertTrx['message'])) {
+                                    $id = $id . ', ' . $insertTrx['message'];
                                 }
-                            }else{
+                            } else {
                                 $id = 'trx_id does not exist';
                             }
                             array_push($detailTransactionFail, $id);
@@ -2133,11 +1975,11 @@ class ApiPOS extends Controller
                             ];
                             SyncTransactionFaileds::create($data);
                         }
-                    }else{
+                    } else {
                         $countTransactionFail++;
-                        if(isset($trx['trx_id'])){
-                            $id = 'failed save trx_id : '.$trx['trx_id']. ', There is an incomplete input in the transaction list';
-                        }else{
+                        if (isset($trx['trx_id'])) {
+                            $id = 'failed save trx_id : ' . $trx['trx_id'] . ', There is an incomplete input in the transaction list';
+                        } else {
                             $id = 'trx_id does not exist';
                         }
 
@@ -2162,16 +2004,16 @@ class ApiPOS extends Controller
                         'detail_transaction_failed' => $detailTransactionFail
                     ]
                 ]);
-            }else{
+            } else {
                 $countDataTransToSave = $countTransaction / $x;
                 $checkFloat = is_float($countDataTransToSave);
                 $getDataFrom = 0;
 
-                if($checkFloat === true){
-                    $countDataTransToSave = (int)$countDataTransToSave + 1;
+                if ($checkFloat === true) {
+                    $countDataTransToSave = (int) $countDataTransToSave + 1;
                 }
 
-                for($i=0;$i<$countDataTransToSave;$i++){
+                for ($i = 0; $i < $countDataTransToSave; $i++) {
                     $dataTransToSave = array_slice($post['transactions'], $getDataFrom, $x);
                     $data = [
                         'outlet_code' => $post['store_code'],
@@ -2179,17 +2021,16 @@ class ApiPOS extends Controller
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s')
                     ];
-                    try{
+                    try {
                         $insertTransactionQueue = SyncTransactionQueues::create($data);
 
-                        if(!$insertTransactionQueue){
+                        if (!$insertTransactionQueue) {
                             $countTransactionFail = $countTransactionFail + count($dataTransToSave);
                             array_push($detailTransactionFail, array_column($dataTransToSave, 'trx_id'));
-                        }else{
+                        } else {
                             $countTransactionSuccess = $countTransactionSuccess + count($dataTransToSave);
                         }
-
-                    }catch (Exception $e) {
+                    } catch (Exception $e) {
                         $countTransactionFail = $countTransactionFail + count($dataTransToSave);
                         array_push($detailTransactionFail, array_column($dataTransToSave, 'trx_id'));
                     }
@@ -2207,37 +2048,37 @@ class ApiPOS extends Controller
                     ]
                 ]);
             }
-
-        }else{
+        } else {
             return response()->json(['status' => 'fail', 'messages' => 'Input is incomplete']);
         }
     }
 
-    function insertTransaction($getIdBrand, $outlet, &$productList, &$allProductCode, &$groupList, &$allGroupCode, &$variantList, &$allVariantCode, &$modList, &$allModCode, $trx, $config, $settingPoint, $countSettingCashback, $fraudTrxDay, $fraudTrxWeek){
+    function insertTransaction($getIdBrand, $outlet, &$productList, &$allProductCode, &$groupList, &$allGroupCode, &$variantList, &$allVariantCode, &$modList, &$allModCode, $trx, $config, $settingPoint, $countSettingCashback, $fraudTrxDay, $fraudTrxWeek)
+    {
         DB::beginTransaction();
-        try{
-            if(!isset($trx['order_id'])){
-                if(count($trx['menu']) >= 0 && isset($trx['trx_id'])){
+        try {
+            if (!isset($trx['order_id'])) {
+                if (count($trx['menu']) >= 0 && isset($trx['trx_id'])) {
                     $countTrxDay = 0;
                     $countTrxWeek = 0;
 
                     $dataTrx = [
-                            'id_outlet'                   => $outlet['id_outlet'],
-                            'transaction_date'            => date('Y-m-d H:i:s', strtotime($trx['date_time'])),
-                            'transaction_receipt_number'  => $trx['trx_id'],
-                            'trasaction_type'             => 'Offline',
-                            'transaction_subtotal'        => $trx['total'],
-                            'transaction_service'         => $trx['service'],
-                            'transaction_discount'        => $trx['discount'],
-                            'transaction_tax'             => $trx['tax'],
-                            'transaction_grandtotal'      => $trx['grand_total'],
-                            'transaction_point_earned'    => null,
-                            'transaction_cashback_earned' => null,
-                            'trasaction_payment_type'     => 'Offline',
-                            'transaction_payment_status'  => 'Completed'
+                        'id_outlet'                   => $outlet['id_outlet'],
+                        'transaction_date'            => date('Y-m-d H:i:s', strtotime($trx['date_time'])),
+                        'transaction_receipt_number'  => $trx['trx_id'],
+                        'trasaction_type'             => 'Offline',
+                        'transaction_subtotal'        => $trx['total'],
+                        'transaction_service'         => $trx['service'],
+                        'transaction_discount'        => $trx['discount'],
+                        'transaction_tax'             => $trx['tax'],
+                        'transaction_grandtotal'      => $trx['grand_total'],
+                        'transaction_point_earned'    => null,
+                        'transaction_cashback_earned' => null,
+                        'trasaction_payment_type'     => 'Offline',
+                        'transaction_payment_status'  => 'Completed'
                     ];
 
-                    if(!empty($trx['sales_type'])){
+                    if (!empty($trx['sales_type'])) {
                         $dataTrx['sales_type']  = $trx['sales_type'];
                     }
 
@@ -2246,7 +2087,7 @@ class ApiPOS extends Controller
                     $pointValue = 0;
 
                     if (isset($trx['member_uid'])) {
-                        if(strlen($trx['member_uid']) < 35){
+                        if (strlen($trx['member_uid']) < 35) {
                             DB::rollBack();
                             return ['status' => 'fail', 'messages' => 'Minimum length of member uid is 35'];
                         }
@@ -2258,32 +2099,32 @@ class ApiPOS extends Controller
                         if (empty($user)) {
                             DB::rollBack();
                             return ['status' => 'fail', 'messages' => 'User not found'];
-                        }elseif(isset($user['is_suspended']) && $user['is_suspended'] == '1'){
+                        } elseif (isset($user['is_suspended']) && $user['is_suspended'] == '1') {
                             $user['id'] = null;
                             $dataTrx['membership_level']    = null;
                             $dataTrx['membership_promo_id'] = null;
-                        }else{
+                        } else {
                             //========= This process to check if user have fraud ============//
                             $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                                ->where('transactions.id_user',$user['id'])
-                                ->whereRaw('DATE(transactions.transaction_date) = "'.date('Y-m-d', strtotime($trx['date_time'])).'"')
-                                ->where('transactions.transaction_payment_status','Completed')
+                                ->where('transactions.id_user', $user['id'])
+                                ->whereRaw('DATE(transactions.transaction_date) = "' . date('Y-m-d', strtotime($trx['date_time'])) . '"')
+                                ->where('transactions.transaction_payment_status', 'Completed')
                                 ->whereNull('transaction_pickups.reject_at')
                                 ->count();
 
-                            $currentWeekNumber = date('W',strtotime($trx['date_time']));
-                            $currentYear = date('Y',strtotime($trx['date_time']));
+                            $currentWeekNumber = date('W', strtotime($trx['date_time']));
+                            $currentYear = date('Y', strtotime($trx['date_time']));
                             $dto = new DateTime();
-                            $dto->setISODate($currentYear,$currentWeekNumber);
+                            $dto->setISODate($currentYear, $currentWeekNumber);
                             $start = $dto->format('Y-m-d');
                             $dto->modify('+6 days');
                             $end = $dto->format('Y-m-d');
 
                             $geCountTrxWeek = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                                ->where('id_user',$user['id'])
-                                ->where('transactions.transaction_payment_status','Completed')
+                                ->where('id_user', $user['id'])
+                                ->where('transactions.transaction_payment_status', 'Completed')
                                 ->whereNull('transaction_pickups.reject_at')
-                                ->whereRaw('Date(transactions.transaction_date) BETWEEN "'.$start.'" AND "'.$end.'"')
+                                ->whereRaw('Date(transactions.transaction_date) BETWEEN "' . $start . '" AND "' . $end . '"')
                                 ->count();
 
                             $countTrxDay = $geCountTrxDay + 1;
@@ -2299,25 +2140,25 @@ class ApiPOS extends Controller
                             if (!empty($trx['voucher'])) {
                                 foreach ($trx['voucher'] as $keyV => $valueV) {
                                     $checkVoucher = DealsVoucher::join('deals_users', 'deals_vouchers.id_deals_voucher', 'deals_users.id_deals_voucher')
-                                                        ->leftJoin('transaction_vouchers', 'deals_vouchers.id_deals_voucher', 'transaction_vouchers.id_deals_voucher')
-                                                        ->where('voucher_code', $valueV['voucher_code'])
-                                                        ->where('deals_users.id_outlet', $outlet['id_outlet'])
-                                                        ->where('deals_users.id_user', $user['id'])
-                                                        ->whereNotNull('deals_users.used_at')
-                                                        ->whereNull('transaction_vouchers.id_transaction_voucher')
-                                                        ->select('deals_vouchers.*')
-                                                        ->first();
+                                        ->leftJoin('transaction_vouchers', 'deals_vouchers.id_deals_voucher', 'transaction_vouchers.id_deals_voucher')
+                                        ->where('voucher_code', $valueV['voucher_code'])
+                                        ->where('deals_users.id_outlet', $outlet['id_outlet'])
+                                        ->where('deals_users.id_user', $user['id'])
+                                        ->whereNotNull('deals_users.used_at')
+                                        ->whereNull('transaction_vouchers.id_transaction_voucher')
+                                        ->select('deals_vouchers.*')
+                                        ->first();
 
                                     if (empty($checkVoucher)) {
                                         // for invalid voucher
                                         $dataVoucher['deals_voucher_invalid'] = $valueV['voucher_code'];
-                                    }else{
+                                    } else {
                                         $dataVoucher['id_deals_voucher'] =  $checkVoucher['id_deals_voucher'];
                                     }
                                     $trxVoucher[] = $dataVoucher;
                                 }
-                            }else{
-                                if($config['point'] == '1'){
+                            } else {
+                                if ($config['point'] == '1') {
                                     if (isset($user['memberships'][0]['membership_name'])) {
                                         $level = $user['memberships'][0]['membership_name'];
                                         $percentageP = $user['memberships'][0]['benefit_point_multiplier'] / 100;
@@ -2330,7 +2171,7 @@ class ApiPOS extends Controller
                                     $dataTrx['transaction_point_earned'] = $point;
                                 }
 
-                                if($config['balance'] == '1'){
+                                if ($config['balance'] == '1') {
                                     if (isset($user['memberships'][0]['membership_name'])) {
                                         $level = $user['memberships'][0]['membership_name'];
                                         $percentageB = $user['memberships'][0]['benefit_cashback_multiplier'] / 100;
@@ -2346,8 +2187,8 @@ class ApiPOS extends Controller
 
                                     //count some trx user
                                     $countUserTrx = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                                        ->where('id_user',$user['id'])
-                                        ->where('transactions.transaction_payment_status','Completed')
+                                        ->where('id_user', $user['id'])
+                                        ->where('transactions.transaction_payment_status', 'Completed')
                                         ->whereNull('transaction_pickups.reject_at')
                                         ->count();
                                     if ($countUserTrx < count($countSettingCashback)) {
@@ -2355,8 +2196,8 @@ class ApiPOS extends Controller
                                         if ($cashback > $countSettingCashback[$countUserTrx]['cashback_maximum']) {
                                             $cashback = $countSettingCashback[$countUserTrx]['cashback_maximum'];
                                         }
-                                    } else{
-                                        if(isset($cashMax) && $cashback > $cashMax){
+                                    } else {
+                                        if (isset($cashMax) && $cashback > $cashMax) {
                                             $cashback = $cashMax;
                                         }
                                     }
@@ -2367,10 +2208,10 @@ class ApiPOS extends Controller
                         $dataTrx['id_user'] = $user['id'];
                     }
 
-                    if(isset($qr['device'])){
+                    if (isset($qr['device'])) {
                         $dataTrx['transaction_device_type'] = $qr['device'];
                     }
-                    if(isset($trx['cashier'])){
+                    if (isset($trx['cashier'])) {
                         $dataTrx['transaction_cashier'] = $trx['cashier'];
                     }
 
@@ -2383,10 +2224,12 @@ class ApiPOS extends Controller
                     }
 
                     $dataPayments = [];
-                    if(!empty($trx['payments'])){
+                    if (!empty($trx['payments'])) {
                         foreach ($trx['payments'] as $col => $pay) {
-                            if(isset($pay['type']) && isset($pay['name'])
-                                && isset($pay['nominal'])){
+                            if (
+                                isset($pay['type']) && isset($pay['name'])
+                                && isset($pay['nominal'])
+                            ) {
                                 $dataPay = [
                                     'id_transaction' => $createTrx['id_transaction'],
                                     'payment_type'   => $pay['type'],
@@ -2395,13 +2238,13 @@ class ApiPOS extends Controller
                                     'created_at' => date('Y-m-d H:i:s'),
                                     'updated_at' => date('Y-m-d H:i:s')
                                 ];
-                                array_push($dataPayments,$dataPay);
-                            }else{
+                                array_push($dataPayments, $dataPay);
+                            } else {
                                 DB::rollBack();
                                 return ['status' => 'fail', 'messages' => 'There is an incomplete input in the payment list'];
                             }
                         }
-                    }else{
+                    } else {
                         $dataPayments = [
                             'id_transaction' => $createTrx['id_transaction'],
                             'payment_type'   => 'offline',
@@ -2421,16 +2264,18 @@ class ApiPOS extends Controller
                     $userTrxProduct = [];
                     foreach ($trx['menu'] as $row => $menu) {
                         //only for product not add on
-                        if($menu['category_id'] != '1'){
-                            if(isset($menu['menu_variance']['sap_matnr']) && isset($menu['menu_id']) && isset($menu['menu_name']) && isset($menu['category_id'])
-                            && isset($menu['menu_variance']['status']) && isset($menu['price']) && isset($menu['qty'])){
+                        if ($menu['category_id'] != '1') {
+                            if (
+                                isset($menu['menu_variance']['sap_matnr']) && isset($menu['menu_id']) && isset($menu['menu_name']) && isset($menu['category_id'])
+                                && isset($menu['menu_variance']['status']) && isset($menu['price']) && isset($menu['qty'])
+                            ) {
 
                                 $getIndexProduct = array_search($menu['menu_variance']['sap_matnr'], $allProductCode);
 
-                                if($getIndexProduct === false){
+                                if ($getIndexProduct === false) {
                                     //check product group
                                     $getIndexProductGroup = array_search($menu['menu_id'], $allGroupCode);
-                                    if($getIndexProductGroup === false){
+                                    if ($getIndexProductGroup === false) {
                                         try {
                                             $productGroup = ProductGroup::create([
                                                 'product_group_code'    => $menu['menu_id'],
@@ -2449,24 +2294,24 @@ class ApiPOS extends Controller
                                         $allGroupCode[] = $productGroup->product_group_code;
 
                                         $getIndexProductGroup = count($allProductCode);
-                                    }else{
+                                    } else {
                                         $productGroup = $groupList[$getIndexProductGroup];
                                     }
 
                                     $variance = $menu['menu_variance'];
                                     $size = $variance['size'];
                                     //for variant null use general size
-                                    if($variance['size'] == null){
+                                    if ($variance['size'] == null) {
                                         $size = 'general_size';
                                     }
                                     $type = $variance['type'];
                                     //for variant null use general type
-                                    if($variance['type'] == null){
+                                    if ($variance['type'] == null) {
                                         $type = 'general_type';
                                     }
 
                                     $getIndexVariantSize = array_search($size, $allVariantCode);
-                                    if($getIndexVariantSize === false){
+                                    if ($getIndexVariantSize === false) {
                                         try {
                                             $variantSize = ProductVariant::create([
                                                 'product_variant_code'       => $size,
@@ -2486,13 +2331,12 @@ class ApiPOS extends Controller
                                             'product_variant_code' => $variantSize->product_variant_code
                                         ];
                                         $allvariantCode[] = $variantSize->product_variant_code;
-
-                                    }else{
+                                    } else {
                                         $variantSize = $variantList[$getIndexVariantSize];
                                     }
 
                                     $getIndexVariantType = array_search($type, $allVariantCode);
-                                    if($getIndexVariantType === false){
+                                    if ($getIndexVariantType === false) {
                                         try {
                                             $variantType = ProductVariant::create([
                                                 'product_variant_code'       => $type,
@@ -2512,7 +2356,7 @@ class ApiPOS extends Controller
                                             'product_variant_code' => $variantType->product_variant_code
                                         ];
                                         $allvariantCode[] = $variantType->product_variant_code;
-                                    }else{
+                                    } else {
                                         $variantType = $variantList[$getIndexVariantType];
                                     }
 
@@ -2531,7 +2375,6 @@ class ApiPOS extends Controller
                                             'id_brand'   => $getIdBrand->id_brand
                                         ];
                                         BrandProduct::create($brandProduct);
-
                                     } catch (\Exception $e) {
                                         DB::rollBack();
                                         LogBackendError::logExceptionMessage("ApiPOS/transactionSync=>" . $e->getMessage(), $e);
@@ -2567,8 +2410,7 @@ class ApiPOS extends Controller
                                         DB::rollBack();
                                         return ['status' => 'fail', 'messages' => 'Failed create new product price'];
                                     }
-
-                                }else{
+                                } else {
                                     $product = $productList[$getIndexProduct];
                                 }
                                 $dataProduct = [
@@ -2595,8 +2437,10 @@ class ApiPOS extends Controller
                                 $number = $row + 1;
                                 while (isset($trx['menu'][$number]['category_id']) && $trx['menu'][$number]['category_id'] == '1') {
 
-                                    if(isset($trx['menu'][$number]['menu_variance']['sap_matnr']) && isset($trx['menu'][$number]['menu_name'])
-                                        && isset($trx['menu'][$number]['price']) && isset($trx['menu'][$number]['qty'])){
+                                    if (
+                                        isset($trx['menu'][$number]['menu_variance']['sap_matnr']) && isset($trx['menu'][$number]['menu_name'])
+                                        && isset($trx['menu'][$number]['price']) && isset($trx['menu'][$number]['qty'])
+                                    ) {
 
                                         $getIndexMod = array_search($trx['menu'][$number]['menu_variance']['sap_matnr'], $allModCode);
 
@@ -2607,7 +2451,7 @@ class ApiPOS extends Controller
                                                 $productModifier = ProductModifier::create([
                                                     'code'      => $trx['menu'][$number]['menu_variance']['sap_matnr'],
                                                     'text'      => $trx['menu'][$number]['menu_name'],
-                                                    'type'      => isset($trx['menu'][$number]['group'])??"",
+                                                    'type'      => isset($trx['menu'][$number]['group']) ?? "",
                                                     'modifier_type' => 'Specific',
                                                     'status'    => $trx['menu'][$number]['menu_variance']['status'],
                                                 ]);
@@ -2665,21 +2509,21 @@ class ApiPOS extends Controller
                                     }
 
                                     $number++;
-
                                 }
 
-                                if($modSubtotal > 0){
+                                if ($modSubtotal > 0) {
                                     TransactionProduct::where('id_transaction_product', $createProduct['id_transction_product'])->update(['transaction_modifier_subtotal' => $modSubtotal]);
                                 }
-                            }else{
+                            } else {
                                 DB::rollBack();
-                                return['status' => 'fail', 'messages' => 'There is an incomplete input in the menu list'];
+                                return ['status' => 'fail', 'messages' => 'There is an incomplete input in the menu list'];
                             }
                         }
                     }
 
-                    if((($fraudTrxDay && $countTrxDay <= $fraudTrxDay['parameter_detail']) && ($fraudTrxWeek && $countTrxWeek <= $fraudTrxWeek['parameter_detail']))
-                        || (!$fraudTrxDay && !$fraudTrxWeek)){
+                    if ((($fraudTrxDay && $countTrxDay <= $fraudTrxDay['parameter_detail']) && ($fraudTrxWeek && $countTrxWeek <= $fraudTrxWeek['parameter_detail']))
+                        || (!$fraudTrxDay && !$fraudTrxWeek)
+                    ) {
 
                         if ($createTrx['transaction_point_earned']) {
                             $dataLog = [
@@ -2726,8 +2570,10 @@ class ApiPOS extends Controller
                                     'messages'  => 'Insert Cashback Failed'
                                 ];
                             }
-                            $usere= User::where('id',$createTrx['id_user'])->first();
-                            $send = app($this->autocrm)->SendAutoCRM('Transaction Point Achievement', $usere->phone,
+                            $usere = User::where('id', $createTrx['id_user'])->first();
+                            $send = app($this->autocrm)->SendAutoCRM(
+                                'Transaction Point Achievement',
+                                $usere->phone,
                                 [
                                     "outlet_name"       => $outlet['outlet_name'],
                                     "transaction_date"  => $createTrx['transaction_date'],
@@ -2736,7 +2582,7 @@ class ApiPOS extends Controller
                                     'received_point'    => (string) $createTrx['transaction_cashback_earned']
                                 ]
                             );
-                            if($send != true){
+                            if ($send != true) {
                                 DB::rollBack();
                                 return response()->json([
                                     'status' => 'fail',
@@ -2745,13 +2591,12 @@ class ApiPOS extends Controller
                             }
                             $pointValue = $insertDataLogCash->balance;
                         }
-
-                    }else{
-                        if($countTrxDay > $fraudTrxDay['parameter_detail'] && $fraudTrxDay){
+                    } else {
+                        if ($countTrxDay > $fraudTrxDay['parameter_detail'] && $fraudTrxDay) {
                             $fraudFlag = 'transaction day';
-                        }elseif($countTrxWeek > $fraudTrxWeek['parameter_detail'] && $fraudTrxWeek){
+                        } elseif ($countTrxWeek > $fraudTrxWeek['parameter_detail'] && $fraudTrxWeek) {
                             $fraudFlag = 'transaction week';
-                        }else{
+                        } else {
                             $fraudFlag = NULL;
                         }
 
@@ -2762,7 +2607,7 @@ class ApiPOS extends Controller
                                 'fraud_flag' => $fraudFlag
                             ]);
 
-                        if(!$updatePointCashback){
+                        if (!$updatePointCashback) {
                             DB::rollBack();
                             return response()->json([
                                 'status' => 'fail',
@@ -2772,7 +2617,7 @@ class ApiPOS extends Controller
                     }
 
                     //insert voucher
-                    foreach($trxVoucher as $dataTrxVoucher){
+                    foreach ($trxVoucher as $dataTrxVoucher) {
                         $dataTrxVoucher['id_transaction'] = $createTrx['id_transaction'];
                         $create = TransactionVoucher::create($dataTrxVoucher);
                     }
@@ -2793,24 +2638,25 @@ class ApiPOS extends Controller
                     DB::commit();
                     return [
                         'id_transaction'    => $createTrx->id_transaction,
-                        'point_before'      => (int)$pointBefore,
+                        'point_before'      => (int) $pointBefore,
                         'point_after'       => $pointBefore + $pointValue,
                         'point_value'       => $pointValue
                     ];
-                }else{
+                } else {
                     DB::rollBack();
                     return ['status' => 'fail', 'messages' => 'trx_id does not exist'];
                 }
             }
-        }catch (Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return ['status' => 'fail', 'messages' => $e];
         }
     }
 
-    function processDuplicate($trx, $outlet){
+    function processDuplicate($trx, $outlet)
+    {
         DB::beginTransaction();
-        try{
+        try {
             $trxDuplicate = Transaction::where('transaction_receipt_number',  $trx['trx_id'])
                 ->with('user', 'outlet', 'productTransaction.product')
                 ->whereNotIn('transactions.id_outlet', [$outlet['id_outlet']])
@@ -2819,12 +2665,12 @@ class ApiPOS extends Controller
                 ->where('transaction_subtotal', $trx['total'])
                 ->where('trasaction_type', 'Offline');
 
-            if(isset($trx['cashier'])){
+            if (isset($trx['cashier'])) {
                 $trxDuplicate = $trxDuplicate->where('transaction_cashier', $trx['cashier']);
             }
 
             $trxDuplicate = $trxDuplicate->first();
-            if($trxDuplicate){
+            if ($trxDuplicate) {
                 //cek detail productnya
                 $statusDuplicate = true;
 
@@ -2833,10 +2679,10 @@ class ApiPOS extends Controller
 
                 foreach ($trx['menu'] as $row => $menu) {
                     $productDuplicate = false;
-                    foreach($trxDuplicate['productTransaction'] as $i => $dataProduct){
-                        if($menu['menu_variance']['sap_matnr'] == $dataProduct['product']['product_code']){
+                    foreach ($trxDuplicate['productTransaction'] as $i => $dataProduct) {
+                        if ($menu['menu_variance']['sap_matnr'] == $dataProduct['product']['product_code']) {
                             //cek jumlah quantity
-                            if($menu['qty'] == $dataProduct['transaction_product_qty']){
+                            if ($menu['qty'] == $dataProduct['transaction_product_qty']) {
                                 //set status product duplicate true
                                 $productDuplicate = true;
                                 $menu['id_product'] = $dataProduct['id_product'];
@@ -2849,7 +2695,7 @@ class ApiPOS extends Controller
                     }
 
                     //jika status product duplicate false maka detail product ada yg berbeda
-                    if($productDuplicate == false){
+                    if ($productDuplicate == false) {
                         $statusDuplicate = false;
                         break;
                     }
@@ -2857,7 +2703,7 @@ class ApiPOS extends Controller
 
                 $trxDuplicate['product'] = $detailproduct;
 
-                if($statusDuplicate == true){
+                if ($statusDuplicate == true) {
                     //insert into table transaction_duplicates
                     if (isset($trx['member_uid'])) {
                         $qr = MyHelper::readQR($trx['member_uid']);
@@ -2878,16 +2724,16 @@ class ApiPOS extends Controller
                     $dataDuplicate['outlet_name_duplicate'] = $trxDuplicate['outlet']['outlet_name'];
                     $dataDuplicate['outlet_name'] = $outlet['outlet_name'];
 
-                    if(isset($user['name'])){
+                    if (isset($user['name'])) {
                         $dataDuplicate['user_name'] = $user['name'];
                     }
 
-                    if(isset($user['phone'])){
+                    if (isset($user['phone'])) {
                         $dataDuplicate['user_phone'] = $user['phone'];
                     }
 
                     $dataDuplicate['transaction_cashier'] = $trx['cashier'];
-                    $dataDuplicate['transaction_date'] = date('Y-m-d H:i:s',strtotime($trx['date_time']));
+                    $dataDuplicate['transaction_date'] = date('Y-m-d H:i:s', strtotime($trx['date_time']));
                     $dataDuplicate['transaction_subtotal'] = $trx['total'];
                     $dataDuplicate['transaction_tax'] = $trx['tax'];
                     $dataDuplicate['transaction_service'] = $trx['service'];
@@ -2895,7 +2741,7 @@ class ApiPOS extends Controller
                     $dataDuplicate['sync_datetime_duplicate'] = $trxDuplicate['created_at'];
                     $dataDuplicate['sync_datetime'] = date('Y-m-d H:i:s');
                     $insertDuplicate = TransactionDuplicate::create($dataDuplicate);
-                    if(!$insertDuplicate){
+                    if (!$insertDuplicate) {
                         DB::rollBack();
                         return ['status' => 'Transaction sync failed'];
                     }
@@ -2911,7 +2757,7 @@ class ApiPOS extends Controller
                         $dataTrxDuplicateProd['transaction_product_qty'] = $menu['qty'];
                         $dataTrxDuplicateProd['transaction_product_price'] = $menu['price'];
                         $dataTrxDuplicateProd['transaction_product_subtotal'] = $menu['qty'] * $menu['price'];
-                        if(isset($menu['open_modifier'])){
+                        if (isset($menu['open_modifier'])) {
                             $dataTrxDuplicateProd['transaction_product_note'] = $menu['open_modifier'];
                         }
                         $dataTrxDuplicateProd['created_at'] = date('Y-m-d H:i:s');
@@ -2921,15 +2767,15 @@ class ApiPOS extends Controller
                     }
 
                     $insertTrxDuplicateProd = TransactionDuplicateProduct::insert($prodDuplicate);
-                    if(!$insertTrxDuplicateProd){
+                    if (!$insertTrxDuplicateProd) {
                         DB::rollBack();
                         return ['status' => 'Transaction sync failed'];
                     }
 
                     //insert payment
                     $payDuplicate = [];
-                    if(!empty($trx['payments'])){
-                        foreach($trx['payments'] as $pay){
+                    if (!empty($trx['payments'])) {
+                        foreach ($trx['payments'] as $pay) {
                             $dataTrxDuplicatePay['id_transaction_duplicate'] = $insertDuplicate['id_transaction_duplicate'];
                             $dataTrxDuplicatePay['payment_name'] = $pay['name'];
                             $dataTrxDuplicatePay['payment_type'] = $pay['type'];
@@ -2938,8 +2784,7 @@ class ApiPOS extends Controller
                             $dataTrxDuplicatePay['updated_at'] = date('Y-m-d H:i:s');
                             $payDuplicate[] = $dataTrxDuplicatePay;
                         }
-
-                    }else{
+                    } else {
                         $dataTrxDuplicatePay = [
                             'id_transaction_duplicate' => $insertDuplicate['id_transaction_duplicate'],
                             'payment_name' => 'Offline',
@@ -2952,7 +2797,7 @@ class ApiPOS extends Controller
                     }
 
                     $insertTrxDuplicatePay = TransactionDuplicatePayment::create($dataTrxDuplicatePay);
-                    if(!$insertTrxDuplicatePay){
+                    if (!$insertTrxDuplicatePay) {
                         DB::rollBack();
                         return ['status' => 'Transaction sync failed'];
                     }
@@ -2971,7 +2816,7 @@ class ApiPOS extends Controller
             }
 
             return ['status' => 'not duplicate'];
-        }catch (Exception $e){
+        } catch (Exception $e) {
             DB::rollBack();
             return ['status' => 'fail', 'messages' => $e];
         }
@@ -2993,11 +2838,11 @@ class ApiPOS extends Controller
         $successRefund = [];
         $failedRefund  = [];
 
-        if(!isset($post['data'])){
+        if (!isset($post['data'])) {
             return response()->json(['status' => 'fail', 'messages' => 'field data is required']);
         }
 
-        foreach($post['data'] as $trx){
+        foreach ($post['data'] as $trx) {
             $outlet = Outlet::where('outlet_code', strtoupper($trx['store_code']))->first();
             if (empty($outlet)) {
                 return response()->json(['status' => 'fail', 'messages' => 'Store not found']);
@@ -3288,7 +3133,7 @@ class ApiPOS extends Controller
         $syncDatetime = date('d F Y h:i');
         $getRequest = SyncMenuRequest::get()->first();
         // is $getRequest null
-        if(!$getRequest){
+        if (!$getRequest) {
             return '';
         }
         $getRequest = $getRequest->toArray();
@@ -3334,20 +3179,21 @@ class ApiPOS extends Controller
         SyncMenuRequest::where('id', $getRequest['id'])->delete();
     }
 
-    public function setTimezone($data){
+    public function setTimezone($data)
+    {
         switch ($data['time_zone']) {
             case 'Asia/Makassar':
-                $data['open'] = date('H:i', strtotime('-1 hour',strtotime($data['open'])));
+                $data['open'] = date('H:i', strtotime('-1 hour', strtotime($data['open'])));
                 $data['close'] = date('H:i', strtotime('-1 hour', strtotime($data['close'])));
-            break;
+                break;
             case 'Asia/Jayapura':
                 $data['open'] = date('H:i', strtotime('-2 hours', strtotime($data['open'])));
                 $data['close'] = date('H:i', strtotime('-2 hours', strtotime($data['close'])));
-            break;
+                break;
             case 'Asia/Singapore':
-                $data['open'] = date('H:i', strtotime('-1 hour',strtotime($data['open'])));
+                $data['open'] = date('H:i', strtotime('-1 hour', strtotime($data['open'])));
                 $data['close'] = date('H:i', strtotime('-1 hour', strtotime($data['close'])));
-            break;
+                break;
         }
         return $data;
     }
