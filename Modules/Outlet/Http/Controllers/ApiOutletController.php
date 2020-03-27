@@ -793,7 +793,7 @@ class ApiOutletController extends Controller
         return response()->json(MyHelper::checkGet($outlet));
     }
 
-    public function pagingOutlet($data, $page,$paginate=15) {
+    public function pagingOutlet($data, $page,$paginate=10) {
         $next = false;
 
         if ($page > 0) {
@@ -907,7 +907,6 @@ class ApiOutletController extends Controller
 
         $outlet = $outlet->get()->toArray();
 
-
         if (!empty($outlet)) {
             $processing = '0';
             $settingTime = Setting::where('key', 'processing_time')->first();
@@ -955,6 +954,16 @@ class ApiOutletController extends Controller
 
                 if(isset($outlet[$key]['today']['time_zone'])){
                     $outlet[$key]['today'] = $this->setTimezone($outlet[$key]['today']);
+                }
+
+                unset($outlet[$key]['today']['id_outlet']);
+                unset($outlet[$key]['today']['is_closed']);
+                unset($outlet[$key]['today']['time_zone_id']);
+                unset($outlet[$key]['today']['time_zone']);
+
+                if (isset($post['is_map']) && $post['is_map'] == 0) {
+                    unset($outlet[$key]['outlet_latitude']);
+                    unset($outlet[$key]['outlet_longitude']);
                 }
             }
 			if($sort != 'Alphabetical'){
