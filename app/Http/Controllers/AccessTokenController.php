@@ -52,7 +52,7 @@ class AccessTokenController extends PassportAccessTokenController
             //return error message
 
             if($exception->getCode() == 6){
-                return response()->json(['status' => 'fail', 'messages' => 'Pin tidak sesuai.']);
+                return response()->json(['status' => 'fail', 'messages' => 'Incorrect Pin.']);
             }
 
             return $this->withErrorHandling(function () use($exception) {

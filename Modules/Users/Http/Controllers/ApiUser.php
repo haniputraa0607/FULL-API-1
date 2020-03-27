@@ -1222,7 +1222,7 @@ class ApiUser extends Controller
 
                 $result 			= [];
                 $result['status'] 	= 'fail';
-                $result['messages'] = ['Kata sandi yang kamu masukkan kurang tepat'];
+                $result['messages'] = ['The pin you entered is incorrect'];
                 $result['date'] 	= date('Y-m-d H:i:s');
                 $result['device'] 	= $device;
                 $result['ip'] 		= $ip;
@@ -1236,7 +1236,7 @@ class ApiUser extends Controller
         }
         else {
             $result['status'] 	= 'fail';
-            $result['messages'] = ['Nomor HP belum terdaftar'];
+            $result['messages'] = ['This phone number isn\'t registered'];
         }
 
 
@@ -1261,7 +1261,7 @@ class ApiUser extends Controller
         }
         else {
             $result['status'] 	= 'fail';
-            $result['messages'] = ['Nomor HP belum terdaftar'];
+            $result['messages'] = ['This phone number isn\'t registered'];
         }
         return response()->json($result);
     }
@@ -1411,7 +1411,7 @@ class ApiUser extends Controller
         } else {
             $result = [
                 'status'	=> 'fail',
-                'messages'	=> ['Email yang kamu masukkan kurang tepat']
+                'messages'	=> ['The email you entered is incorrect']
             ];
             return response()->json($result);
         }

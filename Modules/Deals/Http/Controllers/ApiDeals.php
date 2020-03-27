@@ -517,22 +517,22 @@ class ApiDeals extends Controller
             if($deals[0]['deals_voucher_price_type']=='free'){
                 //voucher free
                 $deals[0]['button_text'] = 'Get';
-                $payment_message = Setting::where('key', 'payment_messages')->pluck('value_text')->first()??'Kamu yakin ingin mengambil voucher ini?';
+                $payment_message = Setting::where('key', 'payment_messages')->pluck('value_text')->first()??'Are you sure you want to take this voucher?';
                 $payment_message = MyHelper::simpleReplace($payment_message,['deals_title'=>$deals[0]['deals_title']]);
             }
             elseif($deals[0]['deals_voucher_price_type']=='point')
             {
                 $deals[0]['button_text'] = 'Claim';
-                $payment_message = Setting::where('key', 'payment_messages_point')->pluck('value_text')->first()??'Anda akan menukarkan %point% points anda dengan Voucher %deals_title%?';
+                $payment_message = Setting::where('key', 'payment_messages_point')->pluck('value_text')->first()??'Are you going to exchange your %points% for a % deals_title%?';
                 $payment_message = MyHelper::simpleReplace($payment_message,['point'=>$deals[0]['deals_voucher_price_point'],'deals_title'=>$deals[0]['deals_title']]);
             }
             else
             {
                 $deals[0]['button_text'] = 'Buy';
-                $payment_message = Setting::where('key', 'payment_messages_cash')->pluck('value_text')->first()??'Anda akan membeli Voucher %deals_title% dengan harga %cash% ?';
+                $payment_message = Setting::where('key', 'payment_messages_cash')->pluck('value_text')->first()??'Will you buy a %deals_title% at a price of %cash%?';
                 $payment_message = MyHelper::simpleReplace($payment_message,['cash'=>$deals[0]['deals_voucher_price_cash'],'deals_title'=>$deals[0]['deals_title']]);
             }
-            $payment_success_message = Setting::where('key', 'payment_success_messages')->pluck('value_text')->first()??'Apakah kamu ingin menggunakan Voucher sekarang?';
+            $payment_success_message = Setting::where('key', 'payment_success_messages')->pluck('value_text')->first()??'Do you want to use this voucher now?';
             $deals[0]['payment_message'] = $payment_message;
             $deals[0]['payment_success_message'] = $payment_success_message;
             if($deals[0]['deals_voucher_price_type']=='free'&&$deals[0]['deals_status']=='available'){
