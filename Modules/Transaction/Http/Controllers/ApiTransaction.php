@@ -1403,7 +1403,7 @@ class ApiTransaction extends Controller
             if($use_product_variant){
                 $list = Transaction::where([['id_transaction', $id],
                 ['id_user',$request->user()->id]])->with(
-                    'user.city.province',
+                    // 'user.city.province',
                     'productTransaction.product.product_group',
                     'productTransaction.product.product_variants',
                     'productTransaction.product.product_group.product_category',
@@ -1411,10 +1411,21 @@ class ApiTransaction extends Controller
                     'productTransaction.product.product_photos',
                     'productTransaction.product.product_discounts',
                     'transaction_payment_offlines',
+                    'transaction_vouchers.deals_voucher.deal',
+                    'promo_campaign_promo_code.promo_campaign',
                     'outlet.city')->first();
             }else{
                 $list = Transaction::where([['id_transaction', $id],
-                ['id_user',$request->user()->id]])->with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.modifiers', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'transaction_payment_offlines', 'outlet.city')->first();
+                ['id_user',$request->user()->id]])->with(
+                    // 'user.city.province', 
+                    'productTransaction.product.product_category', 
+                    'productTransaction.modifiers', 
+                    'productTransaction.product.product_photos', 
+                    'productTransaction.product.product_discounts', 
+                    'transaction_payment_offlines',
+                    'transaction_vouchers.deals_voucher.deal',
+                    'promo_campaign_promo_code.promo_campaign',
+                    'outlet.city')->first();
             }
             if(!$list){
                 return MyHelper::checkGet([],'empty');
@@ -1579,7 +1590,127 @@ class ApiTransaction extends Controller
             $list['date'] = $list['transaction_date'];
             $list['type'] = 'trx';
 
-            return response()->json(MyHelper::checkGet($list));
+            
+            $result = [
+                'id_transaction'                => $list['id_transaction'],
+                'transaction_receipt_number'    => $list['transaction_receipt_number'],
+                'transaction_date'              => date('d M Y H:i', strtotime($list['transaction_date'])),
+                'trasaction_type'               => $list['trasaction_type'],
+                'transaction_grandtotal'        => $list['transaction_grandtotal'],
+                'transaction_discount'          => $list['transaction_discount'],
+                'transaction_cashback_earned'   => $list['transaction_cashback_earned'],
+                'trasaction_payment_type'       => $list['trasaction_payment_type'],
+                'transaction_payment_status'    => $list['transaction_payment_status'],
+                'outlet'                        => [
+                    'outlet_name'       => $list['outlet']['outlet_name'],
+                    'outlet_address'    => $list['outlet']['outlet_address']
+                ],
+                'detail'                        => [
+                    'order_id_qrcode'   => $list['detail']['order_id_qrcode'],
+                    'order_id'          => $list['detail']['order_id'],
+                    'pickup_type'       => $list['detail']['pickup_type']
+                ]
+            ];
+            
+            if (isset($list['transaction_payment_status']) && $list['transaction_payment_status'] == 'Cancelled') {
+                $result['transaction_status'] = 'Order Canceled';
+            } elseif($list['detail']['reject_at'] != null) {
+                $result['transaction_status'] = 'Order Rejected';
+            } elseif($list['detail']['taken_by_system_at'] != null) {
+                $result['transaction_status'] = 'Order Has Been Done';
+            } elseif($list['detail']['taken_at'] != null) {
+                $result['transaction_status'] = 'Order Has Been Taken';
+            } elseif($list['detail']['ready_at'] != null) {
+                $result['transaction_status'] = 'Order Is Ready';
+            } elseif($list['detail']['receive_at'] != null) {
+                $result['transaction_status'] = 'Order Received';
+            } else {
+                $result['transaction_status'] = 'Order Pending';
+            }
+
+            $discount = 0;
+            foreach ($list['product_transaction'] as $keyTrx => $valueTrx) {
+                $result['product_transaction'][$keyTrx]['transaction_product_qty']              = $valueTrx['transaction_product_qty'];
+                $result['product_transaction'][$keyTrx]['transaction_product_subtotal']         = $valueTrx['transaction_product_subtotal'];
+                $result['product_transaction'][$keyTrx]['transaction_modifier_subtotal']        = $valueTrx['transaction_modifier_subtotal'];
+                $result['product_transaction'][$keyTrx]['transaction_product_note']             = $valueTrx['transaction_product_note'];
+                $result['product_transaction'][$keyTrx]['product']['product_name']              = $valueTrx['product']['product_name'];
+                $discount = $discount + $valueTrx['transaction_product_discount'];
+                foreach ($valueTrx['product']['product_variants'] as $keyVar => $valueVar) {
+                    $result['product_transaction'][$keyTrx]['product']['product_variants'][$keyVar]['product_variant_name']     = $valueVar['product_variant_name'];
+                }
+                foreach ($valueTrx['modifiers'] as $keyMod => $valueMod) {
+                    $result['product_transaction'][$keyTrx]['product']['product_modifiers'][$keyMod]['product_modifier_name']   = $valueMod['text'];
+                    $result['product_transaction'][$keyTrx]['product']['product_modifiers'][$keyMod]['product_modifier_qty']    = $valueMod['qty'];
+                    $result['product_transaction'][$keyTrx]['product']['product_modifiers'][$keyMod]['product_modifier_price']  = $valueMod['transaction_product_modifier_price'];
+                }
+            }
+            
+            $p = 0;
+            if (!empty($list['transaction_vouchers'])) {
+                foreach ($list['transaction_vouchers'] as $valueVoc) {
+                    $result['promo'][$p++]['code']    = $valueVoc['deals_voucher']['voucher_code'];
+                }
+            }
+            
+            if (!empty($list['promo_campaign_promo_code'])) {
+                $result['promo'][$p++]['code']    = $list['promo_campaign_promo_code']['promo_code'];
+            }
+            
+            $result['promo']['discount'] = $discount;
+            $result['promo']['discount'] = MyHelper::requestNumber($discount,'_CURRENCY');
+
+            if ($list['transaction_payment_status'] == 'Cancelled') {
+                $result['detail']['pickup'] = [
+                    'text'  => 'Your order has been canceled',
+                    'date'  => date('d F Y H:i', strtotime($list['void_date']))
+                ];
+            } else {
+                $result['detail']['pickup'] = null;
+            }
+            if ($list['detail']['reject_at'] != null) {
+                $result['detail']['reject'] = [
+                    'text'  => 'Order rejected',
+                    'date'  => date('d F Y H:i', strtotime($list['detail']['reject_at'])),
+                    'reason'=> $result['detail']['reject_reason']
+                ];
+            } else {
+                $result['detail']['reject'] = null;
+            }
+            if ($list['detail']['taken_by_system_at'] != null) {
+                $result['detail']['taken_system'] = [
+                    'text'  => 'Your order has been done by system',
+                    'date'  => date('d F Y H:i', strtotime($list['detail']['taken_by_system_at']))
+                ];
+            } else {
+                $result['detail']['taken_system'] = null;
+            }
+            if ($list['detail']['taken_at'] != null) {
+                $result['detail']['taken'] = [
+                    'text'  => 'Your order has been taken',
+                    'date'  => date('d F Y H:i', strtotime($list['detail']['taken_at']))
+                ];
+            } else {
+                $result['detail']['taken'] = null;
+            }
+            if ($list['detail']['ready_at'] != null) {
+                $result['detail']['ready'] = [
+                    'text'  => 'Your order is ready ',
+                    'date'  => date('d F Y H:i', strtotime($list['detail']['ready_at']))
+                ];
+            } else {
+                $result['detail']['ready'] = null;
+            }
+            if ($list['detail']['receive_at'] != null) {
+                $result['detail']['receive'] = [
+                    'text'  => 'Your order has been received',
+                    'date'  => date('d F Y H:i', strtotime($list['detail']['receive_at']))
+                ];
+            } else {
+                $result['detail']['receive'] = null;
+            }
+            
+            return response()->json(MyHelper::checkGet($result));
         } else {
             $list = $voucher = DealsUser::with('outlet', 'dealVoucher.deal')->where('id_deals_user', $id)->orderBy('claimed_at', 'DESC')->first();
 
@@ -1600,8 +1731,6 @@ class ApiTransaction extends Controller
 
             return response()->json(MyHelper::checkGet($list));
         }
-
-
     }
 
     public function transactionDetailTrx(Request $request) {
