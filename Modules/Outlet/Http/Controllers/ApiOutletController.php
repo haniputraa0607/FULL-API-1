@@ -623,9 +623,9 @@ class ApiOutletController extends Controller
         $post = $request->json()->all();
 
         if (isset($post['all_outlet']) && $post['all_outlet'] == 1) {
-            $outlet['data'] = Outlet::select('outlet_name', 'outlet_address')->where('outlet_status', 'Active')->get()->toArray();
+            $outlet['data'] = Outlet::select('id_outlet', 'outlet_name')->where('outlet_status', 'Active')->get()->toArray();
         } else {
-            $outlet = Outlet::select('outlet_name', 'outlet_address')->where('outlet_status', 'Active')->paginate(10)->toArray();
+            $outlet = Outlet::select('id_outlet', 'outlet_name')->where('outlet_status', 'Active')->paginate(10)->toArray();
         }
         foreach ($outlet['data'] as $key => $value) {
             unset($outlet['data'][$key]['call']);
