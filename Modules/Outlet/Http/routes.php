@@ -2,6 +2,7 @@
 Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth:api', 'scopes:apps'], 'namespace' => 'Modules\Outlet\Http\Controllers'], function()
 {
     Route::any('list', 'ApiOutletController@listOutlet');
+    Route::any('list/all', 'ApiOutletController@listOutletNameID');
     Route::any('list/ordernow', 'ApiOutletController@listOutletOrderNow');
     Route::any('list/gofood', 'ApiOutletGofoodController@listOutletGofood');
     Route::any('filter', 'ApiOutletController@filter');
