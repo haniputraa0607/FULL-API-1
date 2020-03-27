@@ -792,12 +792,12 @@ class ApiDealsClaimPay extends Controller
     public function status(Request $request) {
         $voucher = DealsUser::select('id_deals_user','paid_status')->where('id_deals_user',$request->json('id_deals_user'))->first()->toArray();
         if($voucher['paid_status'] == 'Completed'){
-            $voucher['message'] = Setting::where('key', 'payment_success_messages')->pluck('value_text')->first()??'Apakah kamu ingin menggunakan Voucher sekarang?';
+            $voucher['message'] = Setting::where('key', 'payment_success_messages')->pluck('value_text')->first()??'Do you want to use this voucher now?';
             $voucher['url_webview'] = env('API_URL').'api/webview/mydeals/'.$voucher['id_deals_user'];
         }elseif($voucher['paid_status'] == 'Cancelled'){
-            $voucher['message'] = Setting::where('key', 'payment_ovo_fail_messages')->pluck('value_text')->first()??'Transaksi Gagal';
+            $voucher['message'] = Setting::where('key', 'payment_ovo_fail_messages')->pluck('value_text')->first()??'Failed Transactioan';
         }elseif($voucher['paid_status'] == 'Pending'){
-            $voucher['message'] = Setting::where('key', 'payment_ovo_pending_messages')->pluck('value_text')->first()??'Menunggu Pembayaran';
+            $voucher['message'] = Setting::where('key', 'payment_ovo_pending_messages')->pluck('value_text')->first()??'Waiting for Payment';
         }
 
         return MyHelper::checkGet($voucher);

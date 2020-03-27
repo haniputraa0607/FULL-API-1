@@ -34,12 +34,12 @@ class ApiDealsInvalidate extends Controller
         $fail['status'] = "fail";
         // outlet_code empty?
         if(!$request->json('outlet_code')){
-            $fail['messages']=['Kamu harus memasukkan kode outlet'];
+            $fail['messages']=['You must enter an outlet code'];
             return $fail;
         }
         // outlet not found?
         if(Outlet::where('outlet_code',$request->json('outlet_code'))->count()<1){
-            $fail['messages']=['Kode outlet yang kamu masukkan tidak terdaftar'];
+            $fail['messages']=['The outlet code you entered is not registered'];
             return $fail;
         }
         DB::beginTransaction();
@@ -126,7 +126,7 @@ class ApiDealsInvalidate extends Controller
         else {
             // $fail['messages'] = ['Kode outlet yang kamu masukkan tidak terdaftar'];
             // if(optional($deals)->id_outlet){
-            $fail['messages'] = ['Kode outlet yang kamu masukkan salah'];
+            $fail['messages'] = ['The outlet code you entered is incorrect'];
             // }
         }
 
