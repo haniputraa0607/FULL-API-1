@@ -471,6 +471,18 @@ class ApiPointInjectionController extends Controller
 
             try {
                 PointInjectionUser::insert($userData);
+
+                foreach ($userData as $row){
+                    $createReport = [
+                        'id_point_injection' => $row['id_point_injection'],
+                        'id_user' => $row['id_user'],
+                        'point' => $post['total_point'],
+                        'status' => 'Pending',
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ];
+                    PointInjectionReport::insert($createReport);
+                }
                 $result = ['status'  => 'success'];
             } catch (\Exception $e) {
                 $result = [

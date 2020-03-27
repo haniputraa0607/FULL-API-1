@@ -7,4 +7,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::post('delete', ['middleware' => 'feature_control:210', 'uses' => 'ApiPointInjectionController@destroy']);
     Route::post('review', ['middleware' => 'feature_control:207', 'uses' => 'ApiPointInjectionController@review']);
     Route::post('getUserList', ['middleware' => 'feature_control:207', 'uses' => 'ApiPointInjectionController@getUserList']);
+
+    /*Report*/
+    Route::post('report', ['middleware' => 'feature_control:243', 'uses' => 'ApiPointInjectionReportController@index']);
 });
