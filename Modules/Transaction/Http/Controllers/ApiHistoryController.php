@@ -448,7 +448,7 @@ class ApiHistoryController extends Controller
                 $request->json('use_point') ||
                 $request->json('earn_point')
             ){
-                $resultMessage = 'Data tidak ditemukan';
+                $resultMessage = 'Data not found';
             }else{
                 $resultMessage = "You don't have point history";
             }
