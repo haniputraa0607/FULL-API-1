@@ -37,9 +37,10 @@ class ApiPointInjectionReportController extends Controller
         $post = $request->json()->all();
         $take = 25;
         $data = PointInjectionReport::join('users', 'users.id', 'point_injection_reports.id_user')
+                ->join('point_injection_users', 'point_injection_reports.id_point_injection', 'point_injection_users.id_point_injection')
                 ->orderBy('point_injection_reports.created_at', 'desc')
-                ->select('users.name', 'users.phone', 'users.email', 'users.balance', 'point_injection_reports.*',
-                    DB::raw('(SELECT SUM(point) FROM point_injection_reports pir WHERE pir.id_point_injection_report <= point_injection_reports.id_point_injection_report) as "total_point"'));
+                ->groupBy('point_injection_reports.id_point_injection_report')
+                ->select('users.name', 'users.phone', 'users.email', 'users.balance', 'point_injection_reports.*', 'point_injection_users.total_point');
 
         if(isset($post['id_point_injection'])){
             $data->where('point_injection_reports.id_point_injection', $post['id_point_injection']);
@@ -79,7 +80,7 @@ class ApiPointInjectionReportController extends Controller
                     }
 
                     if($row['subject'] == 'total_point_received'){
-                        $data->whereRaw('(SELECT SUM(point) FROM point_injection_reports pir WHERE pir.id_point_injection_report <= point_injection_reports.id_point_injection_report) '.$row['operator'].' '.$row['parameter']);
+                        $data->where('point_injection_users.total_point', $row['operator'], $row['parameter']);
                     }
                 }
             }else{
@@ -102,7 +103,7 @@ class ApiPointInjectionReportController extends Controller
                         }
 
                         if($row['subject'] == 'total_point_received'){
-                            $subquery->orWhereRaw('(SELECT SUM(point) FROM point_injection_reports pir WHERE pir.id_point_injection_report <= point_injection_reports.id_point_injection_report) '.$row['operator'].' '.$row['parameter']);
+                            $subquery->orWhere('point_injection_reports.point', $row['operator'], $row['parameter']);
                         }
                     }
                 });
@@ -115,6 +116,30 @@ class ApiPointInjectionReportController extends Controller
             $data = $data->paginate($take);
         }
         return response()->json(MyHelper::checkGet($data));
+    }
+
+    public function detail(Request $request)
+    {
+        $post = $request->json()->all();
+
+        $pointInjection = PointInjection::with(['user', 'point_injection_rule_parents.rules'])->where('id_point_injection', $post['id_point_injection'])->first();
+        $count = (new PointInjectionUser)->where('id_point_injection', $post['id_point_injection'])->newQuery();
+        $count = $count->get()->count();
+
+        if (isset($pointInjection) && !empty($pointInjection)) {
+            $result = [
+                'status'  => 'success',
+                'result'  => $pointInjection,
+                'count'  => $count
+            ];
+        } else {
+            $result = [
+                'status'  => 'fail',
+                'message'  => ['No User List']
+            ];
+        }
+
+        return response()->json($result);
     }
 
 }
