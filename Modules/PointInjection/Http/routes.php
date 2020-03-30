@@ -10,4 +10,5 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
 
     /*Report*/
     Route::post('report', ['middleware' => 'feature_control:243', 'uses' => 'ApiPointInjectionReportController@index']);
+    Route::post('detail', ['middleware' => 'feature_control:243', 'uses' => 'ApiPointInjectionReportController@detail']);
 });
