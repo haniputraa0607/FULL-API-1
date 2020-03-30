@@ -34,7 +34,33 @@ class ApiReferralController extends Controller
     {
         $user = $request->user();
 
-        $setting = Setting::where('key', 'referral_messages')->first();
+        $referral = UserReferralCode::with(['promo_code', 'promo_code.promo_campaign_referral'])->where('id_user', $user->id)->get()->first();
+        if (!$referral) {
+            PromoCampaignTools::createReferralCode($user->id);
+            $referral = UserReferralCode::with(['promo_code', 'promo_code.promo_campaign_referral'])->where('id_user', $user->id)->get()->first();
+        }
+
+        $benefit_reffered = implode('', [$referral->promo_code->promo_campaign_referral->referred_promo_value, $retVal = ($referral->promo_code->promo_campaign_referral->referred_promo_unit == 'Percent') ? '%' : ' point']);
+        $benefit_refferer = implode('', [$referral->promo_code->promo_campaign_referral->referrer_promo_value, $retVal = ($referral->promo_code->promo_campaign_referral->referred_promo_unit == 'Percent') ? '%' : ' point']);
+        
+        $setting = Setting::where('key', 'referral_messages')->orWhere('key', 'referral_content_title')->orWhere('key', 'referral_content_description')->orWhere('key', 'referral_text_header')->orWhere('key', 'referral_text_button')->get()->toArray();
+        foreach ($setting as $key => $value) {
+            switch ($value['key']) {
+                case 'referral_messages':
+                    $message = str_replace(['%value%', '%code%'], [$benefit_reffered, $referral->promo_code->promo_code], $value['value_text']);
+                    break;
+                case 'referral_content_description':
+                    $detail[$value['key']] = [];
+                    foreach (json_decode($value['value_text']) as $keyDesc => $valueDesc) {
+                        $detail[$value['key']][$keyDesc] = str_replace(['%benefit_referrer%', '%benefit_referred%'], [$benefit_refferer, $benefit_reffered], $valueDesc);
+                    }
+                    break;
+                default:
+                    $detail[$value['key']] = $value['value_text'];
+                    break;
+            }
+        }
+
         if (!$setting) {
             $setting = [
                 'key'           => 'referral_messages',
@@ -43,23 +69,15 @@ class ApiReferralController extends Controller
             $setting = Setting::create($setting);
         }
 
-        $referral = UserReferralCode::with(['promo_code', 'promo_code.promo_campaign_referral'])->where('id_user', $user->id)->get()->first();
-        if (!$referral) {
-            PromoCampaignTools::createReferralCode($user->id);
-            $referral = UserReferralCode::with(['promo_code', 'promo_code.promo_campaign_referral'])->where('id_user', $user->id)->get()->first();
-        }
-
-        $value = implode('', [$referral->promo_code->promo_campaign_referral->referred_promo_value, $retVal = ($referral->promo_code->promo_campaign_referral->referred_promo_unit == 'Percent') ? '%' : ' point']);
-
         $data = [
             'status'    => 'success',
             'result'    => [
-                'messages'      => str_replace(['%value%', '%code%'], [$value, $referral->promo_code->promo_code], $setting->value_text),
+                'messages'      => $message,
                 'promo_code'    => $referral->promo_code->promo_code,
-                'referral'      => $referral->promo_code->promo_campaign_referral
+                'referral'      => $detail
             ]
         ];
-
+        
         return response()->json($data);
     }
 
