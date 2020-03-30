@@ -366,6 +366,7 @@ class ApiPointInjectionController extends Controller
                     } else {
                         $userData[$key] = ['id_point_injection' => $post['id_point_injection'], 'id_user' => $value['id'], 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')];
                         PointInjectionUser::updateOrCreate(['id_point_injection' => $post['id_point_injection'], 'id_user' => $value['id']]);
+                        PointInjectionReport::updateOrCreate(['id_point_injection' => $post['id_point_injection'], 'id_user' => $value['id']], ['status' => 'Pending', 'point' => $post['total_point']]);
                     }
                 }
                 $userData = array_merge($getUser, $userData);

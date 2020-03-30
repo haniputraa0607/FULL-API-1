@@ -12,6 +12,6 @@ class PointInjectionReport extends Model
         'id_point_injection',
         'id_user',
         'point',
-        'report'
+        'status'
     ];
 }
