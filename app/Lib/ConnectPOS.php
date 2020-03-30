@@ -240,7 +240,7 @@ class ConnectPOS{
 								'type'              => 'Ovo',
 								'amount'            => (float) $ovo['amount'],
 								'changeAmount'     => 0,
-								'cardNumber'       => '',
+								'cardNumber'       => '', // nomor telepon ovo
 								'cardOwner'        => '',
 								'referenceNumber'  => $ovo['approval_code']??''
 							];
