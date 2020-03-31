@@ -13,9 +13,9 @@ class AddColorToMembershipTable extends Migration
      */
     public function up()
     {
-        Schema::table('membership', function (Blueprint $table) {
-            $table->string('membership_background_card_color', 100)->nullable();
-            $table->string('membership_text_color', 100)->nullable();
+        Schema::table('memberships', function (Blueprint $table) {
+            $table->string('membership_background_card_color', 100)->after('membership_bg_image')->nullable();
+            $table->string('membership_text_color', 100)->after('membership_background_card_color')->nullable();
         });
     }
 
