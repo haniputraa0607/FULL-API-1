@@ -11,6 +11,7 @@ use App\Http\Models\TransactionPaymentOvo;
 use App\Http\Models\LogActivitiesPosTransactionsOnline;
 use App\Http\Models\TransactionOnlinePos;
 use Modules\Transaction\Entities\TransactionPaymentCimb;
+use Modules\IPay88\Entities\TransactionPaymentIpay88;
 
 class ConnectPOS{
 	public static $obj = null;
@@ -65,6 +66,7 @@ class ConnectPOS{
 	public function sendTransaction(...$id_transactions) {
 		$module_url = '/MobileReceiver/transaction';
 		$trxDatas = Transaction::whereIn('transactions.id_transaction',$id_transactions)
+		->where('transaction_payment_status','Completed')
 		->join('transaction_pickups','transactions.id_transaction','=','transaction_pickups.id_transaction')
 		->with(['user','modifiers','modifiers.product_modifier','products','products.product_group','products.product_variants'=>function($query){
 			$query->orderBy('parent');
@@ -240,7 +242,7 @@ class ConnectPOS{
 								'type'              => 'Ovo',
 								'amount'            => (float) $ovo['amount'],
 								'changeAmount'     => 0,
-								'cardNumber'       => '',
+								'cardNumber'       => $ovo['phone'], // nomor telepon ovo
 								'cardOwner'        => '',
 								'referenceNumber'  => $ovo['approval_code']??''
 							];
@@ -256,6 +258,20 @@ class ConnectPOS{
 								'changeAmount'     => 0,
 								'cardNumber'       => '',
 								'cardOwner'        => ''
+							];
+							$payment[] = $pay;
+						}
+					} elseif ($payMulti['type'] == 'IPay88') {
+						$ipay = TransactionPaymentIpay88::find($payMulti['id_payment']);
+						if ($ipay) {
+							$pay = [
+								'number'            => $key + 1,
+								'type'              => 'IPay88',
+								'amount'            => (float) $ipay['amount'],
+								'changeAmount'     => 0,
+								'cardNumber'       => '',
+								'cardOwner'        => '',
+								'referenceNumber'  => $ipay['trans_id']
 							];
 							$payment[] = $pay;
 						}
