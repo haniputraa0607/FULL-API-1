@@ -64,7 +64,7 @@ class ApiPointInjectionReportController extends Controller
             if($rule == 'and'){
                 foreach ($post['conditions'] as $row){
                     if($row['subject'] == 'status'){
-                        $data->where('point_injection_reports.status', $row['parameter']);
+                        $data->where('point_injection_reports.status', $row['operator']);
                     }
 
                     if($row['subject'] == 'name' || $row['subject'] == 'email' || $row['subject'] == 'phone'){
