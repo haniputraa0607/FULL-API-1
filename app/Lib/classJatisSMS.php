@@ -46,16 +46,20 @@ class classJatisSMS {
 			}
 		}
 
-		$log=[
-			'request_header'=>$header??null,
-			'request_body'=>$this->data,
-			'request_url'=>env('SMS_URL'),
-			'request_method'=>'POST',
-			'response'=>$curl_response,
-			'more_info'=>$curl_info,
-			'phone'=>$this->data['msisdn'],
-			'user_agent'=>'Mozilla/5.0 (Windows NT 5.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1',
-		];
+        $phone = null;
+        if(isset($this->data['msisdn'])){
+            if(substr($this->data['msisdn'], 0, 2) == '62'){
+                $phone = '0'.substr($phone,2);
+            }else{
+                $phone = $this->data['msisdn'];
+            }
+        }
+        $log=[
+            'request_body'=>$this->data,
+            'request_url'=>env('SMS_URL'),
+            'response'=>$curl_response,
+            'phone'=>$phone
+        ];
 		MyHelper::logApiSMS($log);
 
 		return $hasil;

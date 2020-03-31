@@ -46,15 +46,19 @@ class classMaskingJson {
 			}
 		}
 
+        $phone = null;
+        if(isset($this->data['number'])){
+            if(substr($this->data['number'], 0, 2) == '62'){
+                $phone = '0'.substr($phone,2);
+            }else{
+                $phone = $this->data['number'];
+            }
+        }
 		$log=[
-			'request_header'=>$header??null,
 			'request_body'=>$this->data,
 			'request_url'=>env('SMS_URL'),
-			'request_method'=>'POST',
 			'response'=>$curl_response,
-			'more_info'=>$curl_info,
-			'phone'=>isset($this->data['number'])??null,
-			'user_agent'=>'Mozilla/5.0 (Windows NT 5.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1',
+			'phone'=>$phone
 		];
 		MyHelper::logApiSMS($log);
 

@@ -2297,14 +2297,10 @@ class MyHelper{
     	if(!is_array($arr)){return false;}
 		$trace=array_slice((new \Exception)->getTrace(),1,6);
 		$log=[
-		    'request_header'=>null,
 		    'request_body'=>null,
 		    'request_url'=>null,
-		    'request_method'=>null,
 		    'response'=>null,
-		    'more_info'=>null,
-		    'phone'=>null,
-		    'user_agent'=>null,
+		    'phone'=>null
 		];
 		$log=array_merge($log,$arr);
 		array_walk($log, function(&$data){if(is_array($data)){$data=json_encode($data);}});

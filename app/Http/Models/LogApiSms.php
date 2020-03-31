@@ -6,15 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class LogApiSms extends Model
 {
-	protected $connection = 'mysql2';
+    protected $primaryKey = 'id_log_api_sms';
     protected $fillable=[
 	    'request_body',
-	    'request_header',
 	    'request_url',
-	    'request_method',
 	    'response',
-	    'more_info',
-	    'phone',
-	    'user_agent',
+	    'phone'
     ];
 }
