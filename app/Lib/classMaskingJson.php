@@ -49,7 +49,7 @@ class classMaskingJson {
         $phone = null;
         if(isset($this->data['number'])){
             if(substr($this->data['number'], 0, 2) == '62'){
-                $phone = '0'.substr($phone,2);
+                $phone = '0'.substr($this->data['number'],2);
             }else{
                 $phone = $this->data['number'];
             }
