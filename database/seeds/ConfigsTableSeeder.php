@@ -963,6 +963,15 @@ class ConfigsTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
+            105 =>
+                array (
+                    'id_config' => 106,
+                    'config_name' => 'multiple video news',
+                    'description' => '',
+                    'is_active' => 1,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
         ));
     }
 }

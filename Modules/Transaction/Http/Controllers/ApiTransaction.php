@@ -2471,7 +2471,4 @@ class ApiTransaction extends Controller
         }
 
     }
-    public function testing2(Request $request){
-        return MyHelper::checkGet(\App\Lib\ConnectPOS::create()->sendTransaction($request->id_transaction));
-    }
 }

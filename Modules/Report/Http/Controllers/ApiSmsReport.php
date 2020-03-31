@@ -30,7 +30,9 @@ class ApiSmsReport extends Controller
         $take = 25;
 
         $data = LogApiSms::leftJoin('users','users.phone','=','log_api_sms.phone')
-            ->select('log_api_sms.*', 'users.name', 'users.email');
+            ->select('log_api_sms.id_log_api_sms', 'log_api_sms.request_url', 'log_api_sms.response',
+                'log_api_sms.phone', 'log_api_sms.created_at', 'log_api_sms.updated_at',
+                'users.name', 'users.email');
 
         if(isset($post['date_start']) && !empty($post['date_start']) &&
             isset($post['date_end']) && !empty($post['date_end'])){
@@ -66,7 +68,16 @@ class ApiSmsReport extends Controller
                     }
 
                     if($row['subject'] == 'response'){
-                        $data->where('log_api_sms.response', 'like', '%'.$row['operator'].'%');
+                        $data->where('log_api_sms.response', 'like', '%='.$row['operator'].'%');
+                    }
+
+                    if($row['subject'] == 'status'){
+                        if($row['operator'] == 'fail'){
+                            $data->where('log_api_sms.response', 'not like', '%=1%');
+                        }else{
+                            $data->where('log_api_sms.response', 'like', '%=1%');
+                        }
+
                     }
                 }
             }else{
@@ -89,7 +100,16 @@ class ApiSmsReport extends Controller
                         }
 
                         if($row['subject'] == 'response'){
-                            $subquery->orWhere('log_api_sms.response', 'like', '%'.$row['operator'].'%');
+                            $subquery->orWhere('log_api_sms.response', 'like', '%='.$row['operator'].'%');
+                        }
+
+                        if($row['subject'] == 'status'){
+                            if($row['operator'] == 'fail'){
+                                $subquery->orWhere('log_api_sms.response', 'not like', '%=1%');
+                            }else{
+                                $subquery->orWhere('log_api_sms.response', 'like', '%=1%');
+                            }
+
                         }
                     }
                 });
@@ -101,6 +121,14 @@ class ApiSmsReport extends Controller
         }else{
             $data = $data->paginate($take);
         }
+        return response()->json(MyHelper::checkGet($data));
+    }
+
+    function getReportDetailRequest(Request $request){
+        $post = $request->json()->all();
+        $data = LogApiSms::where('log_api_sms.id_log_api_sms', $post['id_log_api_sms'])
+            ->select('log_api_sms.*')->first();
+
         return response()->json(MyHelper::checkGet($data));
     }
 }

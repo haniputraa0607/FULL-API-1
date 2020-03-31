@@ -49,7 +49,7 @@ class classJatisSMS {
         $phone = null;
         if(isset($this->data['msisdn'])){
             if(substr($this->data['msisdn'], 0, 2) == '62'){
-                $phone = '0'.substr($phone,2);
+                $phone = '0'.substr($this->data['msisdn'],2);
             }else{
                 $phone = $this->data['msisdn'];
             }
