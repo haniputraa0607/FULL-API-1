@@ -670,6 +670,10 @@ class ApiPointInjectionController extends Controller
                         }
                     }
                 }
+
+                //update status to success
+                PointInjectionReport::where('id_user', $valueUser['id_user'])->where('id_point_injection', $valueUser['id_point_injection'])
+                    ->update(['status' => 'Success']);
             }
             $pointInjection = PivotPointInjection::where('send_time', '<=', $dateNow)->delete();
 
