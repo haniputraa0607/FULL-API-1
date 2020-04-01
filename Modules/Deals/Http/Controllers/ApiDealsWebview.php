@@ -34,15 +34,49 @@ class ApiDealsWebview extends Controller
                     $deals['result'][0]
             ];
             $response['result']['button_text'] = 'BELI';
+            $result = [
+                'deals_image'           => $deals['result'][0]['deals_image'],
+                'deals_end'             => $deals['result'][0]['deals_end'],
+                'deals_voucher'         => ($deals['result'][0]['deals_voucher_type'] == 'Unlimited') ? 'Unlimited' : $deals['result'][0]['deals_total_voucher'] - $deals['result'][0]['deals_total_claimed'] . '/' . $deals['result'][0]['deals_total_voucher'],
+                'deals_title'           => $deals['result'][0]['deals_title'],
+                'deals_second_title'    => $deals['result'][0]['deals_second_title'],
+                'deals_description'     => $deals['result'][0]['deals_description'],
+                'deals_button'          => 'Claim',
+            ];
+            if ($deals['result'][0]['deals_voucher_price_cash'] != "") {
+                $result['deals_price'] = MyHelper::requestNumber($deals['result'][0]['deals_voucher_price_cash'], '_CURRENCY');
+            } elseif ($deals['result'][0]['deals_voucher_price_point']) {
+                $result['deals_price'] = MyHelper::requestNumber($deals['result'][0]['deals_voucher_price_point'],'_POINT') . " points";
+            } else {
+                $result['deals_price'] = "Free";
+            }
+            
+            $i = 0;
+            foreach ($deals['result'][0]['deals_content'] as $keyContent => $valueContent) {
+                $result['deals_content'][$keyContent]['title'] = $valueContent['title'];
+                foreach ($valueContent['deals_content_details'] as $key => $value) {
+                    $result['deals_content'][$keyContent]['detail'][$key]['content'] = $value['content'];
+                }
+                $i++;
+            }
+
+            $result['deals_content'][$i]['is_outlet'] = 1;
+            $result['deals_content'][$i]['title'] = 'Available at';
+            foreach ($deals['result'][0]['outlet_by_city'] as $keyCity => $valueCity) {
+                $result['deals_content'][$i]['detail'][$keyCity]['city'] = strtoupper($valueCity['city_name']);
+                foreach($valueCity['outlet'] as $keyOutlet => $valueOutlet) {
+                    $result['deals_content'][$i]['detail'][$keyCity]['outlet'][$keyOutlet] = strtoupper($valueOutlet['outlet_name']); 
+                }
+            }
         }else{
-            $response = [
+            $result = [
                 'status' => 'fail',
                 'messages' => [
                     'Deals Not Found'
                 ]
             ];
         }
-        return response()->json($response);
+        return response()->json($result);
     }
 
     // webview deals detail
