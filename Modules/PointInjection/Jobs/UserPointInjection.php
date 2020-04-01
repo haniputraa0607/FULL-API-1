@@ -34,12 +34,5 @@ class UserPointInjection implements ShouldQueue
     public function handle()
     {
         $insertPivot = PivotPointInjection::insert($this->data);
-
-        if($insertPivot){
-            foreach ($this->data as $val){
-                PointInjectionReport::where('id_point_injection', $val['id_point_injection'])->where('id_user', $val['id_user'])
-                    ->update(['status' => 'Success']);
-            }
-        }
     }
 }
