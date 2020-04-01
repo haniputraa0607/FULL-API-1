@@ -51,65 +51,69 @@ class ApiSmsReport extends Controller
 
             if($rule == 'and'){
                 foreach ($post['conditions'] as $row){
-                    if($row['subject'] == 'name' || $row['subject'] == 'email'){
-                        if($row['operator'] == '='){
-                            $data->where('users.'.$row['subject'], $row['parameter']);
-                        }else{
-                            $data->where('users.'.$row['subject'], 'like', '%'.$row['parameter'].'%');
-                        }
-                    }
-
-                    if($row['subject'] == 'phone'){
-                        if($row['operator'] == '='){
-                            $data->where('log_api_sms.phone', $row['parameter']);
-                        }else{
-                            $data->where('log_api_sms.phone', 'like', '%'.$row['parameter'].'%');
-                        }
-                    }
-
-                    if($row['subject'] == 'response'){
-                        $data->where('log_api_sms.response', 'like', '%='.$row['operator'].'%');
-                    }
-
-                    if($row['subject'] == 'status'){
-                        if($row['operator'] == 'fail'){
-                            $data->where('log_api_sms.response', 'not like', '%=1%');
-                        }else{
-                            $data->where('log_api_sms.response', 'like', '%=1%');
-                        }
-
-                    }
-                }
-            }else{
-                $data->where(function ($subquery) use ($post){
-                    foreach ($post['conditions'] as $row){
+                    if(isset($row['subject'])){
                         if($row['subject'] == 'name' || $row['subject'] == 'email'){
                             if($row['operator'] == '='){
-                                $subquery->orWhere('users.'.$row['subject'], $row['parameter']);
+                                $data->where('users.'.$row['subject'], $row['parameter']);
                             }else{
-                                $subquery->orWhere('users.'.$row['subject'], 'like', '%'.$row['parameter'].'%');
+                                $data->where('users.'.$row['subject'], 'like', '%'.$row['parameter'].'%');
                             }
                         }
 
                         if($row['subject'] == 'phone'){
                             if($row['operator'] == '='){
-                                $subquery->orWhere('log_api_sms.phone', $row['parameter']);
+                                $data->where('log_api_sms.phone', $row['parameter']);
                             }else{
-                                $subquery->orWhere('log_api_sms.phone', 'like', '%'.$row['parameter'].'%');
+                                $data->where('log_api_sms.phone', 'like', '%'.$row['parameter'].'%');
                             }
                         }
 
                         if($row['subject'] == 'response'){
-                            $subquery->orWhere('log_api_sms.response', 'like', '%='.$row['operator'].'%');
+                            $data->where('log_api_sms.response', 'like', '%='.$row['operator'].'%');
                         }
 
                         if($row['subject'] == 'status'){
                             if($row['operator'] == 'fail'){
-                                $subquery->orWhere('log_api_sms.response', 'not like', '%=1%');
+                                $data->where('log_api_sms.response', 'not like', '%=1%');
                             }else{
-                                $subquery->orWhere('log_api_sms.response', 'like', '%=1%');
+                                $data->where('log_api_sms.response', 'like', '%=1%');
                             }
 
+                        }
+                    }
+                }
+            }else{
+                $data->where(function ($subquery) use ($post){
+                    foreach ($post['conditions'] as $row){
+                        if(isset($row['subject'])){
+                            if($row['subject'] == 'name' || $row['subject'] == 'email'){
+                                if($row['operator'] == '='){
+                                    $subquery->orWhere('users.'.$row['subject'], $row['parameter']);
+                                }else{
+                                    $subquery->orWhere('users.'.$row['subject'], 'like', '%'.$row['parameter'].'%');
+                                }
+                            }
+
+                            if($row['subject'] == 'phone'){
+                                if($row['operator'] == '='){
+                                    $subquery->orWhere('log_api_sms.phone', $row['parameter']);
+                                }else{
+                                    $subquery->orWhere('log_api_sms.phone', 'like', '%'.$row['parameter'].'%');
+                                }
+                            }
+
+                            if($row['subject'] == 'response'){
+                                $subquery->orWhere('log_api_sms.response', 'like', '%='.$row['operator'].'%');
+                            }
+
+                            if($row['subject'] == 'status'){
+                                if($row['operator'] == 'fail'){
+                                    $subquery->orWhere('log_api_sms.response', 'not like', '%=1%');
+                                }else{
+                                    $subquery->orWhere('log_api_sms.response', 'like', '%=1%');
+                                }
+
+                            }
                         }
                     }
                 });
