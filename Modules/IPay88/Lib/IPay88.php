@@ -7,11 +7,12 @@ use DB;
 use App\Http\Models\Transaction;
 use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\DealsUser;
-use App\Http\Models\Deals;
+use App\Http\Models\Deal;
 use App\Http\Models\User;
 use App\Http\Models\Setting;
 use Modules\IPay88\Entities\LogIpay88;
 use Modules\IPay88\Entities\TransactionPaymentIpay88;
+use Modules\IPay88\Entities\DealsPaymentIpay88;
 
 use App\Lib\MyHelper;
 /**
@@ -28,28 +29,28 @@ class IPay88
 		$this->merchant_code = ENV('IPAY88_MERCHANT_CODE');
 		$this->merchant_key = ENV('IPAY88_MERCHANT_KEY');
 		$this->payment_id = [
-			'CREDIT_CARD' => 1,
-			'CREDIT_CARD_BCA' => 52,
-			'CREDIT_CARD_BRI' => 35,
-			'CREDIT_CARD_CIMB' => 42,
-			'CREDIT_CARD_CIMB_AUTHORIZATION' => 56,
-			'CREDIT_CARD_CIMB IPG)' => 34,
-			'CREDIT_CARD_DANAMON' => 45,
-			'CREDIT_CARD_MANDIRI' => 53,
-			'CREDIT_CARD_MAYBANK' => 43,
-			'CREDIT_CARD_UNIONPAY' => 54,
-			'CREDIT_CARD_UOB' => 46,
-			'MAYBANK_VA' => 9,
-			'MANDIRI_ATM' => 17,
-			'BCA_VA' => 25,
-			'BNI_VA' => 26,
-			'PERMATA_VA' => 31,
-			'LinkAja' => 13,
-			'OVO' => 63,
-			'PAYPAL' => 6,
-			'KREDIVO' => 55,
-			'ALFAMART' => 60,
-			'INDOMARET' => 65
+		    "1" => "Credit Card",
+		    "52" => "Credit Card Bca",
+		    "35" => "Credit Card Bri",
+		    "42" => "Credit Card Cimb",
+		    "56" => "Credit Card Cimb Authorization",
+		    "34" => "Credit Card Cimb Ipg",
+		    "45" => "Credit Card Danamon",
+		    "53" => "Credit Card Mandiri",
+		    "43" => "Credit Card Maybank",
+		    "54" => "Credit Card Unionpay",
+		    "46" => "Credit Card UOB",
+		    "9" => "Maybank VA",
+		    "17" => "Mandiri ATM",
+		    "25" => "Bca VA",
+		    "26" => "Bni VA",
+		    "31" => "Permata VA",
+		    "13" => "LinkAja",
+		    "63" => "Ovo",
+		    "6" => "Paypal",
+		    "55" => "Kredivo",
+		    "60" => "Alfamart",
+		    "65" => "Indomaret",
 		];
 		$this->currency = ENV('IPAY88_CURRENCY','IDR');
 	}
@@ -88,19 +89,21 @@ class IPay88
 	 * @param  string $type type of transaction ('trx'/'deals')
 	 * @return Array       array formdata
 	 */
-	public function generateData($reference,$type = 'trx'){
+	public function generateData($reference,$type = 'trx',$payment_id = null){
 		$data = [
 			'MerchantCode' => $this->merchant_code,
-			'PaymentId' => null,
+			'PaymentId' => $payment_id,
 			'Currency' => $this->currency,
 			'Lang' => 'UTF-8'
 		];
 		if($type == 'trx'){
-			$trx = Transaction::with('user')->where('id_transaction',$reference)->first();
+			$trx = Transaction::with('user')
+			->join('transaction_payment_ipay88s','transaction_payment_ipay88s.id_transaction','=','transactions.id_transaction')
+			->where('transactions.id_transaction',$reference)->first();
 			if(!$trx) return false;
 			$data += [
 				'RefNo' => $trx->transaction_receipt_number,
-				'Amount' => ($trx->transaction_grandtotal - $trx->balance_nominal)*100,
+				'Amount' => $trx->amount,
 				'ProdDesc' => Setting::select('value_text')->where('key','ipay88_product_desc')->pluck('value_text')->first()?:$trx->transaction_receipt_number,
 				'UserName' => $trx->user->name,
 				'UserEmail' => $trx->user->email,
@@ -114,7 +117,7 @@ class IPay88
 			$deals_user = DealsUser::with('user')
 			->where([
 				'deals_users.id_deals_user' => $reference,
-				'payment_method' => 'Ipay88'
+				'deals_users.payment_method' => 'Ipay88'
 			])
 			->join('deals_payment_ipay88s','deals_payment_ipay88s.id_deals_user','=','deals_users.id_deals_user')
 			->join('deals','deals.id_deals','=','deals_payment_ipay88s.id_deals')
@@ -122,7 +125,7 @@ class IPay88
 			if(!$deals_user) return false;
 			$data += [
 				'RefNo' => $deals_user->order_id,
-				'Amount' => (int)($deals_user->amount*100),
+				'Amount' => $deals_user->amount,
 				'ProdDesc' => 'Voucher '.$deals_user->deals_title,
 				'UserName' => $deals_user->user->name,
 				'UserEmail' => $deals_user->user->email,
@@ -188,7 +191,7 @@ class IPay88
 	 * @param  String $type 	trx/deals
 	 * @return Object           TransactionPaymentIpay88 / DealsPaymentIpay88
 	 */
-	public function insertNewTransaction($data, $type='trx') {
+	public function insertNewTransaction($data, $type='trx',$grandtotal) {
 		$result = TransactionPaymentIpay88::where('id_transaction',$data['id_transaction'])->first();
 		if($result){
 			return $result;
@@ -196,9 +199,17 @@ class IPay88
 		if($type == 'trx'){
 			$toInsert = [
 				'id_transaction' => $data['id_transaction'],
+				'amount' => $grandtotal*100
 			];
 
 			$result = TransactionPaymentIpay88::create($toInsert);
+		}elseif($type == 'deals'){
+			$toInsert = [
+				'id_transaction' => $data['id_transaction'],
+				'amount' => $grandtotal*100
+			];
+
+			$result = DealsPaymentIpay88::create($toInsert);
 		}
 		return $result;
 	}
@@ -313,7 +324,7 @@ class IPay88
 
             case 'deals':
     			$deals_user = DealsUser::with('userMid')->where('id_deals_user',$model->id_deals_user)->first();
-    			$deals = Deals::where('id_deals',$model->id_deals)->first();
+    			$deals = Deal::where('id_deals',$model->id_deals)->first();
             	switch ($data['Status']) {
             		case '1':
 	                    $update = $deals_user->update(['paid_status'=>'Completed']);
@@ -377,8 +388,7 @@ class IPay88
                 # code...
                 break;
         }
-        $payment_method = array_flip($this->payment_id)[$data['PaymentId']]??null;
-        $payment_method = $payment_method?str_replace('_', ' ', $payment_method):null;
+        $payment_method = $this->payment_id[$data['PaymentId']]??null;
 		$forUpdate = [
 	        'from_user' => $data['from_user']??0,
 	        'from_backend' => $data['from_backend']??0,
