@@ -254,7 +254,7 @@ class ApiPOS extends Controller
                         if ($ipay) {
                             $pay = [
                                 'number'            => $key + 1,
-                                'type'              => 'IPay88',
+                                'type'              => $ipay['payment_method'],
                                 'amount'            => (float) $ipay['amount'],
                                 'change_amount'     => 0,
                                 'card_number'       => '',
