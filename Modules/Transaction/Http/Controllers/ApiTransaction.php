@@ -1514,7 +1514,7 @@ class ApiTransaction extends Controller
                         $list['check'] = 'topup';
                     }
                     $list['payment'][] = [
-                        'name'      => 'Point',
+                        'name'      => 'Balance',
                         'amount'    => $list['balance']
                     ];
                     break;
@@ -1537,8 +1537,8 @@ class ApiTransaction extends Controller
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey] = $dataPay;
                             $list['balance'] = $dataPay['balance_nominal'];
-                            $payment[$dataKey]['name']    = 'Point';
-                            $payment[$dataKey]['amount']  = $dataPay['balance_nominal'];
+                            $payment[$dataKey]['name']          = 'Balance';
+                            $payment[$dataKey]['amount']        = $dataPay['balance_nominal'];
                         }
                     }
                     $list['payment'] = $payment;
@@ -1554,8 +1554,8 @@ class ApiTransaction extends Controller
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey] = $dataPay;
                             $list['balance'] = $dataPay['balance_nominal'];
-                            $payment[$dataKey]['name']    = 'Point';
-                            $payment[$dataKey]['amount']  = $dataPay['balance_nominal'];
+                            $payment[$dataKey]['name']          = 'Balance';
+                            $payment[$dataKey]['amount']        = $dataPay['balance_nominal'];
                         }
                     }
                     $list['payment'] = $payment;
@@ -1634,9 +1634,10 @@ class ApiTransaction extends Controller
                 'transaction_receipt_number'    => $list['transaction_receipt_number'],
                 'transaction_date'              => date('d M Y H:i', strtotime($list['transaction_date'])),
                 'trasaction_type'               => $list['trasaction_type'],
-                'transaction_grandtotal'        => $list['transaction_grandtotal'],
-                'transaction_discount'          => $list['transaction_discount'],
-                'transaction_cashback_earned'   => $list['transaction_cashback_earned'],
+                'transaction_grandtotal'        => MyHelper::requestNumber($list['transaction_grandtotal'],'_CURRENCY'),
+                'transaction_subtotal'          => MyHelper::requestNumber($list['transaction_subtotal'],'_CURRENCY'),
+                'transaction_discount'          => MyHelper::requestNumber($list['transaction_discount'],'_CURRENCY'),
+                'transaction_cashback_earned'   => MyHelper::requestNumber($list['transaction_cashback_earned'],'_POINT'),
                 'trasaction_payment_type'       => $list['trasaction_payment_type'],
                 'transaction_payment_status'    => $list['transaction_payment_status'],
                 'outlet'                        => [
@@ -1650,7 +1651,8 @@ class ApiTransaction extends Controller
                         'order_id_qrcode'   => $list['detail']['order_id_qrcode'],
                         'order_id'          => $list['detail']['order_id'],
                         'pickup_type'       => $list['detail']['pickup_type'],
-                        'pickup_at'         => $list['detail']['pickup_at']
+                        'pickup_date'       => date('d F Y', strtotime($list['detail']['pickup_at'])),
+                        'pickup_time'       => date('H : i', strtotime($list['detail']['pickup_at'])),
                 ];
                 if (isset($list['transaction_payment_status']) && $list['transaction_payment_status'] == 'Cancelled') {
                     $result['transaction_status'] = 'Order Canceled';
@@ -1672,8 +1674,9 @@ class ApiTransaction extends Controller
             $discount = 0;
             foreach ($list['product_transaction'] as $keyTrx => $valueTrx) {
                 $result['product_transaction'][$keyTrx]['transaction_product_qty']              = $valueTrx['transaction_product_qty'];
-                $result['product_transaction'][$keyTrx]['transaction_product_subtotal']         = $valueTrx['transaction_product_subtotal'];
-                $result['product_transaction'][$keyTrx]['transaction_modifier_subtotal']        = $valueTrx['transaction_modifier_subtotal'];
+                $result['product_transaction'][$keyTrx]['transaction_product_subtotal']         = MyHelper::requestNumber($valueTrx['transaction_product_subtotal'],'_CURRENCY');
+                $result['product_transaction'][$keyTrx]['transaction_product_sub_item']         = '@'.MyHelper::requestNumber($valueTrx['transaction_product_subtotal'] / $valueTrx['transaction_product_qty'],'_CURRENCY');
+                $result['product_transaction'][$keyTrx]['transaction_modifier_subtotal']        = MyHelper::requestNumber($valueTrx['transaction_modifier_subtotal'],'_CURRENCY');
                 $result['product_transaction'][$keyTrx]['transaction_product_note']             = $valueTrx['transaction_product_note'];
                 $result['product_transaction'][$keyTrx]['product']['product_name']              = $valueTrx['product']['product_name'];
                 $discount = $discount + $valueTrx['transaction_product_discount'];
@@ -1683,7 +1686,7 @@ class ApiTransaction extends Controller
                 foreach ($valueTrx['modifiers'] as $keyMod => $valueMod) {
                     $result['product_transaction'][$keyTrx]['product']['product_modifiers'][$keyMod]['product_modifier_name']   = $valueMod['text'];
                     $result['product_transaction'][$keyTrx]['product']['product_modifiers'][$keyMod]['product_modifier_qty']    = $valueMod['qty'];
-                    $result['product_transaction'][$keyTrx]['product']['product_modifiers'][$keyMod]['product_modifier_price']  = $valueMod['transaction_product_modifier_price'];
+                    $result['product_transaction'][$keyTrx]['product']['product_modifiers'][$keyMod]['product_modifier_price']  = MyHelper::requestNumber($valueMod['transaction_product_modifier_price'],'_CURRENCY');
                 }
             }
             
@@ -1746,10 +1749,18 @@ class ApiTransaction extends Controller
             }
 
             foreach ($list['payment'] as $key => $value) {
-                $result['transaction_payment'][$key] = [
-                    'name'      => $value['name'],
-                    'amount'    => $value['amount']
-                ];
+                if ($value['name'] == 'Balance') {
+                    $result['transaction_payment'][$key] = [
+                        'name'      => (env('POINT_NAME')) ? env('POINT_NAME') : $value['name'],
+                        'is_balance'=> 1,
+                        'amount'    => MyHelper::requestNumber($value['amount'],'_POINT')
+                    ];
+                } else {
+                    $result['transaction_payment'][$key] = [
+                        'name'      => $value['name'],
+                        'amount'    => MyHelper::requestNumber($value['amount'],'_CURRENCY')
+                    ];
+                }
             }
 
             return response()->json(MyHelper::checkGet($result));
@@ -1765,14 +1776,15 @@ class ApiTransaction extends Controller
                 'id_deals_user'                 => $list['id_deals_user'],
                 'deals_receipt_number'          => implode('', [strtotime($list['claimed_at']), $list['id_deals_user']]),
                 'date'                          => date('d M Y H:i', strtotime($list['claimed_at'])),
-                'voucher_price_cash'            => $list['voucher_price_cash'],
+                'voucher_price_cash'            => MyHelper::requestNumber($list['voucher_price_cash'],'_CURRENCY'),
                 'deals_voucher'                 => $list['dealVoucher']['deal']['deals_title']
             ];
 
             if (!is_null($list['balance_nominal'])) {
                 $result['payment'][] = [
-                    'name'      => 'Point',
-                    'amount'    => $list['balance_nominal']
+                    'name'      => (env('POINT_NAME')) ? env('POINT_NAME') : 'Balance',
+                    'is_balance'=> 1,
+                    'amount'    => MyHelper::requestNumber($list['balance_nominal'],'_POINT'),
                 ];
             }
             switch ($list['payment_method']) {
@@ -1780,32 +1792,24 @@ class ApiTransaction extends Controller
                     $payment = DealsPaymentManual::where('id_deals_user', $id)->first();
                     $result['payment'][] = [
                         'name'      => 'Manual',
-                        'amount'    => $payment->payment_nominal
+                        'amount'    =>  MyHelper::requestNumber($payment->payment_nominal,'_CURRENCY')
                     ];
                     break;
                 case 'Midtrans':
                     $payment = DealsPaymentMidtran::where('id_deals_user', $id)->first();
                     $result['payment'][] = [
                         'name'      => 'Midtrans',
-                        'amount'    => $payment->gross_amount
+                        'amount'    =>  MyHelper::requestNumber($payment->gross_amount,'_CURRENCY')
                     ];
                     break;
                 case 'Ovo':
                     $payment = DealsPaymentOvo::where('id_deals_user', $id)->first();
                     $result['payment'][] = [
                         'name'      => 'Ovo',
-                        'amount'    => $payment->amount
-                    ];
-                    break;
-                default:
-                    $payment = DealsPaymentManual::where('id_deals_user', $id)->first();
-                    $result['payment'][] = [
-                        'name'      => 'Manual',
-                        'amount'    => $payment->payment_nominal
+                        'amount'    =>  MyHelper::requestNumber($payment->amount,'_CURRENCY')
                     ];
                     break;
             }
-
             return response()->json(MyHelper::checkGet($result));
         }
     }
