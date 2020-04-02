@@ -1652,7 +1652,7 @@ class ApiTransaction extends Controller
                         'order_id'          => $list['detail']['order_id'],
                         'pickup_type'       => $list['detail']['pickup_type'],
                         'pickup_date'       => date('d F Y', strtotime($list['detail']['pickup_at'])),
-                        'pickup_time'       => date('H : i', strtotime($list['detail']['pickup_at'])),
+                        'pickup_time'       => ($list['detail']['pickup_type'] == 'right now') ? 'RIGHT NOW' : date('H : i', strtotime($list['detail']['pickup_at'])),
                 ];
                 if (isset($list['transaction_payment_status']) && $list['transaction_payment_status'] == 'Cancelled') {
                     $result['transaction_status'] = 'Order Canceled';
@@ -1672,7 +1672,9 @@ class ApiTransaction extends Controller
             }
 
             $discount = 0;
+            $quantity = 0;
             foreach ($list['product_transaction'] as $keyTrx => $valueTrx) {
+                $quantity = $quantity + $valueTrx['transaction_product_qty'];
                 $result['product_transaction'][$keyTrx]['transaction_product_qty']              = $valueTrx['transaction_product_qty'];
                 $result['product_transaction'][$keyTrx]['transaction_product_subtotal']         = MyHelper::requestNumber($valueTrx['transaction_product_subtotal'],'_CURRENCY');
                 $result['product_transaction'][$keyTrx]['transaction_product_sub_item']         = '@'.MyHelper::requestNumber($valueTrx['transaction_product_subtotal'] / $valueTrx['transaction_product_qty'],'_CURRENCY');
@@ -1689,18 +1691,36 @@ class ApiTransaction extends Controller
                     $result['product_transaction'][$keyTrx]['product']['product_modifiers'][$keyMod]['product_modifier_price']  = MyHelper::requestNumber($valueMod['transaction_product_modifier_price'],'_CURRENCY');
                 }
             }
+
+            $result['payment_detail'][] = [
+                'name'      => 'Subtotal',
+                'desc'      => $quantity . ' items',
+                'amount'    => MyHelper::requestNumber($list['transaction_subtotal'],'_CURRENCY')
+            ];
             
             $p = 0;
             if (!empty($list['transaction_vouchers'])) {
                 foreach ($list['transaction_vouchers'] as $valueVoc) {
-                    $result['promo']['code'] [$p++]   = $valueVoc['deals_voucher']['voucher_code'];
+                    $result['promo']['code'][$p++]   = $valueVoc['deals_voucher']['voucher_code'];
+                    $result['payment_detail'][] = [
+                        'name'          => 'Discount',
+                        'desc'          => $valueVoc['deals_voucher']['voucher_code'],
+                        "is_discount"   => 1,
+                        'amount'        => MyHelper::requestNumber($discount,'_CURRENCY')
+                    ];
                 }
             }
             
             if (!empty($list['promo_campaign_promo_code'])) {
-                $result['promo']['code'] [$p++]   = $list['promo_campaign_promo_code']['promo_code'];
+                $result['promo']['code'][$p++]   = $list['promo_campaign_promo_code']['promo_code'];
+                $result['payment_detail'][] = [
+                    'name'          => 'Discount',
+                    'desc'          => $list['promo_campaign_promo_code']['promo_code'],
+                    "is_discount"   => 1,
+                    'amount'        => MyHelper::requestNumber($discount,'_CURRENCY')
+                ];
             }
-            
+
             $result['promo']['discount'] = $discount;
             $result['promo']['discount'] = MyHelper::requestNumber($discount,'_CURRENCY');
 
@@ -1770,14 +1790,15 @@ class ApiTransaction extends Controller
             if (empty($list)) {
                 return response()->json(MyHelper::checkGet($list));
             }
-
+            
             $result = [
-                'type'                          => 'voucher',
+                'trasaction_type'               => 'voucher',
                 'id_deals_user'                 => $list['id_deals_user'],
                 'deals_receipt_number'          => implode('', [strtotime($list['claimed_at']), $list['id_deals_user']]),
                 'date'                          => date('d M Y H:i', strtotime($list['claimed_at'])),
                 'voucher_price_cash'            => MyHelper::requestNumber($list['voucher_price_cash'],'_CURRENCY'),
-                'deals_voucher'                 => $list['dealVoucher']['deal']['deals_title']
+                'deals_voucher'                 => $list['dealVoucher']['deal']['deals_title'],
+                'payment_methods'               => $list['payment_method']
             ];
 
             if (!is_null($list['balance_nominal'])) {
@@ -1901,8 +1922,8 @@ class ApiTransaction extends Controller
         $id     = $request->json('id');
         $select = [];
         $data   = LogBalance::where('id_log_balance', $id)->first();
-
-        if ($data['source'] == 'Transaction' || $data['source'] == 'Rejected Order') {
+        // dd($data);
+        if ($data['source'] == 'Transaction' || $data['source'] == 'Rejected Order Point' || $data['source'] == 'Rejected Order') {
             $select = Transaction::select(DB::raw('transactions.*,sum(transaction_products.transaction_product_qty) item_total'))->leftJoin('transaction_products','transactions.id_transaction','=','transaction_products.id_transaction')->with('outlet')->where('transactions.id_transaction', $data['id_reference'])->groupBy('transactions.id_transaction')->first();
 
             $data['date'] = $select['transaction_date'];
@@ -1922,10 +1943,11 @@ class ApiTransaction extends Controller
                 'id_transaction'                => $data['detail']['id_transaction'],
                 'transaction_receipt_number'    => $data['detail']['transaction_receipt_number'],
                 'transaction_date'              => date('d M Y H:i', strtotime($data['detail']['transaction_date'])),
-                'balance'                       => $data['balance'],
-                'transaction_grandtotal'        => $data['detail']['transaction_grandtotal'],
-                'transaction_cashback_earned'   => $data['detail']['transaction_cashback_earned'],
-                'outlet_name'                   => $data['detail']['outlet']['outlet_name']
+                'balance'                       => MyHelper::requestNumber($data['balance'], '_POINT'),
+                'transaction_grandtotal'        => MyHelper::requestNumber($data['detail']['transaction_grandtotal'], '_CURRENCY'),
+                'transaction_cashback_earned'   => MyHelper::requestNumber($data['detail']['transaction_cashback_earned'], '_POINT'),
+                'name'                          => $data['detail']['outlet']['outlet_name'],
+                'title'                         => 'Total Payment'
             ];
         } else {
             $select = DealsUser::with('dealVoucher.deal')->where('id_deals_user', $data['id_reference'])->first();
@@ -1934,18 +1956,19 @@ class ApiTransaction extends Controller
             $data['outlet'] = $select['outlet']['outlet_name'];
             $data['online'] = 1;
             $data['detail'] = $select;
-    
+            
             $result = [
                 'type'                          => $data['type'],
                 'id_log_balance'                => $data['id_log_balance'],
-                'id_transaction'                => null,
                 'id_deals_user'                 => $data['detail']['id_deals_user'],
+                'used_at'                       => date('d M Y H:i', strtotime($data['detail']['used_at'])),
                 'transaction_receipt_number'    => implode('', [strtotime($data['date']), $data['detail']['id_deals_user']]),
                 'transaction_date'              => date('d M Y H:i', strtotime($data['date'])),
-                'balance'                       => $data['balance'],
-                'transaction_grandtotal'        => $data['detail']['transaction_grandtotal'],
-                'transaction_cashback_earned'   => $data['detail']['transaction_cashback_earned'],
-                'deals_voucher'                 => $data['detail']['dealVoucher']['deal']['deals_title']
+                'balance'                       => MyHelper::requestNumber($data['balance'], '_POINT'),
+                'transaction_grandtotal'        => MyHelper::requestNumber($data['detail']['voucher_price_cash'], '_CURRENCY'),
+                'transaction_cashback_earned'   => null,
+                'name'                          => 'Buy Voucher',
+                'title'                         => $data['detail']['dealVoucher']['deal']['deals_title']
             ];
         }
         

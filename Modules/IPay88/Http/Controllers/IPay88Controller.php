@@ -24,7 +24,8 @@ class IPay88Controller extends Controller
     public function requestView(Request $request) {
         $id_reference = $request->id_reference;
         $type = $request->type;
-        $data =  $this->lib->generateData($id_reference,$type);
+        $payment_id = $request->payment_id;
+        $data =  $this->lib->generateData($id_reference,$type,$payment_id);
         if(!$data){
             return 'Something went wrong';
         }
@@ -51,10 +52,11 @@ class IPay88Controller extends Controller
                 # code...
                 break;
         }
-        if(!$trx_ipay88){
+        if(!$trx_ipay88 || $post['Amount'] != $trx_ipay88->amount){
             return 'Transaction Not Found';
         }
-
+        // validating with should paid amount
+        $post['Amount'] = $trx_ipay88->amount;
         $requery = $this->lib->reQuery($post, $post['Status']);
 
         if($requery['valid']){
@@ -77,7 +79,6 @@ class IPay88Controller extends Controller
             case 'trx':
                 $trx_ipay88 = TransactionPaymentIpay88::join('transactions','transactions.id_transaction','=','transaction_payment_ipay88s.id_transaction')
                     ->where('transaction_receipt_number',$post['RefNo'])
-                    ->where('transaction_payment_status','<>','Completed')
                     ->first();
                 break;
 
@@ -89,10 +90,11 @@ class IPay88Controller extends Controller
                 # code...
                 break;
         }
-        if(!$trx_ipay88){
+        if(!$trx_ipay88 || $post['Amount'] != $trx_ipay88->amount){
             return MyHelper::checkGet($trx_ipay88,'Transaction Not Found');
         }
 
+        $post['Amount'] = $trx_ipay88->amount;
         $requery = $this->lib->reQuery($post, $post['Status']);
 
         if($requery['valid']){

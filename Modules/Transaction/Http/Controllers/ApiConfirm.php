@@ -341,7 +341,7 @@ class ApiConfirm extends Controller
         elseif ($post['payment_type'] == 'Ipay88') {
             
             // save multiple payment
-            $trx_ipay88 = \Modules\IPay88\Lib\IPay88::create()->insertNewTransaction($check);
+            $trx_ipay88 = \Modules\IPay88\Lib\IPay88::create()->insertNewTransaction($check,'trx',$countGrandTotal);
             if(!$trx_ipay88){
                 DB::rollBack();
                 return response()->json([
@@ -371,7 +371,8 @@ class ApiConfirm extends Controller
                 'result'    => [
                     'url'  => env('API_URL').'api/ipay88/pay?'.http_build_query([
                         'type' => 'trx',
-                        'id_reference' => $check['id_transaction']
+                        'id_reference' => $check['id_transaction'],
+                        'payment_id' => $request->payment_id?:''
                     ])
                 ]
             ];

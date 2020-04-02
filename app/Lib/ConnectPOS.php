@@ -266,8 +266,8 @@ class ConnectPOS{
 						if ($ipay) {
 							$pay = [
 								'number'            => $key + 1,
-								'type'              => 'IPay88',
-								'amount'            => (float) $ipay['amount'],
+								'type'              => $ipay['payment_method'],
+								'amount'            => (float) $ipay['amount']/100,
 								'changeAmount'     => 0,
 								'cardNumber'       => '',
 								'cardOwner'        => '',

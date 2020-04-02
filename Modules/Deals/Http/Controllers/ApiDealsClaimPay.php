@@ -308,7 +308,8 @@ class ApiDealsClaimPay extends Controller
                         'result'    => [
                             'url'  => env('API_URL').'api/ipay88/pay?'.http_build_query([
                                 'type' => 'deals',
-                                'id_reference' => $voucher->id_deals_user
+                                'id_reference' => $voucher->id_deals_user,
+                                'payment_id' => $request->json('payment_id')?:''
                             ])
                         ]
                     ];
@@ -522,7 +523,7 @@ class ApiDealsClaimPay extends Controller
         $data = [
             'id_deals'      => $deals->id_deals,
             'id_deals_user' => $voucher->id_deals_user,
-            'amount'  => $voucher->voucher_price_cash,
+            'amount'  => $voucher->voucher_price_cash*100,
             'order_id'      => time().sprintf("%05d", $voucher->id_deals_user).'-'.$voucher->id_deals_user
         ];
         if (is_null($grossAmount)) {
@@ -531,7 +532,7 @@ class ApiDealsClaimPay extends Controller
             }
         }
         else {
-            $data['amount'] = $grossAmount;
+            $data['amount'] = $grossAmount*100;
         }
         $create = DealsPaymentIpay88::create($data);
         return $create;
