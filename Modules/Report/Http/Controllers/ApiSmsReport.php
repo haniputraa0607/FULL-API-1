@@ -121,7 +121,7 @@ class ApiSmsReport extends Controller
         }
 
         if(isset($post['export']) && $post['export'] == 1){
-            $data = $data->get();
+            $data = $data->addSelect('log_api_sms.request_body')->get();
         }else{
             $data = $data->paginate($take);
         }
