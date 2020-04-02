@@ -331,7 +331,7 @@ class ApiDeals extends Controller
                 'deals_vouchers',
                 // 'deals_vouchers.deals_voucher_user',
                 // 'deals_vouchers.deals_user.user'
-            ])->where('id_deals', $request->json('id_deals'))->with(['outlets', 'outlets.city', 'product','brand']);
+            ])->where('id_deals', $request->json('id_deals'))->with(['deals_content', 'deals_content.deals_content_details', 'outlets', 'outlets.city', 'product','brand']);
         }else{
             $deals->addSelect('id_deals','deals_title','deals_second_title','deals_voucher_price_point','deals_voucher_price_cash','deals_total_voucher','deals_total_claimed','deals_voucher_type','deals_image','deals_start','deals_end','deals_type','is_offline','is_online','product_type','step_complete','deals_total_used','promo_type','deals_promo_id_type','deals_promo_id');
             if(strpos($request->user()->level,'Admin')>=0){
