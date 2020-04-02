@@ -104,10 +104,41 @@ class ApiDealsVoucherWebviewController extends Controller
             }
 
             $action['result']['data'][0]['deal_voucher']['deal']['deals_image'] = env('S3_URL_API') . $action['result']['data'][0]['deal_voucher']['deal']['deals_image'];
-            return response()->json([
-                'status' => 'fail',
-                'result' => $action['result']['data'][0]
-            ]);
+
+            $data = $action['result']['data'][0];
+            
+            $result = [
+                'deals_image'           => $data['deal_voucher']['deal']['deals_image'],
+                'deals_title'           => $data['deal_voucher']['deal']['deals_title'],
+                'id_deals_voucher'      => $data['id_deals_voucher'],
+                'id_deals_user'         => $data['id_deals_user'],
+                'voucher_expired'       => date('d F Y', strtotime($data['voucher_expired_at'])),
+                'is_used'               => $data['is_used'],
+                'is_online'             => $data['is_online'],
+                'is_offline'            => $data['is_offline'],
+            ];
+
+            $i = 0;
+            foreach ($data['deal_voucher']['deal']['deals_content'] as $keyContent => $valueContent) {
+                $result['deals_content'][$keyContent]['title'] = $valueContent['title'];
+                foreach ($valueContent['deals_content_details'] as $key => $value) {
+                    $result['deals_content'][$keyContent]['detail'][$key]['content'] = $value['content'];
+                }
+                $i++;
+            }
+
+            $result['deals_content'][$i]['is_outlet'] = 1;
+            $result['deals_content'][$i]['title'] = 'Available at';
+            foreach ($data['deal_voucher']['deal']['outlet_by_city'] as $keyCity => $valueCity) {
+                if (isset($valueCity['city_name'])) {
+                    $result['deals_content'][$i]['detail'][$keyCity]['city'] = strtoupper($valueCity['city_name']);
+                    foreach ($valueCity['outlet'] as $keyOutlet => $valueOutlet) {
+                        $result['deals_content'][$i]['detail'][$keyCity]['outlet'][$keyOutlet] = strtoupper($valueOutlet['outlet_name']);
+                    }
+                }
+            }
+
+            return response()->json(MyHelper::checkGet($result));
         }
     }
 
