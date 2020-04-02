@@ -240,7 +240,7 @@ class ApiDealsVoucher extends Controller
 
         $voucher = DealsUser::where('id_user', $request->user()->id)
                             ->whereIn('paid_status', ['Free', 'Completed'])
-                            ->with(['dealVoucher', 'dealVoucher.deal', 'dealVoucher.deal.outlets.city', 'dealVoucher.deal.outlets.city']);
+                            ->with(['dealVoucher', 'dealVoucher.deal', 'dealVoucher.deal.deals_content', 'dealVoucher.deal.deals_content.deals_content_details', 'dealVoucher.deal.outlets.city', 'dealVoucher.deal.outlets.city']);
         $voucher->select('deals_users.id_deals','voucher_expired_at','deals_users.id_deals_voucher','id_deals_user','id_outlet','voucher_hash','redeemed_at','used_at','is_used');
         if (isset($post['id_deals_user'])) {
             $voucher->addselect('deals_users.redeemed_at', 'deals_users.used_at');

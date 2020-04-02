@@ -7,7 +7,9 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 
 use App\Http\Models\Deal;
+use App\Http\Models\User;
 use App\Lib\MyHelper;
+use Illuminate\Support\Facades\Auth;
 use Route;
 
 use Modules\Deals\Http\Requests\Deals\ListDeal;
@@ -25,6 +27,9 @@ class ApiDealsWebview extends Controller
         $post['web'] = 1;
         
         $deals = MyHelper::postCURLWithBearer('api/deals/list', $post, $request->header('Authorization'));
+        $point = Auth::user()->balance;
+        // dd($user);
+        // $point = User::where
 
         if($deals['status'] == 'success'){
             $deals['result'][0]['deals_image'] = env('S3_URL_API') . $deals['result'][0]['deals_image'];
@@ -34,14 +39,29 @@ class ApiDealsWebview extends Controller
                     $deals['result'][0]
             ];
             $response['result']['button_text'] = 'BELI';
+            
             $result = [
-                'deals_image'           => $deals['result'][0]['deals_image'],
-                'deals_end'             => $deals['result'][0]['deals_end'],
-                'deals_voucher'         => ($deals['result'][0]['deals_voucher_type'] == 'Unlimited') ? 'Unlimited' : $deals['result'][0]['deals_total_voucher'] - $deals['result'][0]['deals_total_claimed'] . '/' . $deals['result'][0]['deals_total_voucher'],
-                'deals_title'           => $deals['result'][0]['deals_title'],
-                'deals_second_title'    => $deals['result'][0]['deals_second_title'],
-                'deals_description'     => $deals['result'][0]['deals_description'],
-                'deals_button'          => 'Claim',
+                'id_deals'                      => $deals['result'][0]['id_deals'],
+                'deals_type'                    => $deals['result'][0]['deals_type'],
+                'deals_status'                  => $deals['result'][0]['deals_status'],
+                'deals_voucher_type'            => $deals['result'][0]['deals_voucher_price_type'],
+                'deals_voucher_use_point'       => (($deals['result'][0]['deals_voucher_price_cash'] - $point) <= 0) ? MyHelper::requestNumber(0,'_POINT') : MyHelper::requestNumber($deals['result'][0]['deals_voucher_price_cash'] - $point,'_POINT'),
+                'deals_voucher_point_now'       => MyHelper::requestNumber($point,'_POINT'),
+                'deals_voucher_avaliable_point' => (($point - $deals['result'][0]['deals_voucher_price_cash']) <= 0) ? MyHelper::requestNumber(0,'_POINT') : MyHelper::requestNumber($point - $deals['result'][0]['deals_voucher_price_cash'],'_POINT'),
+                'deals_voucher_point_success'   => (($deals['result'][0]['deals_voucher_price_cash'] - $point) <= 0) ? 'enable' : 'disable',
+                'deals_image'                   => $deals['result'][0]['deals_image'],
+                'deals_start'                   => $deals['result'][0]['deals_start'],
+                'deals_end'                     => $deals['result'][0]['deals_end'],
+                'deals_voucher'                 => ($deals['result'][0]['deals_voucher_type'] == 'Unlimited') ? 'Unlimited' : $deals['result'][0]['deals_total_voucher'] - $deals['result'][0]['deals_total_claimed'] . '/' . $deals['result'][0]['deals_total_voucher'],
+                'deals_title'                   => $deals['result'][0]['deals_title'],
+                'deals_second_title'            => $deals['result'][0]['deals_second_title'],
+                'deals_description'             => $deals['result'][0]['deals_description'],
+                'deals_button'                  => 'Claim',
+                'time_server'                   => $deals['result'][0]['time_server'],
+                'time_to_end'                   => strtotime($deals['result'][0]['deals_end']) - time(),
+                'button_text'                   => $deals['result'][0]['button_text'],
+                'payment_message'               => $deals['result'][0]['payment_message'],
+                'payment_success_message'       => $deals['result'][0]['payment_success_message']
             ];
             if ($deals['result'][0]['deals_voucher_price_cash'] != "") {
                 $result['deals_price'] = MyHelper::requestNumber($deals['result'][0]['deals_voucher_price_cash'], '_CURRENCY');
@@ -53,20 +73,23 @@ class ApiDealsWebview extends Controller
             
             $i = 0;
             foreach ($deals['result'][0]['deals_content'] as $keyContent => $valueContent) {
-                $result['deals_content'][$keyContent]['title'] = $valueContent['title'];
-                foreach ($valueContent['deals_content_details'] as $key => $value) {
-                    $result['deals_content'][$keyContent]['detail'][$key]['content'] = $value['content'];
+                if (!empty($valueContent['deals_content_details'])) {
+                    $result['deals_content'][$keyContent]['title'] = $valueContent['title'];
+                    foreach ($valueContent['deals_content_details'] as $key => $value) {
+                        $content[$key] = $value['content'] . '<br>';
+                    }
+                    $result['deals_content'][$keyContent]['detail'] = implode('', $content);
+                    $i++;
                 }
-                $i++;
             }
 
-            $result['deals_content'][$i]['is_outlet'] = 1;
             $result['deals_content'][$i]['title'] = 'Available at';
             foreach ($deals['result'][0]['outlet_by_city'] as $keyCity => $valueCity) {
-                $result['deals_content'][$i]['detail'][$keyCity]['city'] = strtoupper($valueCity['city_name']);
                 foreach($valueCity['outlet'] as $keyOutlet => $valueOutlet) {
-                    $result['deals_content'][$i]['detail'][$keyCity]['outlet'][$keyOutlet] = strtoupper($valueOutlet['outlet_name']); 
+                    $outlet[$keyOutlet] = '- ' . $valueOutlet['outlet_name'] . '<br>'; 
                 }
+                $city[$keyCity] = strtoupper($valueCity['city_name']) . '<br>' . implode('', $outlet);
+                $result['deals_content'][$i]['detail'] = implode('', $city);
             }
         }else{
             $result = [
@@ -76,7 +99,8 @@ class ApiDealsWebview extends Controller
                 ]
             ];
         }
-        return response()->json($result);
+
+        return response()->json(MyHelper::checkGet($result));
     }
 
     // webview deals detail
@@ -139,6 +163,49 @@ class ApiDealsWebview extends Controller
         }
 
         return view('deals::webview.deals.deals_claim', $data);
+    }
+
+    public function dealsDetailLater(Request $request)
+    {
+        $bearer = $request->header('Authorization');
+
+        if ($bearer == "") {
+            return abort(404);
+        }
+
+        $post['id_deals_user'] = $request->id_deals_user;
+
+        $action = MyHelper::postCURLWithBearer('api/deals/me', $post, $bearer);
+
+        if ($action['status'] != 'success') {
+            return [
+                'status' => 'fail',
+                'messages' => ['Deals is not found']
+            ];
+        } else {
+            $data['deals'] = $action['result'];
+        }
+
+        $result = [
+            'id_deals_user'             => $data['deals']['id_deals_user'],
+            'header_title'              => 'Horayy!',
+            'header_sub_title'          => 'Thank you for claiming',
+            'deals_title'               => $data['deals']['deals_voucher']['deal']['deals_title'],
+            'deals_image'               => env('S3_URL_API') . $data['deals']['deals_voucher']['deal']['deals_image'],
+            'voucher_expired_at'        => 'Valid until ' . date('d F Y', strtotime($data['deals']['voucher_expired_at'])),
+            'claimed_at'                => date('d M Y H:i', strtotime($data['deals']['claimed_at'])),
+            'transaction_id'            => strtotime($data['deals']['claimed_at']).$data['deals']['id_deals_user'],
+        ];
+
+        if ($data['deals']['voucher_price_point'] != null) {
+            $result['payment'] = number_format($data['deals']['voucher_price_point'],0,",",".").' points';
+        } elseif ($data['deals']['voucher_price_cash'] != null) {
+            $result['payment'] = number_format($data['deals']['voucher_price_cash'],0,",",".");
+        } else {
+            $result['payment'] = 'Free';
+        }
+
+        return response()->json(MyHelper::checkGet($result));
     }
     
     // voucher detail webview
