@@ -397,89 +397,75 @@
 @php $bulan = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']; @endphp
 <body style="background:#fff">
 <div class="@if(isset($data['admin'])) body-admin @endif">
-    @if ($data['trasaction_type'] != 'Offline')
-        @if(isset($data['detail']['pickup_by']) && $data['detail']['pickup_by'] == 'GO-SEND')
-            <div class="kotak-biasa">
-                <div class="container">
-                    <div class="text-center">
-                        <div class="col-12 Ubuntu text-15px space-nice text-grey">Detail Pengiriman</div>
-                        <div class="col-12 text-red text-21-7px space-bottom Ubuntu-Medium">GO-SEND</div>
-                        <div class="col-12 text-16-7px text-black space-bottom Ubuntu">
-                            {{ $data['detail']['transaction_pickup_go_send']['destination_name'] }}
-                            <br>
-                            {{ $data['detail']['transaction_pickup_go_send']['destination_phone'] }}
-                        </div>
-                        <div class="kotak-inside col-12">
-                            <div class="col-12 text-13-3px text-grey-white space-nice text-center Ubuntu">{{ $data['detail']['transaction_pickup_go_send']['destination_address'] }}</div>
-                        </div>
-                        <div class="col-12 text-15px space-bottom text-black Ubuntu">Map</div>
-                        <div class="col-12 space-bottom-big">
-                            <div class="container">
-                                <div id="map"></div>
-                            </div>
+    @if(isset($data['detail']['pickup_by']) && $data['detail']['pickup_by'] == 'GO-SEND')
+        <div class="kotak-biasa">
+            <div class="container">
+                <div class="text-center">
+                    <div class="col-12 Ubuntu text-15px space-nice text-grey">Detail Pengiriman</div>
+                    <div class="col-12 text-red text-21-7px space-bottom Ubuntu-Medium">GO-SEND</div>
+                    <div class="col-12 text-16-7px text-black space-bottom Ubuntu">
+                        {{ $data['detail']['transaction_pickup_go_send']['destination_name'] }}
+                        <br>
+                        {{ $data['detail']['transaction_pickup_go_send']['destination_phone'] }}
+                    </div>
+                    <div class="kotak-inside col-12">
+                        <div class="col-12 text-13-3px text-grey-white space-nice text-center Ubuntu">{{ $data['detail']['transaction_pickup_go_send']['destination_address'] }}</div>
+                    </div>
+                    <div class="col-12 text-15px space-bottom text-black Ubuntu">Map</div>
+                    <div class="col-12 space-bottom-big">
+                        <div class="container">
+                            <div id="map"></div>
                         </div>
                     </div>
                 </div>
             </div>
-        @else
+        </div>
+    @else
+        <div class="kotak-biasa" style="background-color: #FFFFFF;padding: 10px 0px;margin-top: 10px;">
+            <div class="container">
+                <div class="text-center" style="background-color: #FFFFFF;padding: 5px;padding-top: 0px;margin-top: 20px;">
+                    <div class="col-12 text-black space-text Ubuntu-Bold" style="font-size: 16.7px;">{{ $data['outlet']['outlet_name'] }}</div>
+                    <div class="kotak-inside col-12">
+                        <div class="col-12 text-11-7px text-grey-white space-nice text-center Ubuntu">{{ $data['outlet']['outlet_address'] }}</div>
+                    </div>
+                    @if(isset($data['transaction_payment_status']) && $data['transaction_payment_status'] != 'Cancelled' && $data['trasaction_type'] != 'Offline')
+                        <div class="col-12 Ubuntu-Medium space-text text-black" style="font-size: 15px;">Your Pick Up Code</div>
+                        <div style="width: 135px;height: 135px;margin: 0 auto;" data-toggle="modal" data-target="#exampleModal">
+                            <div class="col-12 text-14-3px space-top"><img class="img-responsive" style="display: block;max-width: 100%;padding-top: 10px" src="{{ $data['qr'] }}"></div>
+                        </div>
+                        <div class="col-12 text-black Ubuntu-Medium" style="color: #333333;font-size: 21.7px;padding-bottom: 5px;padding-top: 18px">{{ $data['detail']['order_id'] }}</div>
+                    @endif
+                </div>
+            </div>
+        </div>
+        @if($data['trasaction_type'] != 'Offline')
             <div class="kotak-biasa" style="background-color: #FFFFFF;padding: 10px 0px;margin-top: 10px;">
                 <div class="container">
-                    <div class="text-center" style="background-color: #FFFFFF;padding: 5px;padding-top: 0px;margin-top: 20px;">
-                        <div class="col-12 text-black space-text Ubuntu-Bold" style="font-size: 16.7px;">{{ $data['outlet']['outlet_name'] }}</div>
-                        <div class="kotak-inside col-12">
-                            <div class="col-12 text-11-7px text-grey-white space-nice text-center Ubuntu">{{ $data['outlet']['outlet_address'] }}</div>
-                        </div>
-                        @if(isset($data['transaction_payment_status']) && $data['transaction_payment_status'] != 'Cancelled' && $data['trasaction_type'] != 'Offline')
-                            <div class="col-12 Ubuntu-Medium space-text text-black" style="font-size: 15px;">Your Pick Up Code</div>
-                            <div style="width: 135px;height: 135px;margin: 0 auto;" data-toggle="modal" data-target="#exampleModal">
-                                <div class="col-12 text-14-3px space-top"><img class="img-responsive" style="display: block;max-width: 100%;padding-top: 10px" src="{{ $data['qr'] }}"></div>
-                            </div>
-                            <div class="col-12 text-black Ubuntu-Medium" style="color: #333333;font-size: 21.7px;padding-bottom: 5px;padding-top: 18px">{{ $data['detail']['order_id'] }}</div>
-                        @endif
-                    </div>
-                </div>
-            </div>
-            @if($data['trasaction_type'] != 'Offline')
-                <div class="kotak-biasa" style="background-color: #FFFFFF;padding: 10px 0px;margin-top: 10px;">
-                    <div class="container">
-                        <div class="text-center">
-                            @if(isset($data['admin']))
-                                <div class="col-12 text-16-7px text-black space-text Ubuntu">{{ strtoupper($data['user']['name']) }}</div>
-                                <div class="col-12 text-16-7px text-black Ubuntu space-nice">{{ $data['user']['phone'] }}</div>
-                            @endif
-                            @if (isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Cancelled')
-                                <div class="col-12 space-nice text-black Ubuntu" style="padding-bottom: 10px;">
-                                    Your order cancelled on
-                                </div>
-                                <div class="col-12 text-14px space-text text-black Ubuntu-Medium">{{ date('d F Y', strtotime($data['transaction_date'])) }}</div>
-                            @else
-                                <div class="col-12 space-nice text-black Ubuntu" style="padding-bottom: 10px;">
-                                    Your order will be ready on
-                                </div>
-                                <div class="col-12 text-14px space-text text-black Ubuntu-Medium">{{ date('d F Y', strtotime($data['transaction_date'])) }}</div>
-                                <div class="col-12 text-21-7px Ubuntu-Medium" style="color: #8fd6bd;">
-                                    @if ($data['detail']['pickup_type'] == 'set time')
-                                        {{ date('H:i', strtotime($data['detail']['pickup_at'])) }}
-                                    @elseif($data['detail']['pickup_type'] == 'at arrival')
-                                        ON ARRIVAL
-                                    @else
-                                        RIGHT NOW
-                                    @endif
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            @endif
-        @endif
-
-    @else
-        @if(isset($data['admin']) && isset($data['user']['name']))
-            <div class="kotak-biasa space-top-all">
-                <div class="container">
                     <div class="text-center">
-                        <div class="col-12 text-16-7px text-black space-text Ubuntu">{{ strtoupper($data['user']['name']) }}</div>
-                        <div class="col-12 text-16-7px text-black Ubuntu space-nice">{{ $data['user']['phone'] }}</div>
+                        @if(isset($data['admin']))
+                            <div class="col-12 text-16-7px text-black space-text Ubuntu">{{ strtoupper($data['user']['name']) }}</div>
+                            <div class="col-12 text-16-7px text-black Ubuntu space-nice">{{ $data['user']['phone'] }}</div>
+                        @endif
+                        @if (isset($data['transaction_payment_status']) && $data['transaction_payment_status'] == 'Cancelled')
+                            <div class="col-12 space-nice text-black Ubuntu" style="padding-bottom: 10px;">
+                                Your order cancelled on
+                            </div>
+                            <div class="col-12 text-14px space-text text-black Ubuntu-Medium">{{ date('d F Y', strtotime($data['transaction_date'])) }}</div>
+                        @else
+                            <div class="col-12 space-nice text-black Ubuntu" style="padding-bottom: 10px;">
+                                Your order will be ready on
+                            </div>
+                            <div class="col-12 text-14px space-text text-black Ubuntu-Medium">{{ date('d F Y', strtotime($data['transaction_date'])) }}</div>
+                            <div class="col-12 text-21-7px Ubuntu-Medium" style="color: #8fd6bd;">
+                                @if ($data['detail']['pickup_type'] == 'set time')
+                                    {{ date('H:i', strtotime($data['detail']['pickup_at'])) }}
+                                @elseif($data['detail']['pickup_type'] == 'at arrival')
+                                    ON ARRIVAL
+                                @else
+                                    RIGHT NOW
+                                @endif
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
