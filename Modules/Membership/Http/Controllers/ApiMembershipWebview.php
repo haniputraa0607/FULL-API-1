@@ -42,7 +42,7 @@ class ApiMembershipWebview extends Controller
 		}
 		$result['user_membership']['membership_bg_image'] = env('S3_URL_API') . $result['user_membership']->membership->membership_bg_image;
 		$result['user_membership']['membership_background_card_color'] = $result['user_membership']->membership->membership_background_card_color;
-		$result['user_membership']['membership_background_card_pattern'] = env('S3_URL_API') . $result['user_membership']->membership->membership_background_card_pattern;
+		$result['user_membership']['membership_background_card_pattern'] = (is_null($result['user_membership']->membership->membership_background_card_pattern)) ? null : env('S3_URL_API') . $result['user_membership']->membership->membership_background_card_pattern;
 		$result['user_membership']['membership_text_color'] = $result['user_membership']->membership->membership_text_color;
 
 		unset($result['user_membership']['membership']);

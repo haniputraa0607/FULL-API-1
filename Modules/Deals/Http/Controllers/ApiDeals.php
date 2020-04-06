@@ -611,6 +611,17 @@ class ApiDeals extends Controller
         }
     }
 
+    /* list of deals that haven't ended yet */
+    function listActiveDeals(Request $request){
+        $post = $request->json()->all();
+        $deals = Deal::where('deals_end', '>=', date('Y-m-d H:i:s'))->where('deals_type', 'Deals');
+        if(isset($post['select'])){
+            $deals = $deals->select($post['select']);
+        }
+        $deals = $deals->get();
+        return response()->json(MyHelper::checkGet($deals));
+    }
+
     /* LIST */
     function myDeal(Request $request)
     {

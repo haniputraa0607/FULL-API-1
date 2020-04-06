@@ -315,14 +315,20 @@ class SendCampaignJob implements ShouldQueue
                         $news = News::find($campaign['campaign_push_id_reference']);
                         if($news){
                             $dataOptional['news_title'] = $news->news_title;
+                            $dataOptional['title'] = $news->news_title;
                         }
                         $dataOptional['url'] = env('APP_URL').'news/webview/'.$campaign['campaign_push_id_reference'];
                     }
-
-                    if($campaign['campaign_push_clickto'] == 'Order' && $campaign['campaign_push_id_reference'] != null){
+                    elseif($campaign['campaign_push_clickto'] == 'Order' && $campaign['campaign_push_id_reference'] != null){
                         $outlet = Outlet::find($campaign['campaign_push_id_reference']);
                         if($outlet){
-                            $dataOptional['news_title'] = $outlet->outlet_name;
+                            $dataOptional['title'] = $outlet->outlet_name;
+                        }
+                    }
+                    elseif($campaign['campaign_push_clickto'] == 'Deals' && $campaign['campaign_push_id_reference'] != null){
+                        $deals = Deal::find($campaign['campaign_push_id_reference']);
+                        if($deals){
+                            $dataOptional['title'] = $deals->deals_title;
                         }
                     }
 

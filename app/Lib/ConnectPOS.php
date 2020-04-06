@@ -85,8 +85,8 @@ class ConnectPOS{
 			$outlets[] = env('POS_OUTLET_OVERWRITE')?:$trxData->outlet->outlet_code;
 			$receive_at = $trxData->receive_at?:date('Y-m-d H:i:s');
 			$voucher = TransactionVoucher::where('id_transaction',$trxData->id_transaction)->first();
-			$appliedPromo = null;
-			$promoNumber = null;
+			$appliedPromo = "";
+			$promoNumber = "";
 			if($trxData->id_promo_campaign_promo_code || $voucher){
 				$appliedPromo = 'MOBILE APPS PROMO';
 				if($trxData->id_promo_campaign_promo_code){
@@ -146,7 +146,7 @@ class ConnectPOS{
 					"type"=> $product->product_variants[1]->product_variant_code == 'general_type'?null:$product->product_variants[1]->product_variant_code, //code variant /null
 					"size"=> $product->product_variants[0]->product_variant_code == 'general_size'?null:$product->product_variants[0]->product_variant_code, // code variant /null
 					"promoNumber"=> $promoNumber, //kode voucher //null
-					"promoType"=> $appliedPromo?"5":null, //hardcode //null
+					"promoType"=> $appliedPromo?"5":"", //hardcode //null
 					"status"=> "ACTIVE" // hardcode
 				];
 				$last = $key+1;
@@ -305,14 +305,14 @@ class ConnectPOS{
 				$top = TransactionOnlinePos::where('id_transaction',$trxData['id_transaction'])->first();
 				if($top){
 					$top->update([
-						'request' => json_encode($sendData), 
+						'request' => json_encode($sendData),
 						'response' => json_encode($response),
 						'count_retry'=>($top->count_retry+1),
 						'success_retry_status'=>0
 					]);
 				}else{
 					$top = TransactionOnlinePos::create([
-						'request' => json_encode($sendData), 
+						'request' => json_encode($sendData),
 						'response' => json_encode($response),
 						'id_transaction' => $variables['id_transaction'],
 						'count_retry' => 1
@@ -328,14 +328,14 @@ class ConnectPOS{
 				$top = TransactionOnlinePos::where('id_transaction',$trxData['id_transaction'])->first();
 				if($top){
 					$top->update([
-						'request' => json_encode($sendData), 
+						'request' => json_encode($sendData),
 						'response' => json_encode($response),
 						'count_retry'=>($top->count_retry+1),
 						'success_retry_status'=>1
 					]);
 				}else{
 					$top = TransactionOnlinePos::create([
-						'request' => json_encode($sendData), 
+						'request' => json_encode($sendData),
 						'response' => json_encode($response),
 						'id_transaction' => $variables['id_transaction'],
 						'count_retry' => 1,

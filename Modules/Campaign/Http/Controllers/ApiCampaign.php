@@ -16,6 +16,7 @@ use App\Http\Models\CampaignSmsQueue;
 use App\Http\Models\CampaignPushSent;
 use App\Http\Models\Outlet;
 use App\Http\Models\Product;
+use App\Http\Models\Deal;
 use App\Http\Models\Treatment;
 use App\Http\Models\Setting;
 use App\Http\Models\CampaignRuleParent;
@@ -198,7 +199,6 @@ class ApiCampaign extends Controller
 
 		$campaign = Campaign::with(['user', 'campaign_rule_parents', 'campaign_rule_parents.rules', 'whatsapp_content'])->where('id_campaign','=',$post['id_campaign'])->get()->first();
 		if($campaign){
-			$campaign['campaign_push_name_reference'] = "";
 
 			if($campaign['campaign_media_push'] == "Yes"){
 				if($campaign['campaign_push_clickto'] == "Product"){
@@ -207,8 +207,19 @@ class ApiCampaign extends Controller
 						$campaign['campaign_push_name_reference'] = $q['product_name'];
 					}
 				}
-
-				if($campaign['campaign_push_clickto'] == "Outlet"){
+				elseif($campaign['campaign_push_clickto'] == "News"){
+					if($campaign['campaign_push_id_reference'] != 0){
+						$q = News::where('id_news','=',$campaign['campaign_push_id_reference'])->get()->first();
+						$campaign['campaign_push_name_reference'] = $q['news_title'].' '.$q['news_second_title'];
+					}
+				}
+				elseif($campaign['campaign_push_clickto'] == "Deals"){
+					if($campaign['campaign_push_id_reference'] != 0){
+						$q = Deal::where('id_deals','=',$campaign['campaign_push_id_reference'])->get()->first();
+						$campaign['campaign_push_name_reference'] = $q['deals_title'].' '.$q['deals_second_title'];
+					}
+				}
+				elseif($campaign['campaign_push_clickto'] == "Outlet" || $campaign['campaign_push_clickto'] == "Order"){
 					if($campaign['campaign_push_id_reference'] != 0){
 						$q = Outlet::where('id_outlet','=',$campaign['campaign_push_id_reference'])->get()->first();
 						$campaign['campaign_push_name_reference'] = $q['outlet_name'];
@@ -223,8 +234,19 @@ class ApiCampaign extends Controller
 						$campaign['campaign_inbox_name_reference'] = $q['product_name'];
 					}
 				}
-
-				if($campaign['campaign_inbox_clickto'] == "Outlet"){
+				elseif($campaign['campaign_inbox_clickto'] == "News"){
+					if($campaign['campaign_inbox_id_reference'] != 0){
+						$q = News::where('id_news','=',$campaign['campaign_inbox_id_reference'])->get()->first();
+						$campaign['campaign_inbox_name_reference'] = $q['news_title'].' '.$q['news_second_title'];
+					}
+				}
+				elseif($campaign['campaign_inbox_clickto'] == "Deals"){
+					if($campaign['campaign_inbox_id_reference'] != 0){
+						$q = Deal::where('id_deals','=',$campaign['campaign_inbox_id_reference'])->get()->first();
+						$campaign['campaign_inbox_name_reference'] = $q['deals_title'].' '.$q['deals_second_title'];
+					}
+				}
+				elseif($campaign['campaign_inbox_clickto'] == "Outlet" || $campaign['campaign_inbox_clickto'] == "Order"){
 					if($campaign['campaign_inbox_id_reference'] != 0){
 						$q = Outlet::where('id_outlet','=',$campaign['campaign_inbox_id_reference'])->get()->first();
 						$campaign['campaign_inbox_name_reference'] = $q['outlet_name'];
