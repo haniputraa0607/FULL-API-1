@@ -122,7 +122,7 @@ class ApiAutoCrm extends Controller
 							}
 						});
 					}else{
-						Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting,$variables)
+						Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting,$variables,$autocrm_title,$crm)
 						{
 							$message->to($to, $name)->subject($subject);
 							if(env('MAIL_DRIVER') == 'mailgun'){
@@ -148,7 +148,8 @@ class ApiAutoCrm extends Controller
 							}
 
 							// attachment
-							if(isset($variables['attachment'])){
+							if((isset($variables['attachment']) && !(stristr($autocrm_title,'nquiry'))) ||
+							((stristr($autocrm_title,'nquiry')&&$crm['attachment_mail']==1))){
 								if(is_array($variables['attachment'])){
 									foreach($variables['attachment'] as $attach){
 										$message->attach($attach);
@@ -219,6 +220,17 @@ class ApiAutoCrm extends Controller
 
 							if(!empty($setting['email_bcc']) && !empty($setting['email_bcc_name'])){
 								$message->bcc($setting['email_bcc'], $setting['email_bcc_name']);
+							}
+
+							// attachment
+							if(stristr($autocrm_title,'nquiry')&&$crm['attachment_forward']==1){
+								if(is_array($variables['attachment'])){
+									foreach($variables['attachment'] as $attach){
+										$message->attach($attach);
+									}
+								}else{
+									$message->attach($variables['attachment']);
+								}
 							}
 						});
 
