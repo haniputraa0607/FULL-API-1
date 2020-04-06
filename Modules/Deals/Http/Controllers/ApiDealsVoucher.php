@@ -480,7 +480,6 @@ class ApiDealsVoucher extends Controller
         if (!($post['used']??false)) {
 
                 foreach($voucher as $index => $dataVou){
-                    $voucher[$index]['detail_url'] = env('API_URL') ."api/detail/voucher/". $dataVou['id_deals_user'];
                     $voucher[$index]['webview_url_v2'] = env('API_URL') ."api/webview/voucher/v2/". $dataVou['id_deals_user'];
                     $voucher[$index]['button_text'] = 'Redeem';
                 }
@@ -515,7 +514,6 @@ class ApiDealsVoucher extends Controller
                     'deals_title'=>$var['deal_voucher']['deal']['deals_title']??'',
                     'deals_second_title'=>$var['deal_voucher']['deal']['deals_second_title']??'',
                     'webview_url_v2'=>$var['webview_url_v2']??'',
-                    'detail_url'=>$var['detail_url']??'',
                     'url_deals_image'=>$var['deal_voucher']['deal']['url_deals_image'],
                     'status_redeem'=>($var['redeemed_at']??false)?1:0,
                     'label'=>$var['label'],
@@ -657,7 +655,6 @@ class ApiDealsVoucher extends Controller
 			DB::rollBack();
 		}
 		$deals_user = MyHelper::checkUpdate($deals_user);
-		$deals_user['detail_url'] = env('API_URL') ."api/detail/voucher/". $id_deals_user;
 		$deals_user['webview_url_v2'] = env('API_URL') ."api/webview/voucher/v2/". $id_deals_user;
 		return $deals_user;
 
