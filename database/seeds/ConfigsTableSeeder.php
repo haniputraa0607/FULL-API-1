@@ -972,6 +972,24 @@ class ConfigsTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
+            106 =>
+                array (
+                    'id_config' => 107,
+                    'config_name' => 'custom form news',
+                    'description' => '',
+                    'is_active' => 1,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            107 =>
+                array (
+                    'id_config' => 108,
+                    'config_name' => 'intro',
+                    'description' => '',
+                    'is_active' => 1,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
         ));
     }
 }
