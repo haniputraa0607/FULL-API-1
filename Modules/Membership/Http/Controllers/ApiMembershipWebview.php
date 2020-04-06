@@ -14,7 +14,9 @@ class ApiMembershipWebview extends Controller
 {
     public function detail(Request $request)
     {
-		$post = json_decode(base64_decode($request->get('data')), true);
+		$post = [
+			'id_user' => $request->user()->id
+		];
 		$result = [];
 		$result['user_membership'] = UsersMembership::with('user', 'membership')->where('id_user', $post['id_user'])->orderBy('id_log_membership', 'desc')->first();
 		$settingCashback = Setting::where('key', 'cashback_conversion_value')->first();
@@ -57,20 +59,20 @@ class ApiMembershipWebview extends Controller
 		$allMembership = Membership::with('membership_promo_id')->orderBy('min_total_value','asc')->orderBy('min_total_count', 'asc')->orderBy('min_total_balance', 'asc')->get()->toArray();
 		$nextMembershipName = "";
 		// $nextMembershipImage = "";
-		// $nextTrx = 0;
+		$nextTrx = 0;
 		$nextTrxType = '';
 		if(count($allMembership) > 0){
 			if($result['user_membership']){
 				$result['user_membership']['membership_image'] = env('S3_URL_API') . $result['user_membership']['membership_image'];
 				foreach($allMembership as $index => $dataMembership){
-					$allMembership[$index]['benefit_text']=json_decode($dataMembership['benefit_text'],true)??[];
+					$allMembership[$index]['benefit_text']=json_decode($dataMembership['benefit_text'],true)[0]??[];
 					switch ($dataMembership['membership_type']) {
 						case 'count':
 							$allMembership[$index]['min_value'] 		= $dataMembership['min_total_count'];
 							$allMembership[$index]['retain_min_value'] 	= $dataMembership['retain_min_total_count'];
 							if($dataMembership['min_total_count'] > $result['user_membership']['min_total_count']){
 								if($nextMembershipName == ""){
-									// $nextTrx = $dataMembership['min_total_count'];
+									$nextTrx = $dataMembership['min_total_count'];
 									$nextTrxType = 'count';
 									$nextMembershipName = $dataMembership['membership_name'];
 									// $nextMembershipImage =  env('S3_URL_API') . $dataMembership['membership_image'];
@@ -82,7 +84,7 @@ class ApiMembershipWebview extends Controller
 							$allMembership[$index]['retain_min_value'] 	= $dataMembership['retain_min_total_value'];
 							if($dataMembership['min_total_value'] > $result['user_membership']['min_total_value']){
 								if($nextMembershipName == ""){
-									// $nextTrx = $dataMembership['min_total_value'];
+									$nextTrx = $dataMembership['min_total_value'];
 									$nextTrxType = 'value';
 									$nextMembershipName = $dataMembership['membership_name'];
 									// $nextMembershipImage =  env('S3_URL_API') . $dataMembership['membership_image'];
@@ -94,7 +96,7 @@ class ApiMembershipWebview extends Controller
 							$allMembership[$index]['retain_min_value'] 	= $dataMembership['retain_min_total_balance'];
 							if($dataMembership['min_total_balance'] > $result['user_membership']['min_total_balance']){
 								if($nextMembershipName == ""){
-									// $nextTrx = $dataMembership['min_total_balance'];
+									$nextTrx = $dataMembership['min_total_balance'];
 									$nextTrxType = 'balance';
 									$nextMembershipName = $dataMembership['membership_name'];
 									// $nextMembershipImage =  env('S3_URL_API') . $dataMembership['membership_image'];
@@ -126,11 +128,11 @@ class ApiMembershipWebview extends Controller
 				$nextMembershipName = $allMembership[0]['membership_name'];
 				// $nextMembershipImage = env('S3_URL_API') . $allMembership[0]['membership_image'];
 				if($allMembership[0]['membership_type'] == 'count'){
-					// $nextTrx = $allMembership[0]['min_total_count'];
+					$nextTrx = $allMembership[0]['min_total_count'];
 					$nextTrxType = 'count';
 				}
 				if($allMembership[0]['membership_type'] == 'value'){
-					// $nextTrx = $allMembership[0]['min_total_value'];
+					$nextTrx = $allMembership[0]['min_total_value'];
 					$nextTrxType = 'value';
 				}
 				foreach($allMembership as $j => $dataMember){
@@ -139,21 +141,24 @@ class ApiMembershipWebview extends Controller
 				}
 			}
 		}
-		// $result['next_membership_name'] = $nextMembershipName;
+		$membershipUser['next_level'] = $nextMembershipName;
 		// $result['next_membership_image'] = $nextMembershipImage;
 		if(isset($result['user_membership'])){
 			if($nextTrxType == 'count'){
 				$count_transaction = Transaction::where('id_user', $post['id_user'])->where('transaction_payment_status', 'Completed')->count('transaction_grandtotal');
-				$membershipUser['progress_now'] = $count_transaction;
+				$membershipUser['progress_now_text'] = MyHelper::requestNumber($count_transaction,'_CURRENCY');
+				$membershipUser['progress_now'] = (int) $count_transaction;
 			}elseif($nextTrxType == 'value'){
 				$subtotal_transaction = Transaction::where('id_user', $post['id_user'])->where('transaction_payment_status', 'Completed')->sum('transaction_grandtotal');
-				$membershipUser['progress_now'] = $subtotal_transaction;
-				// $result['progress_active'] = ($subtotal_transaction / $nextTrx) * 100;
+				$membershipUser['progress_now_text'] = MyHelper::requestNumber($subtotal_transaction,'_CURRENCY');
+				$membershipUser['progress_now'] = (int) $subtotal_transaction;
+				$membershipUser['progress_active'] = ($subtotal_transaction / $nextTrx) * 100;
 				// $result['next_trx']		= $subtotal_transaction - $nextTrx;
 			}elseif($nextTrxType == 'balance'){
 				$total_balance = LogBalance::where('id_user', $post['id_user'])->whereNotIn('source', [ 'Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point'])->where('balance', '>', 0)->sum('balance');
-				$membershipUser['progress_now'] = $total_balance;
-				// $result['progress_active'] = ($total_balance / $nextTrx) * 100;
+				$membershipUser['progress_now_text'] = MyHelper::requestNumber($total_balance,'_CURRENCY');
+				$membershipUser['progress_now'] = (int) $total_balance;
+				$membershipUser['progress_active'] = ($total_balance / $nextTrx) * 100;
 				// $result['next_trx']		= $nextTrx - $total_balance;
 			}
 		}
@@ -164,20 +169,26 @@ class ApiMembershipWebview extends Controller
 			$result['next_trx'] = 0;
 			if($allMembership[0]['membership_type'] == 'count'){
 				$count_transaction = Transaction::where('id_user', $post['id_user'])->where('transaction_payment_status', 'Completed')->count('transaction_grandtotal');
-				$membershipUser['progress_now'] = $count_transaction;
+				$membershipUser['progress_now_text'] = MyHelper::requestNumber($count_transaction,'_CURRENCY');
+				$membershipUser['progress_now'] = (int) $count_transaction;
 			}elseif($allMembership[0]['membership_type'] == 'value'){
 				$subtotal_transaction = Transaction::where('id_user', $post['id_user'])->where('transaction_payment_status', 'Completed')->sum('transaction_grandtotal');
-				$membershipUser['progress_now'] = $subtotal_transaction;
+				$membershipUser['progress_now_text'] = MyHelper::requestNumber($subtotal_transaction,'_CURRENCY');
+				$membershipUser['progress_now'] = (int) $subtotal_transaction;
 			}elseif($allMembership[0]['membership_type'] == 'balance'){
 				$total_balance = LogBalance::where('id_user', $post['id_user'])->whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point'])->where('balance', '>', 0)->sum('balance');
-				$membershipUser['progress_now'] = $total_balance;
+				$membershipUser['progress_now_text'] = MyHelper::requestNumber($total_balance,'_CURRENCY');
+				$membershipUser['progress_now'] = (int) $total_balance;
 			}
 		}
 		unset($result['user_membership']['user']);
+		$membershipUser['progress_min_text']		=  MyHelper::requestNumber($result['user_membership']['min_value'],'_CURRENCY');
 		$membershipUser['progress_min']		= $result['user_membership']['min_value'];
 		if (isset($allMembership[$indexNow + 1])) {
+			$membershipUser['progress_max_text']	= MyHelper::requestNumber($result['all_membership'][$indexNow + 1]['min_value'],'_CURRENCY');
 			$membershipUser['progress_max']	= $result['all_membership'][$indexNow + 1]['min_value'];
 		} else {
+			$membershipUser['progress_max_text']	= MyHelper::requestNumber(1500000,'_CURRENCY');
 			$membershipUser['progress_max']	= 1500000;
 		}
 		$result['user_membership']['user']	= $membershipUser;
