@@ -4,7 +4,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'pr
     /* MASTER DEALS */
     Route::any('list', 'ApiDeals@listDeal');
     Route::any('me', 'ApiDeals@myDeal');
-    Route::any('detail', 'ApiDealsWebview@dealsDetail');   
+    Route::any('detail', 'ApiDealsWebview@dealsDetail');
 
     /* CLAIM */
     Route::group(['prefix' => 'claim'], function () {
@@ -47,6 +47,7 @@ Route::group(['middleware' => ['auth:api','web', 'scopes:apps'], 'prefix' => 'ap
 Route::group(['middleware' => ['auth:api', 'log_activities','user_agent', 'scopes:be'], 'prefix' => 'api/deals', 'namespace' => 'Modules\Deals\Http\Controllers'], function () {
     Route::any('be/list', ['middleware' => 'feature_control:72', 'uses' => 'ApiDeals@listDeal']);
     Route::any('be/detail', ['middleware' => 'feature_control:72', 'uses' => 'ApiDeals@detail']);
+    Route::post('list/active', 'ApiDeals@listActiveDeals');
     Route::post('create', ['middleware' => 'feature_control:74', 'uses' => 'ApiDeals@createReq']);
     Route::post('update', ['middleware' => 'feature_control:75', 'uses' => 'ApiDeals@updateReq']);
     Route::post('update-content', ['middleware' => 'feature_control:75', 'uses' => 'ApiDeals@updateContent']);
@@ -63,7 +64,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities','user_agent', 'scope
         Route::post('/confirm', 'ApiDealsPaymentManual@manualPaymentConfirm');
         Route::post('/filter/{type}', 'ApiDealsPaymentManual@transactionPaymentManualFilter');
     });
-																	
+
     /* DEAL VOUCHER */
     Route::group(['prefix' => 'voucher'], function () {
         Route::post('create', 'ApiDealsVoucher@createReq');
@@ -90,9 +91,9 @@ Route::group(['middleware' => ['auth:api', 'log_activities','user_agent', 'scope
     Route::post('update', 'ApiDealsSubscription@update');
     Route::get('delete/{id_deals}', 'ApiDealsSubscription@destroy');
 });
-	 
+
 Route::group(['middleware' => ['auth:api', 'log_activities','user_agent', 'scopes:be'], 'prefix' => 'api/hidden-deals', 'namespace' => 'Modules\Deals\Http\Controllers'], function () {
     /* MASTER DEALS */
     Route::post('create', 'ApiHiddenDeals@createReq');
-    Route::post('create/autoassign', 'ApiHiddenDeals@autoAssign');																						   
+    Route::post('create/autoassign', 'ApiHiddenDeals@autoAssign');
 });

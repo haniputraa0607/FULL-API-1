@@ -150,7 +150,7 @@ class ApiOnlineTransaction extends Controller
             DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
-                'messages'  => ['Outlet tutup']
+                'messages'  => ['Outlet is closed']
             ]);
         }
 
@@ -173,14 +173,14 @@ class ApiOnlineTransaction extends Controller
                             DB::rollBack();
                             return response()->json([
                                 'status'    => 'fail',
-                                'messages'  => ['Outlet tutup']
+                                'messages'  => ['Outlet is closed']
                             ]);
                         }
                     }else{
                         DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
-                            'messages'  => ['Outlet tutup']
+                            'messages'  => ['Outlet is closed']
                         ]);
                     }
                 }
@@ -190,7 +190,7 @@ class ApiOnlineTransaction extends Controller
                 DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
-                    'messages'  => ['Outlet tutup']
+                    'messages'  => ['Outlet is closed']
                 ]);
             }
 
@@ -202,7 +202,7 @@ class ApiOnlineTransaction extends Controller
                         DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
-                            'messages'  => ['Outlet tutup']
+                            'messages'  => ['Outlet is closed']
                         ]);
                     }
                 }
@@ -212,7 +212,7 @@ class ApiOnlineTransaction extends Controller
                     DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
-                        'messages'  => ['Outlet tutup']
+                        'messages'  => ['Outlet is closed']
                     ]);
                 }
             }
@@ -1618,7 +1618,7 @@ class ApiOnlineTransaction extends Controller
             // DB::rollBack();
             // return response()->json([
             //     'status'    => 'fail',
-            //     'messages'  => ['Outlet tutup']
+            //     'messages'  => ['Outlet is closed']
             // ]);
             $outlet_status = 0;
         }
@@ -1634,7 +1634,7 @@ class ApiOnlineTransaction extends Controller
                             // DB::rollBack();
                             // return response()->json([
                             //     'status'    => 'fail',
-                            //     'messages'  => ['Outlet tutup']
+                            //     'messages'  => ['Outlet is closed']
                             // ]);
                             $outlet_status = 0;
                         }
@@ -1642,7 +1642,7 @@ class ApiOnlineTransaction extends Controller
                         // DB::rollBack();
                         // return response()->json([
                         //     'status'    => 'fail',
-                        //     'messages'  => ['Outlet tutup']
+                        //     'messages'  => ['Outlet is closed']
                         // ]);
                         $outlet_status = 0;
                     }
@@ -1653,7 +1653,7 @@ class ApiOnlineTransaction extends Controller
                 // DB::rollBack();
                 // return response()->json([
                 //     'status'    => 'fail',
-                //     'messages'  => ['Outlet tutup']
+                //     'messages'  => ['Outlet is closed']
                 // ]);
                 $outlet_status = 0;
             }
@@ -1666,7 +1666,7 @@ class ApiOnlineTransaction extends Controller
                         // DB::rollBack();
                         // return response()->json([
                         //     'status'    => 'fail',
-                        //     'messages'  => ['Outlet tutup']
+                        //     'messages'  => ['Outlet is closed']
                         // ]);
                         $outlet_status = 0;
                     }
@@ -1677,7 +1677,7 @@ class ApiOnlineTransaction extends Controller
                     // DB::rollBack();
                     // return response()->json([
                     //     'status'    => 'fail',
-                    //     'messages'  => ['Outlet tutup']
+                    //     'messages'  => ['Outlet is closed']
                     // ]);
                     $outlet_status = 0;
                 }

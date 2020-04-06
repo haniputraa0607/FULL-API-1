@@ -856,7 +856,7 @@ class ApiAutoCrm extends Controller
 		if($request->autocrm_title){
 			$query = $query->where('autocrm_title',$request->autocrm_title)->first();
 		}else{
-			$query = $query->get()->toArray();			
+			$query = $query->get()->toArray();
 		}
 		return response()->json(MyHelper::checkGet($query));
 	}
