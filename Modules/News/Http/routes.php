@@ -12,12 +12,12 @@ Route::group(['prefix' => 'api/news', 'middleware' => ['log_activities', 'auth:a
         // Route::any('list/web', 'ApiNews@listNews');
         // Route::any('list', 'ApiNews@listNews');
         Route::any('webview', 'ApiNews@webview');
+        Route::any('/detail', 'ApiNewsWebview@detailNews');
 });
 
 
-Route::group(['prefix' => 'news', 'namespace' => 'Modules\News\Http\Controllers','middleware' => ['auth:api', 'user_agent', 'scopes:apps']], function()
+Route::group(['prefix' => 'news', 'namespace' => 'Modules\News\Http\Controllers','middleware' => ['auth:api', 'scopes:apps']], function()
 {
-    Route::any('/detail/{id}', 'ApiNewsWebview@detailNews');
     Route::any('/webview/{id}', 'ApiNewsWebview@detail');
 });
 
