@@ -916,13 +916,22 @@ class ApiDeals extends Controller
     /* LIST VOUCHER */
     function listVoucher(Request $request)
     {
-        $deals = DealsVoucher::select('*');
+
+    	if ($request->select) {
+        	$deals = DealsVoucher::select($request->select);
+    	}else{
+        	$deals = DealsVoucher::select('*');
+    	}
 
         if ($request->json('id_deals')) {
             $deals->where('id_deals', $request->json('id_deals'));
         }
 
-        $deals = $deals->paginate(10);
+        if ($request->is_all) {
+        	$deals = $deals->get();
+        }else{
+        	$deals = $deals->paginate(10);
+        }
 
         return response()->json(MyHelper::checkGet($deals));
     }

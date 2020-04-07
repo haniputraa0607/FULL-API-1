@@ -36,7 +36,8 @@ class ApiDealsVoucher extends Controller
 
         if (is_array($post['voucher_code'])) {
             $data = [];
-
+            $post['voucher_code'] = array_flip($post['voucher_code']);
+            $post['voucher_code'] = array_flip($post['voucher_code']);
             foreach ($post['voucher_code'] as $value) {
                 array_push($data, [
                     'id_deals'             => $post['id_deals'],
@@ -48,8 +49,16 @@ class ApiDealsVoucher extends Controller
             }
 
             if (!empty($data)) {
-                $save = DealsVoucher::insert($data);
 
+            	if (($post['add_type']??false) != 'add') 
+            	{
+                	$save = DealsVoucher::where('id_deals',$post['id_deals'])->delete();
+            	    $save = DealsVoucher::insert($data);
+            	}else{
+            		foreach ($data as $key => $value) {
+            	    	$save = DealsVoucher::updateOrCreate(['id_deals' =>$post['id_deals'], 'voucher_code' => $value['voucher_code']],$value);
+            		}
+            	}
                 if ($save) {
                     // UPDATE VOUCHER TOTAL DEALS TABLE
                     $updateDealsTable = $this->updateTotalVoucher($post);
@@ -84,12 +93,13 @@ class ApiDealsVoucher extends Controller
 
     /* UPDATE TOTAL VOUCHER DEALS TABLE */
     function updateTotalVoucher($post) {
-        $jumlahVoucher = Deal::where('id_deals', $post['id_deals'])->select('deals_total_voucher')->first();
+        $jumlahVoucher = dealsVoucher::where('id_deals', $post['id_deals'])->count();
 
         if (!empty($jumlahVoucher)) {
             // UPDATE DATA DEALS
+            
             $save = Deal::where('id_deals', $post['id_deals'])->update([
-                'deals_total_voucher' => $jumlahVoucher->deals_total_voucher + count($post['voucher_code'])
+                'deals_total_voucher' => $jumlahVoucher
             ]);
 
             if ($save) {
@@ -125,6 +135,7 @@ class ApiDealsVoucher extends Controller
         }
         else {
             $save = $this->create($request->json()->all());
+            return $save;
             return response()->json($save);
         }
     }
