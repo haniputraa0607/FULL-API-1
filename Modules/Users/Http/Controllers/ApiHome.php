@@ -71,7 +71,7 @@ class ApiHome extends Controller
     public function getBanner()
     {
         // banner
-        $banners = Banner::orderBy('position')->where('date_start', '>=', date('Y-m-d H:i:s'))->where('date_end', '<=', date('Y-m-d H:i:s'))->get();
+        $banners = Banner::orderBy('position')->where('banner_start', '>=', date('Y-m-d H:i:s'))->where('banner_end', '<=', date('Y-m-d H:i:s'))->get();
         $gofood = 0;
         $setting = Setting::where('key', 'banner-gofood')->first();
         if (!empty($setting)) {

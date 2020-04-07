@@ -155,7 +155,7 @@ class PromoCampaignTools{
 					// count item get promo qty
 					if (isset($item_get_promo[$value[$id]])) 
 					{
-						if ( ($item_get_promo[$value[$id]] + $value['qty']) >= $max_product) {
+						if ( ($item_get_promo[$value[$id]] + $value['qty']) >= $max_product && !empty($max_product)) {
 							$item_get_promo[$value[$id]] = $max_product;
 						}else{
 							$item_get_promo[$value[$id]] += $value['qty'];
@@ -163,7 +163,7 @@ class PromoCampaignTools{
 					}
 					else
 					{
-						if ($value['qty'] >= $max_product) {
+						if ($value['qty'] >= $max_product  && !empty($max_product)) {
 							$item_get_promo[$value[$id]] = $max_product;
 						}else{
 							$item_get_promo[$value[$id]] = $value['qty'];
@@ -173,7 +173,7 @@ class PromoCampaignTools{
 					// count item group get promo qty
 					if (isset($item_group_get_promo[$value['id_product_group']])) 
 					{
-						if ( ($item_group_get_promo[$value['id_product_group']] + $value['qty']) >= $max_product) {
+						if ( ($item_group_get_promo[$value['id_product_group']] + $value['qty']) >= $max_product  && !empty($max_product)) {
 							$item_group_get_promo[$value['id_product_group']] = $max_product;
 						}else{
 							$item_group_get_promo[$value['id_product_group']] += $value['qty'];
@@ -181,7 +181,7 @@ class PromoCampaignTools{
 					}
 					else
 					{
-						if ($value['qty'] >= $max_product) {
+						if ($value['qty'] >= $max_product && !empty($max_product)) {
 							$item_group_get_promo[$value['id_product_group']] = $max_product;
 						}else{
 							$item_group_get_promo[$value['id_product_group']] = $value['qty'];
