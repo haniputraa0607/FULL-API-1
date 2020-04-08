@@ -33,34 +33,48 @@ class ApiOutletWebview extends Controller
             return view('error', ['msg' => 'Unauthenticated']);
         }
         
-        $list = MyHelper::postCURLWithBearer('api/outlet/list?log_save=0', ['id_outlet' => $request->id_outlet], $bearer);
-
+        $list = MyHelper::postCURLWithBearer('api/outlet/list?log_save=0', [
+            'id_outlet' => $request->id_outlet,
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude
+        ], $bearer);
+        
         unset($list['result'][0]['product_prices']);
 
         if ($list['status'] == 'success') {
             $data = $list['result'][0];
             
-            $result = [
-                'outlet_name' => $data['outlet_name'],
-                'outlet_phone' => $data['outlet_phone'],
-                'outlet_address' => $data['outlet_address']
-            ];
+            // $result = [
+            //     'outlet_name' => $data['outlet_name'],
+            //     'outlet_phone' => $data['outlet_phone'],
+            //     'outlet_address' => $data['outlet_address']
+            // ];
 
             foreach ($data['outlet_schedules'] as $key => $value) {
                 if (date('l') == $value['day']) {
-                    $result['outlet_schedules'][$key] = [
+                    $data['outlet_schedules'][$key] = [
                         'is_today'  => 1,
                         'day'       => substr($value['day'], 0, 3),
                         'time'      => $value['open'] . ' - ' . $value['close']
                     ];
                 } else {
-                    $result['outlet_schedules'][$key] = [
+                    $data['outlet_schedules'][$key] = [
                         'day'       => substr($value['day'], 0, 3),
                         'time'      => $value['open'] . ' - ' . $value['close']
                     ];
                 }
             }
-            return response()->json(['status' => 'success', 'result' => $result]);
+            unset($data['brands']);
+            unset($data['user_outlets']);
+            unset($data['holidays']);
+            unset($data['today']);
+            unset($data['url']);
+            unset($data['detail']);
+            unset($data['created_at']);
+            unset($data['updated_at']);
+            unset($data['city']);
+            unset($data['outlet_photos']);
+            return response()->json(['status' => 'success', 'result' => $data]);
         } else {
             return response()->json(['status' => 'fail', 'messages' => 'fail to load data']);
         }
