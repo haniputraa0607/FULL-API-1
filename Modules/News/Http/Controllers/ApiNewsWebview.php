@@ -65,7 +65,6 @@ class ApiNewsWebview extends Controller
         $totalProductNews = 0;
         
         if ($news) {
-            // return $news['result'];
             $news['news_image_dalam'] = env('S3_URL_API').$news['news_image_dalam'];
             $news['news_video'] = (is_null($news['news_video'])) ? [] : explode(';', $news['news_video']);
             $totalOutletNews = count($news['news_outlet']);
@@ -90,6 +89,7 @@ class ApiNewsWebview extends Controller
 
             $news['news_post_date'] = date('l, d F Y  H:i', strtotime($news['news_post_date']));
             $news['news_event_date'] = date('d', strtotime($news['news_event_date_start'])) . ' - ' . date('d F Y', strtotime($news['news_event_date_end']));
+            $news['news_event_hours'] = date('H:i', strtotime($news['news_event_time_start'])) . ' - ' . date('H:i', strtotime($news['news_event_time_end']));
             unset($news['news_publish_date']);
             unset($news['news_expired_date']);
             unset($news['news_event_date_start']);
