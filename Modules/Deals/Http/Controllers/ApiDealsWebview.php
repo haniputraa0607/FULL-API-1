@@ -26,80 +26,99 @@ class ApiDealsWebview extends Controller
         $post['deals_type'] = "Deals";
         $post['web'] = 1;
         
-        $deals = MyHelper::postCURLWithBearer('api/deals/list', $post, $request->header('Authorization'));
+        $deals = Deal::with('outlets.city', 'deals_content.deals_content_details')->where('id_deals', $request->id_deals)->get()->toArray()[0];
+        
+        $deals['outlet_by_city'] = [];
+
+        if (!empty($deals['outlets'])) {
+            $kota = array_column($deals['outlets'], 'city');
+            $kota = array_values(array_map("unserialize", array_unique(array_map("serialize", $kota))));
+
+            foreach ($kota as $k => $v) {
+                if ($v) {
+                    $kota[$k]['outlet'] = [];
+                    foreach ($deals['outlets'] as $outlet) {
+                        if ($v['id_city'] == $outlet['id_city']) {
+                            unset($outlet['pivot']);
+                            unset($outlet['city']);
+
+                            array_push($kota[$k]['outlet'], $outlet);
+                        }
+                    }
+                } else {
+                    unset($kota[$k]);
+                }
+            }
+
+            $deals['outlet_by_city'] = $kota;
+        }
+        
+        unset($deals['outlets']);
         $point = Auth::user()->balance;
-        // dd($user);
-        // $point = User::where
-
-        if($deals['status'] == 'success'){
-            $deals['result'][0]['deals_image'] = env('S3_URL_API') . $deals['result'][0]['deals_image'];
-            $response = [
-                'status' => 'success',
-                'result' => 
-                    $deals['result'][0]
-            ];
-            $response['result']['button_text'] = 'BELI';
-            
-            $result = [
-                'id_deals'                      => $deals['result'][0]['id_deals'],
-                'deals_type'                    => $deals['result'][0]['deals_type'],
-                'deals_status'                  => $deals['result'][0]['deals_status'],
-                'deals_voucher_type'            => $deals['result'][0]['deals_voucher_price_type'],
-                'deals_voucher_use_point'       => (($deals['result'][0]['deals_voucher_price_cash'] - $point) <= 0) ? MyHelper::requestNumber(0,'_POINT') : MyHelper::requestNumber($deals['result'][0]['deals_voucher_price_cash'] - $point,'_POINT'),
-                'deals_voucher_point_now'       => MyHelper::requestNumber($point,'_POINT'),
-                'deals_voucher_avaliable_point' => (($point - $deals['result'][0]['deals_voucher_price_cash']) <= 0) ? MyHelper::requestNumber(0,'_POINT') : MyHelper::requestNumber($point - $deals['result'][0]['deals_voucher_price_cash'],'_POINT'),
-                'deals_voucher_point_success'   => (($deals['result'][0]['deals_voucher_price_cash'] - $point) <= 0) ? 'enable' : 'disable',
-                'deals_image'                   => $deals['result'][0]['deals_image'],
-                'deals_start'                   => $deals['result'][0]['deals_start'],
-                'deals_end'                     => $deals['result'][0]['deals_end'],
-                'deals_voucher'                 => ($deals['result'][0]['deals_voucher_type'] == 'Unlimited') ? 'Unlimited' : $deals['result'][0]['deals_total_voucher'] - $deals['result'][0]['deals_total_claimed'] . '/' . $deals['result'][0]['deals_total_voucher'],
-                'deals_title'                   => $deals['result'][0]['deals_title'],
-                'deals_second_title'            => $deals['result'][0]['deals_second_title'],
-                'deals_description'             => $deals['result'][0]['deals_description'],
-                'deals_button'                  => 'Claim',
-                'time_server'                   => $deals['result'][0]['time_server'],
-                'time_to_end'                   => strtotime($deals['result'][0]['deals_end']) - time(),
-                'button_text'                   => $deals['result'][0]['button_text'],
-                'payment_message'               => $deals['result'][0]['payment_message'],
-                'payment_success_message'       => $deals['result'][0]['payment_success_message']
-            ];
-            if ($deals['result'][0]['deals_voucher_price_cash'] != "") {
-                $result['deals_price'] = MyHelper::requestNumber($deals['result'][0]['deals_voucher_price_cash'], '_CURRENCY');
-            } elseif ($deals['result'][0]['deals_voucher_price_point']) {
-                $result['deals_price'] = MyHelper::requestNumber($deals['result'][0]['deals_voucher_price_point'],'_POINT') . " points";
-            } else {
-                $result['deals_price'] = "Free";
-            }
-            
-            $i = 0;
-            foreach ($deals['result'][0]['deals_content'] as $keyContent => $valueContent) {
-                if (!empty($valueContent['deals_content_details'])) {
-                    $result['deals_content'][$keyContent]['title'] = $valueContent['title'];
-                    foreach ($valueContent['deals_content_details'] as $key => $value) {
-                        $content[$key] = '<ol style="line-height: 10px;">' . $value['content'] . '</ol>';
-                    }
-                    $result['deals_content'][$keyContent]['detail'] = '<ul>'.implode('', $content).'</ul>';
-                    $i++;
+        
+        $deals['deals_image'] = env('S3_URL_API') . $deals['deals_image'];
+        $response = [
+            'status' => 'success',
+            'result' => 
+                $deals
+        ];
+        $response['button_text'] = 'BELI';
+        
+        $result = [
+            'id_deals'                      => $deals['id_deals'],
+            'deals_type'                    => $deals['deals_type'],
+            'deals_status'                  => $deals['deals_status'],
+            'deals_voucher_type'            => $deals['deals_voucher_price_type'],
+            'deals_voucher_use_point'       => (($deals['deals_voucher_price_cash'] - $point) <= 0) ? MyHelper::requestNumber(0,'_POINT') : MyHelper::requestNumber($deals['deals_voucher_price_cash'] - $point,'_POINT'),
+            'deals_voucher_point_now'       => MyHelper::requestNumber($point,'_POINT'),
+            'deals_voucher_avaliable_point' => (($point - $deals['deals_voucher_price_cash']) <= 0) ? MyHelper::requestNumber(0,'_POINT') : MyHelper::requestNumber($point - $deals['deals_voucher_price_cash'],'_POINT'),
+            'deals_voucher_point_success'   => (($deals['deals_voucher_price_cash'] - $point) <= 0) ? 'enable' : 'disable',
+            'deals_image'                   => $deals['deals_image'],
+            'deals_start'                   => $deals['deals_start'],
+            'deals_end'                     => $deals['deals_end'],
+            'deals_voucher'                 => ($deals['deals_voucher_type'] == 'Unlimited') ? 'Unlimited' : $deals['deals_total_voucher'] - $deals['deals_total_claimed'] . '/' . $deals['deals_total_voucher'],
+            'deals_title'                   => $deals['deals_title'],
+            'deals_second_title'            => $deals['deals_second_title'],
+            'deals_description'             => $deals['deals_description'],
+            'deals_button'                  => 'Claim',
+            'time_server'                   => date('Y-m-d H:i:s'),
+            'time_to_end'                   => strtotime($deals['deals_end']) - time(),
+            'button_text'                   => 'Get',
+            'payment_message'               => 'Are you sure want to claim Free Voucher Offline x Online Limited voucher ?',
+            'payment_success_message'       => 'Claim Voucher Success ! Do you want to use it now ?'
+        ];
+        if ($deals['deals_voucher_price_cash'] != "") {
+            $result['deals_price'] = MyHelper::requestNumber($deals['deals_voucher_price_cash'], '_CURRENCY');
+        } elseif ($deals['deals_voucher_price_point']) {
+            $result['deals_price'] = MyHelper::requestNumber($deals['deals_voucher_price_point'],'_POINT') . " points";
+        } else {
+            $result['deals_price'] = "Free";
+        }
+        
+        $i = 0;
+        foreach ($deals['deals_content'] as $keyContent => $valueContent) {
+            if (!empty($valueContent['deals_content_details'])) {
+                $result['deals_content'][$keyContent]['title'] = $valueContent['title'];
+                foreach ($valueContent['deals_content_details'] as $key => $value) {
+                    // $result['deals_content'][$keyContent]['detail'][$key] = $value['content'];
+                    $content[$key] = $value['content'];
                 }
+                $result['deals_content'][$keyContent]['detail'] = implode('', $content);
+                $i++;
             }
+        }
 
-            $result['deals_content'][$i]['title'] = 'Available at';
-            foreach ($deals['result'][0]['outlet_by_city'] as $keyCity => $valueCity) {
-                if (isset($valueCity['city_name'])) {
-                    foreach ($valueCity['outlet'] as $keyOutlet => $valueOutlet) {
-                        $outlet[$keyOutlet] = '<li style="line-height: 12px;">' . $valueOutlet['outlet_name'] . '</li>';
-                    }
-                    $city[$keyCity] = strtoupper($valueCity['city_name']) . '<br>' . implode('', $outlet);
-                    $result['deals_content'][$i]['detail'] = '<ul>'.implode('', $city).'</ul>';
+        $result['deals_content'][$i]['title'] = 'Available at';
+        $result['deals_content'][$i]['is_outlet'] = 1;
+        foreach ($deals['outlet_by_city'] as $keyCity => $valueCity) {
+            if (isset($valueCity['city_name'])) {
+                foreach ($valueCity['outlet'] as $keyOutlet => $valueOutlet) {
+                    // $result['deals_content'][$i]['detail'][$keyOutlet] = $valueOutlet['outlet_name'];
+                    $valTheOutlet[$keyOutlet] = '<li style="line-height: 12px;">' . $valueOutlet['outlet_name'] . '</li>';
                 }
+                $city[$keyCity] = strtoupper($valueCity['city_name']) . '<br>' . implode('', $valTheOutlet);
+                $result['deals_content'][$i]['detail'] = '<ul>'.implode('', $city).'</ul>';
             }
-        }else{
-            $result = [
-                'status' => 'fail',
-                'messages' => [
-                    'Deals Not Found'
-                ]
-            ];
         }
 
         return response()->json(MyHelper::checkGet($result));
@@ -127,7 +146,7 @@ class ApiDealsWebview extends Controller
                 'messages' => ['Deals is not found']
             ];
         } else {
-            $data['deals'] = $action['result'];
+            $data['deals'] = $action;
         }
         
         usort($data['deals'][0]['outlet_by_city'], function($a, $b) {
@@ -161,7 +180,7 @@ class ApiDealsWebview extends Controller
                 'messages' => ['Deals is not found']
             ];
         } else {
-            $data['deals'] = $action['result'];
+            $data['deals'] = $action;
         }
 
         return view('deals::webview.deals.deals_claim', $data);
@@ -185,7 +204,7 @@ class ApiDealsWebview extends Controller
                 'messages' => ['Deals is not found']
             ];
         } else {
-            $data['deals'] = $action['result'];
+            $data['deals'] = $action;
         }
 
         $result = [
@@ -197,14 +216,15 @@ class ApiDealsWebview extends Controller
             'voucher_expired_at'        => 'Valid until ' . date('d F Y', strtotime($data['deals']['voucher_expired_at'])),
             'claimed_at'                => date('d M Y H:i', strtotime($data['deals']['claimed_at'])),
             'transaction_id'            => strtotime($data['deals']['claimed_at']).$data['deals']['id_deals_user'],
+            'balance'                   => number_format($data['deals']['balance_nominal'],0,",",".").' points'
         ];
 
         if ($data['deals']['voucher_price_point'] != null) {
-            $result['payment'] = number_format($data['deals']['voucher_price_point'],0,",",".").' points';
+            $result['price'] = number_format($data['deals']['voucher_price_point'],0,",",".").' points';
         } elseif ($data['deals']['voucher_price_cash'] != null) {
-            $result['payment'] = number_format($data['deals']['voucher_price_cash'],0,",",".");
+            $result['price'] = number_format($data['deals']['voucher_price_cash'],0,",",".");
         } else {
-            $result['payment'] = 'Free';
+            $result['price'] = 'Free';
         }
 
         return response()->json(MyHelper::checkGet($result));
