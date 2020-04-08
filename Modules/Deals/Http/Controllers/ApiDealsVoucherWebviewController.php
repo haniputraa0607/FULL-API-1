@@ -167,9 +167,9 @@ class ApiDealsVoucherWebviewController extends Controller
         foreach ($data['deals_voucher']['deal']['outlet_by_city'] as $keyCity => $valueCity) {
             if (isset($valueCity['city_name'])) {
                 foreach($valueCity['outlet'] as $keyOutlet => $valueOutlet) {
-                    $outlet[$keyOutlet] = '<li style="line-height: 12px;">' . $valueOutlet['outlet_name'] . '</li>'; 
+                    $implode_outlet[$keyOutlet] = '<li style="line-height: 12px;">' . $valueOutlet['outlet_name'] . '</li>'; 
                 }
-                $city[$keyCity] = strtoupper($valueCity['city_name']) . '<br>' . implode('', $outlet);
+                $city[$keyCity] = strtoupper($valueCity['city_name']) . '<br>' . implode('', $implode_outlet);
                 $result['deals_content'][$i]['detail'] = '<ul>'.implode('', $city).'</ul>';
             }
         }
