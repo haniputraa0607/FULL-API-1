@@ -109,8 +109,8 @@ class IPay88
 				'UserEmail' => $trx->user->email,
 				'UserContact' => $trx->user->phone,
 				'Remark' => '',
-				'ResponseURL' => url('api/ipay88/detail/trx'),
-				'BackendURL' => url('api/ipay88/notif/trx'),
+				'ResponseURL' => secure_url('api/ipay88/detail/trx'),
+				'BackendURL' => secure_url('api/ipay88/notif/trx'),
 				'xfield1' => ''
 			];
 		}elseif($type == 'deals'){
