@@ -694,7 +694,7 @@ class ApiOnlineTransaction extends Controller
             if($shippingGoSend === null){
                 return [
                     'status' => 'fail',
-                    'messages' => array_column($shippingGoSendx[GoSend::getShipmentMethod()]['errors']??[],'message')?:['Gagal menghitung ongkos kirim']
+                    'messagse' => array_column($shippingGoSendx[GoSend::getShipmentMethod()]['errors']??[],'message')?:['Gagal menghitung ongkos kirim']
                 ];
             }
             //cek free delivery
@@ -726,7 +726,7 @@ class ApiOnlineTransaction extends Controller
             'transaction_service'         => $post['service'],
             'transaction_discount'        => $post['discount'],
             'transaction_tax'             => $post['tax'],
-            'transaction_grandtotal'      => $post['grandTotal'],
+            'transaction_grandtotal'      => $post['grandTotal'] + $shippingGoSend,
             'transaction_point_earned'    => $post['point'],
             'transaction_cashback_earned' => MyHelper::requestNumber($post['cashback'],'point'),
             'trasaction_payment_type'     => $post['payment_type'],
