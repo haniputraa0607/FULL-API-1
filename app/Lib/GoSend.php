@@ -2,12 +2,18 @@
 
 namespace App\Lib;
 
+use App\Http\Models\Setting;
+use App\Http\Models\LogApiGosend;
+
 class GoSend {
 
 	public function __construct() {
 		date_default_timezone_set('Asia/Jakarta');
 	}
 	
+	public static function getShipmentMethod() {
+		return Setting::select('value')->where('key','gosend_use_sameday')->pluck('value')->first()?'SameDay':'Instant';
+	}
 	
 	static function booking($origin, $destination, $item, $storeOrderId="", $insurance=null) {
 		if(env('GO_SEND_URL') == '' || env('GO_SEND_CLIENT_ID') == '' || env('GO_SEND_PASS_KEY') == ''){
@@ -34,6 +40,7 @@ class GoSend {
 		$post['routes'][0]['originContactName'] = $origin['name'];
 		$post['routes'][0]['originContactPhone'] = $origin['phone'];
 		$post['routes'][0]['originLatLong'] = $origin['latitude'].','.$origin['longitude'];
+		$post['routes'][0]['originAddress'] = $origin['address'];
 
 		$post['routes'][0]['destinationName'] = ""; 
 		$post['routes'][0]['destinationNote'] = "";
@@ -42,10 +49,24 @@ class GoSend {
 		$post['routes'][0]['destinationLatLong'] = $destination['latitude'].','.$destination['longitude'];
 		$post['routes'][0]['destinationAddress'] = $destination['address'].', Note : '.$destination['note'];
 
-		$post['item'] = $item;
-		$post['storeOrderId'] = $storeOrderId;
-		$post['insuranceDetails'] = $insurance;
-        $token = MyHelper::post($url, null, $post, 0, $header);
+		$post['routes'][0]['item'] = $item;
+
+		$post['routes'][0]['storeOrderId'] = $storeOrderId;
+		$post['routes'][0]['insuranceDetails'] = $insurance;
+        $token = MyHelper::post($url, null, $post, 0, $header,$status_code);
+        try {
+        	LogApiGosend::create([
+        		'type' => 'booking',
+		    	'id_reference' => $storeOrderId,
+		    	'request_url' => $url,
+		    	'request_method' => 'POST',
+		        'request_parameter' => json_encode($post),
+		    	'response_body' => json_encode($token),
+		    	'response_code' => $status_code
+        	]);
+        } catch (\Exception $e) {
+        	\Illuminate\Support\Facades\Log::error('Failed write log to LogApiGosend: '.$e->getMessage());
+        }
 
         return $token;
 	}

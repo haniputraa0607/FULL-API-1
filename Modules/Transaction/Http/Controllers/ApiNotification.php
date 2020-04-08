@@ -130,13 +130,13 @@ class ApiNotification extends Controller {
                         $settingTime = MyHelper::setting('processing_time', 'value', 0);
                         $updatePickup = TransactionPickup::where('id_transaction', $newTrx['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s', strtotime('+ '.$settingTime.'minutes')?:time())]);
                     }
-
-                    if ($newTrx['detail']['pickup_by'] == 'GO-SEND') {
-                        $booking = $this->bookGoSend($newTrx);
-                        if (isset($booking['status'])) {
-                            return response()->json($booking);
-                        }
-                    }
+                    // book gosend after outlet receive order only
+                    // if ($newTrx['detail']['pickup_by'] == 'GO-SEND') {
+                    //     $booking = $this->bookGoSend($newTrx);
+                    //     if (isset($booking['status'])) {
+                    //         return response()->json($booking);
+                    //     }
+                    // }
                 } else {
                     DB::rollBack();
                     return response()->json([
