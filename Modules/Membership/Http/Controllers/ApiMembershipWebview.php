@@ -45,16 +45,6 @@ class ApiMembershipWebview extends Controller
 		$result['user_membership']['membership_background_card_pattern'] = (is_null($result['user_membership']->membership->membership_background_card_pattern)) ? null : env('S3_URL_API') . $result['user_membership']->membership->membership_background_card_pattern;
 		$result['user_membership']['membership_text_color'] = $result['user_membership']->membership->membership_text_color;
 
-		unset($result['user_membership']['membership']);
-		unset($result['user_membership']['min_total_count']);
-		unset($result['user_membership']['min_total_value']);
-		unset($result['user_membership']['min_total_balance']);
-		unset($result['user_membership']['retain_min_total_value']);
-		unset($result['user_membership']['retain_min_total_count']);
-		unset($result['user_membership']['retain_min_total_balance']);
-		unset($result['user_membership']['created_at']);
-		unset($result['user_membership']['updated_at']);
-
 		$membershipUser['name'] = $result['user_membership']->user->name;
 		$allMembership = Membership::with('membership_promo_id')->orderBy('min_total_value','asc')->orderBy('min_total_count', 'asc')->orderBy('min_total_balance', 'asc')->get()->toArray();
 		$nextMembershipName = "";
@@ -65,7 +55,13 @@ class ApiMembershipWebview extends Controller
 			if($result['user_membership']){
 				$result['user_membership']['membership_image'] = env('S3_URL_API') . $result['user_membership']['membership_image'];
 				foreach($allMembership as $index => $dataMembership){
-					$allMembership[$index]['benefit_text']=json_decode($dataMembership['benefit_text'],true)[0]??[];
+					$benefit=json_decode($dataMembership['benefit_text'],true)??[];
+					if (!empty($benefit)) {
+						foreach ($benefit as $key => $value) {
+							$benefit[$key] = $key + 1 . '. ' . $value . '<br>';
+						}
+					}
+					$allMembership[$index]['benefit_text']=implode('', $benefit);
 					switch ($dataMembership['membership_type']) {
 						case 'count':
 							$allMembership[$index]['min_value'] 		= $dataMembership['min_total_count'];
@@ -153,13 +149,15 @@ class ApiMembershipWebview extends Controller
 				$membershipUser['progress_now_text'] = MyHelper::requestNumber($subtotal_transaction,'_CURRENCY');
 				$membershipUser['progress_now'] = (int) $subtotal_transaction;
 				$membershipUser['progress_active'] = ($subtotal_transaction / $nextTrx) * 100;
-				// $result['next_trx']		= $subtotal_transaction - $nextTrx;
+				$membershipUser['next_trx']		= $subtotal_transaction - $nextTrx;
+				$membershipUser['next_trx_text']	= MyHelper::requestNumber($subtotal_transaction - $nextTrx,'_CURRENCY');
 			}elseif($nextTrxType == 'balance'){
 				$total_balance = LogBalance::where('id_user', $post['id_user'])->whereNotIn('source', [ 'Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point'])->where('balance', '>', 0)->sum('balance');
 				$membershipUser['progress_now_text'] = MyHelper::requestNumber($total_balance,'_CURRENCY');
 				$membershipUser['progress_now'] = (int) $total_balance;
 				$membershipUser['progress_active'] = ($total_balance / $nextTrx) * 100;
-				// $result['next_trx']		= $nextTrx - $total_balance;
+				$membershipUser['next_trx']		= $nextTrx - $total_balance;
+				$membershipUser['next_trx_text']	= MyHelper::requestNumber($nextTrx - $total_balance,'_CURRENCY');
 			}
 		}
 		$result['all_membership'] = $allMembership;
@@ -193,6 +191,16 @@ class ApiMembershipWebview extends Controller
 		}
 		$result['user_membership']['user']	= $membershipUser;
 
+		unset($result['user_membership']['membership']);
+		unset($result['user_membership']['min_total_count']);
+		unset($result['user_membership']['min_total_value']);
+		unset($result['user_membership']['min_total_balance']);
+		unset($result['user_membership']['retain_min_total_value']);
+		unset($result['user_membership']['retain_min_total_count']);
+		unset($result['user_membership']['retain_min_total_balance']);
+		unset($result['user_membership']['created_at']);
+		unset($result['user_membership']['updated_at']);
+		
 		return response()->json(MyHelper::checkGet($result));
 	}
 	// public function detail(Request $request)

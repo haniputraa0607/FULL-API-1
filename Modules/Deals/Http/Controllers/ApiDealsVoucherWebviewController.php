@@ -87,7 +87,7 @@ class ApiDealsVoucherWebviewController extends Controller
         // $action = MyHelper::postCURLWithBearer('api/voucher/me?log_save=0', $post, $bearer);
         $voucher = DealsUser::with(['deals_voucher', 'deals_voucher.deal', 'deals_voucher.deal.deals_content', 'deals_voucher.deal.deals_content.deals_content_details', 'deals_voucher.deal.outlets.city', 'deals_voucher.deal.outlets.city'])
         ->where('id_deals_user', $request->id_deals_user)->get()->toArray()[0];
-
+        
         if (!empty($voucher['deals_voucher']['deal']['outlets'])) {
             $kota = array_column($voucher['deals_voucher']['deal']['outlets'], 'city');
             $kota = array_values(array_map("unserialize", array_unique(array_map("serialize", $kota))));
@@ -130,7 +130,10 @@ class ApiDealsVoucherWebviewController extends Controller
         $result = [
             'deals_image'           => $data['deals_voucher']['deal']['deals_image'],
             'deals_title'           => $data['deals_voucher']['deal']['deals_title'],
+            'deals_description'     => $data['deals_voucher']['deal']['deals_description'],
             'id_deals_voucher'      => $data['id_deals_voucher'],
+            'voucher_hash'          => $data['voucher_hash'],
+            'voucher_hash_code'     => $data['voucher_hash_code'],
             'id_deals_user'         => $data['id_deals_user'],
             'voucher_expired'       => date('d F Y', strtotime($data['voucher_expired_at'])),
             'is_used'               => $data['is_used'],
