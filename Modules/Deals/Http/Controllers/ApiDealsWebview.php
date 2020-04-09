@@ -7,6 +7,7 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 
 use App\Http\Models\Deal;
+use App\Http\Models\DealsUser;
 use App\Http\Models\User;
 use App\Lib\MyHelper;
 use Illuminate\Support\Facades\Auth;
@@ -196,33 +197,24 @@ class ApiDealsWebview extends Controller
 
         $post['id_deals_user'] = $request->id_deals_user;
 
-        $action = MyHelper::postCURLWithBearer('api/deals/me', $post, $bearer);
-
-        if ($action['status'] != 'success') {
-            return [
-                'status' => 'fail',
-                'messages' => ['Deals is not found']
-            ];
-        } else {
-            $data['deals'] = $action;
-        }
-
+        $dealsUser = DealsUser::with('dealVoucher.deals')->where('id_deals_user', $request->id_deals_user)->get()->toArray()[0];
+        
         $result = [
-            'id_deals_user'             => $data['deals']['id_deals_user'],
+            'id_deals_user'             => $dealsUser['id_deals_user'],
             'header_title'              => 'Horayy!',
             'header_sub_title'          => 'Thank you for claiming',
-            'deals_title'               => $data['deals']['deals_voucher']['deal']['deals_title'],
-            'deals_image'               => env('S3_URL_API') . $data['deals']['deals_voucher']['deal']['deals_image'],
-            'voucher_expired_at'        => 'Valid until ' . date('d F Y', strtotime($data['deals']['voucher_expired_at'])),
-            'claimed_at'                => date('d M Y H:i', strtotime($data['deals']['claimed_at'])),
-            'transaction_id'            => strtotime($data['deals']['claimed_at']).$data['deals']['id_deals_user'],
-            'balance'                   => number_format($data['deals']['balance_nominal'],0,",",".").' points'
+            'deals_title'               => $dealsUser['deal_voucher']['deals']['deals_title'],
+            'deals_image'               => $dealsUser['deal_voucher']['deals']['url_deals_image'],
+            'voucher_expired_at'        => 'Valid until ' . date('d F Y', strtotime($dealsUser['voucher_expired_at'])),
+            'claimed_at'                => date('d M Y H:i', strtotime($dealsUser['claimed_at'])),
+            'transaction_id'            => strtotime($dealsUser['claimed_at']).$dealsUser['id_deals_user'],
+            'balance'                   => number_format($dealsUser['balance_nominal'],0,",",".").' points'
         ];
 
-        if ($data['deals']['voucher_price_point'] != null) {
-            $result['price'] = number_format($data['deals']['voucher_price_point'],0,",",".").' points';
-        } elseif ($data['deals']['voucher_price_cash'] != null) {
-            $result['price'] = number_format($data['deals']['voucher_price_cash'],0,",",".");
+        if ($dealsUser['voucher_price_point'] != null) {
+            $result['price'] = number_format($dealsUser['voucher_price_point'],0,",",".").' points';
+        } elseif ($dealsUser['voucher_price_cash'] != null) {
+            $result['price'] = number_format($dealsUser['voucher_price_cash'],0,",",".");
         } else {
             $result['price'] = 'Free';
         }

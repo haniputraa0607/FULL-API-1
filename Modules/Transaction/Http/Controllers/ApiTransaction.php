@@ -1543,13 +1543,13 @@ class ApiTransaction extends Controller
                     }
                     $list['payment'] = $payment;
                     break;
-                case 'Ovo':
+                case 'OVO':
                     $multiPayment = TransactionMultiplePayment::where('id_transaction', $list['id_transaction'])->get();
                     $payment = [];
                     foreach($multiPayment as $dataKey => $dataPay){
-                        if($dataPay['type'] == 'Ovo'){
+                        if($dataPay['type'] == 'OVO'){
                             $payment[$dataKey] = TransactionPaymentOvo::find($dataPay['id_payment']);
-                            $payment[$dataKey]['name']    = 'Ovo';
+                            $payment[$dataKey]['name']    = 'OVO';
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey] = $dataPay;
@@ -1823,10 +1823,10 @@ class ApiTransaction extends Controller
                         'amount'    =>  MyHelper::requestNumber($payment->gross_amount,'_CURRENCY')
                     ];
                     break;
-                case 'Ovo':
+                case 'OVO':
                     $payment = DealsPaymentOvo::where('id_deals_user', $id)->first();
                     $result['payment'][] = [
-                        'name'      => 'Ovo',
+                        'name'      => 'OVO',
                         'amount'    =>  MyHelper::requestNumber($payment->amount,'_CURRENCY')
                     ];
                     break;
