@@ -1543,11 +1543,11 @@ class ApiTransaction extends Controller
                     }
                     $list['payment'] = $payment;
                     break;
-                case 'OVO':
+                case 'Ovo':
                     $multiPayment = TransactionMultiplePayment::where('id_transaction', $list['id_transaction'])->get();
                     $payment = [];
                     foreach($multiPayment as $dataKey => $dataPay){
-                        if($dataPay['type'] == 'OVO'){
+                        if($dataPay['type'] == 'Ovo'){
                             $payment[$dataKey] = TransactionPaymentOvo::find($dataPay['id_payment']);
                             $payment[$dataKey]['name']    = 'OVO';
                         }else{
