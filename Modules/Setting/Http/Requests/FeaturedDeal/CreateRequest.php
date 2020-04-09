@@ -12,10 +12,10 @@ class CreateRequest extends FormRequest
      * @return array
      */
     public function rules()
-    {        
+    {
         return [
             'id_deals'=>'required|exists:deals,id_deals',
-            'start_date'=>'required|date|after_or_equal:'.date('Y-m-d H:i:s'),
+            'start_date'=>'required|date',
             'end_date'=>'required|date|after_or_equal:start_date',
         ];
     }
