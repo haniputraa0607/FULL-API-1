@@ -19,6 +19,7 @@ use App\Http\Models\DealsUser;
 use App\Http\Models\DealsVoucher;
 use App\Http\Models\SpinTheWheel;
 use App\Http\Models\Setting;
+use Modules\Brand\Entities\Brand;
 use App\Http\Models\DealsPromotionTemplate;
 
 use Modules\Deals\Entities\DealsProductDiscount;
@@ -258,6 +259,17 @@ class ApiDeals extends Controller
         if (isset($data['error'])) {
             unset($data['error']);
             return response()->json($data);
+        }
+
+        //for 1 brand
+        if(!isset($data['id_brand'])){
+            $configBrand = Configs::where('config_name', 'use brand')->select('is_active')->first();
+            if(isset($configBrand['is_active']) && $configBrand['is_active'] != '1'){
+                $brand = Brand::select('id_brand')->first();
+                if(isset($brand['id_brand'])){
+                    $data['id_brand'] = $brand['id_brand'];
+                }
+            }
         }
 
         if ($data['deals_type'] == 'Promotion') {
