@@ -130,8 +130,9 @@ class ApiDealsVoucherWebviewController extends Controller
         if(!empty($voucher['redeemed_at'])){
             if(!empty($voucher['used_at'])){
                 $voucher['status'] = 'offline used';
+            }else{
+                $voucher['status'] = 'offline redeem';
             }
-            $voucher['status'] = 'offline redeem';
         }else{
             if($voucher['is_used'] == '1'){
                 $voucher['status'] = 'online used';
