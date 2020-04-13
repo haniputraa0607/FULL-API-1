@@ -47,7 +47,7 @@ class ApiDealsVoucherWebviewController extends Controller
         $post['used'] = 0;
 
         $action = MyHelper::postCURLWithBearer('api/voucher/me?log_save=0', $post, $bearer);
-        
+
         if ($action['status'] != 'success') {
             return [
                 'status' => 'fail',
@@ -72,7 +72,7 @@ class ApiDealsVoucherWebviewController extends Controller
         return view('deals::webview.voucher.voucher_detail_v4', $data);
     }
 
-    
+
     public function detailVoucher(Request $request)
     {
         $bearer = $request->header('Authorization');
@@ -87,7 +87,7 @@ class ApiDealsVoucherWebviewController extends Controller
         // $action = MyHelper::postCURLWithBearer('api/voucher/me?log_save=0', $post, $bearer);
         $voucher = DealsUser::with(['deals_voucher', 'deals_voucher.deal', 'deals_voucher.deal.deals_content', 'deals_voucher.deal.deals_content.deals_content_details', 'deals_voucher.deal.outlets.city', 'deals_voucher.deal.outlets.city'])
         ->where('id_deals_user', $request->id_deals_user)->get()->toArray()[0];
-        
+
         if (!empty($voucher['deals_voucher']['deal']['outlets'])) {
             $kota = array_column($voucher['deals_voucher']['deal']['outlets'], 'city');
             $kota = array_values(array_map("unserialize", array_unique(array_map("serialize", $kota))));
@@ -110,7 +110,7 @@ class ApiDealsVoucherWebviewController extends Controller
 
             $voucher['deals_voucher']['deal']['outlet_by_city'] = $kota;
         }
-        
+
         usort($voucher['deals_voucher']['deal']['outlet_by_city'], function($a, $b) {
             if(isset($a['city_name']) && isset($b['city_name'])){
                 return $a['city_name'] <=> $b['city_name'];
@@ -125,8 +125,22 @@ class ApiDealsVoucherWebviewController extends Controller
 
         $voucher['deals_voucher']['deal']['deals_image'] = env('S3_URL_API') . $voucher['deals_voucher']['deal']['deals_image'];
 
+        //add status used
+        $voucher['status'] = 'available';
+        if(!empty($voucher['redeemed_at'])){
+            if(!empty($voucher['used_at'])){
+                $voucher['status'] = 'offline used';
+            }
+            $voucher['status'] = 'offline redeem';
+        }else{
+            if($voucher['is_used'] == '1'){
+                $voucher['status'] = 'online used';
+            }
+        }
+
         $data = $voucher;
-        
+
+
         $result = [
             'deals_image'           => $data['deals_voucher']['deal']['deals_image'],
             'deals_title'           => $data['deals_voucher']['deal']['deals_title'],
@@ -137,6 +151,7 @@ class ApiDealsVoucherWebviewController extends Controller
             'id_deals_user'         => $data['id_deals_user'],
             'voucher_expired'       => date('d F Y', strtotime($data['voucher_expired_at'])),
             'is_used'               => $data['is_used'],
+            'status'                => $data['status'],
             'btn_used'              => 'Use Later',
             'is_online'             => $data['deals_voucher']['deal']['is_online'],
             'btn_online'            => 'Use Voucher',
@@ -170,7 +185,7 @@ class ApiDealsVoucherWebviewController extends Controller
         foreach ($data['deals_voucher']['deal']['outlet_by_city'] as $keyCity => $valueCity) {
             if (isset($valueCity['city_name'])) {
                 foreach($valueCity['outlet'] as $keyOutlet => $valueOutlet) {
-                    $implode_outlet[$keyOutlet] = '<li style="line-height: 12px;">' . $valueOutlet['outlet_name'] . '</li>'; 
+                    $implode_outlet[$keyOutlet] = '<li style="line-height: 12px;">' . $valueOutlet['outlet_name'] . '</li>';
                 }
                 $city[$keyCity] = strtoupper($valueCity['city_name']) . '<br>' . implode('', $implode_outlet);
                 $result['deals_content'][$i]['detail'] = '<ul>'.implode('', $city).'</ul>';
