@@ -122,15 +122,11 @@ class ApiSettingTransactionV2 extends Controller
         // return $data;
         if ($value == 'subtotal') {
             $dataSubtotal = [];
-            foreach ($data['item'] as $keyData => $valueData) {
-                $this_discount=0;
-                // if($discount_promo){
-                //     foreach ($discount_promo['item']??[] as $disc) {
-                //         if($disc['id_product']==$valueData['id_product']){
-                //             $this_discount=$disc['discount']??0;
-                //         }
-                //     }
-                // }
+
+            foreach (($discount_promo['item']??$data['item']) as $keyData => $valueData) {
+                
+                $this_discount=$valueData['discount']??0;
+
                 $product = Product::with('product_discounts', 'product_prices')->where('id_product', $valueData['id_product'])->first();
                 if (empty($product)) {
                     DB::rollBack();
@@ -181,7 +177,9 @@ class ApiSettingTransactionV2 extends Controller
                     $mod_subtotal += $mod['product_modifier_prices'][0]['product_modifier_price']*$qty_product_modifier;
                 }
                 // $price = $productPrice['product_price_base'] * $valueData['qty'];
-                $price = (($productPrice['product_price']+$mod_subtotal) * $valueData['qty'])-$this_discount;
+                // remove discount from substotal
+                // $price = (($productPrice['product_price']+$mod_subtotal) * $valueData['qty'])-$this_discount;
+                $price = (($productPrice['product_price']+$mod_subtotal) * $valueData['qty']);
                 array_push($dataSubtotal, $price);
             }
 

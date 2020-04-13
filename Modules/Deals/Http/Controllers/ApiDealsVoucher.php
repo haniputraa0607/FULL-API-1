@@ -93,9 +93,9 @@ class ApiDealsVoucher extends Controller
 
     /* UPDATE TOTAL VOUCHER DEALS TABLE */
     function updateTotalVoucher($post) {
-        $jumlahVoucher = dealsVoucher::where('id_deals', $post['id_deals'])->count();
+        $jumlahVoucher = DealsVoucher::where('id_deals', $post['id_deals'])->count();
 
-        if (!empty($jumlahVoucher)) {
+        if ($jumlahVoucher) {
             // UPDATE DATA DEALS
 
             $save = Deal::where('id_deals', $post['id_deals'])->update([
