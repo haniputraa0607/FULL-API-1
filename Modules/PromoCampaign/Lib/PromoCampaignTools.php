@@ -606,12 +606,13 @@ class PromoCampaignTools{
 				$benefit_item = [
 					'id_custom' 	=> isset(end($trxs)['id_custom']) ? end($trxs)['id_custom']+1 : '',
 					'id_product'	=> $benefit_product->id_product,
-					'id_brand'		=> $benefit_product->brands[0]->id_brand??'',
+					'id_brand'		=> $promo->id_brand??$benefit_product->brands[0]->id_brand??'',
 					'qty'			=> $promo_rule->benefit_qty,
 					'is_promo'		=> 1,
 					'is_free'		=> ($promo_rule->discount_type == "percent" && $promo_rule->discount_value == 100) ? 1 : 0,
 					'variants'		=> [$benefit_product->product_variants[0]->id_product_variant??'', $benefit_product->product_variants[1]->id_product_variant??''],
-					'modifiers'		=> []
+					'modifiers'		=> [],
+					'bonus'			=> 1
 				];
 
 				$discount+=$this->discount_product($benefit_product,$rule,$benefit_item);
@@ -1299,6 +1300,19 @@ class PromoCampaignTools{
             }
         }
         return true;
+    }
+
+    public function removeBonusItem($item)
+    {
+    	foreach ($item as $key => $value) 
+		{
+			if (!empty($value['bonus'])) {
+				unset($item[$key]);
+				break;
+			}
+		}
+
+		return $item;
     }
 
 }

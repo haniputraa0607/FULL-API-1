@@ -50,7 +50,7 @@ class ApiDealsVoucher extends Controller
 
             if (!empty($data)) {
 
-            	if (($post['add_type']??false) != 'add') 
+            	if (($post['add_type']??false) != 'add')
             	{
                 	$save = DealsVoucher::where('id_deals',$post['id_deals'])->delete();
             	    $save = DealsVoucher::insert($data);
@@ -93,11 +93,11 @@ class ApiDealsVoucher extends Controller
 
     /* UPDATE TOTAL VOUCHER DEALS TABLE */
     function updateTotalVoucher($post) {
-        $jumlahVoucher = dealsVoucher::where('id_deals', $post['id_deals'])->count();
+        $jumlahVoucher = DealsVoucher::where('id_deals', $post['id_deals'])->count();
 
-        if (!empty($jumlahVoucher)) {
+        if ($jumlahVoucher) {
             // UPDATE DATA DEALS
-            
+
             $save = Deal::where('id_deals', $post['id_deals'])->update([
                 'deals_total_voucher' => $jumlahVoucher
             ]);
@@ -262,8 +262,13 @@ class ApiDealsVoucher extends Controller
 
             if (isset($post['used']) && ($post['used'] == 1 || $post['used'] == '1'))  {
                 $query->orWhere(function ($amp) use ($post) {
-                        $amp->orWhereNotNull('used_at');
-                        $amp->orWhere('voucher_expired_at', '<=', date('Y-m-d H:i:s'));
+                        $amp->whereNotNull('used_at');
+                    });
+            }
+            if (isset($post['expired']) && ($post['expired'] == 1 || $post['expired'] == '1'))  {
+                $query->orWhere(function ($amp) use ($post) {
+                        $amp->where('voucher_expired_at', '<=', date('Y-m-d H:i:s'));
+                        $amp->whereNull('used_at'));
                     });
             }
             if (isset($post['available']) && ($post['available'] == 1 || $post['available'] == '1')) {

@@ -203,43 +203,34 @@ class ApiHiddenDeals extends Controller
                         }
                         // WITH VOUCHER
                         else {
-                            DB::rollBack();
-                            return response()->json([
-                                'status'   => 'fail',
-                                'messages' => ['Voucher is not free.']
-                            ]);
-                            // $voucher = $this->checkVoucherRegistered($deals->id_deals);
 
-                            // if ($voucher) {
-                            //     // BATAS
-                            //     $batas = $this->limit($voucher, $user);
+                            // DB::rollback();
+                            // return response()->json([
+                            //     'status'   => 'fail',
+                            //     'messages' => ['Voucher is not free.']
+                            // ]);
+                            $voucher = $this->checkVoucherRegistered($deals->id_deals);
+        
+                            if ($voucher) {
+                                // BATAS
+                                $batas = $this->limit($voucher, $user);
+        
+                                $claim = $this->claimedWithVoucher($deals, $user, $voucher);
+    
+                                if (!$claim) {
+                                    DB::rollback();
+                                    return response()->json(MyHelper::checkUpdate($claim));
+                                }
 
-                            //     // UPDATE DEALS
-                            //     $updateDeals = Deal::where('id_deals', $deals->id_deals)->update([
-                            //         'deals_total_claimed' => $deals->deals_total_claimed + $batas,
-                            //         // 'deals_total_voucher' => $batas + $deals->deals_total_voucher
-                            //     ]);
-
-                            //     if ($updateDeals) {
-                            //         $claim = $this->claimedWithVoucher($deals, $user, $voucher);
-
-                            //         if (!$claim) {
-                            //             DB::rollBack();
-                            //             return response()->json(MyHelper::checkUpdate($claim));
-                            //         }
-                            //     }
-                            //     else {
-                            //         DB::rollBack();
-                            //         return response()->json(MyHelper::checkUpdate($updateDeals));
-                            //     }
-                            // }
-                            // else {
-                            //     DB::rollBack();
-                            //     return response()->json([
-                            //         'status'   => 'fail',
-                            //         'messages' => ['Voucher is empty']
-                            //     ]);
-                            // }
+                                $countVoucher++;
+                            }
+                            else {
+                                DB::rollback();
+                                return response()->json([
+                                    'status'   => 'fail',
+                                    'messages' => ['Voucher is empty']
+                                ]);
+                            }
                         }
                     }
                     // else {
