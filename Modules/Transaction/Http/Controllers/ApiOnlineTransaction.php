@@ -652,7 +652,7 @@ class ApiOnlineTransaction extends Controller
             'id_user'                     => $id,
             'id_promo_campaign_promo_code'           => $post['id_promo_campaign_promo_code']??null,
             'transaction_date'            => $post['transaction_date'],
-            // 'transaction_receipt_number'  => 'TRX-'.app($this->setting_trx)->getrandomnumber(8).'-'.date('YmdHis'),
+            'transaction_receipt_number'  => 'TRX-'.date('ymd').MyHelper::createrandom(6,'Besar'),
             'trasaction_type'             => $type,
             'transaction_notes'           => $post['notes'],
             'transaction_subtotal'        => $post['subtotal'],
@@ -750,23 +750,23 @@ class ApiOnlineTransaction extends Controller
         }
 
         //update receipt
-        $receipt = 'TRX-'.MyHelper::createrandom(6,'Angka').time().MyHelper::createrandom(3,'Angka').$insertTransaction['id_outlet'].MyHelper::createrandom(3,'Angka');
-        $updateReceiptNumber = Transaction::where('id_transaction', $insertTransaction['id_transaction'])->update([
-            'transaction_receipt_number' => $receipt
-        ]);
+        // $receipt = 'TRX-'.MyHelper::createrandom(6,'Angka').time().MyHelper::createrandom(3,'Angka').$insertTransaction['id_outlet'].MyHelper::createrandom(3,'Angka');
+        // $updateReceiptNumber = Transaction::where('id_transaction', $insertTransaction['id_transaction'])->update([
+        //     'transaction_receipt_number' => $receipt
+        // ]);
 
-        if (!$updateReceiptNumber) {
-            DB::rollBack();
-            return response()->json([
-                'status'    => 'fail',
-                'messages'  => ['Insert Transaction Failed']
-            ]);
-        }
+        // if (!$updateReceiptNumber) {
+        //     DB::rollBack();
+        //     return response()->json([
+        //         'status'    => 'fail',
+        //         'messages'  => ['Insert Transaction Failed']
+        //     ]);
+        // }
 
         $user->transaction_online = 1;
         $user->save();
 
-        $insertTransaction['transaction_receipt_number'] = $receipt;
+        // $insertTransaction['transaction_receipt_number'] = $receipt;
 
         foreach ($post['item'] as $keyProduct => $valueProduct) {
             $this_discount=0;
