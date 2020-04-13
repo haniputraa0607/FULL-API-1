@@ -277,7 +277,10 @@ class ApiOnlineTransaction extends Controller
             $totalDisProduct = $productDis;
         }
 
-        // return $totalDiscount;
+        // remove bonus item
+        $pct = new PromoCampaignTools();
+        $post['item'] = $pct->removeBonusItem($post['item']);
+
         // check promo code and referral
         $promo_error=[];
         $use_referral = false;
@@ -768,15 +771,10 @@ class ApiOnlineTransaction extends Controller
 
         $insertTransaction['transaction_receipt_number'] = $receipt;
 
-        foreach ($post['item'] as $keyProduct => $valueProduct) {
-            $this_discount=0;
-            if($discount_promo){
-                foreach ($discount_promo['item']??[] as $disc) {
-                    if($disc['id_product']==$valueProduct['id_product']){
-                        $this_discount=$disc['discount']??0;
-                    }
-                }
-            }
+        foreach (($discount_promo['item']??$post['item']) as $keyProduct => $valueProduct) {
+            
+            $this_discount=$valueProduct['discount']??0;
+
             $checkProduct = Product::where('id_product', $valueProduct['id_product'])->first();
             if (empty($checkProduct)) {
                 DB::rollBack();
@@ -818,7 +816,9 @@ class ApiOnlineTransaction extends Controller
                 'transaction_product_price_base'    => $checkPriceProduct['product_price_base'],
                 'transaction_product_price_tax'    => $checkPriceProduct['product_price_tax'],
                 'transaction_product_discount'   => $this_discount,
-                'transaction_product_subtotal' => ($valueProduct['qty'] * $checkPriceProduct['product_price'])-$this_discount,
+                // remove discount from subtotal
+                // 'transaction_product_subtotal' => ($valueProduct['qty'] * $checkPriceProduct['product_price'])-$this_discount,
+                'transaction_product_subtotal' => ($valueProduct['qty'] * $checkPriceProduct['product_price']),
                 'transaction_product_note'     => $valueProduct['note'],
                 'created_at'                   => date('Y-m-d', strtotime($insertTransaction['transaction_date'])).' '.date('H:i:s'),
                 'updated_at'                   => date('Y-m-d H:i:s')
@@ -1718,6 +1718,11 @@ class ApiOnlineTransaction extends Controller
         }else{
             return $productDis;
         }
+
+        // remove bonus item
+        $pct = new PromoCampaignTools();
+        $post['item'] = $pct->removeBonusItem($post['item']);
+
         // check promo code
         $promo_error=null;
         $promo['description']=null;
@@ -1740,7 +1745,7 @@ class ApiOnlineTransaction extends Controller
 		            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors);
 
 		            if ($discount_promo['is_free'] == 1) {
-		            	unset($discount_promo['item']);
+		            	// unset($discount_promo['item']);
 		            	$discount_promo['discount'] = 0;
 		            }
 		            $promo['description'] = $discount_promo['new_description'];
@@ -1774,7 +1779,7 @@ class ApiOnlineTransaction extends Controller
 				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals');
 
 				if ($discount_promo['is_free'] == 1) {
-	            	unset($discount_promo['item']);
+	            	// unset($discount_promo['item']);
 	            	$discount_promo['discount'] = 0;
 	            }
 
@@ -1886,6 +1891,7 @@ class ApiOnlineTransaction extends Controller
             $product['promo_discount'] = $item['discount']??0;
             $product['is_promo'] = $item['is_promo']??0;
             $product['is_free'] = $item['is_free']??0;
+            $product['bonus'] = $item['bonus']??0;
             // get modifier
             $mod_price = 0;
             $product['modifiers'] = [];
