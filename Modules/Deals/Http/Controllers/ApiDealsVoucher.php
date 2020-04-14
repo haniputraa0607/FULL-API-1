@@ -268,7 +268,7 @@ class ApiDealsVoucher extends Controller
             if (isset($post['expired']) && ($post['expired'] == 1 || $post['expired'] == '1'))  {
                 $query->orWhere(function ($amp) use ($post) {
                         $amp->where('voucher_expired_at', '<=', date('Y-m-d H:i:s'));
-                        $amp->whereNull('used_at'));
+                        $amp->whereNull('used_at');
                     });
             }
             if (isset($post['available']) && ($post['available'] == 1 || $post['available'] == '1')) {
