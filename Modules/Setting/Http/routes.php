@@ -62,10 +62,14 @@ Route::group([ 'prefix' => 'api/setting', 'namespace' => 'Modules\Setting\Http\C
 {
     Route::any('webview/{key}', 'ApiSettingWebview@aboutWebview');
     Route::any('/faq/webview', 'ApiSettingWebview@faqWebviewView');
-    Route::any('detail/{key}', 'ApiSettingWebview@aboutDetail');
     Route::any('/faq/detail', 'ApiSettingWebview@faqDetailView');
     Route::any('/intro/list', 'ApiTutorial@introListFrontend');
     Route::any('/text_menu_list', 'ApiSetting@textMenuList');
+});
+
+Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'prefix' => 'api/setting', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
+{
+    Route::any('detail/{key}', 'ApiSettingWebview@aboutDetail');
 });
 
 Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scopes:be'], 'prefix' => 'api/setting', 'namespace' => 'Modules\Setting\Http\Controllers'], function()

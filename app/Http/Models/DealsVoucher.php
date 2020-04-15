@@ -11,14 +11,14 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Class DealsVoucher
- * 
+ *
  * @property int $id_deals_voucher
  * @property int $id_deals
  * @property string $voucher_code
  * @property string $deals_voucher_status
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
- * 
+ *
  * @property \App\Http\Models\Deal $deal
  *
  * @package App\Models
@@ -44,10 +44,10 @@ class DealsVoucher extends Model
 	{
 		return $this->belongsTo(\App\Http\Models\Deal::class, 'id_deals');
 	}
-	
+
 	public function deals()
 	{
-		return $this->belongsTo(\App\Http\Models\Deal::class, 'id_deals')->select('id_deals', 'deals_title', 'deals_second_title', 'deals_promo_id', 'deals_promo_id_type', 'promo_type', 'product_type','deals_total_used','deals_warning_image','is_offline','is_online');
+		return $this->belongsTo(\App\Http\Models\Deal::class, 'id_deals')->select('id_deals', 'deals_title', 'deals_second_title', 'deals_image', 'deals_promo_id', 'deals_promo_id_type', 'promo_type', 'product_type','deals_total_used','deals_warning_image','is_offline','is_online');
 	}
 
 	public function deals_user() {

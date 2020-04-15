@@ -30,6 +30,7 @@ use App\Http\Models\TransactionShipment;
 use App\Http\Models\TransactionPickup;
 use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionPaymentOvo;
+use Modules\IPay88\Entities\TransactionPaymentIpay88;
 use App\Http\Models\DealsUser;
 use App\Http\Models\DealsPaymentMidtran;
 use App\Http\Models\DealsPaymentManual;
@@ -1531,8 +1532,8 @@ class ApiTransaction extends Controller
                     $payment = [];
                     foreach($multiPayment as $dataKey => $dataPay){
                         if($dataPay['type'] == 'Midtrans'){
-                            $payment[] = TransactionPaymentMidtran::find($dataPay['id_payment']);
-                            $payment[$dataKey]['name']    = 'Midtrans';
+                            $payment[$dataKey]['name']      = 'Midtrans';
+                            $payment[$dataKey]['amount']    = TransactionPaymentMidtran::find($dataPay['id_payment'])->gross_amount;
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey] = $dataPay;
@@ -1550,6 +1551,23 @@ class ApiTransaction extends Controller
                         if($dataPay['type'] == 'Ovo'){
                             $payment[$dataKey] = TransactionPaymentOvo::find($dataPay['id_payment']);
                             $payment[$dataKey]['name']    = 'OVO';
+                        }else{
+                            $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
+                            $payment[$dataKey] = $dataPay;
+                            $list['balance'] = $dataPay['balance_nominal'];
+                            $payment[$dataKey]['name']          = 'Balance';
+                            $payment[$dataKey]['amount']        = $dataPay['balance_nominal'];
+                        }
+                    }
+                    $list['payment'] = $payment;
+                    break;
+                case 'Ipay88':
+                    $multiPayment = TransactionMultiplePayment::where('id_transaction', $list['id_transaction'])->get();
+                    $payment = [];
+                    foreach($multiPayment as $dataKey => $dataPay){
+                        if($dataPay['type'] == 'IPay88'){
+                            $payment[$dataKey]['name']    = 'Ipay88';
+                            $payment[$dataKey]['amount']    = TransactionPaymentIpay88::find($dataPay['id_payment'])->amount / 100;
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey] = $dataPay;
