@@ -339,20 +339,6 @@ class ApiDealsClaimPay extends Controller
                 DB::commit();
                 $return = MyHelper::checkCreate($pay);
                 if(isset($return['status']) && $return['status'] == 'success'){
-                    if(\Module::collections()->has('Autocrm')) {
-                        $phone=User::where('id', $voucher->id_user)->pluck('phone')->first();
-                        $voucher->load('dealVoucher.deals');
-                        $autocrm = app($this->autocrm)->SendAutoCRM('Claim Paid Deals Success', $phone,
-                            [
-                                'claimed_at'                => $voucher->claimed_at,
-                                'deals_title'               => $voucher->dealVoucher->deals->deals_title,
-                                'id_deals_user'             => $return['result']['voucher']['id_deals_user'],
-                                'deals_voucher_price_point' => (string) $voucher->voucher_price_point,
-                                'id_deals'                  => $voucher->dealVoucher->deals->id_deals,
-                                'id_brand'                  => $voucher->dealVoucher->deals->id_brand
-                            ]
-                        );
-                    }
                     $result = [
                         'id_deals_user'=>$return['result']['voucher']['id_deals_user'],
                         'id_deals_voucher'=>$return['result']['voucher']['id_deals_voucher'],
@@ -366,6 +352,20 @@ class ApiDealsClaimPay extends Controller
                         $result['ovo'] = $return['result']['ovo'];
                     }else{
                         $result['redirect'] = false;
+                        if(\Module::collections()->has('Autocrm')) {
+                            $phone=User::where('id', $voucher->id_user)->pluck('phone')->first();
+                            $voucher->load('dealVoucher.deals');
+                            $autocrm = app($this->autocrm)->SendAutoCRM('Claim Paid Deals Success', $phone,
+                                [
+                                    'claimed_at'                => $voucher->claimed_at,
+                                    'deals_title'               => $voucher->dealVoucher->deals->deals_title,
+                                    'id_deals_user'             => $return['result']['voucher']['id_deals_user'],
+                                    'deals_voucher_price_point' => (string) $voucher->voucher_price_point,
+                                    'id_deals'                  => $voucher->dealVoucher->deals->id_deals,
+                                    'id_brand'                  => $voucher->dealVoucher->deals->id_brand
+                                ]
+                            );
+                        }
                     }
                     $result['webview_later'] = env('API_URL').'api/webview/mydeals/'.$return['result']['voucher']['id_deals_user'];
                     unset($return['result']);
