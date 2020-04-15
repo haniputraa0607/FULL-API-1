@@ -158,7 +158,7 @@ class IPay88
 			'Amount' => $data['Amount']
 		];
 		$url = $this->requery_url.'?'.http_build_query($submitted);
-		$response = MyHelper::postWithTimeout($url,null,$submitted,0);
+		$response = MyHelper::postWithTimeout($url,null,$submitted,25);
         $toLog = [
             'type' => $data['type'].'_requery',
             'triggers' => $data['triggers'],
