@@ -286,7 +286,7 @@ class ConnectPOS{
 			'body' => $item
 		];
 		$this->sign($sendData);
-		$response = MyHelper::postWithTimeout($this->url.$module_url,null,$sendData,0,null,65,false);
+		$response = MyHelper::postWithTimeout($this->url.$module_url,null,$sendData,0,null,30,false);
 		$dataLog = [
 			'url' 		        => $this->url.$module_url,
 			'subject' 		    => 'POS Send Transaction',
