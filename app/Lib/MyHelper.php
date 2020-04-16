@@ -2212,18 +2212,19 @@ class MyHelper{
 				break;
 
 			case 'short':
+				// rounded down
 				if ($number < 1000) {
 				    // Anything less than a million
 				    $n_format = number_format($number,0);
 				} elseif ($number < 1000000) {
 				    // Anything less than a billion
-				    $n_format = number_format($number / 1000, 0) . 'K';
+				    $n_format = (floor(($number/1000)*10)/10) . 'K';
 				} elseif ($number < 1000000000) {
 				    // Anything less than a billion
-				    $n_format = number_format($number / 1000000, 0) . 'M';
+				    $n_format = (floor(($number/1000000)*10)/10) . 'M';
 				} else {
 				    // At least a billion
-				    $n_format = number_format($number / 1000000000, 0) . 'B';
+				    $n_format = (floor(($number/1000000000)*10)/10) . 'B';
 				}
 				return $n_format;
 				break;
