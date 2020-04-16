@@ -48,7 +48,7 @@ class ApiProductGroupController extends Controller
                 $pg = ProductGroup::select('product_groups.id_product_group','product_group_name','product_group_code','id_product_category')
                     ->groupBy('product_groups.id_product_group');
                 break;
-            
+
             default:
                 $pg = ProductGroup::select(\DB::raw('product_groups.*,count(id_product) as products_count'))
                     ->leftJoin('products','products.id_product_group','=','product_groups.id_product_group')
@@ -83,7 +83,7 @@ class ApiProductGroupController extends Controller
             if ($post['detail'] == 1) {
                 $upload = MyHelper::uploadPhotoStrict($post['photo'], $this->saveImage, 720, 360);
             } else {
-                $upload = MyHelper::uploadPhotoStrict($post['photo'], $this->saveImage, 200, 200);
+                $upload = MyHelper::uploadPhotoStrict($post['photo'], $this->saveImage, 400, 400);
             }
 
     	    if (isset($upload['status']) && $upload['status'] == "success") {
@@ -145,7 +145,7 @@ class ApiProductGroupController extends Controller
     {
         $post = $request->json()->all();
         if (isset($post['product_group_photo'])) {
-            $upload = MyHelper::uploadPhotoStrict($post['product_group_photo'], $path = 'img/product-group/photo/',200,200);
+            $upload = MyHelper::uploadPhotoStrict($post['product_group_photo'], $path = 'img/product-group/photo/',400,400);
             if ($upload['status'] == "success") {
                 $post['product_group_photo'] = $upload['path'];
             } else {
@@ -258,7 +258,7 @@ class ApiProductGroupController extends Controller
         $post = $request->json()->all();
         if (isset($post['product_group_photo'])) {
             $pg_old['product_group_photo'] = $pg['product_group_photo'];
-            $upload = MyHelper::uploadPhotoStrict($post['product_group_photo'], $path = 'img/product-group/photo/',200,200);
+            $upload = MyHelper::uploadPhotoStrict($post['product_group_photo'], $path = 'img/product-group/photo/',400,400);
             if ($upload['status'] == "success") {
                 $post['product_group_photo'] = $upload['path'];
             } else {
@@ -954,7 +954,7 @@ class ApiProductGroupController extends Controller
         ];
         switch ($post['type']) {
             case 'global':
-                // update or create if not exist 
+                // update or create if not exist
                 $data = $post['data']??[];
                 foreach ($data['products'] as $key => $value) {
                     if(empty($value['product_group_code'])){
@@ -1005,7 +1005,7 @@ class ApiProductGroupController extends Controller
                     }
                 }
                 break;
-            
+
             case 'detail':
                 // update only, never create
                 $data = $post['data']??[];
@@ -1071,7 +1071,7 @@ class ApiProductGroupController extends Controller
                     }
                 }
                 break;
-            
+
             default:
                 # code...
                 break;
