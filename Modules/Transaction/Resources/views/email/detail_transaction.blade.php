@@ -394,7 +394,9 @@
 
     </style>
 </head>
-@php $bulan = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']; @endphp
+<?php
+    use App\Lib\MyHelper;
+ ?>
 <body style="background:#fff">
 <div class="@if(isset($data['admin'])) body-admin @endif">
     @if(isset($data['detail']['pickup_by']) && $data['detail']['pickup_by'] == 'GO-SEND')
@@ -484,13 +486,13 @@
                 <div class="row space-text col-12">
                     <div class="col-2 Ubuntu text-left" style="color: #8fd6bd;">{{$item['transaction_product_qty']}}x</div>
                     <div class="col-8 Ubuntu-Medium text-black" style="margin-left: -20px;">{{$item['product']['product_name']}}</div>
-                    <div class="col-3 text-right Ubuntu-Medium text-black" style="padding-right: 0px;">{{ str_replace(',', '.', number_format(explode('.',$item['transaction_product_price'])[0])) }}</div>
+                    <div class="col-3 text-right Ubuntu-Medium text-black" style="padding-right: 0px;">{{ MyHelper::requestNumber(explode('.',$item['transaction_product_price'])[0], '_CURRENCY') }}</div>
                 </div>
                 <div class="row space-text col-12">
                     @if (!empty($item['product']['product_discounts']))
                         <div class="col-2 Ubuntu text-black">{{$item['transaction_product_qty']}}x</div>
                         <div class="col-8 Ubuntu text-black" style="margin-left: -20px;">{{$item['product']['product_name']}}</div>
-                        <div class="col-3 text-right Ubuntu-Medium text-black" style="padding-right: 0px;">{{ str_replace(',', '.', number_format($data['transaction_subtotal'])) }}</div>
+                        <div class="col-3 text-right Ubuntu-Medium text-black" style="padding-right: 0px;">{{ MyHelper::requestNumber($data['transaction_subtotal'], '_CURRENCY') }}</div>
                     @endif
                 </div>
                 @if ($item != end($data['productTransaction']))
@@ -507,15 +509,12 @@
         </div>
         <div class="row space-bottom">
             <div class="col-6 text-13-3px Ubuntu-Medium text-black ">Subtotal</div>
-            <div class="col-6 text-13-3px text-right Ubuntu text-black">{{ str_replace(',', '.', number_format($data['transaction_subtotal'])) }}</div>
+            <div class="col-6 text-13-3px text-right Ubuntu text-black">{{ MyHelper::requestNumber($data['transaction_subtotal'], '_CURRENCY') }}</div>
         </div>
         <div class="row" style="padding-left: -7px;padding-right: -7px;background-color: #f0f3f7;border-radius: 5px;">
             <div class="col-6 text-13-3px Ubuntu-Medium text-black" style="padding: 7px;">Grand Total</div>
-            @if(isset($data['balance']))
-                <div class="col-6 text-13-3px text-right Ubuntu-Bold text-black" style="padding: 7px;">{{ str_replace(',', '.', number_format($data['transaction_grandtotal'] - $data['balance'])) }}</div>
-            @else
-                <div class="col-6 text-13-3px text-right Ubuntu-Bold text-black" style="padding: 7px;">{{ str_replace(',', '.', number_format($data['transaction_grandtotal'])) }}</div>
-            @endif
+            MyHelper::requestNumber($value['transaction_grandtotal'], '_CURRENCY');
+            <div class="col-6 text-13-3px text-right Ubuntu-Bold text-black" style="padding: 7px;">{{ MyHelper::requestNumber($data['transaction_grandtotal'], '_CURRENCY') }}</div>
         </div>
     </div>
 
@@ -527,9 +526,9 @@
             @php if(strtoupper($data['trasaction_payment_type']) == 'BALANCE') $data['trasaction_payment_type'] = 'points' @endphp
             <div class="col-6 text-13-3px Ubuntu text-black ">{{strtoupper($data['trasaction_payment_type'])}}</div>
             @if(isset($data['balance']))
-                <div class="col-6 text-13-3px text-right Ubuntu-Medium text-black">{{ str_replace(',', '.', number_format($data['transaction_grandtotal'] - $data['balance'])) }}</div>
+                <div class="col-6 text-13-3px text-right Ubuntu-Medium text-black">{{ MyHelper::requestNumber($data['transaction_grandtotal'] - $data['balance'], '_CURRENCY') }}</div>
             @else
-                <div class="col-6 text-13-3px text-right Ubuntu-Medium text-black">{{ str_replace(',', '.', number_format($data['transaction_grandtotal'])) }}</div>
+                <div class="col-6 text-13-3px text-right Ubuntu-Medium text-black">{{ MyHelper::requestNumber($data['transaction_grandtotal'], '_CURRENCY') }}</div>
             @endif
         </div>
     </div>
