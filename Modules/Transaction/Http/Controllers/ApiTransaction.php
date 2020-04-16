@@ -1669,7 +1669,7 @@ class ApiTransaction extends Controller
                         'order_id_qrcode'   => $list['detail']['order_id_qrcode'],
                         'order_id'          => $list['detail']['order_id'],
                         'pickup_type'       => $list['detail']['pickup_type'],
-                        'pickup_date'       => date('d F Y', strtotime($list['detail']['pickup_at'])),
+                        'pickup_date'       => date('d F Y', strtotime($list['transaction_date'])),
                         'pickup_time'       => ($list['detail']['pickup_type'] == 'right now') ? 'RIGHT NOW' : date('H : i', strtotime($list['detail']['pickup_at'])),
                 ];
                 if (isset($list['transaction_payment_status']) && $list['transaction_payment_status'] == 'Cancelled') {
