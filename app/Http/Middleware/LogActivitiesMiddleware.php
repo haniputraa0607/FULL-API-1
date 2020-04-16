@@ -252,6 +252,9 @@ class LogActivitiesMiddleware
                 }
 
                 if(!empty($user) && $user != ""){
+                    if(isset($ruser['memberships'])){
+                        unset($ruser['memberships']);
+                    }
                 $data = [
                     'module' 			=> ucwords($module),
                     'url' 			=> $url,
@@ -285,6 +288,9 @@ class LogActivitiesMiddleware
 
                 if($beStatusUserAgent == 1){
                     if (stristr($url, 'activity')) {
+                        if(isset($ruser['memberships'])){
+                            unset($ruser['memberships']);
+                        }
                         $data = [
                             'module' 			=> ucwords($module),
                             'url' 			=> $url,

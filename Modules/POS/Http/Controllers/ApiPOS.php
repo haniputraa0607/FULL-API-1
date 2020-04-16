@@ -61,6 +61,7 @@ use Modules\Brand\Entities\BrandOutlet;
 use Modules\Brand\Entities\BrandProduct;
 use Modules\POS\Entities\SyncMenuRequest;
 use Modules\POS\Entities\SyncMenuResult;
+use Modules\IPay88\Entities\TransactionPaymentIpay88;
 
 use Modules\POS\Http\Controllers\CheckVoucher;
 use Exception;
@@ -105,7 +106,7 @@ class ApiPOS extends Controller
         }
 
         $check = Transaction::join('transaction_pickups', 'transactions.id_transaction', '=', 'transaction_pickups.id_transaction')
-            ->with(['products', 'products.product_variants' => function ($query) {
+            ->with(['modifiers','modifiers.product_modifier','products', 'products.product_variants' => function ($query) {
                 $query->orderBy('parent');
             }, 'product_detail', 'vouchers', 'productTransaction.modifiers', 'promo_campaign_promo_code'])
             ->where('order_id', '=', $post['order_id'])
@@ -229,7 +230,7 @@ class ApiPOS extends Controller
                                 'type'              => 'Ovo',
                                 'amount'            => (float) $ovo['amount'],
                                 'change_amount'     => 0,
-                                'card_number'       => '',
+                                'card_number'       => $ovo['phone'],
                                 'card_owner'        => '',
                                 'reference_number'  => $ovo['approval_code']
                             ];
@@ -248,6 +249,20 @@ class ApiPOS extends Controller
                             ];
                             $payment[] = $pay;
                         }
+                    } elseif ($payMulti['type'] == 'IPay88') {
+                        $ipay = TransactionPaymentIpay88::find($payMulti['id_payment']);
+                        if ($ipay) {
+                            $pay = [
+                                'number'            => $key + 1,
+                                'type'              => $ipay['payment_method'],
+                                'amount'            => (float) $ipay['amount']/100,
+                                'change_amount'     => 0,
+                                'card_number'       => '',
+                                'card_owner'        => '',
+                                'reference_number'  => $ipay['trans_id']
+                            ];
+                            $payment[] = $pay;
+                        }
                     }
                 }
             }
@@ -259,18 +274,35 @@ class ApiPOS extends Controller
             $transactions['tax'] = 0;
             $transactions['total'] = 0;
             $item = [];
+            $last = 0;
             foreach ($check['products'] as $key => $menu) {
                 $val = [
                     'number' => $key + 1,
                     'sap_matnr' => $menu['product_code'],
                     'qty' => (int) $menu['pivot']['transaction_product_qty'],
-                    'price' => (float) $menu['pivot']['transaction_product_price'],
+                    'price' => (float) $menu['pivot']['transaction_product_price']- $menu['pivot']['transaction_modifier_subtotal'],
                     'type' => $menu['product_variants'][1]['product_variant_code'] == 'general_type' ? null : $menu['product_variants'][1]['product_variant_code'],
-                    'size' => $menu['product_variants'][0]['product_variant_code'] == 'general_type' ? null : $menu['product_variants'][0]['product_variant_code'],
+                    'size' => $menu['product_variants'][0]['product_variant_code'] == 'general_size' ? null : $menu['product_variants'][0]['product_variant_code'],
                     'discount' => (float) $menu['pivot']['transaction_product_discount'],
                     'promo_number' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
-                    'promo_type' => '5',
+                    'promo_type' => $check['id_promo_campaign_promo_code'] ?'5':null,
                     'amount' => (float) $menu['pivot']['transaction_product_subtotal']
+                ];
+                $item[] = $val;
+                $last = $key+1;
+            }
+            foreach ($check['modifiers'] as $key => $modifier) {
+                $val = [
+                    'number' => $key+1+$last,
+                    'sap_matnr' => $modifier['code'],
+                    'qty' => (int) $modifier['qty'],
+                    'price' => (float) $modifier['transaction_product_modifier_price'] / $modifier->qty,
+                    'type' => null,
+                    'size' => null,
+                    'discount' => 0,
+                    'promo_number' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
+                    'promo_type' => $check['id_promo_campaign_promo_code'] ?'5':null,
+                    'amount' => $modifier['transaction_product_modifier_price']
                 ];
                 $item[] = $val;
             }

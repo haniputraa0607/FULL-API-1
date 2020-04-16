@@ -11,6 +11,7 @@ use App\Http\Models\TransactionPaymentOvo;
 use App\Http\Models\LogActivitiesPosTransactionsOnline;
 use App\Http\Models\TransactionOnlinePos;
 use Modules\Transaction\Entities\TransactionPaymentCimb;
+use Modules\IPay88\Entities\TransactionPaymentIpay88;
 
 class ConnectPOS{
 	public static $obj = null;
@@ -65,6 +66,7 @@ class ConnectPOS{
 	public function sendTransaction(...$id_transactions) {
 		$module_url = '/MobileReceiver/transaction';
 		$trxDatas = Transaction::whereIn('transactions.id_transaction',$id_transactions)
+		->where('transaction_payment_status','Completed')
 		->join('transaction_pickups','transactions.id_transaction','=','transaction_pickups.id_transaction')
 		->with(['user','modifiers','modifiers.product_modifier','products','products.product_group','products.product_variants'=>function($query){
 			$query->orderBy('parent');
@@ -83,8 +85,8 @@ class ConnectPOS{
 			$outlets[] = env('POS_OUTLET_OVERWRITE')?:$trxData->outlet->outlet_code;
 			$receive_at = $trxData->receive_at?:date('Y-m-d H:i:s');
 			$voucher = TransactionVoucher::where('id_transaction',$trxData->id_transaction)->first();
-			$appliedPromo = null;
-			$promoNumber = null;
+			$appliedPromo = "";
+			$promoNumber = "";
 			if($trxData->id_promo_campaign_promo_code || $voucher){
 				$appliedPromo = 'MOBILE APPS PROMO';
 				if($trxData->id_promo_campaign_promo_code){
@@ -144,7 +146,7 @@ class ConnectPOS{
 					"type"=> $product->product_variants[1]->product_variant_code == 'general_type'?null:$product->product_variants[1]->product_variant_code, //code variant /null
 					"size"=> $product->product_variants[0]->product_variant_code == 'general_size'?null:$product->product_variants[0]->product_variant_code, // code variant /null
 					"promoNumber"=> $promoNumber, //kode voucher //null
-					"promoType"=> $appliedPromo?"5":null, //hardcode //null
+					"promoType"=> $appliedPromo?"5":"", //hardcode //null
 					"status"=> "ACTIVE" // hardcode
 				];
 				$last = $key+1;
@@ -240,7 +242,7 @@ class ConnectPOS{
 								'type'              => 'Ovo',
 								'amount'            => (float) $ovo['amount'],
 								'changeAmount'     => 0,
-								'cardNumber'       => '',
+								'cardNumber'       => $ovo['phone'], // nomor telepon ovo
 								'cardOwner'        => '',
 								'referenceNumber'  => $ovo['approval_code']??''
 							];
@@ -259,6 +261,20 @@ class ConnectPOS{
 							];
 							$payment[] = $pay;
 						}
+					} elseif ($payMulti['type'] == 'IPay88') {
+						$ipay = TransactionPaymentIpay88::find($payMulti['id_payment']);
+						if ($ipay) {
+							$pay = [
+								'number'            => $key + 1,
+								'type'              => $ipay['payment_method'],
+								'amount'            => (float) $ipay['amount']/100,
+								'changeAmount'     => 0,
+								'cardNumber'       => '',
+								'cardOwner'        => '',
+								'referenceNumber'  => $ipay['trans_id']
+							];
+							$payment[] = $pay;
+						}
 					}
 				}
 			}
@@ -270,7 +286,7 @@ class ConnectPOS{
 			'body' => $item
 		];
 		$this->sign($sendData);
-		$response = MyHelper::postWithTimeout($this->url.$module_url,null,$sendData,0,null,65,false);
+		$response = MyHelper::postWithTimeout($this->url.$module_url,null,$sendData,0,null,30,false);
 		$dataLog = [
 			'url' 		        => $this->url.$module_url,
 			'subject' 		    => 'POS Send Transaction',
@@ -289,14 +305,14 @@ class ConnectPOS{
 				$top = TransactionOnlinePos::where('id_transaction',$trxData['id_transaction'])->first();
 				if($top){
 					$top->update([
-						'request' => json_encode($sendData), 
+						'request' => json_encode($sendData),
 						'response' => json_encode($response),
 						'count_retry'=>($top->count_retry+1),
 						'success_retry_status'=>0
 					]);
 				}else{
 					$top = TransactionOnlinePos::create([
-						'request' => json_encode($sendData), 
+						'request' => json_encode($sendData),
 						'response' => json_encode($response),
 						'id_transaction' => $variables['id_transaction'],
 						'count_retry' => 1
@@ -312,14 +328,14 @@ class ConnectPOS{
 				$top = TransactionOnlinePos::where('id_transaction',$trxData['id_transaction'])->first();
 				if($top){
 					$top->update([
-						'request' => json_encode($sendData), 
+						'request' => json_encode($sendData),
 						'response' => json_encode($response),
 						'count_retry'=>($top->count_retry+1),
 						'success_retry_status'=>1
 					]);
 				}else{
 					$top = TransactionOnlinePos::create([
-						'request' => json_encode($sendData), 
+						'request' => json_encode($sendData),
 						'response' => json_encode($response),
 						'id_transaction' => $variables['id_transaction'],
 						'count_retry' => 1,

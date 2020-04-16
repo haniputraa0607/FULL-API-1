@@ -122,15 +122,11 @@ class ApiSettingTransactionV2 extends Controller
         // return $data;
         if ($value == 'subtotal') {
             $dataSubtotal = [];
-            foreach ($data['item'] as $keyData => $valueData) {
-                $this_discount=0;
-                if($discount_promo){
-                    foreach ($discount_promo['item']??[] as $disc) {
-                        if($disc['id_product']==$valueData['id_product']){
-                            $this_discount=$disc['discount']??0;
-                        }
-                    }
-                }
+
+            foreach (($discount_promo['item']??$data['item']) as $keyData => $valueData) {
+                
+                $this_discount=$valueData['discount']??0;
+
                 $product = Product::with('product_discounts', 'product_prices')->where('id_product', $valueData['id_product'])->first();
                 if (empty($product)) {
                     DB::rollBack();
@@ -181,7 +177,9 @@ class ApiSettingTransactionV2 extends Controller
                     $mod_subtotal += $mod['product_modifier_prices'][0]['product_modifier_price']*$qty_product_modifier;
                 }
                 // $price = $productPrice['product_price_base'] * $valueData['qty'];
-                $price = (($productPrice['product_price']+$mod_subtotal) * $valueData['qty'])-$this_discount;
+                // remove discount from substotal
+                // $price = (($productPrice['product_price']+$mod_subtotal) * $valueData['qty'])-$this_discount;
+                $price = (($productPrice['product_price']+$mod_subtotal) * $valueData['qty']);
                 array_push($dataSubtotal, $price);
             }
 
@@ -190,26 +188,36 @@ class ApiSettingTransactionV2 extends Controller
 
         if ($value == 'discount') {
             $discountTotal = 0;
-            $discount = [];
-            $discountFormula = $this->convertFormula('discount');
+            // $discount = [];
+            // $discountFormula = $this->convertFormula('discount');
 
-            $checkSettingPercent = Setting::where('key', 'discount_percent')->first();
-            $checkSettingNominal = Setting::where('key', 'discount_nominal')->first();
-            $count = 0;
+            // $checkSettingPercent = Setting::where('key', 'discount_percent')->first();
+            // $checkSettingNominal = Setting::where('key', 'discount_nominal')->first();
+            // $count = 0;
 
-            if (!empty($checkSettingPercent)) {
-                if ($checkSettingPercent['value'] != '0' && $checkSettingPercent['value'] != '') {
-                    $count = (eval('return ' . preg_replace('/([a-zA-Z0-9]+)/', '\$$1', $discountFormula) . ';'));
-                }
-            } else {
-                if (!empty($checkSettingNominal)) {
-                    if ($checkSettingNominal['value'] != '0' && $checkSettingNominal['value'] != '') {
-                        $count = $checkSettingNominal;
+            // if (!empty($checkSettingPercent)) {
+            //     if ($checkSettingPercent['value'] != '0' && $checkSettingPercent['value'] != '') {
+            //         $count = (eval('return ' . preg_replace('/([a-zA-Z0-9]+)/', '\$$1', $discountFormula) . ';'));
+            //     }
+            // } else {
+            //     if (!empty($checkSettingNominal)) {
+            //         if ($checkSettingNominal['value'] != '0' && $checkSettingNominal['value'] != '') {
+            //             $count = $checkSettingNominal;
+            //         }
+            //     }
+            // }
+            foreach ($data['item'] as $keyData => $valueData) {
+                $this_discount=0;
+                if($discount_promo){
+                    foreach ($discount_promo['item']??[] as $disc) {
+                        if($disc['id_product']==$valueData['id_product']){
+                            $this_discount=$disc['discount']??0;
+                        }
                     }
                 }
+                $discountTotal += $this_discount;
             }
-
-            return $count;
+            return $discountTotal;
         }
 
         if ($value == 'service') {

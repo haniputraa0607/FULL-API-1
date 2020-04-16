@@ -1946,6 +1946,22 @@ class FeaturesTableSeeder extends Seeder
                     'feature_module' => 'Product Promo Category',
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            242 =>
+                array (
+                    'id_feature' => 243,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report Point Injection',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            243 =>
+                array (
+                    'id_feature' => 244,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report SMS',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
                 )
         ));
     }

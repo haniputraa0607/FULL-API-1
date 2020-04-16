@@ -1222,7 +1222,7 @@ class ApiUser extends Controller
 
                 $result 			= [];
                 $result['status'] 	= 'fail';
-                $result['messages'] = ['Kata sandi yang kamu masukkan kurang tepat'];
+                $result['messages'] = ['The pin you entered is incorrect'];
                 $result['date'] 	= date('Y-m-d H:i:s');
                 $result['device'] 	= $device;
                 $result['ip'] 		= $ip;
@@ -1236,7 +1236,7 @@ class ApiUser extends Controller
         }
         else {
             $result['status'] 	= 'fail';
-            $result['messages'] = ['Nomor HP belum terdaftar'];
+            $result['messages'] = ['This phone number isn\'t registered'];
         }
 
 
@@ -1261,7 +1261,7 @@ class ApiUser extends Controller
         }
         else {
             $result['status'] 	= 'fail';
-            $result['messages'] = ['Nomor HP belum terdaftar'];
+            $result['messages'] = ['This phone number isn\'t registered'];
         }
         return response()->json($result);
     }
@@ -1411,7 +1411,7 @@ class ApiUser extends Controller
         } else {
             $result = [
                 'status'	=> 'fail',
-                'messages'	=> ['Email yang kamu masukkan kurang tepat']
+                'messages'	=> ['The email you entered is incorrect']
             ];
             return response()->json($result);
         }
@@ -2865,5 +2865,32 @@ class ApiUser extends Controller
             $data = $data->get();
         }
         return MyHelper::checkGet($data??[]);
+    }
+
+    public function validationPhone(Request $request){
+        $post = $request->json()->all();
+        if(isset($post['phone']) && !empty($post['phone'])){
+            $phone = $post['phone'];
+
+            $phone = preg_replace("/[^0-9]/", "", $phone);
+
+            $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
+
+            if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
+                return response()->json([
+                    'status' => 'fail',
+                    'messages' => [$checkPhoneFormat['messages']]
+                ]);
+            }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
+                return response()->json([
+                    'status' => 'success'
+                ]);
+            }
+        }else{
+            return response()->json([
+                'status' => 'fail',
+                'messages' => ['Data incompleted']
+            ]);
+        }
     }
 }

@@ -2,6 +2,7 @@
 Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth:api', 'scopes:apps'], 'namespace' => 'Modules\Outlet\Http\Controllers'], function()
 {
     Route::any('list', 'ApiOutletController@listOutlet');
+    Route::any('list/all', 'ApiOutletController@listOutletNameID');
     Route::any('list/ordernow', 'ApiOutletController@listOutletOrderNow');
     Route::any('list/gofood', 'ApiOutletGofoodController@listOutletGofood');
     Route::any('filter', 'ApiOutletController@filter');
@@ -9,7 +10,7 @@ Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth
 
     /*WEBVIEW*/
     Route::any('webview/{id}', 'ApiOutletWebview@detailWebview');
-    Route::any('detail/{id}', 'ApiOutletWebview@detailOutlet');
+    Route::any('detail/mobile', 'ApiOutletWebview@detailOutlet');
     Route::any('webview/gofood/list', 'ApiOutletWebview@listOutletGofood');
     Route::any('webview/gofood/list/v2', 'ApiOutletWebview@listOutletGofood');
 

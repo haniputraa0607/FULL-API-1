@@ -2,6 +2,7 @@
 
 namespace Modules\Outlet\Http\Controllers;
 
+use App\Http\Models\Outlet;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -26,25 +27,69 @@ class ApiOutletWebview extends Controller
         return view('outlet::webview.list', ['data' => $list['result']]);
     }
 
-    public function detailOutlet(Request $request, $id)
+    public function detailOutlet(Request $request)
     {
     	$bearer = $request->header('Authorization');
         if ($bearer == "") {
             return view('error', ['msg' => 'Unauthenticated']);
         }
-
-        // if ($request->isMethod('get')) {
-        //     return view('error', ['msg' => 'Url method is POST']);
-        // }
         
-        $list = MyHelper::postCURLWithBearer('api/outlet/list?log_save=0', ['id_outlet' => $id], $bearer);
+        // $list = MyHelper::postCURLWithBearer('api/outlet/list?log_save=0', [
+        //     'id_outlet' => $request->id_outlet,
+        //     'latitude' => $request->latitude,
+        //     'longitude' => $request->longitude
+        // ], $bearer);
 
-        unset($list['result'][0]['product_prices']);
+        
+        $outlet = Outlet::with(['today', 'outlet_schedules'])
+        ->where('id_outlet', $request->id_outlet)->get()->toArray()[0];
 
-        if ($list['status'] == 'success') {
-            return response()->json(['status' => 'success', 'result' => $list['result'][0]]);
+        $outlet['distance']=number_format((float)$this->distance($request->latitude, $request->longitude, $outlet['outlet_latitude'], $outlet['outlet_longitude'], "K"), 2, '.', '').' km';
+        
+        foreach ($outlet['outlet_schedules'] as $key => $value) {
+            if (date('l') == $value['day']) {
+                $outlet['outlet_schedules'][$key] = [
+                    'is_today'  => 1,
+                    'day'       => substr($value['day'], 0, 3),
+                    'time'      => $value['open'] . ' - ' . $value['close'],
+                    'is_closed' => $value['is_closed']
+                ];
+            } else {
+                $outlet['outlet_schedules'][$key] = [
+                    'day'       => substr($value['day'], 0, 3),
+                    'time'      => $value['open'] . ' - ' . $value['close'],
+                    'is_closed' => $value['is_closed']
+                ];
+            }
+        }
+        $outlet['is_closed'] = $outlet['today']['is_closed'];
+        unset($outlet['today']);
+        unset($outlet['url']);
+        unset($outlet['detail']);
+        unset($outlet['created_at']);
+        unset($outlet['updated_at']);
+
+        return response()->json(MyHelper::checkGet($outlet));
+    }
+
+    function distance($lat1, $lon1, $lat2, $lon2, $unit) {
+        $theta = $lon1 - $lon2;
+        $lat1=floatval($lat1);
+        $lat2=floatval($lat2);
+        $lon1=floatval($lon1);
+        $lon2=floatval($lon2);
+        $dist  = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) +  cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
+        $dist  = acos($dist);
+        $dist  = rad2deg($dist);
+        $miles = $dist * 60 * 1.1515;
+        $unit  = strtoupper($unit);
+
+        if ($unit == "K") {
+            return ($miles * 1.609344);
+        } else if ($unit == "N") {
+            return ($miles * 0.8684);
         } else {
-            return response()->json(['status' => 'fail', 'messages' => 'fail to load data']);
+            return $miles;
         }
     }
 

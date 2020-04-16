@@ -23,6 +23,7 @@ use App\Http\Models\OvoReversal;
 use App\Http\Models\OvoReference;
 
 use DB;
+use Modules\IPay88\Lib\IPay88;
 use App\Lib\MyHelper;
 use App\Lib\Midtrans;
 use App\Lib\Ovo;
@@ -334,6 +335,45 @@ class ApiConfirm extends Controller
                 'result'    => [
                     'data' => $cimb,
                     'url'  => env('API_URL').'api/transaction/curl_cimb'
+                ]
+            ];
+        }
+        elseif ($post['payment_type'] == 'Ipay88') {
+            
+            // save multiple payment
+            $trx_ipay88 = \Modules\IPay88\Lib\IPay88::create()->insertNewTransaction($check,'trx',$countGrandTotal);
+            if(!$trx_ipay88){
+                DB::rollBack();
+                return response()->json([
+                    'status'   => 'fail',
+                    'messages' => ['Failed create transaction payment']
+                ]);
+            }
+            $dataMultiple = [
+                'id_transaction' => $check['id_transaction'],
+                'type'           => 'IPay88',
+                'id_payment'     => $trx_ipay88->id_transaction_payment_ipay88
+            ];
+            $saveMultiple = TransactionMultiplePayment::updateOrCreate([
+                'id_transaction' => $check['id_transaction'],
+                'type'           => 'IPay88'
+            ],$dataMultiple);
+            if(!$saveMultiple){
+                DB::rollBack();
+                return response()->json([
+                    'status'   => 'fail',
+                    'messages' => ['Failed create multiple transaction']
+                ]);
+            }
+            DB::commit();
+            return [
+                'status'    => 'success',
+                'result'    => [
+                    'url'  => env('API_URL').'api/ipay88/pay?'.http_build_query([
+                        'type' => 'trx',
+                        'id_reference' => $check['id_transaction'],
+                        'payment_id' => $request->payment_id?:''
+                    ])
                 ]
             ];
         }
@@ -686,7 +726,7 @@ class ApiConfirm extends Controller
                     //return balance
                     $payBalance = TransactionMultiplePayment::where('id_transaction', $trx['id_transaction'])->where('type', 'Balance')->first();
                     if (!empty($payBalance)) {
-                        $checkBalance = TransactionPaymentBalance::where('id_transaction_payment_balance', $value['id_payment'])->first();
+                        $checkBalance = TransactionPaymentBalance::where('id_transaction_payment_balance', $payBalance['id_payment'])->first();
                         if (!empty($checkBalance)) {
                             $insertDataLogCash = app($this->balance)->addLogBalance($trx['id_user'], $checkBalance['balance_nominal'], $trx['id_transaction'], 'Transaction Failed', $trx['transaction_grandtotal']);
                             if (!$insertDataLogCash) {
@@ -798,7 +838,7 @@ class ApiConfirm extends Controller
         //return balance
         $payBalance = TransactionMultiplePayment::where('id_transaction', $trx['id_transaction'])->where('type', 'Balance')->first();
         if (!empty($payBalance)) {
-            $checkBalance = TransactionPaymentBalance::where('id_transaction_payment_balance', $value['id_payment'])->first();
+            $checkBalance = TransactionPaymentBalance::where('id_transaction_payment_balance', $payBalance['id_payment'])->first();
             if (!empty($checkBalance)) {
                 $insertDataLogCash = app($this->balance)->addLogBalance($trx['id_user'], $checkBalance['balance_nominal'], $trx['id_transaction'], 'Transaction Failed', $trx['transaction_grandtotal']);
                 if (!$insertDataLogCash) {

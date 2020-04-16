@@ -366,6 +366,7 @@ class ApiPointInjectionController extends Controller
                     } else {
                         $userData[$key] = ['id_point_injection' => $post['id_point_injection'], 'id_user' => $value['id'], 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')];
                         PointInjectionUser::updateOrCreate(['id_point_injection' => $post['id_point_injection'], 'id_user' => $value['id']]);
+                        PointInjectionReport::updateOrCreate(['id_point_injection' => $post['id_point_injection'], 'id_user' => $value['id']], ['status' => 'Pending', 'point' => $post['total_point']]);
                     }
                 }
                 $userData = array_merge($getUser, $userData);
@@ -471,6 +472,18 @@ class ApiPointInjectionController extends Controller
 
             try {
                 PointInjectionUser::insert($userData);
+
+                foreach ($userData as $row){
+                    $createReport = [
+                        'id_point_injection' => $row['id_point_injection'],
+                        'id_user' => $row['id_user'],
+                        'point' => $post['total_point'],
+                        'status' => 'Pending',
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ];
+                    PointInjectionReport::insert($createReport);
+                }
                 $result = ['status'  => 'success'];
             } catch (\Exception $e) {
                 $result = [
@@ -657,6 +670,10 @@ class ApiPointInjectionController extends Controller
                         }
                     }
                 }
+
+                //update status to success
+                PointInjectionReport::where('id_user', $valueUser['id_user'])->where('id_point_injection', $valueUser['id_point_injection'])
+                    ->update(['status' => 'Success']);
             }
             $pointInjection = PivotPointInjection::where('send_time', '<=', $dateNow)->delete();
 

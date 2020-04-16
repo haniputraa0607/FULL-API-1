@@ -1000,9 +1000,9 @@ class ApiSubscription extends Controller
                 $request->json('id_city') ||
                 $request->json('key_free')
             ){
-                $resultMessage = 'Maaf, voucher yang kamu cari belum tersedia';
+                $resultMessage = 'Sorry, deals you are looking for is not yet available';
             }else{
-                $resultMessage = 'Nantikan penawaran menarik dari kami';
+                $resultMessage = 'Look forward to interesting deals from us';
             }
             return response()->json(MyHelper::checkGet($result, $resultMessage));
 
@@ -1359,7 +1359,7 @@ class ApiSubscription extends Controller
             if($data && !empty($data)) return ['status' => 'success', 'result' => $data];
             else if(empty($data)) {
                 if($message == null){
-                    $message = 'Maaf, halaman ini tidak tersedia';
+                    $message = 'Data not found';
                 }
                 return [
                     'status'    => 'fail',

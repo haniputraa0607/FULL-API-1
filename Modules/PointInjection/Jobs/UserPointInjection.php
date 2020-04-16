@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Modules\PointInjection\Entities\PivotPointInjection;
 use Log;
+use Modules\PointInjection\Entities\PointInjectionReport;
 
 class UserPointInjection implements ShouldQueue
 {
@@ -32,6 +33,6 @@ class UserPointInjection implements ShouldQueue
      */
     public function handle()
     {
-        PivotPointInjection::insert($this->data);
+        $insertPivot = PivotPointInjection::insert($this->data);
     }
 }

@@ -618,6 +618,24 @@ class ApiOutletController extends Controller
 
     }
 
+    function listOutletNameID(Request $request)
+    {
+        $post = $request->json()->all();
+
+        if (isset($post['all_outlet']) && $post['all_outlet'] == 1) {
+            $outlet['data'] = Outlet::select('id_outlet', 'outlet_name')->where('outlet_status', 'Active')->get()->toArray();
+        } else {
+            $outlet = Outlet::select('id_outlet', 'outlet_name')->where('outlet_status', 'Active')->paginate(10)->toArray();
+        }
+        foreach ($outlet['data'] as $key => $value) {
+            unset($outlet['data'][$key]['call']);
+            unset($outlet['data'][$key]['url']);
+            unset($outlet['data'][$key]['detail']);
+        }
+
+        return response()->json(MyHelper::checkGet($outlet));
+    }
+
     function listOutletOvo(Request $request)
     {
         $post = $request->json()->all();
@@ -793,7 +811,7 @@ class ApiOutletController extends Controller
         return response()->json(MyHelper::checkGet($outlet));
     }
 
-    public function pagingOutlet($data, $page,$paginate=15) {
+    public function pagingOutlet($data, $page,$paginate=10) {
         $next = false;
 
         if ($page > 0) {
@@ -907,7 +925,6 @@ class ApiOutletController extends Controller
 
         $outlet = $outlet->get()->toArray();
 
-
         if (!empty($outlet)) {
             $processing = '0';
             $settingTime = Setting::where('key', 'processing_time')->first();
@@ -955,6 +972,16 @@ class ApiOutletController extends Controller
 
                 if(isset($outlet[$key]['today']['time_zone'])){
                     $outlet[$key]['today'] = $this->setTimezone($outlet[$key]['today']);
+                }
+
+                unset($outlet[$key]['today']['id_outlet']);
+                unset($outlet[$key]['today']['is_closed']);
+                unset($outlet[$key]['today']['time_zone_id']);
+                unset($outlet[$key]['today']['time_zone']);
+
+                if (isset($post['is_map']) && $post['is_map'] == 0) {
+                    unset($outlet[$key]['outlet_latitude']);
+                    unset($outlet[$key]['outlet_longitude']);
                 }
             }
 			if($sort != 'Alphabetical'){

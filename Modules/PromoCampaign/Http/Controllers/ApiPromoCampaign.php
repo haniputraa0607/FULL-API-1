@@ -936,7 +936,7 @@ class ApiPromoCampaign extends Controller
         {
         	$saveImagePath = 'img/deals/warning-image/';
         	$dataPromoCampaign['deals_promo_id_type']	= $post['deals_promo_id_type']??null;
-        	$dataPromoCampaign['deals_promo_id']		= $post['deals_promo_id_promoid']??$post['deals_promo_id_nominal']??null;
+        	$dataPromoCampaign['deals_promo_id']		= $dataPromoCampaign['deals_promo_id_type'] == 'nominal' ? $post['deals_promo_id_nominal'] : ($post['deals_promo_id_promoid']??null);
         	$dataPromoCampaign['last_updated_by'] 		= auth()->user()->id;
         	$dataPromoCampaign['step_complete']			= 0;
         }

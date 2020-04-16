@@ -19,6 +19,7 @@ use App\Http\Models\DealsUser;
 use App\Http\Models\DealsVoucher;
 use App\Http\Models\SpinTheWheel;
 use App\Http\Models\Setting;
+use Modules\Brand\Entities\Brand;
 use App\Http\Models\DealsPromotionTemplate;
 
 use Modules\Deals\Entities\DealsProductDiscount;
@@ -260,6 +261,17 @@ class ApiDeals extends Controller
             return response()->json($data);
         }
 
+        //for 1 brand
+        if(!isset($data['id_brand'])){
+            $configBrand = Configs::where('config_name', 'use brand')->select('is_active')->first();
+            if(isset($configBrand['is_active']) && $configBrand['is_active'] != '1'){
+                $brand = Brand::select('id_brand')->first();
+                if(isset($brand['id_brand'])){
+                    $data['id_brand'] = $brand['id_brand'];
+                }
+            }
+        }
+
         if ($data['deals_type'] == 'Promotion') {
         	$save = DealsPromotionTemplate::create($data);
         }else{
@@ -331,7 +343,7 @@ class ApiDeals extends Controller
                 'deals_vouchers',
                 // 'deals_vouchers.deals_voucher_user',
                 // 'deals_vouchers.deals_user.user'
-            ])->where('id_deals', $request->json('id_deals'))->with(['outlets', 'outlets.city', 'product','brand']);
+            ])->where('id_deals', $request->json('id_deals'))->with(['deals_content', 'deals_content.deals_content_details', 'outlets', 'outlets.city', 'product','brand']);
         }else{
             $deals->addSelect('id_deals','deals_title','deals_second_title','deals_voucher_price_point','deals_voucher_price_cash','deals_total_voucher','deals_total_claimed','deals_voucher_type','deals_image','deals_start','deals_end','deals_type','is_offline','is_online','product_type','step_complete','deals_total_used','promo_type','deals_promo_id_type','deals_promo_id');
             if(strpos($request->user()->level,'Admin')>=0){
@@ -517,22 +529,22 @@ class ApiDeals extends Controller
             if($deals[0]['deals_voucher_price_type']=='free'){
                 //voucher free
                 $deals[0]['button_text'] = 'Get';
-                $payment_message = Setting::where('key', 'payment_messages')->pluck('value_text')->first()??'Kamu yakin ingin mengambil voucher ini?';
+                $payment_message = Setting::where('key', 'payment_messages')->pluck('value_text')->first()??'Are you sure you want to take this voucher?';
                 $payment_message = MyHelper::simpleReplace($payment_message,['deals_title'=>$deals[0]['deals_title']]);
             }
             elseif($deals[0]['deals_voucher_price_type']=='point')
             {
                 $deals[0]['button_text'] = 'Claim';
-                $payment_message = Setting::where('key', 'payment_messages_point')->pluck('value_text')->first()??'Anda akan menukarkan %point% points anda dengan Voucher %deals_title%?';
+                $payment_message = Setting::where('key', 'payment_messages_point')->pluck('value_text')->first()??'Are you going to exchange your %points% for a % deals_title%?';
                 $payment_message = MyHelper::simpleReplace($payment_message,['point'=>$deals[0]['deals_voucher_price_point'],'deals_title'=>$deals[0]['deals_title']]);
             }
             else
             {
                 $deals[0]['button_text'] = 'Buy';
-                $payment_message = Setting::where('key', 'payment_messages_cash')->pluck('value_text')->first()??'Anda akan membeli Voucher %deals_title% dengan harga %cash% ?';
+                $payment_message = Setting::where('key', 'payment_messages_cash')->pluck('value_text')->first()??'Will you buy a %deals_title% at a price of %cash%?';
                 $payment_message = MyHelper::simpleReplace($payment_message,['cash'=>$deals[0]['deals_voucher_price_cash'],'deals_title'=>$deals[0]['deals_title']]);
             }
-            $payment_success_message = Setting::where('key', 'payment_success_messages')->pluck('value_text')->first()??'Apakah kamu ingin menggunakan Voucher sekarang?';
+            $payment_success_message = Setting::where('key', 'payment_success_messages')->pluck('value_text')->first()??'Do you want to use this voucher now?';
             $deals[0]['payment_message'] = $payment_message;
             $deals[0]['payment_success_message'] = $payment_success_message;
             if($deals[0]['deals_voucher_price_type']=='free'&&$deals[0]['deals_status']=='available'){
@@ -609,6 +621,17 @@ class ApiDeals extends Controller
         }else{
             return response()->json(MyHelper::checkGet($deals));
         }
+    }
+
+    /* list of deals that haven't ended yet */
+    function listActiveDeals(Request $request){
+        $post = $request->json()->all();
+        $deals = Deal::where('deals_end', '>=', date('Y-m-d H:i:s'))->where('deals_type', 'Deals');
+        if(isset($post['select'])){
+            $deals = $deals->select($post['select']);
+        }
+        $deals = $deals->get();
+        return response()->json(MyHelper::checkGet($deals));
     }
 
     /* LIST */
@@ -924,13 +947,22 @@ class ApiDeals extends Controller
     /* LIST VOUCHER */
     function listVoucher(Request $request)
     {
-        $deals = DealsVoucher::select('*');
+
+    	if ($request->select) {
+        	$deals = DealsVoucher::select($request->select);
+    	}else{
+        	$deals = DealsVoucher::select('*');
+    	}
 
         if ($request->json('id_deals')) {
             $deals->where('id_deals', $request->json('id_deals'));
         }
 
-        $deals = $deals->paginate(10);
+        if ($request->is_all) {
+        	$deals = $deals->get();
+        }else{
+        	$deals = $deals->paginate(10);
+        }
 
         return response()->json(MyHelper::checkGet($deals));
     }
@@ -943,7 +975,7 @@ class ApiDeals extends Controller
         $data['step_complete'] = 0;
         $data['last_updated_by'] = auth()->user()->id;
 
-        if ($deals['product_type'] != $data['product_type'] || $data['is_online'] == 0) {
+        if ($deals['product_type'] != $data['product_type'] || $data['is_online'] == 0 || $deals['id_brand'] != $data['id_brand']) {
         	app($this->promo_campaign)->deleteAllProductRule('deals', $id);
         }
 

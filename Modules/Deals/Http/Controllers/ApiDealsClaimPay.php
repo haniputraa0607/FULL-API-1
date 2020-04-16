@@ -15,6 +15,7 @@ use App\Http\Models\DealsOutlet;
 use App\Http\Models\DealsPaymentManual;
 use App\Http\Models\DealsPaymentMidtran;
 use App\Http\Models\DealsPaymentOvo;
+use Modules\IPay88\Entities\DealsPaymentIpay88;
 use App\Http\Models\DealsUser;
 use App\Http\Models\DealsVoucher;
 use App\Http\Models\User;
@@ -300,6 +301,18 @@ class ApiDealsClaimPay extends Controller
                             'url'  => env('API_URL').'api/transaction/curl_cimb'
                         ]
                     ];
+                }elseif (($pay['payment']??false) == 'ipay88'){
+                    DB::commit();
+                    return [
+                        'status'    => 'success',
+                        'result'    => [
+                            'url'  => env('API_URL').'api/ipay88/pay?'.http_build_query([
+                                'type' => 'deals',
+                                'id_reference' => $voucher->id_deals_user,
+                                'payment_id' => $request->json('payment_id')?:''
+                            ])
+                        ]
+                    ];
                 }
             }
 
@@ -326,20 +339,6 @@ class ApiDealsClaimPay extends Controller
                 DB::commit();
                 $return = MyHelper::checkCreate($pay);
                 if(isset($return['status']) && $return['status'] == 'success'){
-                    if(\Module::collections()->has('Autocrm')) {
-                        $phone=User::where('id', $voucher->id_user)->pluck('phone')->first();
-                        $voucher->load('dealVoucher.deals');
-                        $autocrm = app($this->autocrm)->SendAutoCRM('Claim Paid Deals Success', $phone,
-                            [
-                                'claimed_at'                => $voucher->claimed_at,
-                                'deals_title'               => $voucher->dealVoucher->deals->deals_title,
-                                'id_deals_user'             => $return['result']['voucher']['id_deals_user'],
-                                'deals_voucher_price_point' => (string) $voucher->voucher_price_point,
-                                'id_deals'                  => $voucher->dealVoucher->deals->id_deals,
-                                'id_brand'                  => $voucher->dealVoucher->deals->id_brand
-                            ]
-                        );
-                    }
                     $result = [
                         'id_deals_user'=>$return['result']['voucher']['id_deals_user'],
                         'id_deals_voucher'=>$return['result']['voucher']['id_deals_voucher'],
@@ -353,6 +352,20 @@ class ApiDealsClaimPay extends Controller
                         $result['ovo'] = $return['result']['ovo'];
                     }else{
                         $result['redirect'] = false;
+                        if(\Module::collections()->has('Autocrm')) {
+                            $phone=User::where('id', $voucher->id_user)->pluck('phone')->first();
+                            $voucher->load('dealVoucher.deals');
+                            $autocrm = app($this->autocrm)->SendAutoCRM('Claim Paid Deals Success', $phone,
+                                [
+                                    'claimed_at'                => $voucher->claimed_at,
+                                    'deals_title'               => $voucher->dealVoucher->deals->deals_title,
+                                    'id_deals_user'             => $return['result']['voucher']['id_deals_user'],
+                                    'deals_voucher_price_point' => (string) $voucher->voucher_price_point,
+                                    'id_deals'                  => $voucher->dealVoucher->deals->id_deals,
+                                    'id_brand'                  => $voucher->dealVoucher->deals->id_brand
+                                ]
+                            );
+                        }
                     }
                     $result['webview_later'] = env('API_URL').'api/webview/mydeals/'.$return['result']['voucher']['id_deals_user'];
                     unset($return['result']);
@@ -404,6 +417,17 @@ class ApiDealsClaimPay extends Controller
                     'payment'           => 'cimb'
                 ];
                 return $cimb;
+            }
+
+            /* IPay88 */
+            if ($request->json('payment_deals') && $request->json('payment_deals') == "ipay88") {
+                $pay = $this->ipay88($dataDeals, $voucher);
+                $ipay88 = [
+                    'MERCHANT_TRANID'   => $pay['order_id'],
+                    'AMOUNT'            => $pay['amount'],
+                    'payment'           => 'ipay88'
+                ];
+                return $ipay88;
             }
 
            /* OVO */
@@ -490,6 +514,28 @@ class ApiDealsClaimPay extends Controller
             'order_id'  => $data['order_id'],
             'amount'    => $data['gross_amount']
         ];
+    }
+
+    /* IPay88 */
+    function ipay88($deals, $voucher, $grossAmount=null)
+    {
+        // simpan dulu di deals payment ipay88
+        $data = [
+            'id_deals'      => $deals->id_deals,
+            'id_deals_user' => $voucher->id_deals_user,
+            'amount'  => $voucher->voucher_price_cash*100,
+            'order_id'      => time().sprintf("%05d", $voucher->id_deals_user).'-'.$voucher->id_deals_user
+        ];
+        if (is_null($grossAmount)) {
+            if (!$this->updateInfoDealUsers($voucher->id_deals_user, ['payment_method' => 'Ipay88'])) {
+                 return false;
+            }
+        }
+        else {
+            $data['amount'] = $grossAmount*100;
+        }
+        $create = DealsPaymentIpay88::create($data);
+        return $create;
     }
 
     /* OVO */
@@ -792,12 +838,12 @@ class ApiDealsClaimPay extends Controller
     public function status(Request $request) {
         $voucher = DealsUser::select('id_deals_user','paid_status')->where('id_deals_user',$request->json('id_deals_user'))->first()->toArray();
         if($voucher['paid_status'] == 'Completed'){
-            $voucher['message'] = Setting::where('key', 'payment_success_messages')->pluck('value_text')->first()??'Apakah kamu ingin menggunakan Voucher sekarang?';
+            $voucher['message'] = Setting::where('key', 'payment_success_messages')->pluck('value_text')->first()??'Do you want to use this voucher now?';
             $voucher['url_webview'] = env('API_URL').'api/webview/mydeals/'.$voucher['id_deals_user'];
         }elseif($voucher['paid_status'] == 'Cancelled'){
-            $voucher['message'] = Setting::where('key', 'payment_ovo_fail_messages')->pluck('value_text')->first()??'Transaksi Gagal';
+            $voucher['message'] = Setting::where('key', 'payment_ovo_fail_messages')->pluck('value_text')->first()??'Failed Transactioan';
         }elseif($voucher['paid_status'] == 'Pending'){
-            $voucher['message'] = Setting::where('key', 'payment_ovo_pending_messages')->pluck('value_text')->first()??'Menunggu Pembayaran';
+            $voucher['message'] = Setting::where('key', 'payment_ovo_pending_messages')->pluck('value_text')->first()??'Waiting for Payment';
         }
 
         return MyHelper::checkGet($voucher);
@@ -874,6 +920,8 @@ class ApiDealsClaimPay extends Controller
                         return $this->ovo($deals, $voucher, -$kurangBayar);
                     }elseif($paymentMethod == 'cimb'){
                         return $this->cimb($deals, $voucher, -$kurangBayar);
+                    }elseif($paymentMethod == 'ipay88'){
+                        return $this->ipay88($deals, $voucher, -$kurangBayar);
                     }
                 }
             }

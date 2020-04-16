@@ -36,7 +36,8 @@ class ApiDealsVoucher extends Controller
 
         if (is_array($post['voucher_code'])) {
             $data = [];
-
+            $post['voucher_code'] = array_flip($post['voucher_code']);
+            $post['voucher_code'] = array_flip($post['voucher_code']);
             foreach ($post['voucher_code'] as $value) {
                 array_push($data, [
                     'id_deals'             => $post['id_deals'],
@@ -48,8 +49,16 @@ class ApiDealsVoucher extends Controller
             }
 
             if (!empty($data)) {
-                $save = DealsVoucher::insert($data);
 
+            	if (($post['add_type']??false) != 'add')
+            	{
+                	$save = DealsVoucher::where('id_deals',$post['id_deals'])->delete();
+            	    $save = DealsVoucher::insert($data);
+            	}else{
+            		foreach ($data as $key => $value) {
+            	    	$save = DealsVoucher::updateOrCreate(['id_deals' =>$post['id_deals'], 'voucher_code' => $value['voucher_code']],$value);
+            		}
+            	}
                 if ($save) {
                     // UPDATE VOUCHER TOTAL DEALS TABLE
                     $updateDealsTable = $this->updateTotalVoucher($post);
@@ -84,12 +93,13 @@ class ApiDealsVoucher extends Controller
 
     /* UPDATE TOTAL VOUCHER DEALS TABLE */
     function updateTotalVoucher($post) {
-        $jumlahVoucher = Deal::where('id_deals', $post['id_deals'])->select('deals_total_voucher')->first();
+        $jumlahVoucher = DealsVoucher::where('id_deals', $post['id_deals'])->count();
 
-        if (!empty($jumlahVoucher)) {
+        if ($jumlahVoucher) {
             // UPDATE DATA DEALS
+
             $save = Deal::where('id_deals', $post['id_deals'])->update([
-                'deals_total_voucher' => $jumlahVoucher->deals_total_voucher + count($post['voucher_code'])
+                'deals_total_voucher' => $jumlahVoucher
             ]);
 
             if ($save) {
@@ -125,6 +135,7 @@ class ApiDealsVoucher extends Controller
         }
         else {
             $save = $this->create($request->json()->all());
+            return $save;
             return response()->json($save);
         }
     }
@@ -240,7 +251,7 @@ class ApiDealsVoucher extends Controller
 
         $voucher = DealsUser::where('id_user', $request->user()->id)
                             ->whereIn('paid_status', ['Free', 'Completed'])
-                            ->with(['dealVoucher', 'dealVoucher.deal', 'dealVoucher.deal.outlets.city', 'dealVoucher.deal.outlets.city']);
+                            ->with(['dealVoucher', 'dealVoucher.deal', 'dealVoucher.deal.deals_content', 'dealVoucher.deal.deals_content.deals_content_details', 'dealVoucher.deal.outlets.city', 'dealVoucher.deal.outlets.city']);
         $voucher->select('deals_users.id_deals','voucher_expired_at','deals_users.id_deals_voucher','id_deals_user','id_outlet','voucher_hash','redeemed_at','used_at','is_used');
         if (isset($post['id_deals_user'])) {
             $voucher->addselect('deals_users.redeemed_at', 'deals_users.used_at');
@@ -251,8 +262,13 @@ class ApiDealsVoucher extends Controller
 
             if (isset($post['used']) && ($post['used'] == 1 || $post['used'] == '1'))  {
                 $query->orWhere(function ($amp) use ($post) {
-                        $amp->orWhereNotNull('used_at');
-                        $amp->orWhere('voucher_expired_at', '<=', date('Y-m-d H:i:s'));
+                        $amp->whereNotNull('used_at');
+                    });
+            }
+            if (isset($post['expired']) && ($post['expired'] == 1 || $post['expired'] == '1'))  {
+                $query->orWhere(function ($amp) use ($post) {
+                        $amp->where('voucher_expired_at', '<=', date('Y-m-d H:i:s'));
+                        $amp->whereNull('used_at');
                     });
             }
             if (isset($post['available']) && ($post['available'] == 1 || $post['available'] == '1')) {
@@ -480,7 +496,6 @@ class ApiDealsVoucher extends Controller
         if (!($post['used']??false)) {
 
                 foreach($voucher as $index => $dataVou){
-                    $voucher[$index]['detail_url'] = env('API_URL') ."api/detail/voucher/". $dataVou['id_deals_user'];
                     $voucher[$index]['webview_url_v2'] = env('API_URL') ."api/webview/voucher/v2/". $dataVou['id_deals_user'];
                     $voucher[$index]['button_text'] = 'Redeem';
                 }
@@ -515,7 +530,6 @@ class ApiDealsVoucher extends Controller
                     'deals_title'=>$var['deal_voucher']['deal']['deals_title']??'',
                     'deals_second_title'=>$var['deal_voucher']['deal']['deals_second_title']??'',
                     'webview_url_v2'=>$var['webview_url_v2']??'',
-                    'detail_url'=>$var['detail_url']??'',
                     'url_deals_image'=>$var['deal_voucher']['deal']['url_deals_image'],
                     'status_redeem'=>($var['redeemed_at']??false)?1:0,
                     'label'=>$var['label'],
@@ -657,7 +671,6 @@ class ApiDealsVoucher extends Controller
 			DB::rollBack();
 		}
 		$deals_user = MyHelper::checkUpdate($deals_user);
-		$deals_user['detail_url'] = env('API_URL') ."api/detail/voucher/". $id_deals_user;
 		$deals_user['webview_url_v2'] = env('API_URL') ."api/webview/voucher/v2/". $id_deals_user;
 		return $deals_user;
 

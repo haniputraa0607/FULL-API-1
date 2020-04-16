@@ -155,7 +155,7 @@ class PromoCampaignTools{
 					// count item get promo qty
 					if (isset($item_get_promo[$value[$id]])) 
 					{
-						if ( ($item_get_promo[$value[$id]] + $value['qty']) >= $max_product) {
+						if ( ($item_get_promo[$value[$id]] + $value['qty']) >= $max_product && !empty($max_product)) {
 							$item_get_promo[$value[$id]] = $max_product;
 						}else{
 							$item_get_promo[$value[$id]] += $value['qty'];
@@ -163,7 +163,7 @@ class PromoCampaignTools{
 					}
 					else
 					{
-						if ($value['qty'] >= $max_product) {
+						if ($value['qty'] >= $max_product  && !empty($max_product)) {
 							$item_get_promo[$value[$id]] = $max_product;
 						}else{
 							$item_get_promo[$value[$id]] = $value['qty'];
@@ -173,7 +173,7 @@ class PromoCampaignTools{
 					// count item group get promo qty
 					if (isset($item_group_get_promo[$value['id_product_group']])) 
 					{
-						if ( ($item_group_get_promo[$value['id_product_group']] + $value['qty']) >= $max_product) {
+						if ( ($item_group_get_promo[$value['id_product_group']] + $value['qty']) >= $max_product  && !empty($max_product)) {
 							$item_group_get_promo[$value['id_product_group']] = $max_product;
 						}else{
 							$item_group_get_promo[$value['id_product_group']] += $value['qty'];
@@ -181,7 +181,7 @@ class PromoCampaignTools{
 					}
 					else
 					{
-						if ($value['qty'] >= $max_product) {
+						if ($value['qty'] >= $max_product && !empty($max_product)) {
 							$item_group_get_promo[$value['id_product_group']] = $max_product;
 						}else{
 							$item_group_get_promo[$value['id_product_group']] = $value['qty'];
@@ -606,12 +606,13 @@ class PromoCampaignTools{
 				$benefit_item = [
 					'id_custom' 	=> isset(end($trxs)['id_custom']) ? end($trxs)['id_custom']+1 : '',
 					'id_product'	=> $benefit_product->id_product,
-					'id_brand'		=> $benefit_product->brands[0]->id_brand??'',
+					'id_brand'		=> $promo->id_brand??$benefit_product->brands[0]->id_brand??'',
 					'qty'			=> $promo_rule->benefit_qty,
 					'is_promo'		=> 1,
 					'is_free'		=> ($promo_rule->discount_type == "percent" && $promo_rule->discount_value == 100) ? 1 : 0,
 					'variants'		=> [$benefit_product->product_variants[0]->id_product_variant??'', $benefit_product->product_variants[1]->id_product_variant??''],
-					'modifiers'		=> []
+					'modifiers'		=> [],
+					'bonus'			=> 1
 				];
 
 				$discount+=$this->discount_product($benefit_product,$rule,$benefit_item);
@@ -1299,6 +1300,19 @@ class PromoCampaignTools{
             }
         }
         return true;
+    }
+
+    public function removeBonusItem($item)
+    {
+    	foreach ($item as $key => $value) 
+		{
+			if (!empty($value['bonus'])) {
+				unset($item[$key]);
+				break;
+			}
+		}
+
+		return $item;
     }
 
 }
