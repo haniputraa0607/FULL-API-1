@@ -46,6 +46,7 @@ class ApiMembershipWebview extends Controller
 		$result['user_membership']['membership_text_color'] = $result['user_membership']->membership->membership_text_color;
 
 		$membershipUser['name'] = $result['user_membership']->user->name;
+		$membershipUser['balance'] = MyHelper::requestNumber($result['user_membership']->user->balance, '_POINT');
 		$allMembership = Membership::with('membership_promo_id')->orderBy('min_total_value','asc')->orderBy('min_total_count', 'asc')->orderBy('min_total_balance', 'asc')->get()->toArray();
 		$nextMembershipName = "";
 		// $nextMembershipImage = "";
