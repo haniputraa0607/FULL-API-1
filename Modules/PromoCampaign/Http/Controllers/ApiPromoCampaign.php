@@ -289,7 +289,8 @@ class ApiPromoCampaign extends Controller
             'promo_campaign_tier_discount_rules',
             'promo_campaign_tier_discount_product',
             'promo_campaign_buyxgety_rules.product',
-            'promo_campaign_buyxgety_product_requirement'
+            'promo_campaign_buyxgety_product_requirement',
+            'promo_campaign_reports'
         ];
         $promoCampaign = PromoCampaign::with($data)->where('id_promo_campaign', '=', $post['id_promo_campaign'])->first();
         if ($promoCampaign['code_type'] == 'Single') {
@@ -718,7 +719,18 @@ class ApiPromoCampaign extends Controller
         if (isset($post['id_promo_campaign'])) {
             $post['last_updated_by'] = $user['id'];
             $datenow = date("Y-m-d H:i:s");
-            $checkData = PromoCampaign::with(['promo_campaign_have_tags.promo_campaign_tag'])->where('id_promo_campaign', '=', $post['id_promo_campaign'])->first();
+            $checkData = PromoCampaign::with([
+            				'promo_campaign_have_tags.promo_campaign_tag',
+            				'promo_campaign_promo_codes' => function($q) {
+            					$q->limit(1);
+            				}, 
+            				'promo_campaign_reports' => function($q) {
+            					$q->limit(1);
+            				}
+            			])
+            			->where('id_promo_campaign', '=', $post['id_promo_campaign'])
+            			->first();
+
             if (!$checkData) {
 				return  [
                     'status'  => 'fail',
@@ -726,40 +738,62 @@ class ApiPromoCampaign extends Controller
                 ];
 			}
 
-            if ($checkData['date_start'] <= $datenow) {
+			if ($checkData->promo_campaign_reports[0]??false) {
+           		return response()->json([
+                    'status'  => 'fail',
+                    'messages'  => ['Cannot update, promo already used']
+                ]);
+           	}
+// return [$checkData, $post, $datenow];
+           	if ($checkData->product_type != $post['product_type']) {
+           		return 0;
+				$delete_rule = $this->deleteAllProductRule('promo_campaign', $post['id_promo_campaign']);
+				$delete_outlet_rule = $this->deleteOutletRule('promo_campaign', $post['id_promo_campaign']);
+				if (!$delete_rule || !$delete_outlet_rule) {
+	           		return response()->json([
+	                    'status'  => 'fail',
+	                    'messages'  => ['Update Failed']
+	                ]);
+	           	}
+			}
+            if ($checkData->date_start <= $datenow) 
+            {
                 $post['date_start']     = $checkData['date_start'];
                 $post['date_end']       = $checkData['date_end'];
 
                 if ($checkData['code_type'] == 'Single') {
-                	$checkData = $checkData->load('promo_campaign_promo_codes');
-                    $checkData['promo_code'] = $checkData['promo_code'][0];
-                }
-
-                if ($checkData['product_type'] != $post['product_type']) {
-                	$deleteRule = $this->deleteAllProductRule('promo_campaign',$checkData['id_promo_campaign']);
-                    if (!$deleteRule) {
-                    	return  [
-		                    'status'  => 'fail',
-		                    'message'  => ['Update Promo Campaign failed']
-		                ];
-                    }
+                    $checkData['promo_code'] = $checkData->promo_campaign_promo_codes[0]->promo_code;
                 }
 
                 if ($checkData['code_type'] != $post['code_type'] ||
                 	$checkData['prefix_code'] != $post['prefix_code'] ||
                 	$checkData['number_last_code'] != $post['number_last_code'] ||
-                	$checkData['promo_code']['promo_code'] != $post['promo_code'] ||
-                	$checkData['total_coupon'] != $post['total_coupon'])
+                	$checkData['promo_code'] != $post['promo_code'] ||
+                	$checkData['total_coupon'] != $post['total_coupon']
+                	)
                 {
+
                     $promo_code = $post['promo_code']??null;
 
-                    unset($post['promo_code']);
+                    if ($post['code_type'] == 'Single') {
+                        unset($post['promo_code']);
+                    }
+
                     if (isset($post['promo_tag'])) {
                         $insertTag = $this->insertTag('update', $post['id_promo_campaign'], $post['promo_tag']);
                         unset($post['promo_tag']);
                     }
 
                     $promoCampaign = PromoCampaign::where('id_promo_campaign', '=', $post['id_promo_campaign'])->update($post);
+
+                    if (!$promoCampaign) {
+                    	DB::rollBack();
+                    	return response()->json([
+		                    'status'  => 'fail',
+		                    'messages'  => ['Update Failed']
+		                ]);
+                    }
+
                     $generateCode = $this->generateCode('update', $post['id_promo_campaign'], $post['code_type'], $promo_code, $post['prefix_code'], $post['number_last_code'], $post['total_coupon']);
 
                     if ($generateCode['status'] == 'success') {
@@ -776,6 +810,7 @@ class ApiPromoCampaign extends Controller
                         ];
                     }
                 } else {
+
                     $promo_code = $post['promo_code']??null;
                     if (isset($post['promo_code']) || $post['promo_code'] == null) {
                         unset($post['promo_code']);
@@ -792,7 +827,7 @@ class ApiPromoCampaign extends Controller
                     if ($promoCampaign == 1) {
                         $result = [
                             'status'  => 'success',
-                            'result'  => 'Update Promo Campaign',
+                            'result'  => 'Promo Campaign has been updated',
                             'promo-campaign'  => $post
                         ];
                     } else {
@@ -801,6 +836,7 @@ class ApiPromoCampaign extends Controller
                     }
                 }
             } else {
+
                 $promo_code = $post['promo_code'];
 
                 if (isset($post['promo_code']) || $post['promo_code'] == null) {
@@ -818,7 +854,7 @@ class ApiPromoCampaign extends Controller
                     PromoCampaign::where('id_promo_campaign', '=', $post['id_promo_campaign'])->update($post);
                     $result = [
                         'status'  => 'success',
-                        'result'  => 'Update Promo Campaign Before Start',
+                        'result'  => 'Promo Campaign has been updated',
                         'promo-campaign'  => $post
                     ];
                 } catch (\Exception $e) {
