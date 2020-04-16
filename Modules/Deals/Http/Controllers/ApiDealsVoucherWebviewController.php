@@ -85,9 +85,9 @@ class ApiDealsVoucherWebviewController extends Controller
         $post['used'] = 0;
 
         // $action = MyHelper::postCURLWithBearer('api/voucher/me?log_save=0', $post, $bearer);
-        $voucher = DealsUser::with(['deals_voucher', 'deals_voucher.deal', 'deals_voucher.deal.deals_content', 'deals_voucher.deal.deals_content.deals_content_details', 'deals_voucher.deal.outlets.city', 'deals_voucher.deal.outlets.city'])
+        $voucher = DealsUser::with(['outlet', 'deals_voucher', 'deals_voucher.deal', 'deals_voucher.deal.deals_content', 'deals_voucher.deal.deals_content.deals_content_details', 'deals_voucher.deal.outlets.city', 'deals_voucher.deal.outlets.city'])
         ->where('id_deals_user', $request->id_deals_user)->get()->toArray()[0];
-
+        
         if (!empty($voucher['deals_voucher']['deal']['outlets'])) {
             $kota = array_column($voucher['deals_voucher']['deal']['outlets'], 'city');
             $kota = array_values(array_map("unserialize", array_unique(array_map("serialize", $kota))));
@@ -163,11 +163,17 @@ class ApiDealsVoucherWebviewController extends Controller
             'header_offline_voucher'=> 'Offline Transaction',
             'title_offline_voucher' => 'Redeem directly at Cashier',
             'button_text'           => 'Redeem',
+            'text_before_scan'      => 'QR Code below<br>must be scanned by our Cashier',
             'popup_message'         => [
                 $data['deals_voucher']['deal']['deals_title'],
                 'will be used on the next transaction'
             ],
         ];
+
+        if ($data['outlet']['outlet_name']) {
+            
+            $result['text_after_scan'] = 'Voucher has been used<br>in '.$data['outlet']['outlet_name'];
+        }
 
         $i = 0;
         foreach ($data['deals_voucher']['deal']['deals_content'] as $keyContent => $valueContent) {
