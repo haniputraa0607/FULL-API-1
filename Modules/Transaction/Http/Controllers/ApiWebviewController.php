@@ -2,6 +2,7 @@
 
 namespace Modules\Transaction\Http\Controllers;
 
+use App\Http\Models\TransactionPaymentOvo;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -23,6 +24,7 @@ use App\Http\Models\DealsPaymentManual;
 
 use App\Lib\MyHelper;
 
+use Modules\IPay88\Entities\TransactionPaymentIpay88;
 use Modules\Transaction\Http\Requests\TransactionDetail;
 
 class ApiWebviewController extends Controller
@@ -138,6 +140,7 @@ class ApiWebviewController extends Controller
                             'productTransaction.product.product_photos',
                             'productTransaction.product.product_discounts',
                             'transaction_payment_offlines',
+                            'modifiers',
                             'outlet.city')->first();
                 }else{
                     $list = Transaction::where([['id_transaction', $id],
@@ -225,23 +228,40 @@ class ApiWebviewController extends Controller
                 if (isset($multiPayment)) {
                     foreach ($multiPayment as $key => $value) {
                         if ($value->type == 'Midtrans') {
-                            $getPayment = TransactionPaymentMidtran::where('id_transaction_payment', $value->id_payment)->first();
+                            $getPayment = TransactionPaymentMidtran::where('id_transaction', $list['id_transaction'])->first();
                             if (!empty($getPayment)) {
-                                $getPayment['type'] = 'Midtrans';
-                                array_push($dataPayment, $getPayment);
+                                $dataPush = [
+                                    'payment_method' => $getPayment['bank'],
+                                    'nominal' => $getPayment['gross_amount']
+                                ];
+                                array_push($dataPayment, $dataPush);
                             }
                         } elseif ($value->type == 'Balance') {
-                            $getPayment = TransactionPaymentBalance::where('id_transaction_payment_balance', $value->id_payment)->first();
+                            $getPayment = TransactionPaymentBalance::where('id_transaction', $list['id_transaction'])->first();
                             if (!empty($getPayment)) {
-                                $getPayment['type'] = 'Balance';
-                                array_push($dataPayment, $getPayment);
-                                $list['balance'] = $getPayment['balance_nominal'];
+                                $dataPush = [
+                                    'payment_method' => 'MAXX Points',
+                                    'nominal' => $getPayment['balance_nominal']
+                                ];
+                                array_push($dataPayment, $dataPush);
                             }
-                        } elseif ($value->type == 'Manual') {
-                            $getPayment = TransactionPaymentManual::where('id_transaction_payment_manual', $value->id_payment)->first();
+                        }elseif ($value->type == 'Ovo') {
+                            $getPayment = TransactionPaymentOvo::where('id_transaction', $list['id_transaction'])->first();
                             if (!empty($getPayment)) {
-                                $getPayment['type'] = 'Manual';
-                                array_push($dataPayment, $getPayment);
+                                $dataPush = [
+                                    'payment_method' => 'Ovo',
+                                    'nominal' => $getPayment['amount']
+                                ];
+                                array_push($dataPayment, $dataPush);
+                            }
+                        }elseif ($value->type == 'Ipay88') {
+                            $getPayment = TransactionPaymentIpay88::where('id_transaction', $list['id_transaction'])->first();
+                            if (!empty($getPayment)) {
+                                $dataPush = [
+                                    'payment_method' => $getPayment['payment_method'],
+                                    'nominal' => $getPayment['amount']
+                                ];
+                                array_push($dataPayment, $dataPush);
                             }
                         }
                     }
@@ -249,17 +269,24 @@ class ApiWebviewController extends Controller
                     if($list['trasaction_payment_type'] == 'Midtrans') {
                         $getPayment = TransactionPaymentMidtran::where('id_transaction', $list['id_transaction'])->first();
                         if (!empty($getPayment)) {
-                            $getPayment['type'] = 'Midtrans';
-                            array_push($dataPayment, $getPayment);
+                            $dataPush = [
+                                'payment_method' => $getPayment['bank'],
+                                'nominal' => $getPayment['gross_amount']
+                            ];
+                            array_push($dataPayment, $dataPush);
                         }
                     }
 
                     if ($list['trasaction_payment_type'] == 'Balance') {
                         $getPayment = TransactionPaymentBalance::where('id_transaction', $list['id_transaction'])->first();
                         if($getPayment){
-                            $getPayment['type'] = 'Balance';
-                            array_push($dataPayment, $getPayment);
-                            $list['balance'] = $getPayment['balance_nominal'];
+                            if (!empty($getPayment)) {
+                                $dataPush = [
+                                    'payment_method' => 'MAXX Points',
+                                    'nominal' => $getPayment['balance_nominal']
+                                ];
+                                array_push($dataPayment, $dataPush);
+                            }
                         }
                     }
                 }
