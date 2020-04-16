@@ -9,6 +9,7 @@ use App\Http\Models\DealsPaymentMidtran;
 use App\Http\Models\SubscriptionPaymentMidtran;
 use App\Http\Models\DealsUser;
 use App\Http\Models\SubscriptionUser;
+use App\Http\Models\TransactionPaymentOvo;
 use App\Http\Models\User;
 use App\Http\Models\Outlet;
 use App\Http\Models\LogBalance;
@@ -39,6 +40,7 @@ use App\Lib\MyHelper;
 use App\Lib\PushNotificationHelper;
 use App\Lib\Midtrans;
 use App\Lib\GoSend;
+use Modules\IPay88\Entities\TransactionPaymentIpay88;
 use Validator;
 use Hash;
 use DB;
@@ -1607,7 +1609,7 @@ Detail: ".$link['short'],
     }
 
     public function htmlDetail($id){
-        $list = Transaction::where('id_transaction', $id)->with('user.city.province', 'productTransaction.product.product_category', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'outlet.city')->first();
+        $list = Transaction::where('id_transaction', $id)->with('user.city.province', 'modifiers', 'productTransaction.product.product_category', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'outlet.city')->first();
 
 
             $dataPayment = [];
@@ -1617,17 +1619,40 @@ Detail: ".$link['short'],
             if (isset($multiPayment)) {
                 foreach ($multiPayment as $key => $value) {
                     if ($value->type == 'Midtrans') {
-                        $getPayment = TransactionPaymentMidtran::where('id_transaction_payment', $value->id_payment)->first();
+                        $getPayment = TransactionPaymentMidtran::where('id_transaction', $list['id_transaction'])->first();
                         if (!empty($getPayment)) {
-                            $getPayment['type'] = 'Midtrans';
-                            array_push($dataPayment, $getPayment);
+                            $dataPush = [
+                                'payment_method' => $getPayment['bank'],
+                                'nominal' => $getPayment['gross_amount']
+                            ];
+                            array_push($dataPayment, $dataPush);
                         }
                     } elseif ($value->type == 'Balance') {
-                        $getPayment = TransactionPaymentBalance::where('id_transaction_payment_balance', $value->id_payment)->first();
+                        $getPayment = TransactionPaymentBalance::where('id_transaction', $list['id_transaction'])->first();
                         if (!empty($getPayment)) {
-                            $getPayment['type'] = 'Balance';
-                            array_push($dataPayment, $getPayment);
-                            $list['balance'] = $getPayment['balance_nominal'];
+                            $dataPush = [
+                                'payment_method' => 'MAXX Points',
+                                'nominal' => $getPayment['balance_nominal']
+                            ];
+                            array_push($dataPayment, $dataPush);
+                        }
+                    }elseif ($value->type == 'Ovo') {
+                        $getPayment = TransactionPaymentOvo::where('id_transaction', $list['id_transaction'])->first();
+                        if (!empty($getPayment)) {
+                            $dataPush = [
+                                'payment_method' => 'Ovo',
+                                'nominal' => $getPayment['amount']
+                            ];
+                            array_push($dataPayment, $dataPush);
+                        }
+                    }elseif ($value->type == 'Ipay88') {
+                        $getPayment = TransactionPaymentIpay88::where('id_transaction', $list['id_transaction'])->first();
+                        if (!empty($getPayment)) {
+                            $dataPush = [
+                                'payment_method' => $getPayment['payment_method'],
+                                'nominal' => $getPayment['amount']
+                            ];
+                            array_push($dataPayment, $dataPush);
                         }
                     }
                 }
@@ -1635,8 +1660,11 @@ Detail: ".$link['short'],
                 if($list['trasaction_payment_type'] == 'Midtrans') {
                     $getPayment = TransactionPaymentMidtran::where('id_transaction', $list['id_transaction'])->first();
                     if (!empty($getPayment)) {
-                        $getPayment['type'] = 'Midtrans';
-                        array_push($dataPayment, $getPayment);
+                        $dataPush = [
+                            'payment_method' => $getPayment['bank'],
+                            'nominal' => $getPayment['gross_amount']
+                        ];
+                        array_push($dataPayment, $dataPush);
                     }
                 }
 
