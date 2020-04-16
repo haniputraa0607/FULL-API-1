@@ -488,6 +488,20 @@
                     <div class="col-8 Ubuntu-Medium text-black" style="margin-left: -20px;">{{$item['product']['product_name']}}</div>
                     <div class="col-3 text-right Ubuntu-Medium text-black" style="padding-right: 0px;">{{ MyHelper::requestNumber(explode('.',$item['transaction_product_price'])[0], '_CURRENCY') }}</div>
                 </div>
+            <div class="row space-text col-12">
+                <div class="col-2 Ubuntu text-left"></div>
+                <div class="col-8 Ubuntu-Medium text-grey" style="margin-left: -20px;size: 10px">
+                    <?php
+                        $topping = '';
+                        foreach ($data['modifiers'] as $mf){
+                            $topping .= $mf['text']. '('.$mf['qty'].'),';
+
+                            echo rtrim($topping, ",");
+                        }
+                    ?>
+                </div>
+                <div class="col-3 text-right Ubuntu-Medium text-black" style="padding-right: 0px;"></div>
+            </div>
                 <div class="row space-text col-12">
                     @if (!empty($item['product']['product_discounts']))
                         <div class="col-2 Ubuntu text-black">{{$item['transaction_product_qty']}}x</div>
@@ -513,7 +527,7 @@
         </div>
         <div class="row" style="padding-left: -7px;padding-right: -7px;background-color: #f0f3f7;border-radius: 5px;">
             <div class="col-6 text-13-3px Ubuntu-Medium text-black" style="padding: 7px;">Grand Total</div>
-            MyHelper::requestNumber($value['transaction_grandtotal'], '_CURRENCY');
+            {{MyHelper::requestNumber($data['transaction_grandtotal'], '_CURRENCY')}}
             <div class="col-6 text-13-3px text-right Ubuntu-Bold text-black" style="padding: 7px;">{{ MyHelper::requestNumber($data['transaction_grandtotal'], '_CURRENCY') }}</div>
         </div>
     </div>
@@ -523,13 +537,10 @@
             <div class="col-12 text-14px Ubuntu-Bold text-black">Payment Method</div>
         </div>
         <div class="row">
-            @php if(strtoupper($data['trasaction_payment_type']) == 'BALANCE') $data['trasaction_payment_type'] = 'points' @endphp
-            <div class="col-6 text-13-3px Ubuntu text-black ">{{strtoupper($data['trasaction_payment_type'])}}</div>
-            @if(isset($data['balance']))
-                <div class="col-6 text-13-3px text-right Ubuntu-Medium text-black">{{ MyHelper::requestNumber($data['transaction_grandtotal'] - $data['balance'], '_CURRENCY') }}</div>
-            @else
-                <div class="col-6 text-13-3px text-right Ubuntu-Medium text-black">{{ MyHelper::requestNumber($data['transaction_grandtotal'], '_CURRENCY') }}</div>
-            @endif
+            @foreach($data['data_payment'] as $dp)
+                <div class="col-6 text-13-3px Ubuntu text-black ">{{strtoupper($dp['payment_method'])}}</div>
+                <div class="col-6 text-13-3px text-right Ubuntu-Medium text-black">{{ MyHelper::requestNumber($dp['nominal'], '_CURRENCY') }}</div>
+            @endforeach
         </div>
     </div>
 
