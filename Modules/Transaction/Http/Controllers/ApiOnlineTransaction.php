@@ -43,6 +43,7 @@ use Modules\PromoCampaign\Entities\PromoCampaignPromoCode;
 use Modules\PromoCampaign\Entities\PromoCampaignReferral;
 use Modules\PromoCampaign\Entities\PromoCampaignReferralTransaction;
 use Modules\PromoCampaign\Entities\UserReferralCode;
+use Modules\PromoCampaign\Entities\PromoCampaignReport;
 
 use Modules\Balance\Http\Controllers\NewTopupController;
 use Modules\PromoCampaign\Lib\PromoCampaignTools;
@@ -752,6 +753,27 @@ class ApiOnlineTransaction extends Controller
             }
         }
 
+        // add promo campaign report
+        if($request->json('promo_code'))
+        {
+        	$promo_campaign_report = app($this->promo_campaign)->addReport(
+				$code->id_promo_campaign, 
+				$code->id_promo_campaign_promo_code,
+				$insertTransaction['id_transaction'],
+				$insertTransaction['id_outlet'],
+				$request->device_id,
+				$request->device_type,
+				$code->used_code
+			);
+
+        	if (!$promo_campaign_report) {
+        		DB::rollBack();
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['Insert Transaction Failed']
+                ]);
+        	}
+        }
         //update receipt
         // $receipt = 'TRX-'.MyHelper::createrandom(6,'Angka').time().MyHelper::createrandom(3,'Angka').$insertTransaction['id_outlet'].MyHelper::createrandom(3,'Angka');
         // $updateReceiptNumber = Transaction::where('id_transaction', $insertTransaction['id_transaction'])->update([
