@@ -1419,11 +1419,11 @@ class ApiTransaction extends Controller
             }else{
                 $list = Transaction::where([['id_transaction', $id],
                 ['id_user',$request->user()->id]])->with(
-                    // 'user.city.province', 
-                    'productTransaction.product.product_category', 
-                    'productTransaction.modifiers', 
-                    'productTransaction.product.product_photos', 
-                    'productTransaction.product.product_discounts', 
+                    // 'user.city.province',
+                    'productTransaction.product.product_category',
+                    'productTransaction.modifiers',
+                    'productTransaction.product.product_photos',
+                    'productTransaction.product.product_discounts',
                     'transaction_payment_offlines',
                     'transaction_vouchers.deals_voucher.deal',
                     'promo_campaign_promo_code.promo_campaign',
@@ -1697,7 +1697,7 @@ class ApiTransaction extends Controller
                 'desc'      => $quantity . ' items',
                 'amount'    => MyHelper::requestNumber($list['transaction_subtotal'],'_CURRENCY')
             ];
-            
+
             $p = 0;
             if (!empty($list['transaction_vouchers'])) {
                 foreach ($list['transaction_vouchers'] as $valueVoc) {
@@ -1710,7 +1710,7 @@ class ApiTransaction extends Controller
                     ];
                 }
             }
-            
+
             if (!empty($list['promo_campaign_promo_code'])) {
                 $result['promo']['code'][$p++]   = $list['promo_campaign_promo_code']['promo_code'];
                 $result['payment_detail'][] = [
@@ -1786,11 +1786,11 @@ class ApiTransaction extends Controller
             return response()->json(MyHelper::checkGet($result));
         } else {
             $list = DealsUser::with('outlet', 'dealVoucher.deal')->where('id_deals_user', $id)->orderBy('claimed_at', 'DESC')->first();
-            
+
             if (empty($list)) {
                 return response()->json(MyHelper::checkGet($list));
             }
-            
+
             $result = [
                 'trasaction_type'               => 'voucher',
                 'id_deals_user'                 => $list['id_deals_user'],
@@ -1956,12 +1956,20 @@ class ApiTransaction extends Controller
             $data['outlet'] = $select['outlet']['outlet_name'];
             $data['online'] = 1;
             $data['detail'] = $select;
-            
+
+            $usedAt = '';
+            $status = 'UNUSED';
+            if($data['detail']['used_at'] != null){
+                $usedAt = date('d M Y H:i', strtotime($data['detail']['used_at']));
+                $status = 'USED';
+            }
+
             $result = [
                 'type'                          => $data['type'],
                 'id_log_balance'                => $data['id_log_balance'],
                 'id_deals_user'                 => $data['detail']['id_deals_user'],
-                'used_at'                       => date('d M Y H:i', strtotime($data['detail']['used_at'])),
+                'status'                        => $status,
+                'used_at'                       => $usedAt,
                 'transaction_receipt_number'    => implode('', [strtotime($data['date']), $data['detail']['id_deals_user']]),
                 'transaction_date'              => date('d M Y H:i', strtotime($data['date'])),
                 'balance'                       => MyHelper::requestNumber($data['balance'], '_POINT'),
@@ -1971,7 +1979,7 @@ class ApiTransaction extends Controller
                 'title'                         => $data['detail']['dealVoucher']['deal']['deals_title']
             ];
         }
-        
+
         return response()->json(MyHelper::checkGet($result));
     }
 
