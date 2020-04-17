@@ -762,8 +762,7 @@ class ApiOnlineTransaction extends Controller
 				$insertTransaction['id_transaction'],
 				$insertTransaction['id_outlet'],
 				$request->device_id,
-				$request->device_type,
-				$code->used_code
+				$request->device_type
 			);
 
         	if (!$promo_campaign_report) {
