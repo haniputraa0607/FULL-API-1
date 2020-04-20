@@ -573,6 +573,10 @@ class ApiPOS extends Controller
                 foreach ($value['store_schedule'] as $valueSchedule) {
                     try {
                         $valueSchedule = $this->setTimezone($valueSchedule);
+                        if(isset($valueSchedule['is_close'])){
+                            $valueSchedule['is_closed'] = $valueSchedule['is_close'];
+                            unset($valueSchedule['is_close']);
+                        }
                         OutletSchedule::updateOrCreate(['id_outlet' => $cekOutlet->id_outlet, 'day' => $valueSchedule['day']], $valueSchedule);
                     } catch (Exception $e) {
                         DB::rollBack();
@@ -602,6 +606,8 @@ class ApiPOS extends Controller
                         $valueSchedule['id_outlet'] = $save->id_outlet;
                         try {
                             $valueSchedule = $this->setTimezone($valueSchedule);
+                            $valueSchedule['is_closed'] = $valueSchedule['is_close'];
+                            unset($valueSchedule['is_close']);
                             OutletSchedule::create($valueSchedule);
                         } catch (Exception $e) {
                             DB::rollBack();
