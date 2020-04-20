@@ -69,7 +69,11 @@ class ApiAutoCrm extends Controller
 					$getSetting = Setting::where('key', 'LIKE', 'email%')->get()->toArray();
 					$setting = array();
 					foreach ($getSetting as $key => $value) {
-						$setting[$value['key']] = $value['value'];
+                        if($value['key'] == 'email_setting_url'){
+                            $setting[$value['key']]  = (array)json_decode($value['value_text']);
+                        }else{
+                            $setting[$value['key']] = $value['value'];
+                        }
 					}
 
 					$data = array(
@@ -188,7 +192,11 @@ class ApiAutoCrm extends Controller
 						$getSetting = Setting::where('key', 'LIKE', 'email%')->get()->toArray();
 						$setting = array();
 						foreach ($getSetting as $key => $value) {
-							$setting[$value['key']] = $value['value'];
+                            if($value['key'] == 'email_setting_url'){
+                                $setting[$value['key']]  = (array)json_decode($value['value_text']);
+                            }else{
+                                $setting[$value['key']] = $value['value'];
+                            }
 						}
 
 						$data = array(

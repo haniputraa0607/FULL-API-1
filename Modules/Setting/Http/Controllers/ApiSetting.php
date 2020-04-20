@@ -1576,4 +1576,69 @@ class ApiSetting extends Controller
         return response()->json(MyHelper::checkUpdate($update));
     }
     /* ============== End Maintenance Mode Setting ============== */
+
+    /* ============== Start Some URL email Setting ============== */
+    function someUrlEmail(Request $request){
+        $post = $request->json()->all();
+
+        if($post){
+            $getData = Setting::where('key', 'email_setting_url')->first()->value_text;
+            $data = (array)json_decode($getData);
+
+            foreach ($data as $key=>$value){
+                $nameIcon = 'icon_'.$key;
+                $val = (array)$value;
+
+                if (filter_var($post[$key], FILTER_VALIDATE_URL) === FALSE) {
+                    return response()->json(['status' => 'fail', 'messages' => ['URL not valid']]);
+                }else{
+                    $data[$key]->url = $post[$key];
+                }
+
+                if(isset($post['images'][$nameIcon])){
+                    if($val['icon'] != ''){
+                        //Delete old icon
+                        MyHelper::deletePhoto($val['icon']);
+                    }
+                    $imgEncode = $post['images'][$nameIcon];
+
+                    $decoded = base64_decode($imgEncode);
+                    $img    = Image::make($decoded);
+                    $width  = $img->width();
+                    $height = $img->height();
+
+                    if($width == $height){
+                        $upload = MyHelper::uploadPhoto($imgEncode, $path = 'img/icon/');
+
+                        if ($upload['status'] == "success") {
+                            $data[$key]->icon= $upload['path'];
+                        } else {
+                            array_push($arrFailedUploadImage, $key);
+                        }
+                    }else{
+                        array_push($arrFailedUploadImage, $key.'[dimensions not allowed]');
+                    }
+                }
+            }
+
+            $update = Setting::where('key','email_setting_url')->update(['value_text' => json_encode($data), 'updated_at' => date('Y-m-d H:i:s')]);
+
+            if(!$update){
+                return response()->json(['status' => 'fail', 'messages' => ['There is an error']]);
+            }else{
+                return response()->json(['status' => 'success']);
+            }
+        }else{
+            $get = Setting::where('key', 'email_setting_url')->first();
+            $get = (array)json_decode($get->value_text);
+            foreach ($get as $key=>$value){
+                $val = (array)$value;
+                if($val['icon'] != ''){
+                    $get[$key]->icon = env('S3_URL_API').$val['icon'];
+                }
+            }
+            return response()->json(MyHelper::checkGet($get));
+        }
+    }
+    /* ============== End Some URL email Setting ============== */
 }
