@@ -1264,20 +1264,6 @@ class ApiOnlineTransaction extends Controller
             $id_pickup_go_send = $gosend->id_transaction_pickup_go_send;
         }
 
-        if($request->json('id_deals_user') && !$request->json('promo_code'))
-        {
-        	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $deals['id_deals_voucher'])->where('status','success')->count();
-
-			if(($check_trx_voucher??false) > 1)
-			{
-				DB::rollBack();
-	            return [
-	                'status'=>'fail',
-	                'messages'=>['Voucher is not valid']
-	            ];
-	        }
-        }
-
         if ($post['transaction_payment_status'] == 'Completed') {
             //========= This process to check if user have fraud ============//
             $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
@@ -1359,23 +1345,13 @@ class ApiOnlineTransaction extends Controller
                     }
                     $usere  = User::where('id',$insertTransaction['id_user'])->first();
                     $outlet = Outlet::where('id_outlet',$insertTransaction['id_outlet'])->first();
-                    $send   = app($this->autocrm)->SendAutoCRM('Transaction Point Achievement', $usere->phone,
-                        [
-                            "outlet_name"       => $outlet->outlet_name,
-                            "transaction_date"  => $insertTransaction['transaction_date'],
-                            'id_transaction'    => $insertTransaction['id_transaction'],
-                            'receipt_number'    => $insertTransaction['transaction_receipt_number'],
-                            'received_point'    => (string) $insertTransaction['transaction_cashback_earned']
-                        ]
-                    );
-                    if($send != true){
-                        DB::rollBack();
-                        return response()->json([
-                            'status' => 'fail',
-                            'messages' => ['Failed Send notification to customer']
-                        ]);
-                    }
-
+                    $data_autocrm_cashback = [
+                    	"outlet_name"       => $outlet->outlet_name,
+                        "transaction_date"  => $insertTransaction['transaction_date'],
+                        'id_transaction'    => $insertTransaction['id_transaction'],
+                        'receipt_number'    => $insertTransaction['transaction_receipt_number'],
+                        'received_point'    => (string) $insertTransaction['transaction_cashback_earned']
+                    ];
                 }
 
             }else{
@@ -1451,6 +1427,21 @@ class ApiOnlineTransaction extends Controller
                     $mid['gross_amount'] = 0;
 
                     $insertTransaction = Transaction::with('user.memberships', 'outlet', 'productTransaction')->where('transaction_receipt_number', $insertTransaction['transaction_receipt_number'])->first();
+
+                    if($request->json('id_deals_user') && !$request->json('promo_code'))
+			        {
+			        	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $deals['id_deals_voucher'])->where('status','success')->count();
+
+						if(($check_trx_voucher??false) > 1)
+						{
+							DB::rollBack();
+				            return [
+				                'status'=>'fail',
+				                'messages'=>['Voucher is not valid']
+				            ];
+				        }
+			        }
+
 
                     if ($configAdminOutlet && $configAdminOutlet['is_active'] == '1') {
                         $sendAdmin = app($this->notif)->sendNotif($insertTransaction);
@@ -1567,6 +1558,30 @@ class ApiOnlineTransaction extends Controller
             ];
             app($this->setting_fraud)->fraudCheckReferralUser($data);
             //======= End Check Fraud Referral User =======//
+        }
+
+        if($request->json('id_deals_user') && !$request->json('promo_code'))
+        {
+        	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $deals['id_deals_voucher'])->where('status','success')->count();
+
+			if(($check_trx_voucher??false) > 1)
+			{
+				DB::rollBack();
+	            return [
+	                'status'=>'fail',
+	                'messages'=>['Voucher is not valid']
+	            ];
+	        }
+        }
+        if (!empty($data_autocrm_cashback)) {
+	        $send   = app($this->autocrm)->SendAutoCRM('Transaction Point Achievement', $usere->phone,$data_autocrm_cashback);
+	        if($send != true){
+	            DB::rollBack();
+	            return response()->json([
+	                'status' => 'fail',
+	                'messages' => ['Failed Send notification to customer']
+	            ]);
+	        }
         }
 
         DB::commit();
