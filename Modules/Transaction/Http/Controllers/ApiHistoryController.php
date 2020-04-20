@@ -600,7 +600,7 @@ class ApiHistoryController extends Controller
                 $dataList['status_point'] = 0;
             }
             $dataList['rate_status'] = UserRating::where('id_transaction',$value['id_transaction'])->exists()?1:0;
-            $dataList['payment_status'] = $value['transaction_payment_status'];
+            $dataList['payment_status'] = strtoupper($value['transaction_payment_status']);
 
             $listTransaction[] = $dataList;
         }
