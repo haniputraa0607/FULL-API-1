@@ -543,6 +543,7 @@ class ApiAutoCrm extends Controller
 							$inbox['inboxes_id_reference'] = $variables['id_deals'];
 							$inbox['id_brand'] = $variables['id_brand'];
 						}else {
+                            $inbox['inboxes_clickto'] = "";
 							$inbox['inboxes_id_reference'] = 0;
 						}
 					}

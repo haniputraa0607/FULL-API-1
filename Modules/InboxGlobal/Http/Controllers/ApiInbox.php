@@ -99,6 +99,15 @@ class ApiInbox extends Controller
 					$content['link'] = null;
 				}
 
+                if(is_numeric(strpos(strtolower($global['inbox_global_subject']), 'transaksi')) || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'transaction'))
+                    || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'deal'))  || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'voucher'))
+                    || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'order')) ||
+                    is_numeric(strpos(strtolower($global['inbox_global_subject']), 'first'))){
+                    $content['clickto'] = $global['inbox_global_clickto'];
+                }else{
+                    $content['clickto'] = '';
+                }
+
 				$content['created_at'] 	 = $global['inbox_global_start'];
 
 				$read = InboxGlobalRead::where('id_inbox_global', $global['id_inbox_global'])->where('id_user', $user['id'])->first();
@@ -165,6 +174,15 @@ class ApiInbox extends Controller
 			}else{
 				$content['link'] = null;
 			}
+
+            if(is_numeric(strpos(strtolower($private['inboxes_subject']), 'transaksi')) || is_numeric(strpos(strtolower($private['inboxes_subject']), 'transaction'))
+                || is_numeric(strpos(strtolower($private['inboxes_subject']), 'deal'))  || is_numeric(strpos(strtolower($private['inboxes_subject']), 'voucher'))
+                || is_numeric(strpos(strtolower($private['inboxes_subject']), 'order')) ||
+                is_numeric(strpos(strtolower($private['inboxes_subject']), 'first'))){
+                $content['clickto'] = $private['inboxes_clickto'];
+            }else{
+                $content['clickto'] = '';
+            }
 
 			$content['created_at'] 	 = $private['inboxes_send_at'];
 
