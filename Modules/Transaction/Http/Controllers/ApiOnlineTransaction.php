@@ -1264,6 +1264,20 @@ class ApiOnlineTransaction extends Controller
             $id_pickup_go_send = $gosend->id_transaction_pickup_go_send;
         }
 
+        if($request->json('id_deals_user') && !$request->json('promo_code'))
+        {
+        	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $deals['id_deals_voucher'])->where('status','success')->count();
+
+			if(($check_trx_voucher??false) > 1)
+			{
+				DB::rollBack();
+	            return [
+	                'status'=>'fail',
+	                'messages'=>['Voucher is not valid']
+	            ];
+	        }
+        }
+
         if ($post['transaction_payment_status'] == 'Completed') {
             //========= This process to check if user have fraud ============//
             $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
