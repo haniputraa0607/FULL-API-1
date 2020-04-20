@@ -1566,7 +1566,7 @@ class ApiTransaction extends Controller
                     $payment = [];
                     foreach($multiPayment as $dataKey => $dataPay){
                         if($dataPay['type'] == 'IPay88'){
-                            $payment[$dataKey]['name']    = 'Ipay88';
+                            $payment[$dataKey]['name']    = 'Credit / Debit Card';
                             $payment[$dataKey]['amount']    = TransactionPaymentIpay88::find($dataPay['id_payment'])->amount / 100;
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
@@ -1700,8 +1700,10 @@ class ApiTransaction extends Controller
                 $result['product_transaction'][$keyTrx]['transaction_product_note']             = $valueTrx['transaction_product_note'];
                 $result['product_transaction'][$keyTrx]['product']['product_name']              = $valueTrx['product']['product_name'];
                 $discount = $discount + $valueTrx['transaction_product_discount'];
-                foreach ($valueTrx['product']['product_variants'] as $keyVar => $valueVar) {
-                    $result['product_transaction'][$keyTrx]['product']['product_variants'][$keyVar]['product_variant_name']     = $valueVar['product_variant_name'];
+                if(isset($valueTrx['product']['product_variants'])){
+                    foreach ($valueTrx['product']['product_variants'] as $keyVar => $valueVar) {
+                        $result['product_transaction'][$keyTrx]['product']['product_variants'][$keyVar]['product_variant_name']     = $valueVar['product_variant_name'];
+                    }
                 }
                 foreach ($valueTrx['modifiers'] as $keyMod => $valueMod) {
                     $result['product_transaction'][$keyTrx]['product']['product_modifiers'][$keyMod]['product_modifier_name']   = $valueMod['text'];
