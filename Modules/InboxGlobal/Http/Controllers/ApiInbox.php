@@ -115,6 +115,15 @@ class ApiInbox extends Controller
 				$content['link'] = null;
 			}
 
+            if(is_numeric(strpos(strtolower($content['subject']), 'transaksi')) || is_numeric(strpos(strtolower($content['subject']), 'transaction'))
+                || is_numeric(strpos(strtolower($content['subject']), 'deal'))  || is_numeric(strpos(strtolower($content['subject']), 'voucher'))
+                || is_numeric(strpos(strtolower($content['subject']), 'order')) ||
+                is_numeric(strpos(strtolower($content['subject']), 'first'))){
+                $content['clickto'] = $content['clickto'];
+            }else{
+                $content['clickto'] = '';
+            }
+
 			unset($content['inbox_global_rule_parents']);			
 			if($mode == 'simple'){
 				$arrInbox[] = $content;
