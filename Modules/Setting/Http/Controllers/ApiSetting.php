@@ -1588,36 +1588,42 @@ class ApiSetting extends Controller
             foreach ($data as $key=>$value){
                 $nameIcon = 'icon_'.$key;
                 $val = (array)$value;
+                $url = $post[$key];
 
-                if (filter_var($post[$key], FILTER_VALIDATE_URL) === FALSE) {
-                    return response()->json(['status' => 'fail', 'messages' => ['URL not valid']]);
-                }else{
-                    $data[$key]->url = $post[$key];
-                }
-
-                if(isset($post['images'][$nameIcon])){
-                    if($val['icon'] != ''){
-                        //Delete old icon
-                        MyHelper::deletePhoto($val['icon']);
-                    }
-                    $imgEncode = $post['images'][$nameIcon];
-
-                    $decoded = base64_decode($imgEncode);
-                    $img    = Image::make($decoded);
-                    $width  = $img->width();
-                    $height = $img->height();
-
-                    if($width == $height){
-                        $upload = MyHelper::uploadPhoto($imgEncode, $path = 'img/icon/');
-
-                        if ($upload['status'] == "success") {
-                            $data[$key]->icon= $upload['path'];
-                        } else {
-                            array_push($arrFailedUploadImage, $key);
-                        }
+                if(isset($post['checkbox_'.$key])){
+                    if (filter_var($url, FILTER_VALIDATE_URL)) {
+                        $data[$key]->url = $post[$key];
                     }else{
-                        array_push($arrFailedUploadImage, $key.'[dimensions not allowed]');
+                        return response()->json(['status' => 'fail', 'messages' => ['URL not valid']]);
                     }
+
+                    $data[$key]->use = "1";
+                    if(isset($post['images'][$nameIcon])){
+                        if($val['icon'] != ''){
+                            //Delete old icon
+                            MyHelper::deletePhoto($val['icon']);
+                        }
+                        $imgEncode = $post['images'][$nameIcon];
+
+                        $decoded = base64_decode($imgEncode);
+                        $img    = Image::make($decoded);
+                        $width  = $img->width();
+                        $height = $img->height();
+
+                        if($width == $height){
+                            $upload = MyHelper::uploadPhoto($imgEncode, $path = 'img/icon/');
+
+                            if ($upload['status'] == "success") {
+                                $data[$key]->icon= $upload['path'];
+                            } else {
+                                array_push($arrFailedUploadImage, $key);
+                            }
+                        }else{
+                            array_push($arrFailedUploadImage, $key.'[dimensions not allowed]');
+                        }
+                    }
+                }else{
+                    $data[$key]->use = "0";
                 }
             }
 

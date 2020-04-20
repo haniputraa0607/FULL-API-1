@@ -104,18 +104,18 @@
 						<tr>
 							<td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0">
 								<ul style="list-style:none;margin:0;padding:0">
+									@if(isset($setting['email_setting_url']['url_play_store']) && $setting['email_setting_url']['url_play_store']->use == 1)
 									<li style="display:inline-block">
-										@if(isset($setting['email_setting_url']['url_play_store']))
-											<a href="{{$setting['email_setting_url']['url_play_store']->url}}" style="color:#a30046!important;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;text-decoration:none" target="_blank"><img class="m_6657055476784441913CToWUd CToWUd" alt="Download iOS Apps" style="border:0 none;outline:none;text-decoration:none;width:50px" src="{{env('S3_URL_API')}}{{$setting['email_setting_url']['url_play_store']->icon}}">
-											</a>
-										@endif
+										<a href="{{$setting['email_setting_url']['url_play_store']->url}}" style="color:#a30046!important;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;text-decoration:none" target="_blank"><img class="m_6657055476784441913CToWUd CToWUd" alt="Download iOS Apps" style="border:0 none;outline:none;text-decoration:none;width:50px" src="{{env('S3_URL_API')}}{{$setting['email_setting_url']['url_play_store']->icon}}">
+										</a>
 									</li>
+									@endif
+									@if(isset($setting['email_setting_url']['url_app_store']) && $setting['email_setting_url']['url_app_store']->use == 1)
 									<li style="display:inline-block">
-										@if(isset($setting['email_setting_url']['url_app_store']))
-											<a href="{{$setting['email_setting_url']['url_app_store']->url}}" style="color:#a30046!important;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;text-decoration:none" target="_blank"><img class="m_6657055476784441913CToWUd CToWUd" alt="Download iOS Apps" style="border:0 none;outline:none;text-decoration:none;width:50px" src="{{env('S3_URL_API')}}{{$setting['email_setting_url']['url_app_store']->icon}}">
-											</a>
-										@endif
+										<a href="{{$setting['email_setting_url']['url_app_store']->url}}" style="color:#a30046!important;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;text-decoration:none" target="_blank"><img class="m_6657055476784441913CToWUd CToWUd" alt="Download iOS Apps" style="border:0 none;outline:none;text-decoration:none;width:50px" src="{{env('S3_URL_API')}}{{$setting['email_setting_url']['url_app_store']->icon}}">
+										</a>
 									</li>
+									@endif
 								</ul>
 							</td>
 							<td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;width: 10px"></td>
@@ -126,30 +126,30 @@
 						<tr>
 							<td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0">
 								<ul style="list-style:none;margin:0;padding:0">
+									@if(isset($setting['email_setting_url']['url_facebook']) && $setting['email_setting_url']['url_facebook']->use == 1)
 									<li style="display:inline-block">
-										@if(isset($setting['email_setting_url']['url_facebook']))
-											<a href="{{$setting['email_setting_url']['url_facebook']->url}}" style="color:#a30046!important;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;text-decoration:none" target="_blank" data-saferedirecturl="https://www.google.com/url?q=http://facebook.com/vourest&amp;source=gmail&amp;ust=1539830594941000&amp;usg=AFQjCNGWeiiiMPqpyJLEsoW2fEKq_Eg8Qg"><img class="m_6657055476784441913CToWUd CToWUd" alt="Vourest" style="border:0 none;min-height:24px;line-height:100%;outline:none;text-decoration:none;width:24px" src="{{env('S3_URL_API')}}{{$setting['email_setting_url']['url_facebook']->icon}}">
-											</a>
-										@endif
+										<a href="{{$setting['email_setting_url']['url_facebook']->url}}" style="color:#a30046!important;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;text-decoration:none" target="_blank" data-saferedirecturl="https://www.google.com/url?q=http://facebook.com/vourest&amp;source=gmail&amp;ust=1539830594941000&amp;usg=AFQjCNGWeiiiMPqpyJLEsoW2fEKq_Eg8Qg"><img class="m_6657055476784441913CToWUd CToWUd" alt="Vourest" style="border:0 none;min-height:24px;line-height:100%;outline:none;text-decoration:none;width:24px" src="{{env('S3_URL_API')}}{{$setting['email_setting_url']['url_facebook']->icon}}">
+										</a>
 									</li>
+									@endif
+									@if(isset($setting['email_setting_url']['url_twitter']) && $setting['email_setting_url']['url_twitter']->use == 1)
 									<li style="display:inline-block">
-										@if(isset($setting['email_setting_url']['url_twitter']))
-											<a href="{{$setting['email_setting_url']['url_twitter']->url}}" style="color:#a30046!important;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;text-decoration:none" target="_blank" data-saferedirecturl="https://www.google.com/url?q=http://twitter.com/vourest&amp;source=gmail&amp;ust=1539830594942000&amp;usg=AFQjCNFU-RYCdNoEDIlYotUjxZSzGiS4MQ"><img class="m_6657055476784441913CToWUd CToWUd" alt="Twitter" style="border:0 none;min-height:24px;line-height:100%;outline:none;text-decoration:none;width:24px" src="{{env('S3_URL_API')}}{{$setting['email_setting_url']['url_twitter']->icon}}">
-											</a>
-										@endif
+										<a href="{{$setting['email_setting_url']['url_twitter']->url}}" style="color:#a30046!important;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;text-decoration:none" target="_blank" data-saferedirecturl="https://www.google.com/url?q=http://twitter.com/vourest&amp;source=gmail&amp;ust=1539830594942000&amp;usg=AFQjCNFU-RYCdNoEDIlYotUjxZSzGiS4MQ"><img class="m_6657055476784441913CToWUd CToWUd" alt="Twitter" style="border:0 none;min-height:24px;line-height:100%;outline:none;text-decoration:none;width:24px" src="{{env('S3_URL_API')}}{{$setting['email_setting_url']['url_twitter']->icon}}">
+										</a>
 									</li>
+									@endif
+									@if(isset($setting['email_setting_url']['url_youtube']) && $setting['email_setting_url']['url_youtube']->use == 1)
 									<li style="display:inline-block">
-										@if(isset($setting['email_setting_url']['url_youtube']))
-											<a href="{{$setting['email_setting_url']['url_youtube']->url}}" style="color:#a30046!important;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;text-decoration:none" target="_blank" data-saferedirecturl="https://www.google.com/url?q=http://www.youtube.com/vourest&amp;source=gmail&amp;ust=1539830594942000&amp;usg=AFQjCNEfmZGNe04AZP2K-64HjMoAjJAa9g"><img class="m_6657055476784441913CToWUd CToWUd" alt="Youtube" style="border:0 none;min-height:24px;line-height:100%;outline:none;text-decoration:none;width:24px" src="{{env('S3_URL_API')}}{{$setting['email_setting_url']['url_youtube']->icon}}">
-											</a>
-										@endif
+										<a href="{{$setting['email_setting_url']['url_youtube']->url}}" style="color:#a30046!important;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;text-decoration:none" target="_blank" data-saferedirecturl="https://www.google.com/url?q=http://www.youtube.com/vourest&amp;source=gmail&amp;ust=1539830594942000&amp;usg=AFQjCNEfmZGNe04AZP2K-64HjMoAjJAa9g"><img class="m_6657055476784441913CToWUd CToWUd" alt="Youtube" style="border:0 none;min-height:24px;line-height:100%;outline:none;text-decoration:none;width:24px" src="{{env('S3_URL_API')}}{{$setting['email_setting_url']['url_youtube']->icon}}">
+										</a>
 									</li>
+									@endif
+									@if(isset($setting['email_setting_url']['url_instagram']) && $setting['email_setting_url']['url_instagram']->use == 1)
 									<li style="display:inline-block">
-										@if(isset($setting['email_setting_url']['url_instagram']))
-											<a href="{{$setting['email_setting_url']['url_instagram']->url}}" style="color:#a30046!important;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;text-decoration:none" target="_blank" data-saferedirecturl="https://www.google.com/url?q=http://instagram.com/vourest&amp;source=gmail&amp;ust=1539830594942000&amp;usg=AFQjCNFYprz1ONgwlv6RIGRZq7RtmnwI0Q"><img class="m_6657055476784441913CToWUd CToWUd" alt="Instagram" style="border:0 none;min-height:24px;line-height:100%;outline:none;text-decoration:none;width:24px" src="{{env('S3_URL_API')}}{{$setting['email_setting_url']['url_instagram']->icon}}">
-											</a>
-										@endif
+										<a href="{{$setting['email_setting_url']['url_instagram']->url}}" style="color:#a30046!important;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;text-decoration:none" target="_blank" data-saferedirecturl="https://www.google.com/url?q=http://instagram.com/vourest&amp;source=gmail&amp;ust=1539830594942000&amp;usg=AFQjCNFYprz1ONgwlv6RIGRZq7RtmnwI0Q"><img class="m_6657055476784441913CToWUd CToWUd" alt="Instagram" style="border:0 none;min-height:24px;line-height:100%;outline:none;text-decoration:none;width:24px" src="{{env('S3_URL_API')}}{{$setting['email_setting_url']['url_instagram']->icon}}">
+										</a>
 									</li>
+									@endif
 								</ul>
 							</td>
 						</tr>
