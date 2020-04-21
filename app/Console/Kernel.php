@@ -79,6 +79,12 @@ class Kernel extends ConsoleKernel
         $schedule->call('Modules\POS\Http\Controllers\ApiTransactionSync@transaction')->cron('*/2 * * * *');
 
         /**
+         * To process transaction refund from POS
+         * Run every 5 minutes
+         */
+        $schedule->call('Modules\POS\Http\Controllers\ApiTransactionSync@transactionRefund')->cron('*/5 * * * *');
+
+        /**
          * To process sync menu outlets from the POS
          * Run every 3 minutes
          */
