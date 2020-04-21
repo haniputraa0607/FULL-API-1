@@ -1218,7 +1218,7 @@ class ApiPOS extends Controller
         $failedProduct  = [];
         $dataJob        = [];
         foreach ($post['add_on'] as $keyMenu => $menu) {
-            $checkProduct = ProductModifier::where('code', $menu['menu_id'])->first();
+            $checkProduct = ProductModifier::where('code', $menu['sap_matnr'])->first();
             if ($checkProduct) {
                 foreach ($menu['price_detail'] as $keyPrice => $price) {
                     if ($price['start_date'] < date('Y-m-d')) {
@@ -1226,14 +1226,14 @@ class ApiPOS extends Controller
                     }
                     if ($price['end_date'] < $price['start_date']) {
                         $countfailed     = $countfailed + 1;
-                        $failedProduct[] = 'Fail to sync, product ' . $menu['menu_id'] . ', recheck this date';
+                        $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', recheck this date';
                         continue;
                     }
 
                     $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
                     if (!$checkOutlet) {
                         $countfailed     = $countfailed + 1;
-                        $failedProduct[] = 'Fail to sync, product ' . $menu['menu_id'] . ', no outlet';
+                        $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', no outlet';
                         continue;
                     }
 
@@ -1246,11 +1246,11 @@ class ApiPOS extends Controller
                     ];
 
                     $countInsert     = $countInsert + 1;
-                    $insertProduct[] = 'Success to sync price, product ' . $menu['menu_id'] . ' outlet ' . $price['store_code'];
+                    $insertProduct[] = 'Success to sync price, product ' . $menu['sap_matnr'] . ' outlet ' . $price['store_code'];
                 }
             } else {
                 $countfailed     = $countfailed + 1;
-                $failedProduct[] = 'Fail to sync, menu ' . $menu['menu_id'] . ', menu not found';
+                $failedProduct[] = 'Fail to sync, menu ' . $menu['sap_matnr'] . ', menu not found';
                 continue;
             }
             if (isset($dataJob[$keyMenu]['price_detail'])) {
