@@ -1355,7 +1355,7 @@ class ApiPOS extends Controller
                         ->where('id_outlet', $getOutlet[$i]['id_outlet'])
                         ->where('start_date', '<=', date('Y-m-d'))
                         ->where('end_date', '>=', date('Y-m-d'))
-                        ->orderBy('id_product_price_periode', 'DESC')->first();
+                        ->orderBy('id_product_modifier_price_periode', 'DESC')->first();
 
                     $price = $getPrice->price;
                 } catch (\Exception $e) {
