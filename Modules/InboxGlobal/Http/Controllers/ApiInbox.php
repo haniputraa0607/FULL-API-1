@@ -100,9 +100,11 @@ class ApiInbox extends Controller
 				}
 
                 if(is_numeric(strpos(strtolower($global['inbox_global_subject']), 'transaksi')) || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'transaction'))
-                    || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'deal'))  || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'voucher'))
+                    || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'deals'))  || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'voucher'))
                     || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'order')) ||
-                    is_numeric(strpos(strtolower($global['inbox_global_subject']), 'first'))){
+                    is_numeric(strpos(strtolower($global['inbox_global_subject']), 'first')) ||
+                    is_numeric(strpos(strtolower($global['inbox_global_subject']), 'point')) ||
+                    is_numeric(strpos(strtolower($global['inbox_global_subject']), 'subscription'))){
                     $content['clickto'] = $global['inbox_global_clickto'];
                 }else{
                     $content['clickto'] = '';
@@ -176,9 +178,12 @@ class ApiInbox extends Controller
 			}
 
             if(is_numeric(strpos(strtolower($private['inboxes_subject']), 'transaksi')) || is_numeric(strpos(strtolower($private['inboxes_subject']), 'transaction'))
-                || is_numeric(strpos(strtolower($private['inboxes_subject']), 'deal'))  || is_numeric(strpos(strtolower($private['inboxes_subject']), 'voucher'))
+                || is_numeric(strpos(strtolower($private['inboxes_subject']), 'deals'))  || is_numeric(strpos(strtolower($private['inboxes_subject']), 'voucher'))
                 || is_numeric(strpos(strtolower($private['inboxes_subject']), 'order')) ||
-                is_numeric(strpos(strtolower($private['inboxes_subject']), 'first'))){
+                is_numeric(strpos(strtolower($private['inboxes_subject']), 'first')) ||
+                is_numeric(strpos(strtolower($private['inboxes_subject']), 'point')) ||
+                is_numeric(strpos(strtolower($private['inboxes_subject']), 'subscription'))){
+
                 $content['clickto'] = $private['inboxes_clickto'];
             }else{
                 $content['clickto'] = '';
