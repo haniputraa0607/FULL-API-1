@@ -31,7 +31,7 @@ class IPay88
 		$this->merchant_code = ENV('IPAY88_MERCHANT_CODE');
 		$this->merchant_key = ENV('IPAY88_MERCHANT_KEY');
 		$this->payment_id = [
-			'CREDIT_CARD' => 1,
+			'CREDIT_CARD' => 35,
 			'CREDIT_CARD_BCA' => 52,
 			'CREDIT_CARD_BRI' => 35,
 			'CREDIT_CARD_CIMB' => 42,
