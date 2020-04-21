@@ -2048,6 +2048,7 @@ class ApiPOS extends Controller
                 for ($i = 0; $i < $countDataTransToSave; $i++) {
                     $dataTransToSave = array_slice($post['transactions'], $getDataFrom, $x);
                     $data = [
+                        'type' => 'Transaction',
                         'outlet_code' => $post['store_code'],
                         'request_transaction' => json_encode($dataTransToSave),
                         'created_at' => date('Y-m-d H:i:s'),
@@ -2854,127 +2855,163 @@ class ApiPOS extends Controller
         }
     }
 
-    public function transactionRefund(Request $request)
+    public function transactionRefund(Request $request, $post = null, $cek = 1)
     {
-        $post = $request->json()->all();
-
-        $api = $this->checkApi($post['api_key'], $post['api_secret']);
-        if ($api['status'] != 'success') {
-            DB::rollBack();
-            return response()->json($api);
+        if (!$post) {
+            $post = $request->json()->all();
         }
 
+        if (!empty($post['store_code'])){
 
-        $countSuccess    = 0;
-        $countFailed   = 0;
-        $successRefund = [];
-        $failedRefund  = [];
-
-        if (!isset($post['data'])) {
-            return response()->json(['status' => 'fail', 'messages' => 'field data is required']);
-        }
-
-        foreach ($post['data'] as $trx) {
-            $outlet = Outlet::where('outlet_code', strtoupper($trx['store_code']))->first();
-            if (empty($outlet)) {
-                return response()->json(['status' => 'fail', 'messages' => 'Store not found']);
-            }
-
-
-            // if(!isset($trx['trx_id']) || !isset($trx['reason'])){
-            //     $countFailed += 1;
-            //     $failedRefund[] = 'fail to refund, trx_id and reason is required';
-            //     continue;
-            // }
-
-            DB::beginTransaction();
-            $checkTrx = Transaction::where('transaction_receipt_number', $trx['trx_id'])->where('id_outlet', $outlet->id_outlet)->first();
-            if (empty($checkTrx)) {
-                $countFailed += 1;
-                $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', transaction not found';
-                continue;
-            }
-
-            //if use voucher, cannot refund
-            $trxVou = TransactionVoucher::where('id_transaction', $checkTrx->id_transaction)->first();
-            if ($trxVou) {
-                $countFailed += 1;
-                $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', This transaction use voucher';
-                continue;
-            }
-
-            $checkTrx->transaction_payment_status = 'Cancelled';
-            $checkTrx->void_date = date('Y-m-d H:i:s');
-            $checkTrx->transaction_notes = $trx['reason'];
-            $checkTrx->update();
-            if (!$checkTrx) {
-                DB::rollBack();
-                $countFailed += 1;
-                $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update transaction status';
-                continue;
-            }
-
-            if ($checkTrx->id_user) {
-
-                $user = User::where('id', $checkTrx->id_user)->first();
-                if ($user) {
-                    $point = LogPoint::where('id_reference', $checkTrx->id_transaction)->where('source', 'Transaction')->first();
-                    if (!empty($point)) {
-                        $point->delete();
-                        if (!$point) {
-                            DB::rollBack();
-                            $countFailed += 1;
-                            $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed delete point';
-                            continue;
-                        }
-
-                        //update user point
-                        $sumPoint = LogPoint::where('id_user', $user['id'])->sum('point');
-                        $user->points = $sumPoint;
-                        $user->update();
-                        if (!$user) {
-                            DB::rollBack();
-                            $countFailed += 1;
-                            $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update point';
-                            continue;
-                        }
-                    }
-
-                    $balance = LogBalance::where('id_reference', $checkTrx->id_transaction)->where('source', 'Transaction')->first();
-                    if (!empty($balance)) {
-                        $balance->delete();
-                        if (!$balance) {
-                            $countFailed += 1;
-                            $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed delete point';
-                            continue;
-                        }
-
-                        //update user balance
-                        $sumBalance = LogBalance::where('id_user', $user['id'])->sum('balance');
-                        $user->balance = $sumBalance;
-                        $user->update();
-                        if (!$user) {
-                            DB::rollBack();
-                            $countFailed += 1;
-                            $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update point';
-                            continue;
-                        }
-                    }
-                    $checkMembership = app($this->membership)->calculateMembership($user['phone']);
-                    $countSuccess += 1;
-                    $successRefund[] = 'success to refund ' . $trx['trx_id'];
+            if ($cek == 1) {
+                $api = $this->checkApi($post['api_key'], $post['api_secret']);
+                if ($api['status'] != 'success') {
+                    return response()->json($api);
                 }
             }
 
-            DB::commit();
-        }
+            $countSuccess = 0;
+            $countFailed = 0;
+            $successRefund = [];
+            $failedRefund = [];
 
-        return response()->json(['status' => 'success', 'result' => [
-            'count_success' => $countSuccess,
-            'success' => $successRefund,
-            'count_failed' => $countFailed,
-            'failed'  => $failedRefund
-        ]]);
+            if (!isset($post['data'])) {
+                return response()->json(['status' => 'fail', 'messages' => 'field data is required']);
+            }
+
+            $checkQueueSyncTrx = SyncTransactionQueues::count();
+
+            if ($checkQueueSyncTrx <= 0 || $cek == 0) {
+                foreach ($post['data'] as $trx) {
+                    $outlet = Outlet::where('outlet_code', strtoupper($post['store_code']))->first();
+                    if (empty($outlet)) {
+                        return response()->json(['status' => 'fail', 'messages' => 'Store not found']);
+                    }
+
+
+                    // if(!isset($trx['trx_id']) || !isset($trx['reason'])){
+                    //     $countFailed += 1;
+                    //     $failedRefund[] = 'fail to refund, trx_id and reason is required';
+                    //     continue;
+                    // }
+
+                    DB::beginTransaction();
+                    $checkTrx = Transaction::where('transaction_receipt_number', $trx['trx_id'])->where('id_outlet', $outlet->id_outlet)->first();
+                    if (empty($checkTrx)) {
+                        $countFailed += 1;
+                        $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', transaction not found';
+                        continue;
+                    }
+
+                    //if use voucher, cannot refund
+                    $trxVou = TransactionVoucher::where('id_transaction', $checkTrx->id_transaction)->first();
+                    if ($trxVou) {
+                        $countFailed += 1;
+                        $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', This transaction use voucher';
+                        continue;
+                    }
+
+                    $checkTrx->transaction_payment_status = 'Cancelled';
+                    $checkTrx->void_date = date('Y-m-d H:i:s');
+                    $checkTrx->transaction_notes = $trx['reason'];
+                    $checkTrx->update();
+                    if (!$checkTrx) {
+                        DB::rollBack();
+                        $countFailed += 1;
+                        $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update transaction status';
+                        continue;
+                    }
+
+                    if ($checkTrx->id_user) {
+
+                        $user = User::where('id', $checkTrx->id_user)->first();
+                        if ($user) {
+                            $point = LogPoint::where('id_reference', $checkTrx->id_transaction)->where('source', 'Transaction')->first();
+                            if (!empty($point)) {
+                                $point->delete();
+                                if (!$point) {
+                                    DB::rollBack();
+                                    $countFailed += 1;
+                                    $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed delete point';
+                                    continue;
+                                }
+
+                                //update user point
+                                $sumPoint = LogPoint::where('id_user', $user['id'])->sum('point');
+                                $user->points = $sumPoint;
+                                $user->update();
+                                if (!$user) {
+                                    DB::rollBack();
+                                    $countFailed += 1;
+                                    $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update point';
+                                    continue;
+                                }
+                            }
+
+                            $balance = LogBalance::where('id_reference', $checkTrx->id_transaction)->where('source', 'Transaction')->first();
+                            if (!empty($balance)) {
+                                $balance->delete();
+                                if (!$balance) {
+                                    $countFailed += 1;
+                                    $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed delete point';
+                                    continue;
+                                }
+
+                                //update user balance
+                                $sumBalance = LogBalance::where('id_user', $user['id'])->sum('balance');
+                                $user->balance = $sumBalance;
+                                $user->update();
+                                if (!$user) {
+                                    DB::rollBack();
+                                    $countFailed += 1;
+                                    $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update point';
+                                    continue;
+                                }
+                            }
+                            $checkMembership = app($this->membership)->calculateMembership($user['phone']);
+                            $countSuccess += 1;
+                            $successRefund[] = 'success to refund ' . $trx['trx_id'];
+                        }
+                    }
+
+                    DB::commit();
+                }
+
+                return response()->json(['status' => 'success', 'result' => [
+                    'count_success' => $countSuccess,
+                    'success' => $successRefund,
+                    'count_failed' => $countFailed,
+                    'failed' => $failedRefund
+                ]]);
+            } else {
+                $dataToInsert = [
+                    'type' => 'Transaction Refund',
+                    'outlet_code' => $post['store_code'],
+                    'request_transaction' => json_encode($post),
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+
+                $insertTransactionRefundQueue = SyncTransactionQueues::create($dataToInsert);
+
+                if ($insertTransactionRefundQueue) {
+                    $countSuccess = count($post['data']);
+                    $successRefund[] = 'success insert transaction refund to queue, '.count($post['data']).' data';
+                } else {
+                    $countFailed = count($post['data']);
+                    $failedRefund[] = 'fail insert transaction refund to queue, ' . count($post['data']).' data';
+                }
+
+                return response()->json(['status' => 'success', 'result' => [
+                    'count_success' => $countSuccess,
+                    'success' => $successRefund,
+                    'count_failed' => $countFailed,
+                    'failed' => $failedRefund
+                ]]);
+            }
+        }else{
+            return response()->json(['status' => 'fail', 'messages' => 'Input is incomplete']);
+        }
     }
 
     public static function checkApi($key, $secret)
