@@ -24,7 +24,8 @@ class SyncTransactionQueues extends Model
      * @var array
      */
     protected $fillable = [
-            'id_sync_transaction_queues', 
+            'id_sync_transaction_queues',
+            'type',
             'outlet_code', 
             'request_transaction', 
             'created_at',  

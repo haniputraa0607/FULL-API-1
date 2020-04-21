@@ -43,6 +43,7 @@ use Modules\PromoCampaign\Entities\PromoCampaignPromoCode;
 use Modules\PromoCampaign\Entities\PromoCampaignReferral;
 use Modules\PromoCampaign\Entities\PromoCampaignReferralTransaction;
 use Modules\PromoCampaign\Entities\UserReferralCode;
+use Modules\PromoCampaign\Entities\PromoCampaignReport;
 
 use Modules\Balance\Http\Controllers\NewTopupController;
 use Modules\PromoCampaign\Lib\PromoCampaignTools;
@@ -752,6 +753,26 @@ class ApiOnlineTransaction extends Controller
             }
         }
 
+        // add promo campaign report
+        if($request->json('promo_code'))
+        {
+        	$promo_campaign_report = app($this->promo_campaign)->addReport(
+				$code->id_promo_campaign, 
+				$code->id_promo_campaign_promo_code,
+				$insertTransaction['id_transaction'],
+				$insertTransaction['id_outlet'],
+				$request->device_id,
+				$request->device_type
+			);
+
+        	if (!$promo_campaign_report) {
+        		DB::rollBack();
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['Insert Transaction Failed']
+                ]);
+        	}
+        }
         //update receipt
         // $receipt = 'TRX-'.MyHelper::createrandom(6,'Angka').time().MyHelper::createrandom(3,'Angka').$insertTransaction['id_outlet'].MyHelper::createrandom(3,'Angka');
         // $updateReceiptNumber = Transaction::where('id_transaction', $insertTransaction['id_transaction'])->update([
@@ -1345,23 +1366,13 @@ class ApiOnlineTransaction extends Controller
                     }
                     $usere  = User::where('id',$insertTransaction['id_user'])->first();
                     $outlet = Outlet::where('id_outlet',$insertTransaction['id_outlet'])->first();
-                    $send   = app($this->autocrm)->SendAutoCRM('Transaction Point Achievement', $usere->phone,
-                        [
-                            "outlet_name"       => $outlet->outlet_name,
-                            "transaction_date"  => $insertTransaction['transaction_date'],
-                            'id_transaction'    => $insertTransaction['id_transaction'],
-                            'receipt_number'    => $insertTransaction['transaction_receipt_number'],
-                            'received_point'    => (string) $insertTransaction['transaction_cashback_earned']
-                        ]
-                    );
-                    if($send != true){
-                        DB::rollBack();
-                        return response()->json([
-                            'status' => 'fail',
-                            'messages' => ['Failed Send notification to customer']
-                        ]);
-                    }
-
+                    $data_autocrm_cashback = [
+                    	"outlet_name"       => $outlet->outlet_name,
+                        "transaction_date"  => $insertTransaction['transaction_date'],
+                        'id_transaction'    => $insertTransaction['id_transaction'],
+                        'receipt_number'    => $insertTransaction['transaction_receipt_number'],
+                        'received_point'    => (string) $insertTransaction['transaction_cashback_earned']
+                    ];
                 }
 
             }else{
@@ -1437,6 +1448,21 @@ class ApiOnlineTransaction extends Controller
                     $mid['gross_amount'] = 0;
 
                     $insertTransaction = Transaction::with('user.memberships', 'outlet', 'productTransaction')->where('transaction_receipt_number', $insertTransaction['transaction_receipt_number'])->first();
+
+                    if($request->json('id_deals_user') && !$request->json('promo_code'))
+			        {
+			        	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $deals['id_deals_voucher'])->where('status','success')->count();
+
+						if(($check_trx_voucher??false) > 1)
+						{
+							DB::rollBack();
+				            return [
+				                'status'=>'fail',
+				                'messages'=>['Voucher is not valid']
+				            ];
+				        }
+			        }
+
 
                     if ($configAdminOutlet && $configAdminOutlet['is_active'] == '1') {
                         $sendAdmin = app($this->notif)->sendNotif($insertTransaction);
@@ -1553,6 +1579,30 @@ class ApiOnlineTransaction extends Controller
             ];
             app($this->setting_fraud)->fraudCheckReferralUser($data);
             //======= End Check Fraud Referral User =======//
+        }
+
+        if($request->json('id_deals_user') && !$request->json('promo_code'))
+        {
+        	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $deals['id_deals_voucher'])->where('status','success')->count();
+
+			if(($check_trx_voucher??false) > 1)
+			{
+				DB::rollBack();
+	            return [
+	                'status'=>'fail',
+	                'messages'=>['Voucher is not valid']
+	            ];
+	        }
+        }
+        if (!empty($data_autocrm_cashback)) {
+	        $send   = app($this->autocrm)->SendAutoCRM('Transaction Point Achievement', $usere->phone,$data_autocrm_cashback);
+	        if($send != true){
+	            DB::rollBack();
+	            return response()->json([
+	                'status' => 'fail',
+	                'messages' => ['Failed Send notification to customer']
+	            ]);
+	        }
         }
 
         DB::commit();
