@@ -21,14 +21,14 @@ class ApiDealsWebview extends Controller
     public function dealsDetail(Request $request)
     {
         // return url webview and button text for mobile (native button)
-        
+
         $post['id_deals'] = $request->get('id_deals');
         $post['publish'] = 1;
         $post['deals_type'] = "Deals";
         $post['web'] = 1;
-        
+
         $deals = Deal::with('outlets.city', 'deals_content.deals_content_details')->where('id_deals', $request->id_deals)->get()->toArray()[0];
-        
+
         $deals['outlet_by_city'] = [];
 
         if (!empty($deals['outlets'])) {
@@ -53,18 +53,18 @@ class ApiDealsWebview extends Controller
 
             $deals['outlet_by_city'] = $kota;
         }
-        
+
         unset($deals['outlets']);
         $point = Auth::user()->balance;
-        
+
         $deals['deals_image'] = env('S3_URL_API') . $deals['deals_image'];
         $response = [
             'status' => 'success',
-            'result' => 
+            'result' =>
                 $deals
         ];
         $response['button_text'] = 'BELI';
-        
+
         $result = [
             'id_deals'                      => $deals['id_deals'],
             'deals_type'                    => $deals['deals_type'],
@@ -96,16 +96,16 @@ class ApiDealsWebview extends Controller
         } else {
             $result['deals_price'] = "Free";
         }
-        
+
         $i = 0;
         foreach ($deals['deals_content'] as $keyContent => $valueContent) {
             if (!empty($valueContent['deals_content_details'])) {
                 $result['deals_content'][$keyContent]['title'] = $valueContent['title'];
                 foreach ($valueContent['deals_content_details'] as $key => $value) {
                     // $result['deals_content'][$keyContent]['detail'][$key] = $value['content'];
-                    $content[$key] = $value['content'];
+                    $content[$key] = '<li>'.$value['content'].'</li>';
                 }
-                $result['deals_content'][$keyContent]['detail'] = implode('', $content);
+                $result['deals_content'][$keyContent]['detail'] = '<ol style="color:#707070;">'.implode('', $content).'</ol>';
                 $i++;
             }
         }
@@ -118,8 +118,8 @@ class ApiDealsWebview extends Controller
                     // $result['deals_content'][$i]['detail'][$keyOutlet] = $valueOutlet['outlet_name'];
                     $valTheOutlet[$keyOutlet] = '<li style="line-height: 12px;">' . $valueOutlet['outlet_name'] . '</li>';
                 }
-                $city[$keyCity] = strtoupper($valueCity['city_name']) . '<br>' . implode('', $valTheOutlet);
-                $result['deals_content'][$i]['detail'] = '<ul>'.implode('', $city).'</ul>';
+                $city[$keyCity] = strtoupper($valueCity['city_name']) . '<br><ul style="color:#707070;">' .implode('', $valTheOutlet).'</ul>';
+                $result['deals_content'][$i]['detail'] = implode('', $city);
             }
         }
 
@@ -130,7 +130,7 @@ class ApiDealsWebview extends Controller
     public function webviewDealsDetail(Request $request, $id_deals, $deals_type)
     {
         $bearer = $request->header('Authorization');
-        
+
         if ($bearer == "") {
             return abort(404);
         }
@@ -139,7 +139,7 @@ class ApiDealsWebview extends Controller
         $post['publish'] = 1;
         $post['deals_type'] = "Deals";
         $post['web'] = 1;
-        
+
         $action = MyHelper::postCURLWithBearer('api/deals/list', $post, $bearer);
 
         if ($action['status'] != 'success') {
@@ -150,17 +150,17 @@ class ApiDealsWebview extends Controller
         } else {
             $data['deals'] = $action;
         }
-        
+
         usort($data['deals'][0]['outlet_by_city'], function($a, $b) {
             return $a['city_name'] <=> $b['city_name'];
         });
-        
+
         for ($i = 0; $i < count($data['deals'][0]['outlet_by_city']); $i++) {
             usort($data['deals'][0]['outlet_by_city'][$i]['outlet'] ,function($a, $b) {
                 return $a['outlet_name'] <=> $b['outlet_name'];
             });
         }
-        
+
         return view('deals::webview.deals.deals_detail', $data);
     }
 
@@ -199,7 +199,7 @@ class ApiDealsWebview extends Controller
         $post['id_deals_user'] = $request->id_deals_user;
 
         $dealsUser = DealsUser::with('dealVoucher.deals')->where('id_deals_user', $request->id_deals_user)->get()->toArray()[0];
-        
+
         $result = [
             'id_deals_user'             => $dealsUser['id_deals_user'],
             'header_title'              => 'Horayy!',
@@ -222,7 +222,7 @@ class ApiDealsWebview extends Controller
 
         return response()->json(MyHelper::checkGet($result));
     }
-    
+
     // voucher detail webview
     /*public function voucherDetail($id_deals_user)
     {
@@ -236,5 +236,5 @@ class ApiDealsWebview extends Controller
         ];
         return response()->json($response);
     }*/
-    
+
 }
