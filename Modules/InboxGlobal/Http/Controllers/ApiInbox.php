@@ -62,19 +62,70 @@ class ApiInbox extends Controller
 			$globals = $inboxes->get()->toArray();
 		}
 		foreach($globals as $ind => $global){
-			$content = $global;
-			if($global['type'] == 'global'){
-				$cons = array();
-				$cons['subject'] = 'phone';
-				$cons['operator'] = '=';
-				$cons['parameter'] = $user['phone'];
 
-				array_push($global['inbox_global_rule_parents'], ['rule' => 'and', 'rule_next' => 'and', 'rules' => [$cons]]);
-				$users = app($this->user)->UserFilter($global['inbox_global_rule_parents']);
+			$cons = array();
+			$cons['subject'] = 'phone';
+			$cons['operator'] = '=';
+			$cons['parameter'] = $user['phone'];
 
-				$content['subject'] = app($this->autocrm)->TextReplace($global['subject'], $user['phone']);
-				if($content['content']){
-					$content['content'] = app($this->autocrm)->TextReplace($global['content'], $user['phone']);
+			array_push($global['inbox_global_rule_parents'], ['rule' => 'and', 'rule_next' => 'and', 'rules' => [$cons]]);
+			$users = app($this->user)->UserFilter($global['inbox_global_rule_parents']);
+
+
+			if(isset($users['status']) && $users['status'] == 'success'){
+				$content = [];
+				$content['type'] 		 = 'global';
+				$content['id_inbox'] 	 = $global['id_inbox_global'];
+				$content['subject'] 	 = app($this->autocrm)->TextReplace($global['inbox_global_subject'], $user['phone']);
+				$content['clickto'] 	 = $global['inbox_global_clickto'];
+
+
+				if($global['inbox_global_id_reference']){
+    				$content['id_reference'] = $global['inbox_global_id_reference'];
+    			}else{
+    				$content['id_reference'] = 0;
+    			}
+
+				if($content['clickto'] == 'News'){
+					$news = News::find($global['inbox_global_id_reference']);
+					if($news){
+						$content['news_title'] = $news->news_title;
+						$content['url'] = env('APP_URL').'news/webview/'.$news->id_news;
+					}
+				}
+
+				if($content['clickto'] == 'Content'){
+					$content['content'] = app($this->autocrm)->TextReplace($global['inbox_global_content'], $user['phone']);
+				}else{
+					$content['content']	= null;
+				}
+
+				if($content['clickto'] == 'Link'){
+					$content['link'] = $global['inbox_global_link'];
+				}else{
+					$content['link'] = null;
+				}
+
+                if(is_numeric(strpos(strtolower($global['inbox_global_subject']), 'transaksi')) || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'transaction'))
+                    || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'deals'))  || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'voucher'))
+                    || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'order')) ||
+                    is_numeric(strpos(strtolower($global['inbox_global_subject']), 'first')) ||
+                    is_numeric(strpos(strtolower($global['inbox_global_subject']), 'point')) ||
+                    is_numeric(strpos(strtolower($global['inbox_global_subject']), 'subscription'))){
+                    $content['clickto'] = $global['inbox_global_clickto'];
+                }else{
+                    $content['clickto'] = '';
+                }
+
+				$content['created_at'] 	 = $global['inbox_global_start'];
+
+				$read = InboxGlobalRead::where('id_inbox_global', $global['id_inbox_global'])->where('id_user', $user['id'])->first();
+				if(!empty($read)){
+					$content['status'] = 'read';
+				}else{
+					$content['status'] = 'unread';
+					$countUnread++;
+
 				}
 				if(isset($users['status']) && $users['status'] == 'success'){
 					$read = InboxGlobalRead::where('id_inbox_global', $global['id_inbox'])->where('id_user', $user['id'])->first();
@@ -115,14 +166,20 @@ class ApiInbox extends Controller
 				$content['link'] = null;
 			}
 
-            if(is_numeric(strpos(strtolower($content['subject']), 'transaksi')) || is_numeric(strpos(strtolower($content['subject']), 'transaction'))
-                || is_numeric(strpos(strtolower($content['subject']), 'deal'))  || is_numeric(strpos(strtolower($content['subject']), 'voucher'))
-                || is_numeric(strpos(strtolower($content['subject']), 'order')) ||
-                is_numeric(strpos(strtolower($content['subject']), 'first'))){
-                $content['clickto'] = $content['clickto'];
+
+            if(is_numeric(strpos(strtolower($private['inboxes_subject']), 'transaksi')) || is_numeric(strpos(strtolower($private['inboxes_subject']), 'transaction'))
+                || is_numeric(strpos(strtolower($private['inboxes_subject']), 'deals'))  || is_numeric(strpos(strtolower($private['inboxes_subject']), 'voucher'))
+                || is_numeric(strpos(strtolower($private['inboxes_subject']), 'order')) ||
+                is_numeric(strpos(strtolower($private['inboxes_subject']), 'first')) ||
+                is_numeric(strpos(strtolower($private['inboxes_subject']), 'point')) ||
+                is_numeric(strpos(strtolower($private['inboxes_subject']), 'subscription'))){
+
+                $content['clickto'] = $private['inboxes_clickto'];
             }else{
                 $content['clickto'] = '';
             }
+
+			$content['created_at'] 	 = $private['inboxes_send_at'];
 
 			unset($content['inbox_global_rule_parents']);			
 			if($mode == 'simple'){

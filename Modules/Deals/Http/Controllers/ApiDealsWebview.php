@@ -209,11 +209,14 @@ class ApiDealsWebview extends Controller
             'voucher_expired_at'        => 'Valid until ' . date('d F Y', strtotime($dealsUser['voucher_expired_at'])),
             'claimed_at'                => date('d M Y H:i', strtotime($dealsUser['claimed_at'])),
             'transaction_id'            => strtotime($dealsUser['claimed_at']).$dealsUser['id_deals_user'],
-            'balance'                   => number_format($dealsUser['balance_nominal'],0,",",".").' points'
+            'balance'                   => number_format($dealsUser['balance_nominal'],0,",",".").' points',
+            'use_point'                 => (!is_null($dealsUser['balance_nominal'])) ? 1 : 0
         ];
 
         if ($dealsUser['voucher_price_point'] != null) {
-            $result['price'] = number_format($dealsUser['voucher_price_point'],0,",",".").' points';
+            $result['price']        = number_format($dealsUser['voucher_price_point'],0,",",".").' points';
+            $result['balance']      = number_format($dealsUser['voucher_price_point'],0,",",".").' points';
+            $result['use_point']    = 1;
         } elseif ($dealsUser['voucher_price_cash'] != null) {
             $result['price'] = number_format($dealsUser['voucher_price_cash'],0,",",".");
         } else {

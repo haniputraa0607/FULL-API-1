@@ -54,3 +54,5 @@ Route::post('converter', function(Request $request) {
 	$value = $request->json('value')?:0;
 	return MyHelper::checkGet(MyHelper::requestNumber($value,$mode=='point'?'_POINT':'_CURRENCY'));
 });
+
+Route::get('test-email', 'Controller@testemail');

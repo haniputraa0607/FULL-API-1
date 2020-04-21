@@ -69,7 +69,11 @@ class ApiAutoCrm extends Controller
 					$getSetting = Setting::where('key', 'LIKE', 'email%')->get()->toArray();
 					$setting = array();
 					foreach ($getSetting as $key => $value) {
-						$setting[$value['key']] = $value['value'];
+                        if($value['key'] == 'email_setting_url'){
+                            $setting[$value['key']]  = (array)json_decode($value['value_text']);
+                        }else{
+                            $setting[$value['key']] = $value['value'];
+                        }
 					}
 
 					$data = array(
@@ -188,7 +192,11 @@ class ApiAutoCrm extends Controller
 						$getSetting = Setting::where('key', 'LIKE', 'email%')->get()->toArray();
 						$setting = array();
 						foreach ($getSetting as $key => $value) {
-							$setting[$value['key']] = $value['value'];
+                            if($value['key'] == 'email_setting_url'){
+                                $setting[$value['key']]  = (array)json_decode($value['value_text']);
+                            }else{
+                                $setting[$value['key']] = $value['value'];
+                            }
 						}
 
 						$data = array(
@@ -505,7 +513,7 @@ class ApiAutoCrm extends Controller
 
 					$inbox['id_user'] 	  	  = $user['id'];
 					$inbox['inboxes_subject'] = $this->TextReplace($crm['autocrm_inbox_subject'], $user['id'], $variables, 'id');
-					$inbox['inboxes_clickto'] = $crm['autocrm_inbox_clickto'];
+					$inbox['inboxes_clickto'] = "";
 
 					if($crm['autocrm_inbox_clickto'] == 'Content'){
 						$inbox['inboxes_content'] = $this->TextReplace($crm['autocrm_inbox_content'], $user['id'], $variables, 'id');
@@ -518,32 +526,45 @@ class ApiAutoCrm extends Controller
 					if (isset($crm['autocrm_inbox_id_reference']) && $crm['autocrm_inbox_id_reference'] != null) {
 						$inbox['inboxes_id_reference'] = (int)$crm['autocrm_inbox_id_reference'];
 					} else{
-						if ($crm['autocrm_inbox_clickto'] == 'Transaction') {
-								// $inbox['inboxes_id_reference'] = $variables['id_reference'];
-								$inbox['inboxes_id_reference'] = 0;
-						}elseif ($crm['autocrm_inbox_clickto'] == 'Transaction Detail') {
-							$inbox['inboxes_clickto'] == 'Transaction';
+                        if (is_numeric(strpos(strtolower($crm['autocrm_title']), 'point'))) {
+                            $inbox['inboxes_clickto'] = 'Membership';
+                            $inbox['inboxes_id_reference'] = 0;
+                        }elseif (is_numeric(strpos(strtolower($crm['autocrm_title']), 'transaksi')) || is_numeric(strpos(strtolower($crm['autocrm_title']), 'transaction')) ||
+                            is_numeric(strpos(strtolower($crm['autocrm_title']), 'order'))) {
+							$inbox['inboxes_clickto'] = 'Transaction';
 							if (isset($variables['id_transaction'])) {
 								$inbox['inboxes_id_reference'] = $variables['id_transaction'];
 							} else {
 								$inbox['inboxes_id_reference'] = 0;
 							}
-						}elseif ($crm['autocrm_inbox_clickto'] == 'Voucher') {
-							$inbox['inboxes_id_reference'] = 0;
-						}
-						elseif ($crm['autocrm_inbox_clickto'] == 'Voucher Detail') {
+						}elseif (is_numeric(strpos(strtolower($crm['autocrm_title']), 'voucher'))) {
 							if (isset($variables['id_deals_user'])) {
+                                $inbox['inboxes_clickto'] = 'Voucher Detail';
 								$inbox['inboxes_id_reference'] = $variables['id_deals_user'];
 							} else {
+                                $inbox['inboxes_clickto'] = 'Voucher';
 								$inbox['inboxes_id_reference'] = 0;
 							}
-						}elseif ($crm['autocrm_inbox_clickto'] == 'Deals') {
-							$inbox['inboxes_id_reference'] = $variables['id_brand'];
-						}elseif ($crm['autocrm_inbox_clickto'] == 'Deals Detail') {
-							$inbox['inboxes_id_reference'] = $variables['id_deals'];
+						}elseif (is_numeric(strpos(strtolower($crm['autocrm_title']), 'deals'))) {
+                            if (isset($variables['id_deals'])) {
+                                $inbox['inboxes_clickto'] = 'Deals Detail';
+                                $inbox['inboxes_id_reference'] = $variables['id_deals'];
+                            }else{
+                                $inbox['inboxes_clickto'] = 'Deals';
+                                $inbox['inboxes_id_reference'] = 0;
+                            }
 							$inbox['id_brand'] = $variables['id_brand'];
-						}else {
-                            $inbox['inboxes_clickto'] = "";
+
+						}elseif (is_numeric(strpos(strtolower($crm['autocrm_title']), 'subscription'))) {
+                            if (isset($variables['id_subscription_user'])) {
+                                $inbox['inboxes_clickto'] = 'Detail Subscription';
+                                $inbox['inboxes_id_reference'] = $variables['id_subscription_user'];
+                            }else{
+                                $inbox['inboxes_clickto'] = 'Subscription';
+                                $inbox['inboxes_id_reference'] = $variables['id_subscription'];
+                            }
+            }else {
+              $inbox['inboxes_clickto'] = "";
 							$inbox['inboxes_id_reference'] = 0;
 						}
 					}
