@@ -1609,8 +1609,18 @@ Detail: ".$link['short'],
     }
 
     public function htmlDetail($id){
-        $list = Transaction::where('id_transaction', $id)->with('user.city.province', 'modifiers', 'productTransaction.product.product_category', 'productTransaction.product.product_photos', 'productTransaction.product.product_discounts', 'outlet.city')->first();
-
+        $list = Transaction::where([['id_transaction', $id]])->with(
+            'user.city.province',
+            'modifiers',
+            'productTransaction.product.product_group',
+            'productTransaction.product.product_variants',
+            'productTransaction.product.product_group.product_category',
+            'productTransaction.modifiers',
+            'productTransaction.product.product_photos',
+            'productTransaction.product.product_discounts',
+            'transaction_payment_offlines',
+            'modifiers',
+            'outlet.city')->first();
 
             $dataPayment = [];
 

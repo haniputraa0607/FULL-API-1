@@ -640,6 +640,15 @@ class SettingsTableSeeder extends Seeder
 	                'created_at' => date('Y-m-d H:i:s'),
 	                'updated_at' => date('Y-m-d H:i:s'),
 	            ),
+            84 =>
+                array(
+                    'id_setting' => 85,
+                    'key' => 'email_setting_url',
+                    'value' => null,
+                    'value_text' => '{"url_play_store":{"use":"0","icon":"","url":"","text":"Play Store"},"url_app_store":{"use":"0","icon":"","url":"","text":"App Store"},"url_youtube":{"use":"0","icon":"","url":"","text":"Youtube"},"url_twitter":{"use":"0","icon":"","url":"","text":"Twitter"},"url_facebook":{"use":"0","icon":"","url":"","text":"Facebook"},"url_instagram":{"use":"0","icon":"","url":"","text":"Instagram"}}',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
         ));
     }
 }
