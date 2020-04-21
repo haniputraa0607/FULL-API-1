@@ -74,7 +74,7 @@ class ApiInbox extends Controller
 
 			if(isset($users['status']) && $users['status'] == 'success'){
 				$content = [];
-				$content['type'] 		 = 'global';
+				$content['type'] 		 = $global['type'];
 				$content['id_inbox'] 	 = $global['id_inbox'];
 				$content['subject'] 	 = app($this->autocrm)->TextReplace($global['subject'], $user['phone']);
 				$content['clickto'] 	 = $global['clickto'];
