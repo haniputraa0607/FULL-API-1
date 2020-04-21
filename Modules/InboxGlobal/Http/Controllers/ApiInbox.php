@@ -49,13 +49,20 @@ class ApiInbox extends Controller
 		$countInbox = 0;
 		$arrDate = [];
 
-		$globals = InboxGlobal::with('inbox_global_rule_parents', 'inbox_global_rule_parents.rules')
+		$inboxes = InboxGlobal::select(\DB::raw('"global" as type, id_inbox_global as id_inbox,inbox_global_subject as subject,inbox_global_clickto as clickto, inbox_global_link as link, inbox_global_id_reference as id_reference, inbox_global_content as content, created_at, "unread" as status, 0 as id_brand'))->with('inbox_global_rule_parents', 'inbox_global_rule_parents.rules')
 								->where('inbox_global_start', '<=', $today)
 								->where('inbox_global_end', '>=', $today)
-								->get()
-								->toArray();
-
+								->union(UserInbox::select(\DB::raw('"private" as type,id_user_inboxes as id_inbox,inboxes_subject as subject,inboxes_clickto as clickto,inboxes_link as link,inboxes_id_reference as id_reference,inboxes_content as content,inboxes_send_at as created_at, CASE WHEN `read` = 1 THEN "read" ELSE "unread" END as status,id_brand'))->where('id_user','=',$user['id']))
+								->orderBy('created_at', 'desc');
+		if($request->page){
+			$inboxes = $inboxes->paginate(50)
+			->toArray();
+			$globals = $inboxes['data'];
+		}else{
+			$globals = $inboxes->get()->toArray();
+		}
 		foreach($globals as $ind => $global){
+
 			$cons = array();
 			$cons['subject'] = 'phone';
 			$cons['operator'] = '=';
@@ -118,46 +125,32 @@ class ApiInbox extends Controller
 				}else{
 					$content['status'] = 'unread';
 					$countUnread++;
-				}
 
-				if($mode == 'simple'){
-					$arrInbox[] = $content;
-				}else{
-					if(!in_array(date('Y-m-d', strtotime($content['created_at'])), $arrDate)){
-						$arrDate[] = date('Y-m-d', strtotime($content['created_at']));
-						$temp['created'] =  date('Y-m-d', strtotime($content['created_at']));
-						$temp['list'][0] =  $content;
-						$arrInbox[] = $temp;
+				}
+				if(isset($users['status']) && $users['status'] == 'success'){
+					$read = InboxGlobalRead::where('id_inbox_global', $global['id_inbox'])->where('id_user', $user['id'])->first();
+					if(!empty($read)){
+						$content['status'] = 'read';
 					}else{
-						$position = array_search(date('Y-m-d', strtotime($content['created_at'])), $arrDate);
-						$arrInbox[$position]['list'][] = $content;
+						$content['status'] = 'unread';
 					}
+				} else {
+					continue;
 				}
-				$countInbox++;
 			}
-		}
 
-		$privates = UserInbox::where('id_user','=',$user['id'])->get()->toArray();
-
-		foreach($privates as $private){
-			$content = [];
-			$content['type'] 		 = 'private';
-			$content['id_inbox'] 	 = $private['id_user_inboxes'];
-			$content['subject'] 	 = $private['inboxes_subject'];
-			$content['clickto'] 	 = $private['inboxes_clickto'];
-
-			if($private['inboxes_id_reference']){
-				$content['id_reference'] = $private['inboxes_id_reference'];
-			}else{
+			if(!$content['id_reference']){
 				$content['id_reference'] = 0;
 			}
 
 			if($content['clickto']=='Deals Detail'){
-				$content['id_brand'] = $private['id_brand'];
+				$content['id_brand'] = $content['id_brand'];
+			}else{
+				unset($content['id_brand']);
 			}
 
 			if($content['clickto'] == 'News'){
-				$news = News::find($private['inboxes_id_reference']);
+				$news = News::find($global['id_reference']);
 				if($news){
 					$content['news_title'] = $news->news_title;
 					$content['url'] = env('APP_URL').'news/webview/'.$news->id_news;
@@ -165,17 +158,14 @@ class ApiInbox extends Controller
 
 			}
 
-			if($content['clickto'] == 'Content'){
-				$content['content'] = $private['inboxes_content'];
-			}else{
+			if($content['clickto'] != 'Content'){
 				$content['content']	= null;
 			}
 
-			if($content['clickto'] == 'Link'){
-				$content['link'] = $private['inboxes_link'];
-			}else{
+			if($content['clickto'] != 'Link'){
 				$content['link'] = null;
 			}
+
 
             if(is_numeric(strpos(strtolower($private['inboxes_subject']), 'transaksi')) || is_numeric(strpos(strtolower($private['inboxes_subject']), 'transaction'))
                 || is_numeric(strpos(strtolower($private['inboxes_subject']), 'deals'))  || is_numeric(strpos(strtolower($private['inboxes_subject']), 'voucher'))
@@ -191,15 +181,8 @@ class ApiInbox extends Controller
 
 			$content['created_at'] 	 = $private['inboxes_send_at'];
 
-			if($private['read'] === '0'){
-				$content['status'] = 'unread';
-				$countUnread++;
-			}else{
-				$content['status'] = 'read';
-			}
+			unset($content['inbox_global_rule_parents']);			
 			if($mode == 'simple'){
-				$content['date_indo'] = MyHelper::dateFormatInd($content['created_at'],true,false,true);
-				$content['time'] = date('H:i',strtotime($content['created_at']));
 				$arrInbox[] = $content;
 			}else{
 				if(!in_array(date('Y-m-d', strtotime($content['created_at'])), $arrDate)){
@@ -212,8 +195,6 @@ class ApiInbox extends Controller
 					$arrInbox[$position]['list'][] = $content;
 				}
 			}
-
-			$countInbox++;
 		}
 
 		if(isset($arrInbox) && !empty($arrInbox)) {
@@ -238,13 +219,20 @@ class ApiInbox extends Controller
 					return $t2 - $t1;
 				});
 			}
-
-			$result = [
+			if($request->page){
+				$inboxes['data'] = $arrInbox;
+				$inboxes['count_unread'] = $this->listInboxUnread($user['id']);
+				$result = [
+					'status'  => 'success',
+					'result'  => $inboxes,
+				];
+			}else{
+				$result = [
 					'status'  => 'success',
 					'result'  => $arrInbox,
-					'count'  => $countInbox,
-					'count_unread' => $countUnread,
+					'count_unread' => $this->listInboxUnread($user['id']),
 				];
+			}
 		} else {
 			$result = [
 					'status'  => 'fail',

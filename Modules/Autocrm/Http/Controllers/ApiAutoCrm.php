@@ -554,6 +554,7 @@ class ApiAutoCrm extends Controller
                                 $inbox['inboxes_id_reference'] = 0;
                             }
 							$inbox['id_brand'] = $variables['id_brand'];
+
 						}elseif (is_numeric(strpos(strtolower($crm['autocrm_title']), 'subscription'))) {
                             if (isset($variables['id_subscription_user'])) {
                                 $inbox['inboxes_clickto'] = 'Detail Subscription';
@@ -562,8 +563,8 @@ class ApiAutoCrm extends Controller
                                 $inbox['inboxes_clickto'] = 'Subscription';
                                 $inbox['inboxes_id_reference'] = $variables['id_subscription'];
                             }
-                        }else {
-                            $inbox['inboxes_clickto'] = "";
+            }else {
+              $inbox['inboxes_clickto'] = "";
 							$inbox['inboxes_id_reference'] = 0;
 						}
 					}
