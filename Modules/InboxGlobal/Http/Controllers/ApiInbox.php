@@ -75,19 +75,19 @@ class ApiInbox extends Controller
 			if(isset($users['status']) && $users['status'] == 'success'){
 				$content = [];
 				$content['type'] 		 = 'global';
-				$content['id_inbox'] 	 = $global['id_inbox_global'];
-				$content['subject'] 	 = app($this->autocrm)->TextReplace($global['inbox_global_subject'], $user['phone']);
-				$content['clickto'] 	 = $global['inbox_global_clickto'];
+				$content['id_inbox'] 	 = $global['id_inbox'];
+				$content['subject'] 	 = app($this->autocrm)->TextReplace($global['subject'], $user['phone']);
+				$content['clickto'] 	 = $global['clickto'];
 
 
-				if($global['inbox_global_id_reference']){
-    				$content['id_reference'] = $global['inbox_global_id_reference'];
+				if($global['id_reference']){
+    				$content['id_reference'] = $global['id_reference'];
     			}else{
     				$content['id_reference'] = 0;
     			}
 
 				if($content['clickto'] == 'News'){
-					$news = News::find($global['inbox_global_id_reference']);
+					$news = News::find($global['id_reference']);
 					if($news){
 						$content['news_title'] = $news->news_title;
 						$content['url'] = env('APP_URL').'news/webview/'.$news->id_news;
@@ -106,20 +106,20 @@ class ApiInbox extends Controller
 					$content['link'] = null;
 				}
 
-                if(is_numeric(strpos(strtolower($global['inbox_global_subject']), 'transaksi')) || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'transaction'))
-                    || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'deals'))  || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'voucher'))
-                    || is_numeric(strpos(strtolower($global['inbox_global_subject']), 'order')) ||
-                    is_numeric(strpos(strtolower($global['inbox_global_subject']), 'first')) ||
-                    is_numeric(strpos(strtolower($global['inbox_global_subject']), 'point')) ||
-                    is_numeric(strpos(strtolower($global['inbox_global_subject']), 'subscription'))){
-                    $content['clickto'] = $global['inbox_global_clickto'];
+                if(is_numeric(strpos(strtolower($global['subject']), 'transaksi')) || is_numeric(strpos(strtolower($global['subject']), 'transaction'))
+                    || is_numeric(strpos(strtolower($global['subject']), 'deals'))  || is_numeric(strpos(strtolower($global['subject']), 'voucher'))
+                    || is_numeric(strpos(strtolower($global['subject']), 'order')) ||
+                    is_numeric(strpos(strtolower($global['subject']), 'first')) ||
+                    is_numeric(strpos(strtolower($global['subject']), 'point')) ||
+                    is_numeric(strpos(strtolower($global['subject']), 'subscription'))){
+                    $content['clickto'] = $global['clickto'];
                 }else{
                     $content['clickto'] = '';
                 }
 
-				$content['created_at'] 	 = $global['inbox_global_start'];
+				$content['created_at'] 	 = $global['created_at'];
 
-				$read = InboxGlobalRead::where('id_inbox_global', $global['id_inbox_global'])->where('id_user', $user['id'])->first();
+				$read = InboxGlobalRead::where('id_inbox_global', $global['id_inbox'])->where('id_user', $user['id'])->first();
 				if(!empty($read)){
 					$content['status'] = 'read';
 				}else{
@@ -166,22 +166,7 @@ class ApiInbox extends Controller
 				$content['link'] = null;
 			}
 
-
-            if(is_numeric(strpos(strtolower($private['inboxes_subject']), 'transaksi')) || is_numeric(strpos(strtolower($private['inboxes_subject']), 'transaction'))
-                || is_numeric(strpos(strtolower($private['inboxes_subject']), 'deals'))  || is_numeric(strpos(strtolower($private['inboxes_subject']), 'voucher'))
-                || is_numeric(strpos(strtolower($private['inboxes_subject']), 'order')) ||
-                is_numeric(strpos(strtolower($private['inboxes_subject']), 'first')) ||
-                is_numeric(strpos(strtolower($private['inboxes_subject']), 'point')) ||
-                is_numeric(strpos(strtolower($private['inboxes_subject']), 'subscription'))){
-
-                $content['clickto'] = $private['inboxes_clickto'];
-            }else{
-                $content['clickto'] = '';
-            }
-
-			$content['created_at'] 	 = $private['inboxes_send_at'];
-
-			unset($content['inbox_global_rule_parents']);			
+			unset($content['inbox_global_rule_parents']);
 			if($mode == 'simple'){
 				$arrInbox[] = $content;
 			}else{
