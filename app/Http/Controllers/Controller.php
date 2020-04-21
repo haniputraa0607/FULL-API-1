@@ -168,4 +168,23 @@ class Controller extends BaseController
         }
         return view('webview.maintenance_mode', $data);
     }
+
+    function testemail(){
+        $getSetting = Setting::where('key', 'LIKE', 'email%')->get()->toArray();
+        $setting = array();
+        foreach ($getSetting as $key => $value) {
+            if($value['key'] == 'email_setting_url'){
+                $setting[$value['key']]  = (array)json_decode($value['value_text']);
+            }else{
+                $setting[$value['key']] = $value['value'];
+            }
+        }
+
+        $data = array(
+            'customer' => 'Dina',
+            'html_message' => '',
+            'setting' => $setting
+        );
+        return view('emails.test2', $data);
+    }
 }

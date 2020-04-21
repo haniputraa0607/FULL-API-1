@@ -40,6 +40,7 @@ class ApiConfirm extends Controller
         $this->trx = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
         $this->autocrm  = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
         $this->voucher  = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
+        $this->promo_campaign	= "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
     }
 
     public function confirmTransaction(ConfirmPayment $request) {
@@ -721,6 +722,11 @@ class ApiConfirm extends Controller
                     $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
 
                     $updatePaymentStatus = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Cancelled', 'void_date' => date('Y-m-d H:i:s')]);
+
+                    if ($trx->id_promo_campaign_promo_code) {
+		            	$update_promo_report = app($this->promo_campaign)->deleteReport($trx->id_transaction, $trx->id_promo_campaign_promo_code);
+		            }
+                    
                     $updateVoucher = app($this->voucher)->returnVoucher($trx['id_transaction']);
 
                     //return balance
@@ -833,7 +839,11 @@ class ApiConfirm extends Controller
 
         $updatePaymentStatus = Transaction::where('id_transaction', $payment['id_transaction'])->update(['transaction_payment_status' => 'Cancelled']);
 
-        $updateVoucher = app($this->voucher)->returnVoucher($payment['id_transaction']);
+        if ($trx->id_promo_campaign_promo_code) {
+        	$update_promo_report = app($this->promo_campaign)->deleteReport($trx->id_transaction, $trx->id_promo_campaign_promo_code);
+        }
+
+        $updateVoucher = app($this->voucher)->returnVoucher($trx->id_transaction);
 
         //return balance
         $payBalance = TransactionMultiplePayment::where('id_transaction', $trx['id_transaction'])->where('type', 'Balance')->first();

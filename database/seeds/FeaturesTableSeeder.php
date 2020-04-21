@@ -1962,6 +1962,14 @@ class FeaturesTableSeeder extends Seeder
                     'feature_module' => 'Report SMS',
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            244 =>
+                array (
+                    'id_feature' => 245,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Setting url in email',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
                 )
         ));
     }
