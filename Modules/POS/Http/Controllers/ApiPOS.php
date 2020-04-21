@@ -170,7 +170,7 @@ class ApiPOS extends Controller
                     foreach ($balance as $payBalance) {
                         $pay = [
                             'number'        => 1,
-                            'type'          => 'Points',
+                            'type'          => 'POIN MOBILE',
                             'amount'        => (float) $payBalance['balance_nominal'],
                             'change_amount' => 0,
                             'card_number'   => 0,
@@ -184,7 +184,7 @@ class ApiPOS extends Controller
                         foreach ($midtrans as $payMidtrans) {
                             $pay = [
                                 'number'        => 1,
-                                'type'          => 'Midtrans',
+                                'type'          => 'GOPAY',
                                 'amount'        => (float) $payMidtrans['gross_amount'],
                                 'change_amount' => 0,
                                 'card_number'   => 0,
@@ -201,7 +201,7 @@ class ApiPOS extends Controller
                         if ($balance) {
                             $pay = [
                                 'number'        => $key + 1,
-                                'type'          => 'Points',
+                                'type'          => 'POIN MOBILE',
                                 'amount'        => (float) $balance['balance_nominal'],
                                 'change_amount' => 0,
                                 'card_number'   => 0,
@@ -214,7 +214,7 @@ class ApiPOS extends Controller
                         if ($midtrans) {
                             $pay = [
                                 'number'        => $key + 1,
-                                'type'          => 'Midtrans',
+                                'type'          => 'GOPAY',
                                 'amount'        => (float) $midtrans['gross_amount'],
                                 'change_amount' => 0,
                                 'card_number'   => '',
@@ -227,7 +227,7 @@ class ApiPOS extends Controller
                         if ($ovo) {
                             $pay = [
                                 'number'            => $key + 1,
-                                'type'              => 'Ovo',
+                                'type'              => 'OVO',
                                 'amount'            => (float) $ovo['amount'],
                                 'change_amount'     => 0,
                                 'card_number'       => $ovo['phone'],
@@ -254,7 +254,7 @@ class ApiPOS extends Controller
                         if ($ipay) {
                             $pay = [
                                 'number'            => $key + 1,
-                                'type'              => $ipay['payment_method'],
+                                'type'              => 'IPAY88',
                                 'amount'            => (float) $ipay['amount']/100,
                                 'change_amount'     => 0,
                                 'card_number'       => '',
