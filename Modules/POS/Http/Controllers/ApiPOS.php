@@ -380,7 +380,7 @@ class ApiPOS extends Controller
                 ]);
             }
 
-            $result['uid'] = $post['uid'];
+            $result['uid'] = $user->id;
             $result['name'] = $user->name;
 
             $voucher = DealsUser::with('dealVoucher', 'dealVoucher.deal')->where('id_user', $user->id)
