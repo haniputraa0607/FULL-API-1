@@ -17,6 +17,7 @@ use App\Http\Models\DealsVoucher;
 use App\Http\Models\LogPoint;
 use App\Http\Models\User;
 use App\Http\Models\Setting;
+use Modules\Deals\Entities\DealsUserLimit;
 
 use Modules\Deals\Http\Controllers\ApiDealsVoucher;
 
@@ -253,9 +254,17 @@ class ApiDealsClaim extends Controller
 
         if ($checkLimit['user_limit'] != 0) {
             if (!empty($claimed)) {
-                 if (count($claimed) >= $checkLimit['user_limit']) {
+                if (count($claimed) >= $checkLimit['user_limit']) {
                     return false;
                 }
+
+            	if ( (count($claimed)+1) == $checkLimit['user_limit']) {
+            		$dataUserLimit = [
+            			'id_user' 	=> $user->id,
+            			'id_deals'	=> $id_deals
+            		];
+            		$saveDealsLimit = DealsUserLimit::create($dataUserLimit);
+            	}
             }
         }
 
