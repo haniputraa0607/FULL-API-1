@@ -1049,4 +1049,68 @@ class ApiAutoCrm extends Controller
 		DB::commit();
 		return response()->json(MyHelper::checkUpdate($query));
 	}
+
+	public function sendForwardEmail($autocrm_title, $subject, $content){
+        $getAutocrm = Autocrm::where('autocrm_title','=',$autocrm_title)->with('whatsapp_content')->first();
+        if($getAutocrm){
+            if($getAutocrm['autocrm_forward_toogle'] == 1 && !is_null($getAutocrm['autocrm_forward_email'])){
+                $recipient_email = explode(',', str_replace(' ', ',', str_replace(';', ',', $getAutocrm['autocrm_forward_email'])));
+
+                foreach($recipient_email as $key => $recipient){
+                    if($recipient != ' ' && $recipient != ""){
+                        $to		 = $recipient;
+                        //get setting email
+                        $getSetting = Setting::where('key', 'LIKE', 'email%')->get()->toArray();
+                        $setting = array();
+                        foreach ($getSetting as $key => $value) {
+                            $setting[$value['key']] = $value['value'];
+                        }
+
+                        $em_arr = explode('@',$recipient);
+                        $name = ucwords(str_replace("_"," ", str_replace("-"," ", str_replace("."," ", $em_arr[0]))));
+
+                        $data = array(
+                            'customer' => $name,
+                            'html_message' => $content,
+                            'setting' => $setting
+                        );
+
+                        try{
+                            $send = Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting)
+                            {
+                                $message->to($to, $name)->subject($subject);
+                                if(env('MAIL_DRIVER') == 'mailgun'){
+                                    $message->trackClicks(true)
+                                        ->trackOpens(true);
+                                }
+
+                                if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
+                                    $message->from($setting['email_sender'], $setting['email_from']);
+                                }else if(!empty($setting['email_sender'])){
+                                    $message->from($setting['email_sender']);
+                                }
+
+                                if(!empty($setting['email_reply_to'])){
+                                    $message->replyTo($setting['email_reply_to'], $setting['email_reply_to_name']);
+                                }
+
+                                if(!empty($setting['email_cc']) && !empty($setting['email_cc_name'])){
+                                    $message->cc($setting['email_cc'], $setting['email_cc_name']);
+                                }
+
+                                if(!empty($setting['email_bcc']) && !empty($setting['email_bcc_name'])){
+                                    $message->bcc($setting['email_bcc'], $setting['email_bcc_name']);
+                                }
+                            });
+
+                        }catch(\Exception $e){
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
 }

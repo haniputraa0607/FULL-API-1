@@ -1,5 +1,10 @@
 <?php
 
+Route::group(['prefix' => 'api/autocrm/test', 'namespace' => 'Modules\PointInjection\Http\Controllers'], function()
+{
+    Route::get('point', 'ApiPointInjectionController@getPointInjection');
+});
+
 Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scopes:be'], 'prefix' => 'api/point-injection', 'namespace' => 'Modules\PointInjection\Http\Controllers'], function () {
     Route::post('list', ['middleware' => 'feature_control:206', 'uses' => 'ApiPointInjectionController@index']);
     Route::post('create', ['middleware' => 'feature_control:208', 'uses' => 'ApiPointInjectionController@store']);

@@ -396,6 +396,23 @@
             height: 0;
             overflow: visible;
         }
+
+        #table-content {
+            border-collapse: collapse;
+        }
+
+        #table-content td, #table-content th {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        #table-contentt th {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            text-align: left;
+            background-color: #BFBFBF;
+            color: white;
+        }
     </style>
 </head>
 
