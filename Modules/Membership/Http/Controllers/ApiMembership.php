@@ -691,7 +691,6 @@ class ApiMembership extends Controller
 		}
 
 		foreach($users as $datauser){
-
 			$membership_baru = null;
 			//cek level
 			foreach($membership_all as $all){
@@ -713,7 +712,10 @@ class ApiMembership extends Controller
 
 				//cek total transaction count
 				if($all['membership_type'] == 'balance'){
-					if($datauser->balance >= $all['min_total_balance']){
+					$total_balance = LogBalance::whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal'])
+					->where('balance', '>', 0)
+					->where('id_user',$datauser->id)->sum('balance');
+					if($total_balance >= $all['min_total_balance']){
 						//level up
 						$membership_baru = $all;
 					}
