@@ -346,6 +346,34 @@ class ApiPointInjectionController extends Controller
             }
             try {
                 PointInjection::where('id_point_injection', $post['id_point_injection'])->update($postPointInjection);
+
+                $subject = 'Update Point Injection';
+                $content = '<table id="table-content">';
+                $content .= '<tr>';
+                $content .= '<td colspan="4">Info</td>';
+                $content .= '</tr>';
+                $content .= '<tr>';
+                $content .= '<td>Point Injection Title</td>';
+                $content .= '<td>'.$post['title'].'</td>';
+                $content .= '</tr>';
+                $content .= '<tr>';
+                $content .= '<td>Point Injection Type Send</td>';
+                $content .= '<td>'.$post['send_type'].'</td>';
+                $content .= '</tr>';
+                $content .= '<tr>';
+                $content .= '<td>Date Time to Send</td>';
+                if(isset($post['point_injection_send_at'])){
+                    $content .= '<td>'.$post['point_injection_send_at'].' '.$post['point_injection_send_time'].'</td>';
+                }else{
+                    $content .= '<td>'.$post['point_injection_one_time_send_at'].'</td>';
+                }
+                $content .= '</tr>';
+                $content .= '<tr>';
+                $content .= '<td>Total Point</td>';
+                $content .= '<td>'.number_format($post['total_point']).'</td>';
+                $content .= '</tr>';
+                $content .= '</table>';
+                $send = app($this->autocrm)->sendForwardEmail('Point Injection', $subject, $content);
                 $result = ['status'  => 'success'];
             } catch (\Exception $e) {
                 $result = [
@@ -425,6 +453,34 @@ class ApiPointInjectionController extends Controller
             try {
                 $insertPointInjection = PointInjection::create($postPointInjection);
                 $postPointInjection['id_point_injection'] = $insertPointInjection['id_point_injection'];
+
+                $subject = 'Create Point Injection';
+                $content = '<table id="table-content">';
+                $content .= '<tr>';
+                $content .= '<td colspan="4">Info</td>';
+                $content .= '</tr>';
+                $content .= '<tr>';
+                $content .= '<td>Point Injection Title</td>';
+                $content .= '<td>'.$post['title'].'</td>';
+                $content .= '</tr>';
+                $content .= '<tr>';
+                $content .= '<td>Point Injection Type Send</td>';
+                $content .= '<td>'.$post['send_type'].'</td>';
+                $content .= '</tr>';
+                $content .= '<tr>';
+                $content .= '<td>Date Time to Send</td>';
+                if(isset($post['point_injection_send_at'])){
+                    $content .= '<td>'.$post['point_injection_send_at'].' '.$post['point_injection_send_time'].'</td>';
+                }else{
+                    $content .= '<td>'.$post['point_injection_one_time_send_at'].'</td>';
+                }
+                $content .= '</tr>';
+                $content .= '<tr>';
+                $content .= '<td>Total Point</td>';
+                $content .= '<td>'.number_format($post['total_point']).'</td>';
+                $content .= '</tr>';
+                $content .= '</table>';
+                $send = app($this->autocrm)->sendForwardEmail('Point Injection', $subject, $content);
                 $result = ['status'  => 'success'];
             } catch (\Exception $e) {
                 $result = [
@@ -590,7 +646,7 @@ class ApiPointInjectionController extends Controller
     {
         try{
             $dateNow = date('Y-m-d H:00:00');
-
+            $arrTmp = [];
             $pointInjection = PivotPointInjection::where('send_time', '<=', $dateNow)
                 ->get()->toArray();
 
@@ -670,11 +726,56 @@ class ApiPointInjectionController extends Controller
                         }
                     }
                 }
-
+                $check = array_search($valueUser['id_point_injection'], array_column($arrTmp, 'id_point_injection'));
+                if($check === false){
+                    $getInfo = PointInjection::where('id_point_injection', $valueUser['id_point_injection'])->first();
+                    $arrTmp[] = [
+                        'id_point_injection' => $valueUser['id_point_injection'],
+                        'title' => $getInfo['title'],
+                        'send_type' => $getInfo['send_type'],
+                        'send_time' => date('d M Y', strtotime($getInfo['start_date'])).' '.date('H:i', strtotime($getInfo['send_time'])),
+                        'total_point' => $getInfo['total_point'],
+                        'users_count' => 1
+                    ];
+                }else{
+                    $arrTmp[$check]['users_count'] = $arrTmp[$check]['users_count'] + 1;
+                }
                 //update status to success
                 PointInjectionReport::where('id_user', $valueUser['id_user'])->where('id_point_injection', $valueUser['id_point_injection'])
                     ->update(['status' => 'Success']);
             }
+
+            //proccess send email to admin
+            foreach ($arrTmp as $val){
+                $subject = 'Send Point Injection To User';
+                $content = '<table id="table-content">';
+                $content .= '<tr>';
+                $content .= '<td colspan="4">Info</td>';
+                $content .= '</tr>';
+                $content .= '<tr>';
+                $content .= '<td>Point Injection Title</td>';
+                $content .= '<td>'.$val['title'].'</td>';
+                $content .= '</tr>';
+                $content .= '<tr>';
+                $content .= '<td>Point Injection Type Send</td>';
+                $content .= '<td>'.$val['send_type'].'</td>';
+                $content .= '</tr>';
+                $content .= '<tr>';
+                $content .= '<td>Date Time to Send</td>';
+                $content .= '<td>'.$val['send_time'].'</td>';
+                $content .= '</tr>';
+                $content .= '<tr>';
+                $content .= '<td>Total Point</td>';
+                $content .= '<td>'.number_format($val['total_point']).'</td>';
+                $content .= '</tr>';
+                $content .= '<tr>';
+                $content .= '<td>Count User to Send</td>';
+                $content .= '<td>'.number_format($val['users_count']).'</td>';
+                $content .= '</tr>';
+                $content .= '</table>';
+                $send = app($this->autocrm)->sendForwardEmail('Point Injection', $subject, $content);
+            }
+
             $pointInjection = PivotPointInjection::where('send_time', '<=', $dateNow)->delete();
 
             DB::commit();
