@@ -247,4 +247,9 @@ class Deal extends Model
     {
         return $this->belongsTo(\App\Http\Models\User::class, 'created_by');
     }
+
+    public function deals_user_limits()
+    {
+        return $this->hasMany(\Modules\Deals\Entities\DealsUserLimit::class, 'id_deals', 'id_deals');
+    }
 }

@@ -2125,10 +2125,8 @@ class ApiPOS extends Controller
                 $pointValue = 0;
 
                 if (isset($trx['member_uid'])) {
-                    $qr         = MyHelper::readQR($trx['member_uid']);
-                    $timestamp  = $qr['timestamp'];
-                    $phoneqr    = $qr['phone'];
-                    $user       = User::where('phone', $phoneqr)->with('memberships')->first();
+                    $qr         = [];
+                    $user       = User::where('id', $trx['member_uid'])->with('memberships')->first();
 
                     if (empty($user)) {
                         $user['id'] = null;

@@ -28,6 +28,7 @@ use Modules\Deals\Entities\DealsTierDiscountProduct;
 use Modules\Deals\Entities\DealsTierDiscountRule;
 use Modules\Deals\Entities\DealsBuyxgetyProductRequirement;
 use Modules\Deals\Entities\DealsBuyxgetyRule;
+use Modules\Deals\Entities\DealsUserLimit;
 
 use DB;
 
@@ -357,6 +358,10 @@ class ApiDeals extends Controller
         if ($request->json('publish')) {
             $deals->where('deals_publish_end', '>=', date('Y-m-d H:i:s'));
             $deals->where('step_complete', '=', 1);
+
+            $deals->whereDoesntHave('deals_user_limits', function($q) use ($user){
+            	$q->where('id_user',$user->id);
+            });
         }
 
         if ($request->json('deals_type')) {
@@ -1481,5 +1486,33 @@ class ApiDeals extends Controller
     	}
 
     	return true;
+    }
+
+    public function cronRemoveUserLimit(Request $request)
+    {
+		$now   = date('Y-m-d H:i:s');
+
+        $deals = Deal::where('deals_end', '<=', $now)->whereHas('deals_user_limits')->get();
+
+        if (empty($deals)) 
+        {
+            return response()->json(['empty']);
+        }
+
+        foreach ($deals as $key => $value) 
+        {
+        	db::beginTransaction();
+
+        	$delete = DealsUserLimit::where('id_deals',$value->id_deals)->delete();
+
+        	if (!$delete) {
+        		db::rollBack();
+        		continue;
+        	}
+
+            db::commit();
+        }
+
+        return response()->json(['status' => 'success']);
     }
 }
