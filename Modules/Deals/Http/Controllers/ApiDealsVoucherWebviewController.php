@@ -180,25 +180,29 @@ class ApiDealsVoucherWebviewController extends Controller
             if (!empty($valueContent['deals_content_details'])) {
                 $result['deals_content'][$keyContent]['title'] = $valueContent['title'];
                 foreach ($valueContent['deals_content_details'] as $key => $value) {
-                    $content[$key] = '<li>'.$value['content'].'</li>';
+                    $result['deals_content'][$keyContent]['detail'][$key] = $value['content'];
+                    // $content[$key] = '<li>'.$value['content'].'</li>';
                 }
-                $result['deals_content'][$keyContent]['detail'] = '<ol style="color:#707070;">'.implode('', $content).'</ol>';
+                // $result['deals_content'][$keyContent]['detail'] = '<ul style="color:#707070;">'.implode('', $content).'</ul>';
                 $i++;
             }
         }
 
         $result['deals_content'][$i]['is_outlet'] = 1;
         $result['deals_content'][$i]['title'] = 'Available at';
+
         if($data['deals_voucher']['deal']['custom_outlet_text'] != null){
             $result['deals_content'][$i]['detail'] = $data['deals_voucher']['deal']['custom_outlet_text'];
         }else{
             foreach ($data['deals_voucher']['deal']['outlet_by_city'] as $keyCity => $valueCity) {
                 if (isset($valueCity['city_name'])) {
-                    foreach($valueCity['outlet'] as $keyOutlet => $valueOutlet) {
-                        $implode_outlet[$keyOutlet] = '<li style="line-height: 12px;">' . $valueOutlet['outlet_name'] . '</li>';
+                    $result['deals_content'][$i]['detail'][$keyCity]['city'] = $valueCity['city_name'];
+                    foreach ($valueCity['outlet'] as $keyOutlet => $valueOutlet) {
+                        $result['deals_content'][$i]['detail'][$keyCity]['outlet'][$keyOutlet] = $valueOutlet['outlet_name'];
+                        // $valTheOutlet[$keyOutlet] = '<li style="line-height: 12px;">' . $valueOutlet['outlet_name'] . '</li>';
                     }
-                    $city[$keyCity] = strtoupper($valueCity['city_name']) . '<br><ul style="color:#707070;">' . implode('', $implode_outlet) . '</ul>';
-                    $result['deals_content'][$i]['detail'] = '<ul>'.implode('', $city).'</ul>';
+                    // $city[$keyCity] = strtoupper($valueCity['city_name']) . '<br><ul style="color:#707070;">' .implode('', $valTheOutlet).'</ul>';
+                    // $result['deals_content'][$i]['detail'] = implode('', $city);
                 }
             }
         }
