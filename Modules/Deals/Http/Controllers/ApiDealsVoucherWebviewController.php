@@ -87,7 +87,7 @@ class ApiDealsVoucherWebviewController extends Controller
         // $action = MyHelper::postCURLWithBearer('api/voucher/me?log_save=0', $post, $bearer);
         $voucher = DealsUser::with(['outlet', 'deals_voucher', 'deals_voucher.deal', 'deals_voucher.deal.deals_content', 'deals_voucher.deal.deals_content.deals_content_details', 'deals_voucher.deal.outlets.city', 'deals_voucher.deal.outlets.city'])
         ->where('id_deals_user', $request->id_deals_user)->get()->toArray()[0];
-        
+
         if (!empty($voucher['deals_voucher']['deal']['outlets'])) {
             $kota = array_column($voucher['deals_voucher']['deal']['outlets'], 'city');
             $kota = array_values(array_map("unserialize", array_unique(array_map("serialize", $kota))));
@@ -171,7 +171,7 @@ class ApiDealsVoucherWebviewController extends Controller
         ];
 
         if ($data['outlet']['outlet_name']) {
-            
+
             $result['text_after_scan'] = 'Voucher has been used<br>in '.$data['outlet']['outlet_name'];
         }
 
@@ -180,22 +180,26 @@ class ApiDealsVoucherWebviewController extends Controller
             if (!empty($valueContent['deals_content_details'])) {
                 $result['deals_content'][$keyContent]['title'] = $valueContent['title'];
                 foreach ($valueContent['deals_content_details'] as $key => $value) {
-                    $content[$key] = $value['content'];
+                    $content[$key] = '<li>'.$value['content'].'</li>';
                 }
-                $result['deals_content'][$keyContent]['detail'] = implode('', $content);
+                $result['deals_content'][$keyContent]['detail'] = '<ol style="color:#707070;">'.implode('', $content).'</ol>';
                 $i++;
             }
         }
 
         $result['deals_content'][$i]['is_outlet'] = 1;
         $result['deals_content'][$i]['title'] = 'Available at';
-        foreach ($data['deals_voucher']['deal']['outlet_by_city'] as $keyCity => $valueCity) {
-            if (isset($valueCity['city_name'])) {
-                foreach($valueCity['outlet'] as $keyOutlet => $valueOutlet) {
-                    $implode_outlet[$keyOutlet] = '<li style="line-height: 12px;">' . $valueOutlet['outlet_name'] . '</li>';
+        if($data['deals_voucher']['deal']['custom_outlet_text'] != null){
+            $result['deals_content'][$i]['detail'] = $data['deals_voucher']['deal']['custom_outlet_text'];
+        }else{
+            foreach ($data['deals_voucher']['deal']['outlet_by_city'] as $keyCity => $valueCity) {
+                if (isset($valueCity['city_name'])) {
+                    foreach($valueCity['outlet'] as $keyOutlet => $valueOutlet) {
+                        $implode_outlet[$keyOutlet] = '<li style="line-height: 12px;">' . $valueOutlet['outlet_name'] . '</li>';
+                    }
+                    $city[$keyCity] = strtoupper($valueCity['city_name']) . '<br><ul style="color:#707070;">' . implode('', $implode_outlet) . '</ul>';
+                    $result['deals_content'][$i]['detail'] = '<ul>'.implode('', $city).'</ul>';
                 }
-                $city[$keyCity] = strtoupper($valueCity['city_name']) . '<br>' . implode('', $implode_outlet);
-                $result['deals_content'][$i]['detail'] = '<ul>'.implode('', $city).'</ul>';
             }
         }
 
