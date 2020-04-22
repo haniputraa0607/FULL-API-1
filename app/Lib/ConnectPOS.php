@@ -119,7 +119,8 @@ class ConnectPOS{
 					'cashierId'=> ''
 				],
 				'customer'=> [
-						'id'=> MyHelper::createQR(time(), $trxData->user->phone), // uid
+						// 'id'=> MyHelper::createQR(time(), $trxData->user->phone), // uid
+						'id'=> $trxData->user->id, // uid
 						'name'=> $trxData->user->name, //name
 						'gender'=> $trxData->user->gender?:'', //gender / “”
 						'age'=> $trxData->user->birthday?(date_diff(date_create($trxData->user->birthday), date_create('now'))->y):'', // age / “”
