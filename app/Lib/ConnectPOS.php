@@ -182,7 +182,7 @@ class ConnectPOS{
 					foreach ($balance as $payBalance) {
 						$pay = [
 							'number'        => 1,
-							'type'          => 'Points',
+							'type'          => 'POIN MOBILE',
 							'amount'        => (float) $payBalance['balance_nominal'],
 							'changeAmount' => 0,
 							'cardNumber'   => 0,
@@ -196,7 +196,7 @@ class ConnectPOS{
 						foreach ($midtrans as $payMidtrans) {
 							$pay = [
 								'number'        => 1,
-								'type'          => 'Midtrans',
+								'type'          => 'GOPAY',
 								'amount'        => (float) $payMidtrans['gross_amount'],
 								'changeAmount' => 0,
 								'cardNumber'   => 0,
@@ -213,7 +213,7 @@ class ConnectPOS{
 						if ($balance) {
 							$pay = [
 								'number'        => $key + 1,
-								'type'          => 'Points',
+								'type'          => 'POIN MOBILE',
 								'amount'        => (float) $balance['balance_nominal'],
 								'changeAmount' => 0,
 								'cardNumber'   => 0,
@@ -226,7 +226,7 @@ class ConnectPOS{
 						if ($midtrans) {
 							$pay = [
 								'number'        => $key + 1,
-								'type'          => 'Midtrans',
+								'type'          => 'GOPAY',
 								'amount'        => (float) $midtrans['gross_amount'],
 								'changeAmount' => 0,
 								'cardNumber'   => '',
@@ -239,7 +239,7 @@ class ConnectPOS{
 						if ($ovo) {
 							$pay = [
 								'number'            => $key + 1,
-								'type'              => 'Ovo',
+								'type'              => 'OVO',
 								'amount'            => (float) $ovo['amount'],
 								'changeAmount'     => 0,
 								'cardNumber'       => $ovo['phone'], // nomor telepon ovo
@@ -266,7 +266,7 @@ class ConnectPOS{
 						if ($ipay) {
 							$pay = [
 								'number'            => $key + 1,
-								'type'              => $ipay['payment_method'],
+								'type'              => 'IPAY88',
 								'amount'            => (float) $ipay['amount']/100,
 								'changeAmount'     => 0,
 								'cardNumber'       => '',
