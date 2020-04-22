@@ -37,197 +37,147 @@ class ApiInbox extends Controller
     }
 
     public function listInboxUser(Request $request, $mode = false){
-    	if(is_numeric($phone=$request->json('phone'))){
-    		$user=User::where('phone',$phone)->first();
-    	}else{
-			$user = $request->user();
-    	}
-
-		$today = date("Y-m-d H:i:s");
-		$arrInbox = [];
-		$countUnread = 0;
-		$countInbox = 0;
-		$arrDate = [];
-
-		$inboxes = InboxGlobal::select(\DB::raw('"global" as type, id_inbox_global as id_inbox,inbox_global_subject as subject,inbox_global_clickto as clickto, inbox_global_link as link, inbox_global_id_reference as id_reference, inbox_global_content as content, created_at, "unread" as status, 0 as id_brand'))->with('inbox_global_rule_parents', 'inbox_global_rule_parents.rules')
-								->where('inbox_global_start', '<=', $today)
-								->where('inbox_global_end', '>=', $today)
-								->union(UserInbox::select(\DB::raw('"private" as type,id_user_inboxes as id_inbox,inboxes_subject as subject,inboxes_clickto as clickto,inboxes_link as link,inboxes_id_reference as id_reference,inboxes_content as content,inboxes_send_at as created_at, CASE WHEN `read` = 1 THEN "read" ELSE "unread" END as status,id_brand'))->where('id_user','=',$user['id']))
-								->orderBy('created_at', 'desc');
-		if($request->page){
-			$inboxes = $inboxes->paginate(50)
-			->toArray();
-			$globals = $inboxes['data'];
-		}else{
-			$globals = $inboxes->get()->toArray();
-		}
-		foreach($globals as $ind => $global){
-
-			$cons = array();
-			$cons['subject'] = 'phone';
-			$cons['operator'] = '=';
-			$cons['parameter'] = $user['phone'];
-
-			array_push($global['inbox_global_rule_parents'], ['rule' => 'and', 'rule_next' => 'and', 'rules' => [$cons]]);
-			$users = app($this->user)->UserFilter($global['inbox_global_rule_parents']);
-
-
-			if(isset($users['status']) && $users['status'] == 'success'){
-				$content = [];
-				$content['type'] 		 = 'global';
-				$content['id_inbox'] 	 = $global['id_inbox'];
-				$content['subject'] 	 = app($this->autocrm)->TextReplace($global['subject'], $user['phone']);
-				$content['clickto'] 	 = $global['clickto'];
-
-
-				if($global['id_reference']){
-    				$content['id_reference'] = $global['id_reference'];
-    			}else{
-    				$content['id_reference'] = 0;
-    			}
-
-				if($content['clickto'] == 'News'){
-					$news = News::find($global['id_reference']);
-					if($news){
-						$content['news_title'] = $news->news_title;
-						$content['url'] = env('APP_URL').'news/webview/'.$news->id_news;
-					}
-				}
-
-				if($content['clickto'] == 'Content'){
-					$content['content'] = app($this->autocrm)->TextReplace($global['inbox_global_content'], $user['phone']);
-				}else{
-					$content['content']	= null;
-				}
-
-				if($content['clickto'] == 'Link'){
-					$content['link'] = $global['inbox_global_link'];
-				}else{
-					$content['link'] = null;
-				}
-
-                if(is_numeric(strpos(strtolower($global['subject']), 'transaksi')) || is_numeric(strpos(strtolower($global['subject']), 'transaction'))
-                    || is_numeric(strpos(strtolower($global['subject']), 'deals'))  || is_numeric(strpos(strtolower($global['subject']), 'voucher'))
-                    || is_numeric(strpos(strtolower($global['subject']), 'order')) ||
-                    is_numeric(strpos(strtolower($global['subject']), 'first')) ||
-                    is_numeric(strpos(strtolower($global['subject']), 'point')) ||
-                    is_numeric(strpos(strtolower($global['subject']), 'subscription'))){
-                    $content['clickto'] = $global['clickto'];
-                }else{
-                    $content['clickto'] = '';
+        if(is_numeric($phone=$request->json('phone'))){
+            $user=User::where('phone',$phone)->first();
+        }else{
+            $user = $request->user();
+        }
+        $today = date("Y-m-d H:i:s");
+        $arrInbox = [];
+        $countUnread = 0;
+        $countInbox = 0;
+        $arrDate = [];
+        $inboxes = InboxGlobal::select(\DB::raw('"global" as type, id_inbox_global as id_inbox,inbox_global_subject as subject,inbox_global_clickto as clickto, inbox_global_link as link, inbox_global_id_reference as id_reference, inbox_global_content as content, created_at, "unread" as status, 0 as id_brand'))->with('inbox_global_rule_parents', 'inbox_global_rule_parents.rules')
+            ->where('inbox_global_start', '<=', $today)
+            ->where('inbox_global_end', '>=', $today)
+            ->union(UserInbox::select(\DB::raw('"private" as type,id_user_inboxes as id_inbox,inboxes_subject as subject,inboxes_clickto as clickto,inboxes_link as link,inboxes_id_reference as id_reference,inboxes_content as content,inboxes_send_at as created_at, CASE WHEN `read` = 1 THEN "read" ELSE "unread" END as status,id_brand'))->where('id_user','=',$user['id']))
+            ->orderBy('created_at', 'desc');
+        if($request->page){
+            $inboxes = $inboxes->paginate(50)
+                ->toArray();
+            $globals = $inboxes['data'];
+        }else{
+            $globals = $inboxes->get()->toArray();
+        }
+        foreach($globals as $ind => $global){
+            $content = $global;
+            if($global['type'] == 'global'){
+                $cons = array();
+                $cons['subject'] = 'phone';
+                $cons['operator'] = '=';
+                $cons['parameter'] = $user['phone'];
+                array_push($global['inbox_global_rule_parents'], ['rule' => 'and', 'rule_next' => 'and', 'rules' => [$cons]]);
+                $users = app($this->user)->UserFilter($global['inbox_global_rule_parents']);
+                $content['subject'] = app($this->autocrm)->TextReplace($global['subject'], $user['phone']);
+                if($content['content']){
+                    $content['content'] = app($this->autocrm)->TextReplace($global['content'], $user['phone']);
                 }
+                if(isset($users['status']) && $users['status'] == 'success'){
+                    $read = InboxGlobalRead::where('id_inbox_global', $global['id_inbox'])->where('id_user', $user['id'])->first();
+                    if(!empty($read)){
+                        $content['status'] = 'read';
+                    }else{
+                        $content['status'] = 'unread';
+                    }
+                } else {
+                    continue;
+                }
+            }
+            if(!$content['id_reference']){
+                $content['id_reference'] = 0;
+            }
+            if($content['clickto']=='Deals Detail'){
+                $content['id_brand'] = $content['id_brand'];
+            }else{
+                unset($content['id_brand']);
+            }
+            if($content['clickto'] == 'News'){
+                $news = News::find($global['id_reference']);
+                if($news){
+                    $content['news_title'] = $news->news_title;
+                    $content['url'] = env('APP_URL').'news/webview/'.$news->id_news;
+                }
+            }
+            if($content['clickto'] != 'Content'){
+                $content['content'] = null;
+            }
+            if($content['clickto'] != 'Link'){
+                $content['link'] = null;
+            }
 
-				$content['created_at'] 	 = $global['created_at'];
+            if(is_numeric(strpos(strtolower($global['subject']), 'transaksi')) || is_numeric(strpos(strtolower($global['subject']), 'transaction'))
+                || is_numeric(strpos(strtolower($global['subject']), 'deals'))  || is_numeric(strpos(strtolower($global['subject']), 'voucher'))
+                || is_numeric(strpos(strtolower($global['subject']), 'order')) ||
+                is_numeric(strpos(strtolower($global['subject']), 'first'))){
+                $content['clickto'] = $global['clickto'];
+            }elseif (is_numeric(strpos(strtolower($global['subject']), 'point'))){
+                $content['clickto'] = 'Membership';
+            }elseif (is_numeric(strpos(strtolower($global['subject']), 'subscription'))){
+                $content['clickto'] = 'Subscription';
+            }else{
+                $content['clickto'] = '';
+            }
 
-				$read = InboxGlobalRead::where('id_inbox_global', $global['id_inbox'])->where('id_user', $user['id'])->first();
-				if(!empty($read)){
-					$content['status'] = 'read';
-				}else{
-					$content['status'] = 'unread';
-					$countUnread++;
+            unset($content['inbox_global_rule_parents']);
+            if($mode == 'simple'){
+                $arrInbox[] = $content;
+            }else{
+                if(!in_array(date('Y-m-d', strtotime($content['created_at'])), $arrDate)){
+                    $arrDate[] = date('Y-m-d', strtotime($content['created_at']));
+                    $temp['created'] =  date('Y-m-d', strtotime($content['created_at']));
+                    $temp['list'][0] =  $content;
+                    $arrInbox[] = $temp;
+                }else{
+                    $position = array_search(date('Y-m-d', strtotime($content['created_at'])), $arrDate);
+                    $arrInbox[$position]['list'][] = $content;
+                }
+            }
+        }
+        if(isset($arrInbox) && !empty($arrInbox)) {
+            if($mode == 'simple'){
+                usort($arrInbox, function($a, $b){
+                    $t1 = strtotime($a['created_at']);
+                    $t2 = strtotime($b['created_at']);
+                    return $t2 - $t1;
+                });
+            }else{
+                foreach ($arrInbox as $key => $value) {
+                    usort($arrInbox[$key]['list'], function($a, $b){
+                        $t1 = strtotime($a['created_at']);
+                        $t2 = strtotime($b['created_at']);
+                        return $t2 - $t1;
+                    });
+                }
+                usort($arrInbox, function($a, $b){
+                    $t1 = strtotime($a['created']);
+                    $t2 = strtotime($b['created']);
+                    return $t2 - $t1;
+                });
+            }
+            if($request->page){
+                $inboxes['data'] = $arrInbox;
+                $inboxes['count_unread'] = $this->listInboxUnread($user['id']);
+                $result = [
+                    'status'  => 'success',
+                    'result'  => $inboxes,
+                ];
+            }else{
+                $result = [
+                    'status'  => 'success',
+                    'result'  => $arrInbox,
+                    'count_unread' => $this->listInboxUnread($user['id']),
+                ];
+            }
+        } else {
+            $result = [
+                'status'  => 'fail',
+                'messages'  => ["You Don't Have Any Messages Yet"]
+            ];
+        }
+        return response()->json($result);
+    }
 
-				}
-				if(isset($users['status']) && $users['status'] == 'success'){
-					$read = InboxGlobalRead::where('id_inbox_global', $global['id_inbox'])->where('id_user', $user['id'])->first();
-					if(!empty($read)){
-						$content['status'] = 'read';
-					}else{
-						$content['status'] = 'unread';
-					}
-				} else {
-					continue;
-				}
-			}
-
-			if(!$content['id_reference']){
-				$content['id_reference'] = 0;
-			}
-
-			if($content['clickto']=='Deals Detail'){
-				$content['id_brand'] = $content['id_brand'];
-			}else{
-				unset($content['id_brand']);
-			}
-
-			if($content['clickto'] == 'News'){
-				$news = News::find($global['id_reference']);
-				if($news){
-					$content['news_title'] = $news->news_title;
-					$content['url'] = env('APP_URL').'news/webview/'.$news->id_news;
-				}
-
-			}
-
-			if($content['clickto'] != 'Content'){
-				$content['content']	= null;
-			}
-
-			if($content['clickto'] != 'Link'){
-				$content['link'] = null;
-			}
-
-			unset($content['inbox_global_rule_parents']);
-			if($mode == 'simple'){
-				$arrInbox[] = $content;
-			}else{
-				if(!in_array(date('Y-m-d', strtotime($content['created_at'])), $arrDate)){
-					$arrDate[] = date('Y-m-d', strtotime($content['created_at']));
-					$temp['created'] =  date('Y-m-d', strtotime($content['created_at']));
-					$temp['list'][0] =  $content;
-					$arrInbox[] = $temp;
-				}else{
-					$position = array_search(date('Y-m-d', strtotime($content['created_at'])), $arrDate);
-					$arrInbox[$position]['list'][] = $content;
-				}
-			}
-		}
-
-		if(isset($arrInbox) && !empty($arrInbox)) {
-			if($mode == 'simple'){
-				usort($arrInbox, function($a, $b){
-					$t1 = strtotime($a['created_at']);
-					$t2 = strtotime($b['created_at']);
-					return $t2 - $t1;
-				});
-			}else{
-				foreach ($arrInbox as $key => $value) {
-					usort($arrInbox[$key]['list'], function($a, $b){
-						$t1 = strtotime($a['created_at']);
-						$t2 = strtotime($b['created_at']);
-						return $t2 - $t1;
-					});
-				}
-
-				usort($arrInbox, function($a, $b){
-					$t1 = strtotime($a['created']);
-					$t2 = strtotime($b['created']);
-					return $t2 - $t1;
-				});
-			}
-			if($request->page){
-				$inboxes['data'] = $arrInbox;
-				$inboxes['count_unread'] = $this->listInboxUnread($user['id']);
-				$result = [
-					'status'  => 'success',
-					'result'  => $inboxes,
-				];
-			}else{
-				$result = [
-					'status'  => 'success',
-					'result'  => $arrInbox,
-					'count_unread' => $this->listInboxUnread($user['id']),
-				];
-			}
-		} else {
-			$result = [
-					'status'  => 'fail',
-					'messages'  => ["You Don't Have Any Messages Yet"]
-				];
-		}
-		return response()->json($result);
-	}
-
-	public function markedInbox(MarkedInbox $request){
+    public function markedInbox(MarkedInbox $request){
 		$user = $request->user();
 		$post = $request->json()->all();
 		if($post['type'] == 'private'){
