@@ -97,3 +97,8 @@ Route::group(['middleware' => ['auth:api', 'log_activities','user_agent', 'scope
     Route::post('create', 'ApiHiddenDeals@createReq');
     Route::post('create/autoassign', 'ApiHiddenDeals@autoAssign');
 });
+
+/* CRON */
+Route::group(['prefix' => 'api/cron/deals', 'namespace' => 'Modules\Deals\Http\Controllers'], function () {
+    Route::any('/remove-user-limit', 'ApiDeals@cronRemoveUserLimit');
+});
