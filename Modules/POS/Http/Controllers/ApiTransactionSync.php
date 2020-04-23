@@ -92,7 +92,7 @@ class ApiTransactionSync extends Controller
 
     public function transactionRefund(Request $request){
         $x = 1;
-        $getDataQueue = SyncTransactionQueues::whereIn('type', 'Transaction Refund')->Orderby('created_at', 'asc')->limit($x)->get()->toArray();
+        $getDataQueue = SyncTransactionQueues::where('type', 'Transaction Refund')->Orderby('created_at', 'asc')->limit($x)->get()->toArray();
         foreach($getDataQueue as $key => $trans){
             $data = json_decode($trans['request_transaction'], true);
             $process = app($this->pos)->transactionRefund($request, $data, 0);
