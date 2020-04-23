@@ -102,7 +102,7 @@ class ApiDealsWebview extends Controller
             if (!empty($valueContent['deals_content_details'])) {
                 $result['deals_content'][$keyContent]['title'] = $valueContent['title'];
                 foreach ($valueContent['deals_content_details'] as $key => $value) {
-                    $result['deals_content'][$keyContent]['detail'][$key] = $value['content'];
+                    $result['deals_content'][$keyContent]['detail'][0]['data'][$key] = $value['content'];
                     // $content[$key] = '<li>'.$value['content'].'</li>';
                 }
                 // $result['deals_content'][$keyContent]['detail'] = '<ul style="color:#707070;">'.implode('', $content).'</ul>';
