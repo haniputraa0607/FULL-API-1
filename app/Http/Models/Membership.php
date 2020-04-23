@@ -50,11 +50,16 @@ class Membership extends Model
 
 	protected $fillable = [
 		'membership_name',
-		'membership_type',
 		'membership_name_color',
 		'membership_image',
-		'membership_next_image',
 		'membership_bg_image',
+		'membership_background_card_color',
+		'membership_background_card_pattern',
+		'membership_text_color',
+		'membership_next_image',
+		'membership_type',
+		'membership_text_color_benefit',
+		'membership_bg_color_benefit',
 		'min_total_value',
 		'min_total_count',
 		'min_total_balance',
