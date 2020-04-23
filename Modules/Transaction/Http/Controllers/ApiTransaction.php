@@ -1534,6 +1534,7 @@ class ApiTransaction extends Controller
                         if($dataPay['type'] == 'Midtrans'){
                             $payment[$dataKey]['name']      = 'Midtrans';
                             $payment[$dataKey]['amount']    = TransactionPaymentMidtran::find($dataPay['id_payment'])->gross_amount;
+                            $payment[$dataKey]['reject']    = TransactionPaymentMidtran::find($dataPay['id_payment'])->status_message;
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey] = $dataPay;
@@ -1551,6 +1552,7 @@ class ApiTransaction extends Controller
                         if($dataPay['type'] == 'Ovo'){
                             $payment[$dataKey] = TransactionPaymentOvo::find($dataPay['id_payment']);
                             $payment[$dataKey]['name']    = 'OVO';
+                            $payment[$dataKey]['reject']    = TransactionPaymentOvo::find($dataPay['id_payment'])->response_description;
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey] = $dataPay;
@@ -1568,6 +1570,7 @@ class ApiTransaction extends Controller
                         if($dataPay['type'] == 'IPay88'){
                             $payment[$dataKey]['name']    = 'Credit / Debit Card';
                             $payment[$dataKey]['amount']    = TransactionPaymentIpay88::find($dataPay['id_payment'])->amount / 100;
+                            $payment[$dataKey]['reject']    = TransactionPaymentIpay88::find($dataPay['id_payment'])->err_desc;
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey] = $dataPay;
@@ -1677,6 +1680,8 @@ class ApiTransaction extends Controller
                     unset($result['detail']['order_id']);
                     unset($result['detail']['pickup_time']);
                     $result['transaction_status'] = 'Order Cancelled';
+                } elseif(isset($list['transaction_payment_status']) && $list['transaction_payment_status'] == 'Pending') {
+                    $result['transaction_status'] = 'Payment Pending';
                 } elseif($list['detail']['reject_at'] != null) {
                     $result['transaction_status'] = 'Order Rejected';
                 } elseif($list['detail']['taken_by_system_at'] != null) {
@@ -1749,10 +1754,19 @@ class ApiTransaction extends Controller
 
             if ($list['trasaction_payment_type'] != 'Offline') {
                 if ($list['transaction_payment_status'] == 'Cancelled') {
-                    $result['detail']['detail_status'][] = [
-                    'text'  => 'Your order has been canceled',
-                    'date'  => date('d F Y H:i', strtotime($list['void_date']))
-                ];
+                    foreach ($list['payment'] as $key => $value) {
+                        if (isset($value['reject'])) {
+                            $result['detail']['detail_status'][] = [
+                                'text'  => 'Your order has been canceled ' . $value['reject'],
+                                'date'  => date('d F Y H:i', strtotime($list['void_date']))
+                            ];
+                        } else {
+                            $result['detail']['detail_status'][] = [
+                                'text'  => 'Your order has been canceled',
+                                'date'  => date('d F Y H:i', strtotime($list['void_date']))
+                            ];
+                        }
+                    }
                 } else {
                     if ($list['detail']['reject_at'] != null) {
                         $result['detail']['detail_status'][] = [
@@ -1786,8 +1800,12 @@ class ApiTransaction extends Controller
                     ];
                     }
                     $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order awaits confirmation ',
+                        'text'  => 'Your order awaits confirmation',
                         'date'  => date('d F Y H:i', strtotime($list['transaction_date']))
+                    ];
+                    $result['detail']['detail_status'][] = [
+                        'text'  => 'Your order awaits confirmation payment',
+                        'date'  => date('d F Y H:i', strtotime($list['created_at']))
                     ];
                 }
             }
