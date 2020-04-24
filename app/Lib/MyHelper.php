@@ -2043,6 +2043,9 @@ class MyHelper{
 	}
 
     public static function createQRV2($timestamp, $id_user, $useragent = null){
+	    if(strlen((string)$id_user) < 8){
+            $id_user = "00000000".$id_user;
+        }
         $arrtime = str_split($timestamp);
 
         $arrIdUser = str_split($id_user);
@@ -2137,7 +2140,13 @@ class MyHelper{
         }
 
         $result['timestamp'] = implode('', $arrtimestamp);
-        $result['id_user'] = implode('', $arrIdUser);
+        $idUser = implode('', $arrIdUser);
+        if(substr($idUser, 0, 1) == 0){
+            $result['id_user'] = ltrim($idUser, '0');
+        }else{
+            $result['id_user'] = $idUser;
+        }
+
         $result['device'] = $device;
 
         return $result;
