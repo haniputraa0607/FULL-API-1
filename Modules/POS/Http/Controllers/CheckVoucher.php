@@ -177,7 +177,7 @@ class CheckVoucher
 				'value' => $value,
 				'type'  => $type
             ],
-            'uid' => MyHelper::createQR($timestamp, $deals[0]['user']['phone'])
+            'uid' => MyHelper::createQRV2($timestamp, $deals[0]['user']['id'])
     	];
 
     	$outlet = Outlet::where('outlet_code', $storecode)->first();

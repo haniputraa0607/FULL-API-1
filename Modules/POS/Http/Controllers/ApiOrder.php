@@ -248,7 +248,7 @@ class ApiOrder extends Controller
         }
 
         $timestamp = strtotime('+'.$expired.' minutes');
-        $memberUid = MyHelper::createQR($timestamp, $list['user']['phone']);
+        $memberUid = MyHelper::createQRV2($timestamp, $list['user']['id']);
 
         $transactions = [];
         $transactions['member_uid'] = $memberUid;
