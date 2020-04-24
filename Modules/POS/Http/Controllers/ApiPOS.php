@@ -129,7 +129,7 @@ class ApiPOS extends Controller
             }
 
             $timestamp = strtotime('+' . $expired . ' minutes');
-            $memberUid = MyHelper::createQR($timestamp, $user['phone']);
+            $memberUid = MyHelper::createQRV2($timestamp, $user['id']);
             $header['order_number'] = $check['transaction_receipt_number'];
             $header['order_id'] = $check['order_id'];
             $header['posting_date'] = date('Ymd', strtotime($check['transaction_date']));
@@ -343,11 +343,6 @@ class ApiPOS extends Controller
             !empty($post['store_code']) && !empty($post['uid'])
         ) {
 
-            if (strlen($post['uid']) < 35) {
-                DB::rollBack();
-                return ['status' => 'fail', 'messages' => 'Minimum length of member uid is 35'];
-            }
-
             $api = $this->checkApi($post['api_key'], $post['api_secret']);
             if ($api['status'] != 'success') {
                 return response()->json($api);
@@ -358,15 +353,15 @@ class ApiPOS extends Controller
                 return response()->json(['status' => 'fail', 'messages' => 'Store not found']);
             }
 
-            $qr = MyHelper::readQR($post['uid']);
+            $qr = MyHelper::readQRV2($post['uid']);
             $timestamp = $qr['timestamp'];
-            $phoneqr = $qr['phone'];
+            $iduserqr = $qr['id_user'];
 
             if (date('Y-m-d H:i:s') > date('Y-m-d H:i:s', $timestamp)) {
-                return response()->json(['status' => 'fail', 'messages' => 'Mohon refresh qrcode dan ulangi scan member']);
+                return response()->json(['status' => 'fail', 'messages' => 'Please refresh qrcode and retry to scan member']);
             }
 
-            $user = User::where('phone', $phoneqr)->first();
+            $user = User::where('id', $iduserqr)->first();
             if (empty($user)) {
                 return response()->json(['status' => 'fail', 'messages' => 'User not found']);
             }
@@ -380,7 +375,7 @@ class ApiPOS extends Controller
                 ]);
             }
 
-            $result['uid'] = $user->id;
+            $result['uid'] = $post['uid'];
             $result['name'] = $user->name;
 
             $voucher = DealsUser::with('dealVoucher', 'dealVoucher.deal')->where('id_user', $user->id)
@@ -2125,8 +2120,9 @@ class ApiPOS extends Controller
                 $pointValue = 0;
 
                 if (isset($trx['member_uid'])) {
-                    $qr         = [];
-                    $user       = User::where('id', $trx['member_uid'])->with('memberships')->first();
+                    $qr = MyHelper::readQRV2($trx['member_uid']);
+                    $iduserqr   = $qr['id_user'];
+                    $user       = User::where('id', $iduserqr)->with('memberships')->first();
 
                     if (empty($user)) {
                         $user['id'] = null;
@@ -2737,10 +2733,10 @@ class ApiPOS extends Controller
                 if ($statusDuplicate == true) {
                     //insert into table transaction_duplicates
                     if (isset($trx['member_uid'])) {
-                        $qr = MyHelper::readQR($trx['member_uid']);
+                        $qr = MyHelper::readQRV2($trx['member_uid']);
                         $timestamp = $qr['timestamp'];
-                        $phoneqr = $qr['phone'];
-                        $user      = User::where('phone', $phoneqr)->with('memberships')->first();
+                        $iduserqr = $qr['id_user'];
+                        $user      = User::where('id', $iduserqr)->with('memberships')->first();
                         if ($user) {
                             $dataDuplicate['id_user'] = $user['id'];
                         }

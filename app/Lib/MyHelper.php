@@ -2042,6 +2042,107 @@ class MyHelper{
 		return $result;
 	}
 
+    public static function createQRV2($timestamp, $id_user, $useragent = null){
+        $arrtime = str_split($timestamp);
+
+        $arrIdUser = str_split($id_user);
+
+        $qr[] = rand(0,9);
+        $qr[] = rand(0,9);
+        $qr[] = (int)$arrtime[0];
+        $qr[] = (int)$arrtime[1];
+        $qr[] = (int)$arrtime[2];
+        $qr[] = rand(0,9);
+        $qr[] = rand(0,9);
+        $qr[] = rand(0,9);
+        $qr[] = (int)$arrtime[3];
+        $qr[] = (int)$arrtime[4];
+        $qr[] = (int)$arrtime[5];
+        $qr[] = (int)$arrtime[6];
+        $qr[] = rand(0,9);
+        $qr[] = (int)$arrtime[7];
+        $qr[] = (int)$arrtime[8];
+        $qr[] = (int)$arrtime[9];
+        $qr[] = rand(0,9);
+        $qr[] = (int)$arrIdUser[0];
+        $qr[] = (int)$arrIdUser[1];
+        $qr[] = rand(0,9);
+        $qr[] = rand(0,9);
+        $qr[] = (int)$arrIdUser[2];
+        $qr[] = (int)$arrIdUser[3];
+        $qr[] = (int)$arrIdUser[4];
+        $qr[] = rand(0,9);
+
+        for($i = 5; $i < count($arrIdUser); $i++){
+            $qr[] = $arrIdUser[$i];
+        }
+
+        for($i = 0; $i < 5; $i++){
+            $qr[] = rand(0,9);
+        }
+
+        if($useragent == "Android"){
+            $qr[] = 2;
+        }elseif($useragent == "iOS"){
+            $qr[] = 1;
+        }else{
+            $qr[] = 0;
+        }
+
+        $qr = implode('', $qr);
+
+        return $qr;
+    }
+
+    public static function readQRV2($qrcode){
+        $useragent = substr($qrcode, -1);
+        if($useragent == 1){
+            $device = 'IOS';
+        }elseif($useragent == 2){
+            $device = "Android";
+        }else{
+            $device = null;
+        }
+
+        //remove 1 digit terakhir
+        $qrcode = substr($qrcode, 0, -1);
+
+        //remove 5 digit terakhir
+        $qrcode = substr($qrcode, 0, -5);
+
+        //remove 2 digit pertama
+        $qrcode = substr($qrcode, 2);
+
+        $qrcode = str_split($qrcode);
+
+        $arrtimestamp[] = $qrcode[0];
+        $arrtimestamp[] = $qrcode[1];
+        $arrtimestamp[] = $qrcode[2];
+        $arrtimestamp[] = $qrcode[6];
+        $arrtimestamp[] = $qrcode[7];
+        $arrtimestamp[] = $qrcode[8];
+        $arrtimestamp[] = $qrcode[9];
+        $arrtimestamp[] = $qrcode[11];
+        $arrtimestamp[] = $qrcode[12];
+        $arrtimestamp[] = $qrcode[13];
+
+        $arrIdUser[] = $qrcode[15];
+        $arrIdUser[] = $qrcode[16];
+        $arrIdUser[] = $qrcode[19];
+        $arrIdUser[] = $qrcode[20];
+        $arrIdUser[] = $qrcode[21];
+
+        for($i = 23; $i < count($qrcode); $i++){
+            $arrIdUser[] = $qrcode[$i];
+        }
+
+        $result['timestamp'] = implode('', $arrtimestamp);
+        $result['id_user'] = implode('', $arrIdUser);
+        $result['device'] = $device;
+
+        return $result;
+    }
+
 	public static function dateFormatInd($date,$full=true,$clock=true,$hari=false){
 		if($hari){
 			$days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jum\'at','Sabtu'];

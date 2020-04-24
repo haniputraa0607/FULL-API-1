@@ -139,7 +139,7 @@ class ApiHome extends Controller
             if(stristr($useragent,'okhttp')) $useragent = 'Android';
             else $useragent = null;
 
-            $qr = MyHelper::createQR($timestamp, $user->phone, $useragent);
+            $qr = MyHelper::createQRV2($timestamp, $user->id, $useragent);
 
             // $qrCode = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data='.$qr;
             $qrCode = 'https://chart.googleapis.com/chart?chl='.$qr.'&chs=250x250&cht=qr&chld=H%7C0';
@@ -275,7 +275,7 @@ class ApiHome extends Controller
             if(stristr($useragent,'okhttp')) $useragent = 'Android';
             else $useragent = null;
 
-            $qr = MyHelper::createQR($timestamp, $user->phone, $useragent);
+            $qr = MyHelper::createQRV2($timestamp, $user->id, $useragent);
 
             // $qrCode = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data='.$qr;
             $qrCode = 'https://chart.googleapis.com/chart?chl='.$qr.'&chs=250x250&cht=qr&chld=H%7C0';
@@ -662,7 +662,7 @@ class ApiHome extends Controller
         if(stristr($useragent,'okhttp')) $useragent = 'Android';
         else $useragent = null;
 
-        $qr = MyHelper::createQR($timestamp, $user->phone, $useragent);
+        $qr = MyHelper::createQRV2($timestamp, $user->id, $useragent);
 
         $qrCode = 'https://chart.googleapis.com/chart?chl='.$qr.'&chs=250x250&cht=qr&chld=H%7C0';
         $qrCode = html_entity_decode($qrCode);
@@ -696,7 +696,7 @@ class ApiHome extends Controller
                 $it="";
             }
         });
-        $hidden=['password_k','created_at','updated_at','provider','phone_verified','email_verified','email_unsubscribed','level','points','rank','android_device','ios_device','is_suspended','balance','complete_profile','subtotal_transaction','count_transaction','id_membership','relationship'];
+        $hidden=['password_k','created_at','updated_at','provider','phone_verified','email_unsubscribed','level','points','rank','android_device','ios_device','is_suspended','balance','complete_profile','subtotal_transaction','count_transaction','id_membership','relationship'];
         foreach ($hidden as $hide) {
             unset($retUser[$hide]);
         }
