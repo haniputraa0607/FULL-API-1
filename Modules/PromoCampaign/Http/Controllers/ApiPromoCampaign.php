@@ -70,6 +70,7 @@ class ApiPromoCampaign extends Controller
         $this->voucher   	= "Modules\Deals\Http\Controllers\ApiDealsVoucher";
         $this->fraud   		= "Modules\SettingFraud\Http\Controllers\ApiFraud";
         $this->promo       	= "Modules\PromoCampaign\Http\Controllers\ApiPromo";
+        $this->autocrm      = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
     }
 
     public function index(Request $request)
@@ -830,6 +831,7 @@ class ApiPromoCampaign extends Controller
                             'result'  => 'Promo Campaign has been updated',
                             'promo-campaign'  => $post
                         ];
+                        $send = app($this->autocrm)->SendAutoCRM('Update Promo Campaign', $user['phone'], $post,null,true);
                     } else {
                         DB::rollBack();
                         $result = ['status'  => 'fail'];
@@ -897,6 +899,7 @@ class ApiPromoCampaign extends Controller
                     'result'  => 'Creates Promo Campaign & Promo Code Success',
                     'promo-campaign'  => $post
                 ];
+                $send = app($this->autocrm)->SendAutoCRM('Create Promo Campaign', $user['phone'], $post,null,true);
             } else {
                 DB::rollBack();
                 $result = [
