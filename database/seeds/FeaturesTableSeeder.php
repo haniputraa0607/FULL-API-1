@@ -1970,6 +1970,14 @@ class FeaturesTableSeeder extends Seeder
                     'feature_module' => 'Setting url in email',
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            245 =>
+                array (
+                    'id_feature' => 246,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Email template email verify',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
                 )
         ));
     }

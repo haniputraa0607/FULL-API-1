@@ -89,6 +89,40 @@ class ApiOnlineTransaction extends Controller
 
     public function newTransaction(NewTransaction $request) {
         $post = $request->json()->all();
+        if (!isset($post['id_user'])) {
+            $id = $request->user()->id;
+        } else {
+            $id = $post['id_user'];
+        }
+
+        $user = User::with('memberships')->where('id', $id)->first();
+        if (empty($user)) {
+            DB::rollBack();
+            return response()->json([
+                'status'    => 'fail',
+                'messages'  => ['User Not Found']
+            ]);
+        }
+
+        //check verify email
+        if(isset($user['email_verified']) && $user['email_verified'] != '1'){
+            DB::rollBack();
+            return response()->json([
+                'status'    => 'fail',
+                'messages'  => ['Sorry your email not verified. Please verify your email.']
+            ]);
+        }
+
+        //suspend
+        if(isset($user['is_suspended']) && $user['is_suspended'] == '1'){
+            DB::rollBack();
+            return response()->json([
+                'status'    => 'fail',
+                // 'messages'  => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
+                'messages'  => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
+            ]);
+        }
+
         $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
         if($use_product_variant && !isset($post['from_fake'])){
             foreach ($post['item'] as &$prod) {
@@ -223,31 +257,6 @@ class ApiOnlineTransaction extends Controller
             $post['transaction_payment_status'] = $post['transaction_payment_status'];
         } else {
             $post['transaction_payment_status'] = 'Pending';
-        }
-
-        if (!isset($post['id_user'])) {
-            $id = $request->user()->id;
-        } else {
-            $id = $post['id_user'];
-        }
-
-        $user = User::with('memberships')->where('id', $id)->first();
-        if (empty($user)) {
-            DB::rollBack();
-            return response()->json([
-                'status'    => 'fail',
-                'messages'  => ['User Not Found']
-            ]);
-        }
-
-        //suspend
-        if(isset($user['is_suspended']) && $user['is_suspended'] == '1'){
-            DB::rollBack();
-            return response()->json([
-                'status'    => 'fail',
-                // 'messages'  => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
-                'messages'  => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
-            ]);
         }
 
         if (count($user['memberships']) > 0) {
