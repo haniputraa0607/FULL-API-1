@@ -77,6 +77,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'pr
     Route::post('/check', 'ApiOnlineTransaction@checkTransaction');
     Route::post('/new', 'ApiOnlineTransaction@newTransaction');
     Route::post('/confirm', 'ApiConfirm@confirmTransaction');
+    Route::post('/cancel', 'ApiOnlineTransaction@cancelTransaction');
     Route::post('/prod/confirm', 'ApiTransactionProductionController@confirmTransaction2');
     Route::get('/{key}', 'ApiTransaction@transactionList');
 });
@@ -95,7 +96,7 @@ Route::group(['middleware' => ['auth_client', 'user_agent'], 'prefix' => 'api/tr
 
 Route::group(['prefix' => 'api/transaction', 'middleware' => ['log_activities', 'user_agent'], 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
     Route::any('/finish', 'ApiTransaction@transactionFinish');
-    Route::any('/cancel', 'ApiTransaction@transactionCancel');
+    // Route::any('/cancel', 'ApiTransaction@transactionCancel');
     Route::any('/error', 'ApiTransaction@transactionError');
     Route::any('/notif', 'ApiNotification@receiveNotification');
 });
