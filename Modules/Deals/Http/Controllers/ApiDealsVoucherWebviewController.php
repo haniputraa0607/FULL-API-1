@@ -192,7 +192,7 @@ class ApiDealsVoucherWebviewController extends Controller
         $result['deals_content'][$i]['title'] = 'Available at';
 
         if($data['deals_voucher']['deal']['custom_outlet_text'] != null){
-            $result['deals_content'][$i]['detail'] = $data['deals_voucher']['deal']['custom_outlet_text'];
+            $result['deals_content'][$i]['detail'][0]['data'] = $data['deals_voucher']['deal']['custom_outlet_text'];
         }else{
             foreach ($data['deals_voucher']['deal']['outlet_by_city'] as $keyCity => $valueCity) {
                 if (isset($valueCity['city_name'])) {
