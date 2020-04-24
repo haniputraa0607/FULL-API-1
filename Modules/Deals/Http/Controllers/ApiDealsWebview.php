@@ -114,7 +114,7 @@ class ApiDealsWebview extends Controller
         $result['deals_content'][$i]['is_outlet'] = 1;
 
         if($deals['custom_outlet_text'] != null){
-            $result['deals_content'][$i]['detail'] = $deals['custom_outlet_text'];
+            $result['deals_content'][$i]['detail'][0]['data'] = $deals['custom_outlet_text'];
         }else{
             foreach ($deals['outlet_by_city'] as $keyCity => $valueCity) {
                 if (isset($valueCity['city_name'])) {
