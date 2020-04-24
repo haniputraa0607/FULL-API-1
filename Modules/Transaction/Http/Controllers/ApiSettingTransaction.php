@@ -2,6 +2,7 @@
 
 namespace Modules\Transaction\Http\Controllers;
 
+use App\Lib\MyHelper;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -198,5 +199,17 @@ class ApiSettingTransaction extends Controller
         }
 
         return $post;
+    }
+
+    function settingTimerOvo(Request $request){
+        $post = $request->json()->all();
+
+        if($post){
+            $update = Setting::where('key', 'setting_timer_ovo')->update(['value' => $post['value']]);
+            return response()->json(MyHelper::checkUpdate($update));
+        }else{
+            $getSetting = Setting::where('key', 'setting_timer_ovo')->first();
+            return response()->json(MyHelper::checkGet($getSetting));
+        }
     }
 }

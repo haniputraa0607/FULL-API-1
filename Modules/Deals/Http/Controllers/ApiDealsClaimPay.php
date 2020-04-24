@@ -84,6 +84,14 @@ class ApiDealsClaimPay extends Controller
         $post      = $request->json()->all();
         $dataDeals = app($this->claim)->chekDealsData($request->json('id_deals'));
         $id_user   = $request->user()->id;
+
+        if(isset($request->user()->email_verified) && $request->user()->email_verified != '1'){
+            return response()->json([
+                'status'    => 'fail',
+                'message_verfiy_email'=> 'Sorry your email not verified. Please verify your email.',
+                'messages'  => ['Sorry your email not verified. Please verify your email.']
+            ]);
+        }
         if (empty($dataDeals)) {
             return response()->json([
                 'status'   => 'fail',
@@ -369,6 +377,14 @@ class ApiDealsClaimPay extends Controller
                         $result['redirect'] = true;
                         $result['midtrans'] = $return['result']['midtrans'];
                     }elseif(isset($return['result']['ovo'])){
+                        $getSettingTimer = Setting::where('key', 'setting_timer_ovo')->first();
+                        if($getSettingTimer){
+                            $result['timer_ovo'] = (int)$getSettingTimer['value'];
+                            $result['message_timeout_ovo'] = "You have ".(int)$getSettingTimer['value']." seconds remaning to complete the payment";
+                        }else{
+                            $result['timer_ovo'] = NULL;
+                            $result['message_timeout_ovo'] = "You have 0 seconds remaning to complete the payment";
+                        }
                         $result['redirect'] = true;
                         $result['ovo'] = $return['result']['ovo'];
                     }else{
