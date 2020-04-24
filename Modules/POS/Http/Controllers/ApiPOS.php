@@ -375,7 +375,7 @@ class ApiPOS extends Controller
                 ]);
             }
 
-            $result['uid'] = $post['uid'];
+            $result['uid'] = $user->id;
             $result['name'] = $user->name;
 
             $voucher = DealsUser::with('dealVoucher', 'dealVoucher.deal')->where('id_user', $user->id)
@@ -2120,9 +2120,8 @@ class ApiPOS extends Controller
                 $pointValue = 0;
 
                 if (isset($trx['member_uid'])) {
-                    $qr = MyHelper::readQRV2($trx['member_uid']);
-                    $iduserqr   = $qr['id_user'];
-                    $user       = User::where('id', $iduserqr)->with('memberships')->first();
+                    $qr = [];
+                    $user = User::where('id', $trx['member_uid'])->with('memberships')->first();
 
                     if (empty($user)) {
                         $user['id'] = null;
