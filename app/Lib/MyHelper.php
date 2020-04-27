@@ -2045,6 +2045,7 @@ class MyHelper{
     public static function createQRV2($timestamp, $id_user, $useragent = null){
 	    if(strlen((string)$id_user) < 8){
             $id_user = "00000000".$id_user;
+            $id_user = substr($id_user, -8);
         }
         $arrtime = str_split($timestamp);
 
