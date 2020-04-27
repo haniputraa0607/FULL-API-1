@@ -767,7 +767,7 @@ class ApiOnlineTransaction extends Controller
         if($request->json('promo_code'))
         {
         	$promo_campaign_report = app($this->promo_campaign)->addReport(
-				$code->id_promo_campaign, 
+				$code->id_promo_campaign,
 				$code->id_promo_campaign_promo_code,
 				$insertTransaction['id_transaction'],
 				$insertTransaction['id_outlet'],
@@ -803,7 +803,7 @@ class ApiOnlineTransaction extends Controller
         // $insertTransaction['transaction_receipt_number'] = $receipt;
 
         foreach (($discount_promo['item']??$post['item']) as $keyProduct => $valueProduct) {
-            
+
             $this_discount=$valueProduct['discount']??0;
 
             $checkProduct = Product::where('id_product', $valueProduct['id_product'])->first();
@@ -1814,7 +1814,7 @@ class ApiOnlineTransaction extends Controller
 
 		            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors);
 
-		            if ($discount_promo['is_free'] == 1) {
+		            if (isset($discount_promo['is_free']) && $discount_promo['is_free'] == 1) {
 		            	// unset($discount_promo['item']);
 		            	$discount_promo['discount'] = 0;
 		            }
@@ -2550,7 +2550,7 @@ class ApiOnlineTransaction extends Controller
             return ['status'=>'success'];
         }
         return [
-            'status'=>'fail', 
+            'status'=>'fail',
             'messages' => $errors?:['Something went wrong']
         ];
     }
