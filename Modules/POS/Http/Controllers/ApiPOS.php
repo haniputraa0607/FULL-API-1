@@ -106,7 +106,7 @@ class ApiPOS extends Controller
         }
 
         $check = Transaction::join('transaction_pickups', 'transactions.id_transaction', '=', 'transaction_pickups.id_transaction')
-            ->with(['modifiers','modifiers.product_modifier','products', 'products.product_variants' => function ($query) {
+            ->with(['modifiers', 'modifiers.product_modifier', 'products', 'products.product_variants' => function ($query) {
                 $query->orderBy('parent');
             }, 'product_detail', 'vouchers', 'productTransaction.modifiers', 'promo_campaign_promo_code'])
             ->where('order_id', '=', $post['order_id'])
@@ -255,7 +255,7 @@ class ApiPOS extends Controller
                             $pay = [
                                 'number'            => $key + 1,
                                 'type'              => 'IPAY88',
-                                'amount'            => (float) $ipay['amount']/100,
+                                'amount'            => (float) $ipay['amount'] / 100,
                                 'change_amount'     => 0,
                                 'card_number'       => '',
                                 'card_owner'        => '',
@@ -280,20 +280,20 @@ class ApiPOS extends Controller
                     'number' => $key + 1,
                     'sap_matnr' => $menu['product_code'],
                     'qty' => (int) $menu['pivot']['transaction_product_qty'],
-                    'price' => (float) $menu['pivot']['transaction_product_price']- $menu['pivot']['transaction_modifier_subtotal'],
+                    'price' => (float) $menu['pivot']['transaction_product_price'] - $menu['pivot']['transaction_modifier_subtotal'],
                     'type' => $menu['product_variants'][1]['product_variant_code'] == 'general_type' ? null : $menu['product_variants'][1]['product_variant_code'],
                     'size' => $menu['product_variants'][0]['product_variant_code'] == 'general_size' ? null : $menu['product_variants'][0]['product_variant_code'],
                     'discount' => (float) $menu['pivot']['transaction_product_discount'],
                     'promo_number' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
-                    'promo_type' => $check['id_promo_campaign_promo_code'] ?'5':null,
+                    'promo_type' => $check['id_promo_campaign_promo_code'] ? '5' : null,
                     'amount' => (float) $menu['pivot']['transaction_product_subtotal']
                 ];
                 $item[] = $val;
-                $last = $key+1;
+                $last = $key + 1;
             }
             foreach ($check['modifiers'] as $key => $modifier) {
                 $val = [
-                    'number' => $key+1+$last,
+                    'number' => $key + 1 + $last,
                     'sap_matnr' => $modifier['code'],
                     'qty' => (int) $modifier['qty'],
                     'price' => (float) $modifier['transaction_product_modifier_price'] / $modifier->qty,
@@ -301,7 +301,7 @@ class ApiPOS extends Controller
                     'size' => null,
                     'discount' => 0,
                     'promo_number' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
-                    'promo_type' => $check['id_promo_campaign_promo_code'] ?'5':null,
+                    'promo_type' => $check['id_promo_campaign_promo_code'] ? '5' : null,
                     'amount' => $modifier['transaction_product_modifier_price']
                 ];
                 $item[] = $val;
@@ -568,7 +568,7 @@ class ApiPOS extends Controller
                 foreach ($value['store_schedule'] as $valueSchedule) {
                     try {
                         $valueSchedule = $this->setTimezone($valueSchedule);
-                        if(isset($valueSchedule['is_close'])){
+                        if (isset($valueSchedule['is_close'])) {
                             $valueSchedule['is_closed'] = $valueSchedule['is_close'];
                             unset($valueSchedule['is_close']);
                         }
@@ -1070,6 +1070,59 @@ class ApiPOS extends Controller
         ];
     }
 
+    public function syncProductDeactive(Request $request)
+    {
+        $post = $request->json()->all();
+        $api = $this->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
+
+        $countDeleted   = 0;
+        $deletedProduct = [];
+        $failedProduct  = [];
+
+        foreach ($post['menu'] as $keyMenu => $menu) {
+            if (!isset($menu['sap_matnr'])) {
+                $failedProduct[] = 'fail to sync deactive because sap_matnr not set';
+                continue;
+            }
+
+            $getProduct = Product::select('id_product')->where('product_code', $menu['sap_matnr'])->first();
+            if (!$getProduct) {
+                $failedProduct[] = 'fail to sync deactive because sap_matnr ' . $menu['sap_matnr'] . ' not availabe';
+                continue;
+            } else {
+                foreach ($menu['store_code'] as $keyOutlet => $outlet) {
+                    $getOutlet = Outlet::select('id_outlet')->where('outlet_code', $outlet)->first();
+                    if (!$getOutlet) {
+                        $failedProduct[] = 'fail to sync deactive because store_code ' . $outlet . ' not availabe';
+                        continue;
+                    } else {
+                        DB::beginTransaction();
+
+                        ProductPrice::where([
+                            'id_product' => $getProduct->id_product,
+                            'id_outlet' => $getOutlet->id_outlet
+                        ])->update(['product_status' => 'Inactive']);
+
+                        DB::commit();
+                        $countDeleted       = $countDeleted + 1;
+                        $deletedProduct[]   = 'Success to sync deactive, product ' . $menu['sap_matnr'] . ' outlet ' . $outlet;
+                    }
+                }
+            }
+        }
+        
+        $hasil['success_menu']['total']         = $countDeleted;
+        $hasil['success_menu']['list_menu']     = $deletedProduct;
+        $hasil['failed_product']['list_menu']   = $failedProduct;
+        return [
+            'status'    => 'success',
+            'result'    => $hasil,
+        ];
+    }
+
     public function syncAddOn(Request $request)
     {
         $post = $request->json()->all();
@@ -1227,14 +1280,14 @@ class ApiPOS extends Controller
                     }
                     if ($price['end_date'] < $price['start_date']) {
                         $countfailed     = $countfailed + 1;
-                        $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', recheck this date';
+                        $failedProduct[] = 'Fail to sync, product modiffier ' . $menu['sap_matnr'] . ', recheck this date';
                         continue;
                     }
 
                     $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
                     if (!$checkOutlet) {
                         $countfailed     = $countfailed + 1;
-                        $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', no outlet';
+                        $failedProduct[] = 'Fail to sync, product modiffier ' . $menu['sap_matnr'] . ', no outlet';
                         continue;
                     }
 
@@ -1247,7 +1300,7 @@ class ApiPOS extends Controller
                     ];
 
                     $countInsert     = $countInsert + 1;
-                    $insertProduct[] = 'Success to sync price, product ' . $menu['sap_matnr'] . ' outlet ' . $price['store_code'];
+                    $insertProduct[] = 'Success to sync price, product modiffier ' . $menu['sap_matnr'] . ' outlet ' . $price['store_code'];
                 }
             } else {
                 $countfailed     = $countfailed + 1;
@@ -1345,7 +1398,7 @@ class ApiPOS extends Controller
             for ($j = 0; $j < count($getAddOn); $j++) {
                 try {
                     $getPrice = DB::connection('mysql3')
-                        ->table('outlet_' . $getOutlet[$i]['outlet_code'] . '_modifier_' . $getAddOn[$j]['code'])
+                        ->table('outlet_' . $getOutlet[$i]['outlet_code'] . '_modifier')
                         ->where('id_product_modifier', $getAddOn[$j]['id_product_modifier'])
                         ->where('id_outlet', $getOutlet[$i]['id_outlet'])
                         ->where('start_date', '<=', date('Y-m-d'))
@@ -2546,7 +2599,7 @@ class ApiPOS extends Controller
                     }
                 }
 
-                if(!empty($createTrx['id_user'])){
+                if (!empty($createTrx['id_user'])) {
                     if ((($fraudTrxDay && $countTrxDay <= $fraudTrxDay['parameter_detail']) && ($fraudTrxWeek && $countTrxWeek <= $fraudTrxWeek['parameter_detail']))
                         || (!$fraudTrxDay && !$fraudTrxWeek)
                     ) {
@@ -2987,10 +3040,10 @@ class ApiPOS extends Controller
 
             if ($insertTransactionRefundQueue) {
                 $countSuccess = count($post['data']);
-                $successRefund[] = 'success insert transaction refund to queue, '.count($post['data']).' data';
+                $successRefund[] = 'success insert transaction refund to queue, ' . count($post['data']) . ' data';
             } else {
                 $countFailed = count($post['data']);
-                $failedRefund[] = 'fail insert transaction refund to queue, ' . count($post['data']).' data';
+                $failedRefund[] = 'fail insert transaction refund to queue, ' . count($post['data']) . ' data';
             }
 
             return response()->json(['status' => 'success', 'result' => [
