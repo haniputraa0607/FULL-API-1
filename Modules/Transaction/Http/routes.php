@@ -17,6 +17,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::post('/admin', 'ApiNotification@adminOutletNotification');
     Route::post('/setting', 'ApiSettingTransaction@settingTrx');
     Route::any('be/filter', 'ApiTransaction@transactionFilter');
+    Route::any('/setting/timer-ovo', 'ApiSettingTransaction@settingTimerOvo');
 
     Route::group(['prefix' => 'manualpayment'], function () {
         Route::get('/bank', ['middleware' => 'feature_control:64', 'uses' => 'ApiTransactionPaymentManual@bankList']);
