@@ -42,9 +42,8 @@ class SyncAddOnPrice implements ShouldQueue
 
         foreach ($this->data['price_detail'] as $price) {
             $outlet = Outlet::where('id_outlet', $price['id_outlet'])->first();
-            $productModifier = ProductModifier::where('id_product_modifier', $price['id_product_modifier'])->first();
-            if (!Schema::connection('mysql3')->hasTable('outlet_' . $outlet->outlet_code . '_modifier_' . $productModifier->code)) {
-                Schema::connection('mysql3')->create('outlet_' . $outlet->outlet_code . '_modifier_' . $productModifier->code, function ($table) {
+            if (!Schema::connection('mysql3')->hasTable('outlet_' . $outlet->outlet_code . '_modifier')) {
+                Schema::connection('mysql3')->create('outlet_' . $outlet->outlet_code . '_modifier', function ($table) {
                     $table->bigIncrements('id_product_modifier_price_periode');
                     $table->unsignedInteger('id_product_modifier');
                     $table->unsignedInteger('id_outlet');
@@ -56,11 +55,11 @@ class SyncAddOnPrice implements ShouldQueue
                 });
             }
 
-            $inBetween = DB::connection('mysql3')->table('outlet_' . $outlet->outlet_code . '_modifier_' . $productModifier->code)
+            $inBetween = DB::connection('mysql3')->table('outlet_' . $outlet->outlet_code . '_modifier')
                 ->where('id_product_modifier', $price['id_product_modifier'])
                 ->where('id_outlet', $price['id_outlet'])
                 ->whereIn('id_product_modifier_price_periode', function ($q) use ($price, $outlet) {
-                    $q->from('outlet_' . $outlet->outlet_code)
+                    $q->from('outlet_' . $outlet->outlet_code . '_modifier')
                         ->selectRaw('id_product_modifier_price_periode')
                         ->where('start_date', '>=', $price['start_date'])->where('end_date', '<=', $price['end_date']);
                 })
@@ -69,11 +68,11 @@ class SyncAddOnPrice implements ShouldQueue
 
             if (!empty($inBetween)) {
                 foreach ($inBetween as $between) {
-                    DB::connection('mysql3')->table('outlet_' . $outlet->outlet_code . '_modifier_' . $productModifier->code)->where('id_product_modifier_price_periode', $between->id_product_modifier_price_periode)->delete();
+                    DB::connection('mysql3')->table('outlet_' . $outlet->outlet_code . '_modifier')->where('id_product_modifier_price_periode', $between->id_product_modifier_price_periode)->delete();
                 }
             }
 
-            DB::connection('mysql3')->table('outlet_' . $outlet->outlet_code . '_modifier_' . $productModifier->code)->insert($price);
+            DB::connection('mysql3')->table('outlet_' . $outlet->outlet_code . '_modifier')->insert($price);
         }
         DB::commit();
     }
