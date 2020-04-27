@@ -108,7 +108,8 @@ class Deal extends Model
 		'promo_type',
 		'product_type',
 		'deals_warning_image',
-		'custom_outlet_text'
+		'custom_outlet_text',
+        'is_all_outlet'
 	];
 
 	protected $appends  = ['url_deals_image', 'deals_status', 'deals_voucher_price_type', 'deals_voucher_price_pretty', 'url_webview'];
