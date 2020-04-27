@@ -1978,6 +1978,14 @@ class FeaturesTableSeeder extends Seeder
                     'feature_module' => 'Email template email verify',
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            246 =>
+                array (
+                    'id_feature' => 247,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Setting Timer OVO',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
                 )
         ));
     }
