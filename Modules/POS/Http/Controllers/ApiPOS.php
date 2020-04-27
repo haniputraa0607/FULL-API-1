@@ -375,7 +375,13 @@ class ApiPOS extends Controller
                 ]);
             }
 
-            $result['uid'] = $user->id;
+            $id_user = $user->id;
+            if(strlen((string)$id_user) < 8){
+                $id_user = "00000000".$id_user;
+                $id_user = substr($id_user, -8);
+            }
+
+            $result['uid'] = $id_user;
             $result['name'] = $user->name;
 
             $voucher = DealsUser::with('dealVoucher', 'dealVoucher.deal')->where('id_user', $user->id)
@@ -2121,6 +2127,8 @@ class ApiPOS extends Controller
 
                 if (isset($trx['member_uid'])) {
                     $qr = [];
+
+                    $trx['member_uid'] = ltrim($trx['member_uid'], '0');
                     $user = User::where('id', $trx['member_uid'])->with('memberships')->first();
 
                     if (empty($user)) {
@@ -2732,10 +2740,9 @@ class ApiPOS extends Controller
                 if ($statusDuplicate == true) {
                     //insert into table transaction_duplicates
                     if (isset($trx['member_uid'])) {
-                        $qr = MyHelper::readQRV2($trx['member_uid']);
-                        $timestamp = $qr['timestamp'];
-                        $iduserqr = $qr['id_user'];
-                        $user      = User::where('id', $iduserqr)->with('memberships')->first();
+                        $qr = [];
+                        $trx['member_uid'] = ltrim($trx['member_uid'], '0');
+                        $user      = User::where('id', $trx['member_uid'])->with('memberships')->first();
                         if ($user) {
                             $dataDuplicate['id_user'] = $user['id'];
                         }
