@@ -109,6 +109,7 @@ class ApiOnlineTransaction extends Controller
             DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
+                'message_verfiy_email'=> 'Sorry your email not verified. Please verify your email.',
                 'messages'  => ['Sorry your email not verified. Please verify your email.']
             ]);
         }
@@ -1616,6 +1617,15 @@ class ApiOnlineTransaction extends Controller
 
         DB::commit();
         $insertTransaction['cancel_message'] = 'Are you sure you want to cancel this transaction?';
+
+        $getSettingTimer = Setting::where('key', 'setting_timer_ovo')->first();
+        if($getSettingTimer){
+            $insertTransaction['timer_ovo'] = (int)$getSettingTimer['value'];
+            $insertTransaction['message_timeout_ovo'] = "You have ".(int)$getSettingTimer['value']." seconds remaning to complete the payment";
+        }else{
+            $insertTransaction['timer_ovo'] = NULL;
+            $insertTransaction['message_timeout_ovo'] = "You have 0 seconds remaning to complete the payment";
+        }
         return response()->json([
             'status'   => 'success',
             'redirect' => true,
