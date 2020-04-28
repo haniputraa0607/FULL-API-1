@@ -724,7 +724,7 @@ class ApiPromoCampaign extends Controller
             				'promo_campaign_have_tags.promo_campaign_tag',
             				'promo_campaign_promo_codes' => function($q) {
             					$q->limit(1);
-            				}, 
+            				},
             				'promo_campaign_reports' => function($q) {
             					$q->limit(1);
             				}
@@ -757,7 +757,7 @@ class ApiPromoCampaign extends Controller
 	                ]);
 	           	}
 			}
-            if ($checkData->date_start <= $datenow) 
+            if ($checkData->date_start <= $datenow)
             {
                 $post['date_start']     = $checkData['date_start'];
                 $post['date_end']       = $checkData['date_end'];
@@ -1816,14 +1816,15 @@ class ApiPromoCampaign extends Controller
 	        if(!$code){
 	            return [
 	                'status'=>'fail',
-	                'messages'=>['Promo code not valid']
+                    'messages'=>['Promo code not valid'],
+
 	            ];
 	        }
 
 	        if ($code['promo_campaign']['date_end'] < date('Y-m-d H:i:s')) {
         		return [
 	                'status'=>'fail',
-	                'messages'=>['Promo campaign is ended']
+                    'messages'=>['Promo campaign is ended']
 	            ];
         	}
 
@@ -1835,7 +1836,7 @@ class ApiPromoCampaign extends Controller
 	            if(!$referer){
 	                return [
 	                    'status'=>'fail',
-	                    'messages'=>['Kode promo tidak ditemukan']
+                        'messages'=>['Promo code not valid']
 	                ];
 	            }
 	        }
@@ -1846,7 +1847,7 @@ class ApiPromoCampaign extends Controller
 	        if(!$pct->validateUser($code['id_promo_campaign'], $id_user, $phone, $device_type, $device_id, $errors,$code['id_promo_campaign_promo_code'])){
 	            return [
 	                'status'=>'fail',
-	                'messages'=>$errors??['Promo code not valid']
+                    'messages'=>$errors??['Promo code not valid']
 	            ];
 	        }
 
@@ -1879,7 +1880,7 @@ class ApiPromoCampaign extends Controller
 			if(!$deals){
 	            return [
 	                'status'=>'fail',
-	                'messages'=>['Voucher not valid']
+                    'messages'=>['Voucher not valid']
 	            ];
 	        }
 
@@ -2015,18 +2016,18 @@ class ApiPromoCampaign extends Controller
         elseif ( !empty($query[$source.'_product_discount']) )
         {
         	$applied_product = $query[$source.'_product_discount'];
-        	// $product = $applied_product[0]['product']['product_name']??'product tertentu';
-        	$product = 'product tertentu';
+        	// $product = $applied_product[0]['product']['product_name']??'specified product';
+        	$product = 'specified product';
         }
         elseif ( !empty($query[$source.'_tier_discount_product']) )
         {
         	$applied_product = $query[$source.'_tier_discount_product'];
-        	$product = $applied_product['product']['product_name']??$applied_product['product_group']['product_group_name']??'product tertentu';
+        	$product = $applied_product['product']['product_name']??$applied_product['product_group']['product_group_name']??'specified product';
         }
         elseif ( !empty($query[$source.'_buyxgety_product_requirement']) )
         {
         	$applied_product = $query[$source.'_buyxgety_product_requirement'];
-        	$product = $applied_product['product']['product_name']??$applied_product['product_group']['product_group_name']??'product tertentu';
+        	$product = $applied_product['product']['product_name']??$applied_product['product_group']['product_group_name']??'specified product';
         }
         else
         {

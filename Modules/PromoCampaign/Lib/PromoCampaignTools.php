@@ -698,12 +698,35 @@ class PromoCampaignTools{
 						// add discount
 						$discount += $this->discount_product($product,$rule,$trx,$cur_mod_price);
 					}
-				}else{
-					return [
-						'item'=>$trxs,
-						'discount'=>0,
-						'new_description' => $new_description??'',
-					];
+
+						/** add new description & promo detail **/
+						if ($promo_rules->discount_type == 'Percent') {
+							$discount_benefit = ($promo_rules['discount_value']??0).'%';
+						}else{
+							$discount_benefit = 'Rp '.number_format($promo_rules['discount_value']??0);
+						}
+
+						$new_description = 'You get discount of IDR '.number_format($discount).' for all Product';
+
+						$promo_detail_message = 'Discount '.$discount_benefit;
+						/** end add new description & promo detail **/
+					}else{
+						switch ($promo_rules->referred_promo_unit) {
+							case 'Nominal':
+								$new_description = 'You will get cashback of IDR '.number_format($promo_rules->referred_promo_value);
+							break;
+							case 'Percent':
+								$new_description = 'You will get cashback of '.number_format($promo_rules->referred_promo_value).'%';
+							break;
+						}
+						return [
+							'item'=>$trxs,
+							'discount'=>0,
+							'new_description' => $new_description??'',
+							'promo_detail'		=> '',
+							'is_free'			=> $is_free
+						];
+					}
 				}
 		}
 		// discount?
