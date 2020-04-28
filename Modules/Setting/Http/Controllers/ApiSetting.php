@@ -62,7 +62,6 @@ class ApiSetting extends Controller
     function __construct() {
         date_default_timezone_set('Asia/Jakarta');
         $this->endPoint = env('S3_URL_API');
-        $this->autocrm  = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
     }
     public function emailUpdate(Request $request) {
 		$data = $request->json()->all();
@@ -273,20 +272,16 @@ class ApiSetting extends Controller
                 }
             }
             if($userData){
-                $attachments[] = [
-                    Excel::download(new DefaultExport($userData), 'point.xlsx')->getFile(),
-                    [
-                        'as' => 'point-reset-report0-'.date('Y-m-d-H-i').'.xlsx',
-                        'mime' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                    ]
-                ];
+                $attachments[] = Excel::download(new DefaultExport($userData), 'point.xlsx')->getFile();
             }
 
+            DB::commit();
         }
 
         //point reset
         $setting = Setting::where('key', 'balance_reset')->get();
 
+        DB::beginTransaction();
         if($setting){
             $userData1 = [];
             foreach($setting as $date){
@@ -301,7 +296,7 @@ class ApiSetting extends Controller
                             ];
                             $userData1[] = [
                                 'User' => "{$datauser['name']} ({$datauser['phone']})",
-                                'Previous Point' => MyHelper::requestNumber($totalBalance,'_POINT')
+                                'Previous Point' => MyHelper::requestNumber($totalBalance,'_CURRENCY')
                             ];
                             $insertDataLog = LogBalance::create($dataLog);
                             if (!$insertDataLog) {
@@ -327,22 +322,16 @@ class ApiSetting extends Controller
                 }
             }
 
-            if($userData1){
-                $attachments[] = [
-                    Excel::download(new DefaultExport($userData1), 'point.xlsx')->getFile(),
-                    [
-                        'as' => 'point-reset-report1-'.date('Y-m-d-H-i').'.xlsx',
-                        'mime' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                    ]
-                ];
+            if($userData){
+                $attachments[] = Excel::download(new DefaultExport($userData), 'point.xlsx')->getFile();
             }
             
+            DB::commit();
 
         }
 
         $send = app($this->autocrm)->SendAutoCRM('Report Point Reset', $user->first()->phone, ['datetime_reset' => date('d F Y H:i'), 'attachment' => $attachments],null,true);
 
-        DB::commit();
         return response()->json([
             'status' => 'success'
         ]);

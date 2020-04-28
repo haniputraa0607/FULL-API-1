@@ -88,7 +88,7 @@
 							<td style="width: 10px"></td>
 							<td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0">
 								<p style="color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;">
-									{{$setting['email_copyright']??''}}
+									{{$setting['email_copyright']}}
 								</p>
 								<p style="color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0">
 								</p>

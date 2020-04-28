@@ -204,7 +204,8 @@ class ApiAutoCrm extends Controller
 							'html_message' => $content,
 							'setting' => $setting
 						);
-						Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting, $autocrm_title,$variables)
+
+						Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting)
 						{
 							$message->to($to, $name)->subject($subject);
 							if(env('MAIL_DRIVER') == 'mailgun'){
@@ -230,14 +231,10 @@ class ApiAutoCrm extends Controller
 							}
 
 							// attachment
-							if((stristr($autocrm_title,'nquiry')&&$crm['attachment_forward']==1) || isset($variables['attachment'])){
+							if(stristr($autocrm_title,'nquiry')&&$crm['attachment_forward']==1){
 								if(is_array($variables['attachment'])){
 									foreach($variables['attachment'] as $attach){
-										if(is_array($attach)){
-											$message->attach(...$attach);
-										}else{
-											$message->attach($attach);
-										}
+										$message->attach($attach);
 									}
 								}else{
 									$message->attach($variables['attachment']);
