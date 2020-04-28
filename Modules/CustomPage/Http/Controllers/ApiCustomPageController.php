@@ -335,7 +335,7 @@ class ApiCustomPageController extends Controller
     public function listCustomPage()
     {
         $customPage = CustomPage::orderBy('custom_page_order')->get()->toArray();
-
+        $nullOrZero = [];
         foreach ($customPage as $key => $value) {
             if ($value['custom_page_order'] == null || $value['custom_page_order'] == 0) {
                 $nullOrZero[] = $customPage[$key];
