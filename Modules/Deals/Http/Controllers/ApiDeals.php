@@ -1024,7 +1024,6 @@ class ApiDeals extends Controller
 
             // SAVE
             if($data['is_all_outlet'] == 0){
-                $deals=Deal::find($id);
                 $saveOutlet = $this->saveOutlet($deals, $data['id_outlet']);
             }
             unset($data['id_outlet']);
