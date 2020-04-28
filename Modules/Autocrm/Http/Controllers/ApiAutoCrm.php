@@ -1066,19 +1066,15 @@ class ApiAutoCrm extends Controller
                             $setting[$value['key']] = $value['value'];
                         }
 
-                        $em_arr = explode('@',$recipient);
-                        $name = ucwords(str_replace("_"," ", str_replace("-"," ", str_replace("."," ", $em_arr[0]))));
-
                         $data = array(
-                            'customer' => $name,
                             'html_message' => $content,
                             'setting' => $setting
                         );
 
                         try{
-                            $send = Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting)
+                            $send = Mail::send('emails.test', $data, function($message) use ($to,$subject,$setting)
                             {
-                                $message->to($to, $name)->subject($subject);
+                                $message->to($to)->subject($subject);
                                 if(env('MAIL_DRIVER') == 'mailgun'){
                                     $message->trackClicks(true)
                                         ->trackOpens(true);

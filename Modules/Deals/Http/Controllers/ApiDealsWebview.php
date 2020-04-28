@@ -2,6 +2,7 @@
 
 namespace Modules\Deals\Http\Controllers;
 
+use App\Http\Models\Outlet;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -30,6 +31,11 @@ class ApiDealsWebview extends Controller
         $deals = Deal::with('outlets.city', 'deals_content.deals_content_details')->where('id_deals', $request->id_deals)->get()->toArray()[0];
 
         $deals['outlet_by_city'] = [];
+
+        if($deals['is_all_outlet'] == 1){
+            $outlets = Outlet::with('city')->get()->toArray();
+            $deals['outlets'] = $outlets;
+        }
 
         if (!empty($deals['outlets'])) {
             $kota = array_column($deals['outlets'], 'city');

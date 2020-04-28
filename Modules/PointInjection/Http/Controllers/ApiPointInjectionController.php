@@ -370,7 +370,7 @@ class ApiPointInjectionController extends Controller
                 $content .= '</tr>';
                 $content .= '<tr>';
                 $content .= '<td>Total Point</td>';
-                $content .= '<td>'.number_format($post['total_point']).'</td>';
+                $content .= '<td>'.number_format($post['total_point']??$post['point']).'</td>';
                 $content .= '</tr>';
                 $content .= '</table>';
                 $send = app($this->autocrm)->sendForwardEmail('Point Injection', $subject, $content);
@@ -477,7 +477,7 @@ class ApiPointInjectionController extends Controller
                 $content .= '</tr>';
                 $content .= '<tr>';
                 $content .= '<td>Total Point</td>';
-                $content .= '<td>'.number_format($post['total_point']).'</td>';
+                $content .= '<td>'.number_format($post['total_point']??$post['point']).'</td>';
                 $content .= '</tr>';
                 $content .= '</table>';
                 $send = app($this->autocrm)->sendForwardEmail('Point Injection', $subject, $content);
@@ -533,7 +533,7 @@ class ApiPointInjectionController extends Controller
                     $createReport = [
                         'id_point_injection' => $row['id_point_injection'],
                         'id_user' => $row['id_user'],
-                        'point' => $post['total_point'],
+                        'point' => $post['total_point']??$post['point'],
                         'status' => 'Pending',
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s')
