@@ -719,14 +719,13 @@ class PromoCampaignTools{
 								$new_description = 'You will get cashback of '.number_format($promo_rules->referred_promo_value).'%';
 							break;
 						}
-						return [
-							'item'=>$trxs,
-							'discount'=>0,
-							'new_description' => $new_description??'',
-							'promo_detail'		=> '',
-							'is_free'			=> $is_free
-						];
-					}
+					return [
+						'item'=>$trxs,
+						'discount'=>0,
+						'new_description' => $new_description??'',
+						'promo_detail'		=> '',
+						'is_free'			=> $is_free
+					];
 				}
 		}
 		// discount?
