@@ -3,6 +3,7 @@
 namespace Modules\Deals\Http\Controllers;
 
 use App\Http\Models\DealsUser;
+use App\Http\Models\Outlet;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -87,6 +88,11 @@ class ApiDealsVoucherWebviewController extends Controller
         // $action = MyHelper::postCURLWithBearer('api/voucher/me?log_save=0', $post, $bearer);
         $voucher = DealsUser::with(['outlet', 'deals_voucher', 'deals_voucher.deal', 'deals_voucher.deal.deals_content', 'deals_voucher.deal.deals_content.deals_content_details', 'deals_voucher.deal.outlets.city', 'deals_voucher.deal.outlets.city'])
         ->where('id_deals_user', $request->id_deals_user)->get()->toArray()[0];
+
+        if($voucher['deals_voucher']['deal']['is_all_outlet'] == 1){
+            $outlets = Outlet::with('city')->get()->toArray();
+            $voucher['deals_voucher']['deal']['outlets'] = $outlets;
+        }
 
         if (!empty($voucher['deals_voucher']['deal']['outlets'])) {
             $kota = array_column($voucher['deals_voucher']['deal']['outlets'], 'city');

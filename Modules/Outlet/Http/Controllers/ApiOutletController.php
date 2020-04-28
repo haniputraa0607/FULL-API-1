@@ -2086,7 +2086,7 @@ class ApiOutletController extends Controller
 
 	        	// if valid give flag is_promo = 1
 	        	$code = $code->toArray();
-        		if ($code['promo_campaign']['is_all_outlet']??false) {
+        		if ($code['promo_campaign']['is_all_outlet']??$code['deal_voucher']['deals']['is_all_outlet']??false) {
         			foreach ($outlet as $key => $value) {
     					$outlet[$key]['is_promo'] = 1;
     				}
