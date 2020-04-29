@@ -717,6 +717,9 @@ class ApiConfirm extends Controller
                     if(isset($response['responseCode'])){
                         $dataUpdate['response_code'] = $response['responseCode'];
                         $dataUpdate = Ovo::detailResponse($dataUpdate);
+                    }else{
+                        $dataUpdate['response_detail'] = "Transaction Timeout";
+                        $dataUpdate['response_description'] = "The payment deadline has expired";
                     }
 
                     $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
@@ -782,13 +785,15 @@ class ApiConfirm extends Controller
                             if(isset($response['responseCode'])){
                                 $dataUpdate['response_code'] = $response['responseCode'];
                                 $dataUpdate = Ovo::detailResponse($dataUpdate);
-                            }else{
-                                $dataUpdate['response_detail'] = "Transaction Timeout";
-                                $dataUpdate['response_description'] = "The payment deadline has expired";
                             }
 
                             $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
                         }
+                    }else{
+                        $dataUpdate['response_detail'] = "Transaction Failed";
+                        $dataUpdate['response_description'] = "Failed push payment";
+
+                        $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
                     }
                 }
             }

@@ -1763,7 +1763,7 @@ class ApiTransaction extends Controller
                     foreach ($list['payment'] as $key => $value) {
                         if (isset($value['reject'])) {
                             $result['detail']['detail_status'][] = [
-                                'text'  => 'Your order has been canceled ' . $value['reject'],
+                                'text'  => 'Your order has been canceled because ' . $value['reject'],
                                 'date'  => date('d F Y H:i', strtotime($list['void_date']))
                             ];
                         } else {
