@@ -1679,20 +1679,26 @@ class ApiTransaction extends Controller
                     unset($result['detail']['order_id_qrcode']);
                     unset($result['detail']['order_id']);
                     unset($result['detail']['pickup_time']);
-                    $result['transaction_status'] = 'Order Cancelled';
+                    $result['transaction_status'] = 'Order Canceled';
                 } elseif(isset($list['transaction_payment_status']) && $list['transaction_payment_status'] == 'Pending') {
                     $result['transaction_status'] = 'Payment Pending';
                 } elseif($list['detail']['reject_at'] != null) {
                     $result['transaction_status'] = 'Order Rejected';
                 } elseif($list['detail']['taken_by_system_at'] != null) {
-                    $result['transaction_status'] = 'Order Has Been Done';
+                    $result['transaction_status'] = 'Order Completed';
                 } elseif($list['detail']['taken_at'] != null) {
-                    $result['transaction_status'] = 'Order Has Been Taken';
+                    $result['transaction_status'] = 'Order Completed';
                 } elseif($list['detail']['ready_at'] != null) {
                     $result['transaction_status'] = 'Order Is Ready';
                 } elseif($list['detail']['receive_at'] != null) {
                     $result['transaction_status'] = 'Order Received';
                 } else {
+                    $result['transaction_status'] = 'Order Pending';
+                }
+            }else{
+                if($list['transaction_payment_status'] == 'Completed'){
+                    $result['transaction_status'] = 'Order Completed';
+                }else{
                     $result['transaction_status'] = 'Order Pending';
                 }
             }
@@ -1767,7 +1773,13 @@ class ApiTransaction extends Controller
                             ];
                         }
                     }
-                } else {
+                } else if($list['transaction_payment_status'] == 'Pending'){
+                    $result['detail']['detail_status'][] = [
+                        'text'  => 'Your order awaits confirmation payment',
+                        'date'  => date('d F Y H:i', strtotime($list['created_at']))
+                    ];
+                }
+                else {
                     if ($list['detail']['reject_at'] != null) {
                         $result['detail']['detail_status'][] = [
                         'text'  => 'Order rejected',
@@ -1783,7 +1795,7 @@ class ApiTransaction extends Controller
                     }
                     if ($list['detail']['taken_at'] != null) {
                         $result['detail']['detail_status'][] = [
-                        'text'  => 'Order Completed',
+                        'text'  => 'Order completed',
                         'date'  => date('d F Y H:i', strtotime($list['detail']['taken_at']))
                     ];
                     }
@@ -1800,12 +1812,8 @@ class ApiTransaction extends Controller
                     ];
                     }
                     $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order awaits confirmation',
-                        'date'  => date('d F Y H:i', strtotime($list['transaction_date']))
-                    ];
-                    $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order awaits confirmation payment',
-                        'date'  => date('d F Y H:i', strtotime($list['created_at']))
+                        'text'  => 'Your order awaits confirmation outlet',
+                        'date'  => date('d F Y H:i', strtotime($list['completed_at']))
                     ];
                 }
             }

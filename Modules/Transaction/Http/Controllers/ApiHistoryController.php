@@ -601,6 +601,9 @@ class ApiHistoryController extends Controller
             }
             $dataList['rate_status'] = UserRating::where('id_transaction',$value['id_transaction'])->exists()?1:0;
             $dataList['payment_status'] = strtoupper($value['transaction_payment_status']);
+            if($dataList['payment_status'] == 'CANCELLED'){
+                $dataList['payment_status'] = 'CANCELED';
+            }
 
             $listTransaction[] = $dataList;
         }
