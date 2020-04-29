@@ -1293,7 +1293,7 @@ class MyHelper{
 						$response = $e->getResponse()->getBody()->getContents();
 						return json_decode($response, true);
 				}
-				else return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.']];
+				else return ['status' => 'fail', 'messages' => [0 => 'Failed get response.']];
 			}
 			catch(Exception $e){
 				return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.']];
@@ -1341,7 +1341,7 @@ class MyHelper{
 					$response = $e->getResponse()->getBody()->getContents();
 					return json_decode($response, true);
 				}
-				else  return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.']];
+				else  return ['status' => 'fail', 'messages' => [0 => 'Failed get response.']];
 			}
 			catch(Exception $e){
 				return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.']];
@@ -1399,7 +1399,7 @@ class MyHelper{
 						'response' => $return
 					];
 				}
-				else  return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.']];
+				else  return ['status' => 'fail', 'messages' => [0 => 'Failed get response.']];
 			}
 			catch(Exception $e){
 				return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.']];
