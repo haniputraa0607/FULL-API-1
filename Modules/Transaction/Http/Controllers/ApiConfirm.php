@@ -340,7 +340,7 @@ class ApiConfirm extends Controller
             ];
         }
         elseif ($post['payment_type'] == 'Ipay88') {
-            
+
             // save multiple payment
             $trx_ipay88 = \Modules\IPay88\Lib\IPay88::create()->insertNewTransaction($check,'trx',$countGrandTotal);
             if(!$trx_ipay88){
@@ -726,7 +726,7 @@ class ApiConfirm extends Controller
                     if ($trx->id_promo_campaign_promo_code) {
 		            	$update_promo_report = app($this->promo_campaign)->deleteReport($trx->id_transaction, $trx->id_promo_campaign_promo_code);
 		            }
-                    
+
                     $updateVoucher = app($this->voucher)->returnVoucher($trx['id_transaction']);
 
                     //return balance
@@ -782,6 +782,9 @@ class ApiConfirm extends Controller
                             if(isset($response['responseCode'])){
                                 $dataUpdate['response_code'] = $response['responseCode'];
                                 $dataUpdate = Ovo::detailResponse($dataUpdate);
+                            }else{
+                                $dataUpdate['response_detail'] = "Transaction Timeout";
+                                $dataUpdate['response_description'] = "The payment deadline has expired";
                             }
 
                             $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
