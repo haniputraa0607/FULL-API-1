@@ -46,7 +46,7 @@ class Kernel extends ConsoleKernel
          * reset all member points / balance
          * run every day at 01:00
          */
-        $schedule->call('Modules\Setting\Http\Controllers\ApiSetting@cronPointReset')->everyMinute();
+        $schedule->call('Modules\Setting\Http\Controllers\ApiSetting@cronPointReset')->dailyAt('01:00');
 
         /**
          * detect transaction fraud and member balance by comparing the encryption of each data in the log_balances table

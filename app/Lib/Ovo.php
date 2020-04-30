@@ -16,6 +16,7 @@ use App\Http\Models\DealsVoucher;
 use App\Http\Models\TransactionPaymentOvo;
 use App\Http\Models\DealsPaymentOvo;
 use Modules\Outlet\Entities\OutletOvo;
+use App\Http\Models\Setting;
 
 class Ovo {
 
@@ -33,7 +34,7 @@ class Ovo {
         }
         return hash_hmac('sha256', $app_id.$time, $app_key);
     }
-    
+
     public static function checkOutletOvo($id_outlet){
         return OutletOvo::where('id_outlet',$id_outlet)->exists();
     }
@@ -65,7 +66,7 @@ class Ovo {
         }
         $now = time();
 
-        $data['type'] = "0200"; 
+        $data['type'] = "0200";
         $data['processingCode'] = "040000";
         $data['amount'] = (int)$amount;
         // $data['date'] = date('Y-m-d H:i:s.v', strtotime($dataTrx['transaction_date']));
@@ -99,7 +100,12 @@ class Ovo {
             ]);
             //update push_time
             $updateTime = DealsPaymentOvo::where('id_deals_user', $dataTrx['id_deals_user'])->update(['push_to_pay_at' => date('Y-m-d H:i:s')]);
-            $pay = MyHelper::postWithTimeout($url, null, $data, 0, $header);
+            $getSettingTimer = Setting::where('key', 'setting_timer_ovo')->first();
+            if(isset($getSettingTimer['value'])){
+                $pay = MyHelper::postWithTimeout($url, null, $data, 0, $header, (int)$getSettingTimer['value']);
+            }else{
+                $pay = MyHelper::postWithTimeout($url, null, $data, 0, $header);
+            }
 
             // dd($pay->getStatusCode());
             if(isset($pay['status_code'])){
@@ -119,7 +125,7 @@ class Ovo {
                 //     'response' => $response
                 // ];
                 return $pay;
-        
+
             }
 
             $updateLog = LogOvoDeals::where('id_log_ovo_deals', $createLog['id_log_ovo_deals'])->update([
@@ -140,7 +146,12 @@ class Ovo {
 
             //update push_time
             $updateTime = TransactionPaymentOvo::where('id_transaction', $dataTrx['id_transaction'])->update(['push_to_pay_at' => date('Y-m-d H:i:s')]);
-            $pay = MyHelper::postWithTimeout($url, null, $data, 0, $header);
+            $getSettingTimer = Setting::where('key', 'setting_timer_ovo')->first();
+            if(isset($getSettingTimer['value'])){
+                $pay = MyHelper::postWithTimeout($url, null, $data, 0, $header, (int)$getSettingTimer['value']);
+            }else{
+                $pay = MyHelper::postWithTimeout($url, null, $data, 0, $header);
+            }
 
             // dd($pay->getStatusCode());
             if(isset($pay['status_code'])){
@@ -161,7 +172,7 @@ class Ovo {
                 //     'response' => $response
                 // ];
                 return $pay;
-        
+
             }
 
             $updateLog = LogOvo::where('id_log_ovo', $createLog['id_log_ovo'])->update([
@@ -191,7 +202,7 @@ class Ovo {
             $app_id = env('OVO_STAGING_APP_ID');
         }
 
-        $data['type'] = "0400"; 
+        $data['type'] = "0400";
         $data['processingCode'] = "040000";
         $data['amount'] = $amount;
         $data['date'] = date('Y-m-d H:i:s.v');
@@ -247,7 +258,7 @@ class Ovo {
                 if($reversal['status_code'] != 404){
                     break;
                     return $reversal;
-            
+
                 }
 
             }else{
@@ -256,11 +267,11 @@ class Ovo {
                     'response' => json_encode($reversal['response']??'')
                 ]);
                 break;
-                return $reversal; 
+                return $reversal;
             }
         }
 
-        return $reversal; 
+        return $reversal;
     }
 
     /**
@@ -286,7 +297,7 @@ class Ovo {
             $app_id = env('OVO_STAGING_APP_ID');
         }
 
-        $data['type'] = "0200"; 
+        $data['type'] = "0200";
         $data['processingCode'] = "020040";
         $data['amount'] = $transaction['transaction_grandtotal']??$transaction['amount'];
         $data['date'] = date('Y-m-d H:i:s.v');
@@ -346,7 +357,7 @@ class Ovo {
                     if($reversal['status_code'] != 404){
                         break;
                         return $reversal;
-                
+
                     }
                 }else{
                     $updateLog = LogOvo::where('id_log_ovo', $createLog['id_log_ovo'])->update([
@@ -358,7 +369,7 @@ class Ovo {
                     if($reversal['status_code'] != 404){
                         break;
                         return $reversal;
-                
+
                     }
                 }
 
@@ -371,19 +382,19 @@ class Ovo {
                         'response' => json_encode($pay)
                     ]);
                     break;
-                    return $reversal; 
+                    return $reversal;
                 }else{
                     $updateLog = LogOvo::where('id_log_ovo', $createLog['id_log_ovo'])->update([
                         'response_status' => 'fail',
                         'response' => json_encode($pay)
                     ]);
                     break;
-                    return $reversal; 
+                    return $reversal;
                 }
             }
         }
 
-        return $reversal; 
+        return $reversal;
     }
 
     //detail response ovo
@@ -393,71 +404,71 @@ class Ovo {
                $data['response_detail'] = "Invalid Mobile Number / OVO ID";
                $data['response_description'] = "Phone number / OVO ID not found in OVO System";
             }
-            if($data['response_code'] == '17'){
+            elseif($data['response_code'] == '17'){
                 $data['response_detail'] = "Transaction Decline";
                 $data['response_description'] = "OVO User canceled payment using OVO Apps";
             }
-            if($data['response_code'] == '25'){
+            elseif($data['response_code'] == '25'){
                 $data['response_detail'] = "Transaction Not Found";
                 $data['response_description'] = "Payment status not found when called by Check Payment Status API";
             }
-            if($data['response_code'] == '26'){
+            elseif($data['response_code'] == '26'){
                 $data['response_detail'] = "Transaction Failed";
                 $data['response_description'] = "Failed push payment confirmation to OVO Apps";
             }
-            if($data['response_code'] == '40'){
+            elseif($data['response_code'] == '40'){
                 $data['response_detail'] = "Transaction Failed";
                 $data['response_description'] = "Failed Push Payment, Error request: Merchant invoice, batch number & reference number already used from previous transactions";
             }
-            if($data['response_code'] == '54'){
+            elseif($data['response_code'] == '54'){
                 $data['response_detail'] = "Transaction Expired (More than 7 days)";
                 $data['response_description'] = "Transaction details already expired when API check payment status called";
             }
-            if($data['response_code'] == '56'){
+            elseif($data['response_code'] == '56'){
                 $data['response_detail'] = "Card Blocked. Please call 1500696";
                 $data['response_description'] = "Card is blocked, unable to process card transaction";
             }
-            if($data['response_code'] == '58'){
+            elseif($data['response_code'] == '58'){
                 $data['response_detail'] = "Transaction Not Allowed";
                 $data['response_description'] = "Transaction module not registered in OVO Systems";
             }
-            if($data['response_code'] == '61'){
+            elseif($data['response_code'] == '61'){
                 $data['response_detail'] = "Exceed Transaction Limit";
                 $data['response_description'] = "Amount / count exceed limit, set by user";
             }
-            if($data['response_code'] == '63'){
+            elseif($data['response_code'] == '63'){
                 $data['response_detail'] = "Security Violation";
                 $data['response_description'] = "Authentication Failed";
             }
-            if($data['response_code'] == '64'){
+            elseif($data['response_code'] == '64'){
                 $data['response_detail'] = "Account Blocked. Please call 1500696";
                 $data['response_description'] = "Account is blocked, unable to process transaction";
             }
-            if($data['response_code'] == '65'){
+            elseif($data['response_code'] == '65'){
                 $data['response_detail'] = "Transaction Failed";
                 $data['response_description'] = "Limit transaction exceeded, limit on count or amount";
             }
-            if($data['response_code'] == '67'){
+            elseif($data['response_code'] == '67'){
                 $data['response_detail'] = "Below Transaction Limit";
                 $data['response_description'] = "The transaction amount is less than the minimum payment";
             }
-            if($data['response_code'] == '68'){
+            elseif($data['response_code'] == '68'){
                 $data['response_detail'] = "Transaction Pending / Timeout";
                 $data['response_description'] = "OVO Wallet late to give respond to OVO JPOS";
             }
-            if($data['response_code'] == '73'){
+            elseif($data['response_code'] == '73'){
                 $data['response_detail'] = "Transaction has been reversed";
                 $data['response_description'] = "Transaction has been reversed by API Reversal Push to Pay in Check Payment Status API";
             }
-            if($data['response_code'] == '96'){
+            elseif($data['response_code'] == '96'){
                 $data['response_detail'] = "Invalid Processing Code";
                 $data['response_description'] = "Invalid Processing Code inputted during Call API Check Payment Status";
             }
-            if($data['response_code'] == 'ER'){
+            elseif($data['response_code'] == 'ER'){
                 $data['response_detail'] = "System Failure";
                 $data['response_description'] = "There is an error in OVO Systems, Credentials not found in OVO Systems";
             }
-            if($data['response_code'] == 'EB'){
+            elseif($data['response_code'] == 'EB'){
                 $data['response_detail'] = "Terminal Blocked";
                 $data['response_description'] = "TID and/or MID not registered in OVO Systems";
             }
@@ -475,7 +486,7 @@ class Ovo {
             $app_id = env('OVO_STAGING_APP_ID');
         }
 
-        $data['type'] = "0100"; 
+        $data['type'] = "0100";
         $data['processingCode'] = "040000";
         $data['amount'] = (int)$dataTrx['transaction_grandtotal'];
         $data['date'] = date('Y-m-d H:i:s.v');
@@ -500,8 +511,8 @@ class Ovo {
         ];
 
         $check = MyHelper::post($url, null, $data, 0, $header);
-        
-        return $check; 
+
+        return $check;
     }
 }
 ?>
