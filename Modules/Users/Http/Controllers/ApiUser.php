@@ -1705,6 +1705,10 @@ class ApiUser extends Controller
                 }
                 if($request->json('email')){
                     $dataupdate['email'] = $request->json('email');
+                    //when change email, update status email to unverified
+                    if($request->json('email') != $data[0]['email']){
+                        $dataupdate['email_verified'] = '0';
+                    }
                 }
                 if($request->json('gender')){
                     $dataupdate['gender'] = $request->json('gender');
