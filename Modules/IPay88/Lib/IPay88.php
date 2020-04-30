@@ -233,7 +233,7 @@ class IPay88
             	$trx = Transaction::with('user','outlet')->where('id_transaction',$model->id_transaction)->first();
                 $mid = [
                     'order_id' => $trx['transaction_receipt_number'],
-                    'gross_amount' => $amount
+                    'gross_amount' => $model->amount
                 ];
             	switch ($data['Status']) {
             		case '1':
