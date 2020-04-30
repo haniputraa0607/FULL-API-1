@@ -1831,7 +1831,7 @@ class ApiUser extends Controller
                         'job' => $datauser[0]['job'],
                         'address' => $datauser[0]['address']
                     ],
-                    'message'	=> 'Data telah berhasil diubah'
+                    'message'	=> 'Data has been changed successfully'
                 ];
                 if($use_custom_province){
                     $result['result']['id_province'] = $datauser[0]['id_province'];
