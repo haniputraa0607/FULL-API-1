@@ -1705,6 +1705,10 @@ class ApiUser extends Controller
                 }
                 if($request->json('email')){
                     $dataupdate['email'] = $request->json('email');
+                    //when change email, update status email to unverified
+                    if($request->json('email') != $data[0]['email']){
+                        $dataupdate['email_verified'] = '0';
+                    }
                 }
                 if($request->json('gender')){
                     $dataupdate['gender'] = $request->json('gender');
@@ -1831,7 +1835,7 @@ class ApiUser extends Controller
                         'job' => $datauser[0]['job'],
                         'address' => $datauser[0]['address']
                     ],
-                    'message'	=> 'Data telah berhasil diubah'
+                    'message'	=> 'Data has been changed successfully'
                 ];
                 if($use_custom_province){
                     $result['result']['id_province'] = $datauser[0]['id_province'];
