@@ -1264,37 +1264,6 @@ class ApiOnlineTransaction extends Controller
             }
         }
 
-        //insert pickup go-send
-        if($post['type'] == 'GO-SEND'){
-            $dataGoSend['id_transaction_pickup'] = $insertPickup['id_transaction_pickup'];
-            $dataGoSend['origin_name']           = $outlet['outlet_name'];
-            $dataGoSend['origin_phone']          = $outlet['outlet_phone'];
-            $dataGoSend['origin_address']        = $outlet['outlet_address'];
-            $dataGoSend['origin_latitude']       = $outlet['outlet_latitude'];
-            $dataGoSend['origin_longitude']      = $outlet['outlet_longitude'];
-            $dataGoSend['origin_note']           = '';
-            $dataGoSend['destination_name']      = $post['destination']['name'];
-            $dataGoSend['destination_phone']     = $post['destination']['phone'];
-            $dataGoSend['destination_address']   = $post['destination']['address'];
-            $dataGoSend['destination_latitude']  = $post['destination']['latitude'];
-            $dataGoSend['destination_longitude'] = $post['destination']['longitude'];
-
-            if(isset($post['destination_note'])){
-                $dataGoSend['destination_note'] = $post['destination']['note'];
-            }
-
-            $gosend = TransactionPickupGoSend::create($dataGoSend);
-            if (!$gosend) {
-                DB::rollBack();
-                return response()->json([
-                    'status'    => 'fail',
-                    'messages'  => ['Insert Transaction GO-SEND Failed']
-                ]);
-            }
-
-            $id_pickup_go_send = $gosend->id_transaction_pickup_go_send;
-        }
-
         if ($post['transaction_payment_status'] == 'Completed') {
             //========= This process to check if user have fraud ============//
             $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
@@ -1435,25 +1404,47 @@ class ApiOnlineTransaction extends Controller
                     return response()->json($save);
                 }
 
-                // Fraud Detection
                 if ($post['transaction_payment_status'] == 'Completed' || $save['type'] == 'no_topup') {
 
                     //inset pickup_at when pickup_type = right now
                     if($insertPickup['pickup_type'] == 'right now'){
                         $updatePickup = TransactionPickup::where('id_transaction', $insertTransaction['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s')]);
                     }
-                    $userData = User::find($user['id']);
+
+                    // Fraud Detection
+                    $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
+                    ->where('transactions.id_user', $insertTransaction['id_user'])
+                    ->whereRaw('DATE(transactions.transaction_date) = "'.date('Y-m-d', strtotime($post['transaction_date'])).'"')
+                    ->where('transactions.transaction_payment_status','Completed')
+                    ->whereNull('transaction_pickups.reject_at')
+                    ->count();
+
+                    $currentWeekNumber = date('W',strtotime($post['transaction_date']));
+                    $currentYear = date('Y',strtotime($post['transaction_date']));
+                    $dto = new DateTime();
+                    $dto->setISODate($currentYear,$currentWeekNumber);
+                    $start = $dto->format('Y-m-d');
+                    $dto->modify('+6 days');
+                    $end = $dto->format('Y-m-d');
+
+                    $geCountTrxWeek = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
+                        ->where('id_user', $insertTransaction['id_user'])
+                        ->where('transactions.transaction_payment_status','Completed')
+                        ->whereNull('transaction_pickups.reject_at')
+                        ->whereRaw('Date(transactions.transaction_date) BETWEEN "'.$start.'" AND "'.$end.'"')
+                        ->count();
+
+                    $countTrxDay = $geCountTrxDay + 1;
+                    $countTrxWeek = $geCountTrxWeek + 1;
 
                     if($fraudTrxDay){
-                        $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxDay, $userData, null, $countTrxDay, $countTrxWeek, $post['transaction_date'], 0, $insertTransaction['transaction_receipt_number']);
+                        $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxDay, $user, null, $countTrxDay, $countTrxWeek, $post['transaction_date'], 0, $insertTransaction['transaction_receipt_number']);
                     }
 
                     if($fraudTrxWeek){
-                        $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxWeek, $userData, null, $countTrxDay, $countTrxWeek, $post['transaction_date'], 0, $insertTransaction['transaction_receipt_number']);
+                        $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxWeek, $user, null, $countTrxDay, $countTrxWeek, $post['transaction_date'], 0, $insertTransaction['transaction_receipt_number']);
                     }
-                }
 
-                if ($save['type'] == 'no_topup') {
                     $mid['order_id'] = $insertTransaction['transaction_receipt_number'];
                     $mid['gross_amount'] = 0;
 
@@ -1493,12 +1484,6 @@ class ApiOnlineTransaction extends Controller
                             'status'    => 'fail',
                             'messages'  => ['Transaction failed']
                         ]);
-                    }
-
-                    if ($post['type'] == 'Pickup Order' || $post['type'] == 'Pickup Order') {
-                        $orderIdSend = $insertPickup['order_id'];
-                    } else {
-                        $orderIdSend = $insertShipment['order_id'];
                     }
 
                     $sendNotifOutlet = $this->outletNotif($insertTransaction['id_transaction']);
