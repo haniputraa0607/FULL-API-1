@@ -946,14 +946,14 @@ class PromoCampaignTools{
 
 		if($promo->promo_type == 'Referral'){
 			if(User::find($id_user)->transaction_online){
-	        	$errors[]='Kode promo tidak ditemukan';
+	        	$errors[]='Voucher code is not found';
 				return false;
 			}
 			if(UserReferralCode::where([
 				'id_promo_campaign_promo_code'=>$id_code,
 				'id_user'=>$id_user
 			])->exists()){
-	        	$errors[]='Kode promo tidak ditemukan';
+	        	$errors[]='Voucher code is not found';
 	    		return false;
 			}
 	        $referer = UserReferralCode::where('id_promo_campaign_promo_code',$id_code)
@@ -961,7 +961,7 @@ class PromoCampaignTools{
 	            ->where('users.is_suspended','=',0)
 	            ->first();
 	        if(!$referer){
-	        	$errors[] = 'Kode promo tidak ditemukan';
+	        	$errors[] = 'Voucher code is not found';
 	        }
 		}
 
