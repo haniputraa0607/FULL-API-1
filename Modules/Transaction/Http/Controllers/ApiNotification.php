@@ -880,7 +880,7 @@ Detail: ".$link['short'],
             	$update_promo_report = app($this->promo_campaign)->deleteReport($trx->id_transaction, $trx->id_promo_campaign_promo_code);
             	if (!$update_promo_report) {
             		return false;
-	            }	
+	            }
             }
 
             $update_voucher = app($this->voucher)->returnVoucher($trx->id_transaction);
@@ -1017,12 +1017,6 @@ Detail: ".$link['short'],
     }
 
     function balanceNotif($data) {
-        $sendAdmin = $this->sendNotif($data);
-
-        if (!$sendAdmin) {
-            return false;
-        }
-
         $user = User::with('memberships')->where('id', $data['id_user'])->first();
 
         if (!empty($user['memberships'][0]['membership_name'])) {

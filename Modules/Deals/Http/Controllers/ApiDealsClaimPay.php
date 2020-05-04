@@ -791,8 +791,13 @@ class ApiDealsClaimPay extends Controller
                     $dataUpdate['response_code'] = $response['responseCode'];
                     $dataUpdate = Ovo::detailResponse($dataUpdate);
                 }else{
-                    $dataUpdate['response_detail'] = "Transaction Timeout";
-                    $dataUpdate['response_description'] = "The payment deadline has expired";
+                    if(!isset($payOvo['status_code']) || $payOvo['status_code'] == '404'){
+                        $dataUpdate['response_detail'] = "Transaction Timeout";
+                        $dataUpdate['response_description'] = "The payment deadline has expired";
+                    }else{
+                        $dataUpdate['response_detail'] = "Transaction Failed";
+                        $dataUpdate['response_description'] = "Failed push payment";
+                    }
                 }
                 \DB::beginTransaction();
 
@@ -837,12 +842,6 @@ class ApiDealsClaimPay extends Controller
 
                         $update = DealsPaymentOvo::where('id_deals_user', $voucher['id_deals_user'])->update($dataUpdate);
                     }
-                }else{
-                    $dataUpdate['response_detail'] = "Transaction Failed";
-                    $dataUpdate['response_description'] = "Failed push payment";
-
-                    $update = DealsPaymentOvo::where('id_deals_user', $voucher['id_deals_user'])->update($dataUpdate);
-
                 }
                 DB::commit();
             }
