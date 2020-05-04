@@ -3,6 +3,7 @@
 namespace Modules\Transaction\Http\Controllers;
 
 use App\Http\Models\DailyTransactions;
+use App\Jobs\FraudJob;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -123,6 +124,8 @@ class ApiOnlineTransaction extends Controller
                 'messages'  => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
             ]);
         }
+
+        $config_fraud_use_queue = Configs::where('config_name', 'fraud use queue')->first()->is_active;
 
         $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
         if($use_product_variant && !isset($post['from_fake'])){
@@ -734,15 +737,7 @@ class ApiOnlineTransaction extends Controller
                 ]);
             }
 
-            //======= Start Check Fraud Referral User =======//
-            $data = [
-                'id_user' => $insertTransaction['id_user'],
-                'referral_code' => $request->promo_code,
-                'referral_code_use_date' => $insertTransaction['transaction_date'],
-                'id_transaction' => $insertTransaction['id_transaction']
-            ];
-            app($this->setting_fraud)->fraudCheckReferralUser($data);
-            //======= End Check Fraud Referral User =======//
+            $promo_code_ref = $request->promo_code;
         }
         // add transaction voucher
         if($request->json('id_deals_user')){
@@ -1265,120 +1260,6 @@ class ApiOnlineTransaction extends Controller
         }
 
         if ($post['transaction_payment_status'] == 'Completed') {
-            //========= This process to check if user have fraud ============//
-            $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                ->where('transactions.id_user', $insertTransaction['id_user'])
-                ->whereRaw('DATE(transactions.transaction_date) = "'.date('Y-m-d', strtotime($post['transaction_date'])).'"')
-                ->where('transactions.transaction_payment_status','Completed')
-                ->whereNull('transaction_pickups.reject_at')
-                ->count();
-
-            $currentWeekNumber = date('W',strtotime($post['transaction_date']));
-            $currentYear = date('Y',strtotime($post['transaction_date']));
-            $dto = new DateTime();
-            $dto->setISODate($currentYear,$currentWeekNumber);
-            $start = $dto->format('Y-m-d');
-            $dto->modify('+6 days');
-            $end = $dto->format('Y-m-d');
-
-            $geCountTrxWeek = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                ->where('id_user', $insertTransaction['id_user'])
-                ->where('transactions.transaction_payment_status','Completed')
-                ->whereNull('transaction_pickups.reject_at')
-                ->whereRaw('Date(transactions.transaction_date) BETWEEN "'.$start.'" AND "'.$end.'"')
-                ->count();
-
-            $countTrxDay = $geCountTrxDay + 1;
-            $countTrxWeek = $geCountTrxWeek + 1;
-            //================================ End ================================//
-
-            if((($fraudTrxDay && $countTrxDay <= $fraudTrxDay['parameter_detail']) && ($fraudTrxWeek && $countTrxWeek <= $fraudTrxWeek['parameter_detail']))
-                || (!$fraudTrxDay && !$fraudTrxWeek)){
-
-                if ($insertTransaction['transaction_point_earned'] != 0) {
-                    $settingPoint = Setting::where('key', 'point_conversion_value')->first();
-
-                    //check membership
-                    if (!empty($user['memberships'][0]['membership_name'])) {
-                        $level = $user['memberships'][0]['membership_name'];
-                        $percentageP = $user['memberships'][0]['benefit_point_multiplier'] / 100;
-                        $percentageB = $user['memberships'][0]['benefit_cashback_multiplier'] / 100;
-                    } else {
-                        $level = null;
-                        $percentageP = 0;
-                        $percentageB = 0;
-                    }
-
-                    $dataLog = [
-                        'id_user'                     => $insertTransaction['id_user'],
-                        'point'                       => $insertTransaction['transaction_point_earned'],
-                        'id_reference'                => $insertTransaction['id_transaction'],
-                        'source'                      => 'Transaction',
-                        'grand_total'                 => $insertTransaction['transaction_grandtotal'],
-                        'point_conversion'            => $settingPoint['value'],
-                        'membership_level'            => $level,
-                        'membership_point_percentage' => $percentageP * 100
-                    ];
-
-                    $insertDataLog = LogPoint::create($dataLog);
-                    if (!$insertDataLog) {
-                        DB::rollBack();
-                        return response()->json([
-                            'status'    => 'fail',
-                            'messages'  => ['Insert Point Failed']
-                        ]);
-                    }
-
-                    //update point user
-                    $totalPoint = LogPoint::where('id_user',$insertTransaction['id_user'])->sum('point');
-                    $updateUserPoint = User::where('id', $insertTransaction['id_user'])->update(['points' => $totalPoint]);
-                }
-
-                if ($insertTransaction['transaction_cashback_earned'] != 0) {
-                    $insertDataLogCash = app($this->balance)->addLogBalance( $insertTransaction['id_user'], $insertTransaction['transaction_cashback_earned'], $insertTransaction['id_transaction'], 'Transaction', $insertTransaction['transaction_grandtotal']);
-                    if (!$insertDataLogCash) {
-                        DB::rollBack();
-                        return response()->json([
-                            'status'    => 'fail',
-                            'messages'  => ['Insert Cashback Failed']
-                        ]);
-                    }
-                    $usere  = User::where('id',$insertTransaction['id_user'])->first();
-                    $outlet = Outlet::where('id_outlet',$insertTransaction['id_outlet'])->first();
-                    $data_autocrm_cashback = [
-                    	"outlet_name"       => $outlet->outlet_name,
-                        "transaction_date"  => $insertTransaction['transaction_date'],
-                        'id_transaction'    => $insertTransaction['id_transaction'],
-                        'receipt_number'    => $insertTransaction['transaction_receipt_number'],
-                        'received_point'    => (string) $insertTransaction['transaction_cashback_earned']
-                    ];
-                }
-
-            }else{
-                if($countTrxDay > $fraudTrxDay['parameter_detail'] && $fraudTrxDay){
-                    $fraudFlag = 'transaction day';
-                }elseif($countTrxWeek > $fraudTrxWeek['parameter_detail'] && $fraudTrxWeek){
-                    $fraudFlag = 'transaction week';
-                }else{
-                    $fraudFlag = NULL;
-                }
-
-                $updatePointCashback = Transaction::where('id_transaction', $insertTransaction['id_transaction'])
-                    ->update([
-                        'transaction_point_earned' => NULL,
-                        'transaction_cashback_earned' => NULL,
-                        'fraud_flag' => $fraudFlag
-                    ]);
-
-                if(!$updatePointCashback){
-                    DB::rollBack();
-                    return response()->json([
-                        'status' => 'fail',
-                        'messages' => ['Failed update Point and Cashback']
-                    ]);
-                }
-            }
-
             $checkMembership = app($this->membership)->calculateMembership($user['phone']);
             if (!$checkMembership) {
                 DB::rollBack();
@@ -1404,45 +1285,56 @@ class ApiOnlineTransaction extends Controller
                     return response()->json($save);
                 }
 
+                if($save['status'] == 'success'){
+                    $checkFraudPoint = app($this->setting_fraud)->fraudTrxPoint($sumBalance, $user, ['id_outlet' => $insertTransaction['id_outlet']]);
+                }
+
                 if ($post['transaction_payment_status'] == 'Completed' || $save['type'] == 'no_topup') {
+
+                    if($config_fraud_use_queue == 1){
+                        FraudJob::dispatch($user, $insertTransaction, 'transaction')->onConnection('fraudqueue');
+                    }else {
+                        //========= This process to check if user have fraud ============//
+                        $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
+                            ->where('transactions.id_user', $insertTransaction['id_user'])
+                            ->whereRaw('DATE(transactions.transaction_date) = "' . date('Y-m-d', strtotime($post['transaction_date'])) . '"')
+                            ->where('transactions.transaction_payment_status', 'Completed')
+                            ->whereNull('transaction_pickups.reject_at')
+                            ->count();
+
+                        $currentWeekNumber = date('W', strtotime($post['transaction_date']));
+                        $currentYear = date('Y', strtotime($post['transaction_date']));
+                        $dto = new DateTime();
+                        $dto->setISODate($currentYear, $currentWeekNumber);
+                        $start = $dto->format('Y-m-d');
+                        $dto->modify('+6 days');
+                        $end = $dto->format('Y-m-d');
+
+                        $geCountTrxWeek = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
+                            ->where('id_user', $insertTransaction['id_user'])
+                            ->where('transactions.transaction_payment_status', 'Completed')
+                            ->whereNull('transaction_pickups.reject_at')
+                            ->whereRaw('Date(transactions.transaction_date) BETWEEN "' . $start . '" AND "' . $end . '"')
+                            ->count();
+
+                        $countTrxDay = $geCountTrxDay + 1;
+                        $countTrxWeek = $geCountTrxWeek + 1;
+                        //================================ End ================================//
+
+                        if($config_fraud_use_queue != 1){
+                            if($fraudTrxDay){
+                                $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxDay, $user, null, $countTrxDay, $countTrxWeek, $post['transaction_date'], 0, $insertTransaction['transaction_receipt_number']);
+                            }
+
+                            if($fraudTrxWeek){
+                                $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxWeek, $user, null, $countTrxDay, $countTrxWeek, $post['transaction_date'], 0, $insertTransaction['transaction_receipt_number']);
+                            }
+                        }
+                    }
 
                     //inset pickup_at when pickup_type = right now
                     if($insertPickup['pickup_type'] == 'right now'){
                         $updatePickup = TransactionPickup::where('id_transaction', $insertTransaction['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s')]);
-                    }
-
-                    // Fraud Detection
-                    $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                    ->where('transactions.id_user', $insertTransaction['id_user'])
-                    ->whereRaw('DATE(transactions.transaction_date) = "'.date('Y-m-d', strtotime($post['transaction_date'])).'"')
-                    ->where('transactions.transaction_payment_status','Completed')
-                    ->whereNull('transaction_pickups.reject_at')
-                    ->count();
-
-                    $currentWeekNumber = date('W',strtotime($post['transaction_date']));
-                    $currentYear = date('Y',strtotime($post['transaction_date']));
-                    $dto = new DateTime();
-                    $dto->setISODate($currentYear,$currentWeekNumber);
-                    $start = $dto->format('Y-m-d');
-                    $dto->modify('+6 days');
-                    $end = $dto->format('Y-m-d');
-
-                    $geCountTrxWeek = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                        ->where('id_user', $insertTransaction['id_user'])
-                        ->where('transactions.transaction_payment_status','Completed')
-                        ->whereNull('transaction_pickups.reject_at')
-                        ->whereRaw('Date(transactions.transaction_date) BETWEEN "'.$start.'" AND "'.$end.'"')
-                        ->count();
-
-                    $countTrxDay = $geCountTrxDay + 1;
-                    $countTrxWeek = $geCountTrxWeek + 1;
-
-                    if($fraudTrxDay){
-                        $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxDay, $user, null, $countTrxDay, $countTrxWeek, $post['transaction_date'], 0, $insertTransaction['transaction_receipt_number']);
-                    }
-
-                    if($fraudTrxWeek){
-                        $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxWeek, $user, null, $countTrxDay, $countTrxWeek, $post['transaction_date'], 0, $insertTransaction['transaction_receipt_number']);
                     }
 
                     $mid['order_id'] = $insertTransaction['transaction_receipt_number'];
@@ -1572,7 +1464,11 @@ class ApiOnlineTransaction extends Controller
                 'referral_code_use_date' => $insertTransaction['transaction_date'],
                 'id_transaction' => $insertTransaction['id_transaction']
             ];
-            app($this->setting_fraud)->fraudCheckReferralUser($data);
+            if($config_fraud_use_queue == 1){
+                FraudJob::dispatch($user, $data, 'referral user')->onConnection('fraudqueue');
+            }else{
+                app($this->setting_fraud)->fraudCheckReferralUser($data);
+            }
             //======= End Check Fraud Referral User =======//
         }
 
