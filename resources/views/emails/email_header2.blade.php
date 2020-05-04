@@ -413,6 +413,33 @@
             background-color: #BFBFBF;
             color: white;
         }
+
+        .table-bordered {
+            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+        }
+        .table-bordered td, .table-bordered th {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        #table-fraud-list {
+            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+        }
+
+        #table-fraud-list td, #table-fraud-list th {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        #table-fraud-list th {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            text-align: left;
+            background-color: #BFBFBF;
+            color: white;
+        }
     </style>
 </head>
 
