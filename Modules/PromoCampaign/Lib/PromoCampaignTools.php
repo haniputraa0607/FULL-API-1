@@ -311,7 +311,7 @@ class PromoCampaignTools{
 
 				if($discount<=0){
 					$message = $this->getMessage('error_product_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b>.';
-					$message = MyHelper::simpleReplace($message,['product'=>'product bertanda khusus', 'title' => $promo_title]);
+					$message = MyHelper::simpleReplace($message,['product'=>'specially marked product', 'title' => $promo_title]);
 
 					$errors[]= $message;
 					return false;
