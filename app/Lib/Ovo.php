@@ -402,11 +402,11 @@ class Ovo {
         if(isset($data['response_code'])){
             if($data['response_code'] == '14'){
                $data['response_detail'] = "Invalid Mobile Number / OVO ID";
-               $data['response_description'] = "Phone number / OVO ID not found in OVO System";
+               $data['response_description'] = "Your order could not be completed. Please check your OVO details.";
             }
             elseif($data['response_code'] == '17'){
                 $data['response_detail'] = "Transaction Decline";
-                $data['response_description'] = "OVO User canceled payment using OVO Apps";
+                $data['response_description'] = "You have cancelled the order";
             }
             elseif($data['response_code'] == '25'){
                 $data['response_detail'] = "Transaction Not Found";

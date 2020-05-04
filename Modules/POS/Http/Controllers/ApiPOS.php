@@ -2,6 +2,7 @@
 
 namespace Modules\POS\Http\Controllers;
 
+use App\Jobs\FraudJob;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -1961,6 +1962,7 @@ class ApiPOS extends Controller
                 $config['point']    = Configs::where('config_name', 'point')->first()->is_active;
                 $config['balance']  = Configs::where('config_name', 'balance')->first()->is_active;
                 $config['unique_receipt_outlet'] = Configs::where('config_name', 'unique receipt outlet')->first()->is_active;
+                $config['fraud_use_queue'] = Configs::where('config_name', 'fraud use queue')->first()->is_active;
                 $settingPoint       = Setting::where('key', 'point_conversion_value')->first()->value;
                 $transOriginal      = $post['transactions'];
 
@@ -2191,32 +2193,36 @@ class ApiPOS extends Controller
                         $dataTrx['membership_level']    = null;
                         $dataTrx['membership_promo_id'] = null;
                     } else {
-                        //========= This process to check if user have fraud ============//
-                        $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                            ->where('transactions.id_user', $user['id'])
-                            ->whereRaw('DATE(transactions.transaction_date) = "' . date('Y-m-d', strtotime($trx['date_time'])) . '"')
-                            ->where('transactions.transaction_payment_status', 'Completed')
-                            ->whereNull('transaction_pickups.reject_at')
-                            ->count();
+                        if($config['fraud_use_queue'] == 1){
+                            FraudJob::dispatch($user, $trx, 'transaction')->onConnection('fraudqueue');
+                        }else{
+                            //========= This process to check if user have fraud ============//
+                            $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
+                                ->where('transactions.id_user', $user['id'])
+                                ->whereRaw('DATE(transactions.transaction_date) = "' . date('Y-m-d', strtotime($trx['date_time'])) . '"')
+                                ->where('transactions.transaction_payment_status', 'Completed')
+                                ->whereNull('transaction_pickups.reject_at')
+                                ->count();
 
-                        $currentWeekNumber = date('W', strtotime($trx['date_time']));
-                        $currentYear = date('Y', strtotime($trx['date_time']));
-                        $dto = new DateTime();
-                        $dto->setISODate($currentYear, $currentWeekNumber);
-                        $start = $dto->format('Y-m-d');
-                        $dto->modify('+6 days');
-                        $end = $dto->format('Y-m-d');
+                            $currentWeekNumber = date('W', strtotime($trx['date_time']));
+                            $currentYear = date('Y', strtotime($trx['date_time']));
+                            $dto = new DateTime();
+                            $dto->setISODate($currentYear, $currentWeekNumber);
+                            $start = $dto->format('Y-m-d');
+                            $dto->modify('+6 days');
+                            $end = $dto->format('Y-m-d');
 
-                        $geCountTrxWeek = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                            ->where('id_user', $user['id'])
-                            ->where('transactions.transaction_payment_status', 'Completed')
-                            ->whereNull('transaction_pickups.reject_at')
-                            ->whereRaw('Date(transactions.transaction_date) BETWEEN "' . $start . '" AND "' . $end . '"')
-                            ->count();
+                            $geCountTrxWeek = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
+                                ->where('id_user', $user['id'])
+                                ->where('transactions.transaction_payment_status', 'Completed')
+                                ->whereNull('transaction_pickups.reject_at')
+                                ->whereRaw('Date(transactions.transaction_date) BETWEEN "' . $start . '" AND "' . $end . '"')
+                                ->count();
 
-                        $countTrxDay = $geCountTrxDay + 1;
-                        $countTrxWeek = $geCountTrxWeek + 1;
-                        //================================ End ================================//
+                            $countTrxDay = $geCountTrxDay + 1;
+                            $countTrxWeek = $geCountTrxWeek + 1;
+                            //================================ End ================================//
+                        }
 
                         if (count($user['memberships']) > 0) {
                             $dataTrx['membership_level']    = $user['memberships'][0]['membership_name'];
@@ -2607,7 +2613,7 @@ class ApiPOS extends Controller
                     }
                 }
 
-                if (!empty($createTrx['id_user'])) {
+                if (!empty($createTrx['id_user']) && $config['fraud_use_queue'] != 1) {
                     if ((($fraudTrxDay && $countTrxDay <= $fraudTrxDay['parameter_detail']) && ($fraudTrxWeek && $countTrxWeek <= $fraudTrxWeek['parameter_detail']))
                         || (!$fraudTrxDay && !$fraudTrxWeek)
                     ) {
@@ -2710,7 +2716,7 @@ class ApiPOS extends Controller
                     $create = TransactionVoucher::create($dataTrxVoucher);
                 }
 
-                if (isset($user['phone'])) {
+                if (isset($user['phone']) && $config['fraud_use_queue'] != 1) {
                     $checkMembership = app($this->membership)->calculateMembership($user['phone']);
                     $userData = User::find($user['id']);
                     //cek fraud detection transaction per day
