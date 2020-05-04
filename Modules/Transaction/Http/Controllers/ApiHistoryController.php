@@ -967,7 +967,7 @@ class ApiHistoryController extends Controller
                 // $log[$key]['detail'] = $vou;
                 $dataList['type']   = 'voucher';
                 $dataList['id']      = $value['id_log_balance'];
-                $dataList['date']   = date('d M Y H:i', strtotime($vou['claimed_at']));
+                $dataList['date']   = date('d M Y H:i', strtotime($value['created_at']));
                 $dataList['outlet'] = 'Buy a Voucher';
                 $dataList['amount'] = '- ' . ltrim(MyHelper::requestNumber($value['balance'], '_POINT'), '-');
                 // $dataList['amount'] = number_format($value['balance'], 0, ',', '.');

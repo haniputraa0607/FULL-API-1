@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Class Transaction
- * 
+ *
  * @property int $id_transaction
  * @property int $id_user
  * @property string $transaction_receipt_number
@@ -28,7 +28,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property \Carbon\Carbon $void_date
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
- * 
+ *
  * @property \App\Http\Models\User $user
  * @property \Illuminate\Database\Eloquent\Collection $transaction_payment_manuals
  * @property \Illuminate\Database\Eloquent\Collection $transaction_payment_midtrans
@@ -100,7 +100,7 @@ class Transaction extends Model
 	{
 		return $this->belongsTo(\App\Http\Models\Outlet::class, 'id_outlet');
 	}
-	
+
 	public function outlet_name()
 	{
 		return $this->belongsTo(\App\Http\Models\Outlet::class, 'id_outlet')->select('id_outlet', 'outlet_name');
@@ -149,7 +149,7 @@ class Transaction extends Model
 		return $this->belongsTo(\App\Http\Models\TransactionShipment::class, 'id_transaction', 'id_transaction');
 	}
 
-    public function productTransaction() 
+    public function productTransaction()
     {
     	return $this->hasMany(TransactionProduct::class, 'id_transaction', 'id_transaction');
 	}
@@ -162,17 +162,17 @@ class Transaction extends Model
     		return $this->belongsTo(TransactionPickup::class, 'id_transaction', 'id_transaction');
     	}
 	}
-	
+
     public function transaction_pickup()
     {
 		return $this->belongsTo(TransactionPickup::class, 'id_transaction', 'id_transaction');
     }
 
-    public function logTopup() 
+    public function logTopup()
     {
     	return $this->belongsTo(LogTopup::class, 'id_transaction', 'transaction_reference');
 	}
-	
+
 	public function vouchers()
 	{
 		return $this->belongsToMany(\App\Http\Models\DealsVoucher::class, 'transaction_vouchers', 'id_transaction', 'id_deals_voucher');
@@ -187,4 +187,10 @@ class Transaction extends Model
 	{
 		return $this->belongsTo(\Modules\PromoCampaign\Entities\PromoCampaignPromoCode::class, 'id_promo_campaign_promo_code', 'id_promo_campaign_promo_code');
 	}
+
+	public function outlet_city()
+    {
+        return $this->belongsTo(\App\Http\Models\Outlet::class, 'id_outlet')
+            ->join('cities','cities.id_city','outlets.id_city');
+    }
 }
