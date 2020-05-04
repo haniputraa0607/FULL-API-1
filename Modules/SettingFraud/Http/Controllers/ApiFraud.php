@@ -230,12 +230,12 @@ class ApiFraud extends Controller
                         foreach ($detailTransaction as $val){
                             if($val['fraud_flag'] != null){
                                 if($val['fraud_flag'] == 'transaction day'){
-                                    $status = '<span style="color: red">Fraud <strong>Harian</strong></span>';
+                                    $status = '<span style="color: red">Fraud <strong>Day</strong></span>';
                                 }else{
-                                    $status = '<span style="color: red">Fraud <strong>Mingguan</strong></span>';
+                                    $status = '<span style="color: red">Fraud <strong>Week</strong></span>';
                                 }
                             }else{
-                                $status = '<span style="color: green">Tidak kena Fraud</span>';
+                                $status = '<span style="color: green">No Fraud</span>';
                             }
                             $stringTransactionDay .= '<tr>';
                             $stringTransactionDay .= '<td>'.$status.'</td>';
@@ -329,12 +329,12 @@ class ApiFraud extends Controller
                         foreach ($detailTransaction as $val){
                             if($val['fraud_flag'] != null){
                                 if($val['fraud_flag'] == 'transaction day'){
-                                    $status = '<span style="color: red">Fraud <strong>Harian</strong></span>';
+                                    $status = '<span style="color: red">Fraud <strong>Day</strong></span>';
                                 }else{
-                                    $status = '<span style="color: red">Fraud <strong>Mingguan</strong></span>';
+                                    $status = '<span style="color: red">Fraud <strong>Week</strong></span>';
                                 }
                             }else{
-                                $status = '<span style="color: green">Tidak kena Fraud</span>';
+                                $status = '<span style="color: green">No Fraud</span>';
                             }
                             $stringTransactionWeek .= '<tr>';
                             $stringTransactionWeek .= '<td>'.$status.'</td>';
@@ -803,7 +803,6 @@ class ApiFraud extends Controller
                     ->leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
                     ->where('transactions.transaction_payment_status','Completed')
                     ->whereNull('transaction_pickups.reject_at')
-                    ->whereNull('transactions.voucher_flag')
                     ->whereRaw("DATE(fraud_detection_log_transaction_day.created_at) BETWEEN '".$date_start."' AND '".$date_end."'")
                     ->where('fraud_detection_log_transaction_day.status','Active')
                     ->select('users.name', 'users.phone','fraud_detection_log_transaction_day.*', 'transactions.*')

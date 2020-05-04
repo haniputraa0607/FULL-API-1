@@ -758,15 +758,17 @@ class ApiOutletApp extends Controller
 
             	if( app($this->trx)->checkPromoGetPoint($promo_source) )
 				{
-	                $savePoint = app($this->getNotif)->savePoint($newTrx);
-	                // return $savePoint;
-	                if (!$savePoint) {
-	                    // DB::rollBack();
-	                    return response()->json([
-	                        'status'   => 'fail',
-	                        'messages' => ['Transaction failed']
-	                    ]);
-	                }
+				    if(is_null($order['fraud_flag'])){
+                        $savePoint = app($this->getNotif)->savePoint($newTrx);
+                        // return $savePoint;
+                        if (!$savePoint) {
+                            // DB::rollBack();
+                            return response()->json([
+                                'status'   => 'fail',
+                                'messages' => ['Transaction failed']
+                            ]);
+                        }
+                    }
 	            }
             }
 
@@ -844,6 +846,7 @@ class ApiOutletApp extends Controller
 
             $updatePaymentStatus = Transaction::where('id_transaction', $order->id_transaction)->update(['transaction_payment_status' => 'Completed', 'show_rate_popup' => 1,'completed_at' => date('Y-m-d H:i:s')]);
             \App\Lib\ConnectPOS::create()->sendTransaction($order->id_transaction);
+            $fraud = app($this->notif)->checkFraud($order);
 
             if($send != true){
                 DB::rollBack();

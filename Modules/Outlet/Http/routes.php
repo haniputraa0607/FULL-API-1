@@ -2,7 +2,6 @@
 Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth:api', 'scopes:apps'], 'namespace' => 'Modules\Outlet\Http\Controllers'], function()
 {
     Route::any('list', 'ApiOutletController@listOutlet');
-    Route::any('list/all', 'ApiOutletController@listOutletNameID');
     Route::any('list/ordernow', 'ApiOutletController@listOutletOrderNow');
     Route::any('list/gofood', 'ApiOutletGofoodController@listOutletGofood');
     Route::any('filter', 'ApiOutletController@filter');
@@ -24,6 +23,7 @@ Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth
 Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth_client'],'namespace' => 'Modules\Outlet\Http\Controllers'], function()
 {
     Route::any('list/mobile', 'ApiOutletController@listOutlet');
+    Route::any('list/all', 'ApiOutletController@listOutletNameID');
     Route::any('/detail', 'ApiOutletController@detailTransaction');
     Route::any('filter/android', 'ApiOutletController@filter');
     Route::any('nearme', 'ApiOutletController@nearMe');
@@ -31,8 +31,8 @@ Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth
 
 Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth:api','user_agent', 'scopes:be'], 'namespace' => 'Modules\Outlet\Http\Controllers'], function()
 {
-    Route::any('be/list', ['middleware' => 'feature_control:24', 'uses' =>'ApiOutletController@listOutlet']);	
-    Route::any('be/list/ovo', ['middleware' => 'feature_control:24', 'uses' =>'ApiOutletController@listOutletOvo']);												 
+    Route::any('be/list', ['middleware' => 'feature_control:24', 'uses' =>'ApiOutletController@listOutlet']);
+    Route::any('be/list/ovo', ['middleware' => 'feature_control:24', 'uses' =>'ApiOutletController@listOutletOvo']);
     Route::any('be/filter', ['middleware' => 'feature_control:24', 'uses' =>'ApiOutletController@filter']);
     Route::any('ajax_handler','ApiOutletController@ajaxHandler');
     Route::any('list/code', ['middleware' => 'feature_control:24', 'uses' =>'ApiOutletController@getAllCodeOutlet']);
@@ -53,7 +53,7 @@ Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth
         Route::post('update', ['middleware' => 'feature_control:37', 'uses' =>'ApiOutletController@updateHoliday']);
         Route::post('delete', ['middleware' => 'feature_control:38', 'uses' =>'ApiOutletController@deleteHoliday']);
     });
-						
+
     // admin outlet
     Route::group(['prefix' => 'admin'], function() {
         Route::post('create', ['middleware' => 'feature_control:40', 'uses' =>'ApiOutletController@createAdminOutlet']);
@@ -64,7 +64,7 @@ Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth
 
     Route::post('import-brand', 'ApiOutletController@importBrand');
     Route::post('create', ['middleware' => 'feature_control:26', 'uses' =>'ApiOutletController@create']);
-    Route::post('update', ['middleware' => 'feature_control:27', 'uses' =>'ApiOutletController@update']);											  
+    Route::post('update', ['middleware' => 'feature_control:27', 'uses' =>'ApiOutletController@update']);
     Route::post('batch-update', 'ApiOutletController@batchUpdate');
     Route::post('update/status', 'ApiOutletController@updateStatus');
     Route::post('update/pin', 'ApiOutletController@updatePin');

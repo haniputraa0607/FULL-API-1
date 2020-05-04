@@ -3,6 +3,33 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <link href="{{ env('S3_URL_VIEW') }}{{('css/slide.css') }}" rel="stylesheet">
     <style type="text/css">
+        .table-bordered {
+            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+        }
+        .table-bordered td, .table-bordered th {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        #table-fraud-list {
+            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+        }
+
+        #table-fraud-list td, #table-fraud-list th {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        #table-fraud-list th {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            text-align: left;
+            background-color: #BFBFBF;
+            color: white;
+        }
+
         .kotak {
             margin : 10px;
             padding: 10px;

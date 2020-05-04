@@ -1789,13 +1789,13 @@ class ApiTransaction extends Controller
                     }
                     if ($list['detail']['taken_by_system_at'] != null) {
                         $result['detail']['detail_status'][] = [
-                        'text'  => 'Order Completed',
+                        'text'  => 'Your order has been completed',
                         'date'  => date('d F Y H:i', strtotime($list['detail']['taken_by_system_at']))
                     ];
                     }
                     if ($list['detail']['taken_at'] != null) {
                         $result['detail']['detail_status'][] = [
-                        'text'  => 'Order completed',
+                        'text'  => 'Your order has been picked up',
                         'date'  => date('d F Y H:i', strtotime($list['detail']['taken_at']))
                     ];
                     }
