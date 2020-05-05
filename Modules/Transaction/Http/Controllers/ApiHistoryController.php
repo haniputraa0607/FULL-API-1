@@ -462,16 +462,9 @@ class ApiHistoryController extends Controller
 
     public function sorting($data, $order, $page)
     {
-        $date = [];
-        foreach ($data as $key => $row) {
-            $date[$key] = strtotime($row['date']);
-        }
-
         if ($order == 'new') {
             array_multisort($date, SORT_DESC, $data);
-        }
-
-        if ($order == 'old') {
+        }elseif ($order == 'old') {
             array_multisort($date, SORT_ASC, $data);
         }
 
@@ -488,6 +481,12 @@ class ApiHistoryController extends Controller
             if ($all > count($data)) {
                 $end = count($data);
                 $next = false;
+            }
+            $data = array_slice($data, $start, $paginate);
+
+            $date = [];
+            foreach ($data as $key => $row) {
+                $date[$key] = strtotime($row['date']);
             }
 
             return ['data' => $data, 'status' => $next];
