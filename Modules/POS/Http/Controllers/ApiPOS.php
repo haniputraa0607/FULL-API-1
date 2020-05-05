@@ -171,7 +171,7 @@ class ApiPOS extends Controller
                     foreach ($balance as $payBalance) {
                         $pay = [
                             'number'        => 1,
-                            'type'          => 'POIN MOBILE',
+                            'type'          => 'POINMOBILE',
                             'amount'        => (float) $payBalance['balance_nominal'],
                             'change_amount' => 0,
                             'card_number'   => 0,
@@ -202,7 +202,7 @@ class ApiPOS extends Controller
                         if ($balance) {
                             $pay = [
                                 'number'        => $key + 1,
-                                'type'          => 'POIN MOBILE',
+                                'type'          => 'POINMOBILE',
                                 'amount'        => (float) $balance['balance_nominal'],
                                 'change_amount' => 0,
                                 'card_number'   => 0,
