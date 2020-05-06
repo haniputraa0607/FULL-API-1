@@ -1809,7 +1809,8 @@ class ApiPromoCampaign extends Controller
 						},
 						'promo_campaign.promo_campaign_product_discount_rules',
 						'promo_campaign.promo_campaign_tier_discount_rules',
-						'promo_campaign.promo_campaign_buyxgety_rules'
+                        'promo_campaign.promo_campaign_buyxgety_rules',
+                        'promo_campaign.promo_campaign_referral'
 					])
 	                ->first();
 
@@ -2105,6 +2106,35 @@ class ApiPromoCampaign extends Controller
     		$desc = Setting::where('key', '=', 'description_buyxgety_discount')->first()['value']??$key_null;
 
     		$desc = MyHelper::simpleReplace($desc,['product'=>$product, 'minmax'=>$minmax]);
+        }
+        elseif ($query['promo_type'] == 'Referral')
+    	{
+            $desc = 'no description';
+    		if($query[$source.'_referral']['referred_promo_type'] == 'Product Discount'){
+                switch ($query[$source.'_referral']['referred_promo_unit']) {
+                    case 'Percent':
+                        $desc = 'You get '.$query[$source.'_referral']['referred_promo_value'].'% discount for all products';
+                        if($query[$source.'_referral']['referred_promo_value_max'] > 0){
+                            $desc = $desc.' with a maximum discount of '.MyHelper::requestNumber($query[$source.'_referral']['referred_promo_value_max'],'_CURRENCY').' for each product';
+                        }
+                    break;
+                    case 'Nominal':
+                        $desc = 'You get '.MyHelper::requestNumber($query[$source.'_referral']['referred_promo_value'],'_CURRENCY').' discount for all products';
+                    break;
+                }
+            }else{
+                switch ($query[$source.'_referral']['referred_promo_unit']) {
+                    case 'Nominal':
+                        $desc = 'You will get '.MyHelper::requestNumber($query[$source.'_referral']['referred_promo_value'],'_POINT').' points after transaction success';
+                    break;
+                    case 'Percent':
+                        $desc = 'You will get '.$query[$source.'_referral']['referred_promo_value'].'%'.' cashback from total transactions';
+                        if($query[$source.'_referral']['referred_promo_value_max'] > 0){
+                            $desc = $desc.' with a maximum cashback of '.MyHelper::requestNumber($query[$source.'_referral']['referred_promo_value_max'],'_POINT').'.';
+                        }
+                    break;
+                }
+            }
     	}
     	else
     	{
@@ -2145,7 +2175,8 @@ class ApiPromoCampaign extends Controller
 					'promo_campaign.promo_campaign_tier_discount_product',
 					'promo_campaign.promo_campaign_product_discount_rules',
 					'promo_campaign.promo_campaign_tier_discount_rules',
-					'promo_campaign.promo_campaign_buyxgety_rules'
+                    'promo_campaign.promo_campaign_buyxgety_rules',
+                    'promo_campaign.promo_campaign_referral'
 				]);
 	    }
 
