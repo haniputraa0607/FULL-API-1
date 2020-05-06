@@ -434,7 +434,7 @@ class ApiDealsClaimPay extends Controller
         //IF USING BALANCE
         if ($request->json('balance') == true){
             /* BALANCE */
-            $pay = $this->balance($dataDeals, $voucher,$request->json('payment_deals') );
+            $pay = $this->balance($dataDeals, $voucher,$request->json('payment_deals'), $request->json()->all());
         }else{
 
             /* BALANCE */
@@ -460,7 +460,7 @@ class ApiDealsClaimPay extends Controller
 
             /* IPay88 */
             if ($request->json('payment_deals') && $request->json('payment_deals') == "ipay88") {
-                $pay = $this->ipay88($dataDeals, $voucher);
+                $pay = $this->ipay88($dataDeals, $voucher, null, $request->json()->all());
                 $ipay88 = [
                     'MERCHANT_TRANID'   => $pay['order_id'],
                     'AMOUNT'            => $pay['amount'],
@@ -556,14 +556,18 @@ class ApiDealsClaimPay extends Controller
     }
 
     /* IPay88 */
-    function ipay88($deals, $voucher, $grossAmount=null)
+    function ipay88($deals, $voucher, $grossAmount=null,$post = null)
     {
+        $ipay = \Modules\IPay88\Lib\IPay88::create();
+        $payment_id = $post['payment_id']??''; // ex. CREDIT_CARD, OVO, MANDIRI_ATM
         // simpan dulu di deals payment ipay88
         $data = [
             'id_deals'      => $deals->id_deals,
             'id_deals_user' => $voucher->id_deals_user,
-            'amount'  => $voucher->voucher_price_cash*100,
-            'order_id'      => time().sprintf("%05d", $voucher->id_deals_user).'-'.$voucher->id_deals_user
+            'amount'        => $voucher->voucher_price_cash*100,
+            'order_id'      => time().sprintf("%05d", $voucher->id_deals_user).'-'.$voucher->id_deals_user,
+            'payment_id'    => $ipay->payment_id[$payment_id]??'', // ex. 1,2,3,7,19
+            'payment_method'=> str_replace('_', ' ', $payment_id) // ex CREDIT CARD, BRI VA, MANDIRI ATM
         ];
         if (is_null($grossAmount)) {
             if (!$this->updateInfoDealUsers($voucher->id_deals_user, ['payment_method' => 'Ipay88'])) {
@@ -943,7 +947,7 @@ class ApiDealsClaimPay extends Controller
     }
 
     /* BALANCE */
-    function balance($deals, $voucher, $paymentMethod = null)
+    function balance($deals, $voucher, $paymentMethod = null,$post=null)
     {
         $myBalance   = app($this->balance)->balanceNow($voucher->id_user);
         $kurangBayar = $myBalance - $voucher->voucher_price_cash;
@@ -968,7 +972,7 @@ class ApiDealsClaimPay extends Controller
                     }elseif($paymentMethod == 'cimb'){
                         return $this->cimb($deals, $voucher, -$kurangBayar);
                     }elseif($paymentMethod == 'ipay88'){
-                        return $this->ipay88($deals, $voucher, -$kurangBayar);
+                        return $this->ipay88($deals, $voucher, -$kurangBayar,$post);
                     }
                 }
             }
