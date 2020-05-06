@@ -773,6 +773,7 @@ class ApiConfirm extends Controller
                     DB::commit();
                     //request reversal
                     if(!isset($payOvo['status_code']) || $payOvo['status_code'] == '404'){
+                        sleep(5);
                         $reversal = Ovo::Reversal($trx, $insertPayOvo, $amount, $type);
 
                         if(isset($reversal['response'])){
