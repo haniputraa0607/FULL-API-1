@@ -33,7 +33,7 @@
             </span><br>
 
                 <?php
-                $topping = 'Syrup Strawberry (2), ';
+                $topping = '';
                 foreach ($data['modifiers'] as $mf){
                     $topping .= $mf['text']. '('.$mf['qty'].'), ';
                 }
