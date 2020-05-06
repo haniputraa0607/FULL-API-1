@@ -377,14 +377,14 @@ class ApiDealsClaimPay extends Controller
                         $result['redirect'] = true;
                         $result['midtrans'] = $return['result']['midtrans'];
                     }elseif(isset($return['result']['ovo'])){
-                        // $getSettingTimer = Setting::where('key', 'setting_timer_ovo')->first();
-                        // if($getSettingTimer){
-                        //     $result['timer_ovo'] = (int)$getSettingTimer['value'];
-                        //     // $result['message_timeout_ovo'] = "You have ".(int)$getSettingTimer['value']." seconds remaning to complete the payment";
-                        // }else{
-                        //     $result['timer_ovo'] = NULL;
-                        //     $result['message_timeout_ovo'] = "You have 0 seconds remaning to complete the payment";
-                        // }
+                        $getSettingTimer = Setting::where('key', 'setting_timer_ovo')->first();
+                        if($getSettingTimer){
+                            $result['timer_ovo'] = (int)$getSettingTimer['value'];
+                            // $result['message_timeout_ovo'] = "You have ".(int)$getSettingTimer['value']." seconds remaning to complete the payment";
+                        }else{
+                            $result['timer_ovo'] = NULL;
+                            // $result['message_timeout_ovo'] = "You have 0 seconds remaning to complete the payment";
+                        }
                         $result['message_timeout_ovo'] = "Sorry, your payment deadline has expired";
                         $result['redirect'] = true;
                         $result['ovo'] = $return['result']['ovo'];
