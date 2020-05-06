@@ -342,7 +342,7 @@ class ApiConfirm extends Controller
         elseif ($post['payment_type'] == 'Ipay88') {
 
             // save multiple payment
-            $trx_ipay88 = \Modules\IPay88\Lib\IPay88::create()->insertNewTransaction($check,'trx',$countGrandTotal);
+            $trx_ipay88 = \Modules\IPay88\Lib\IPay88::create()->insertNewTransaction($check,'trx',$countGrandTotal,$post);
             if(!$trx_ipay88){
                 DB::rollBack();
                 return response()->json([
@@ -474,12 +474,12 @@ class ApiConfirm extends Controller
             $lastRef = OvoReference::orderBy('id_ovo_reference', 'DESC')->first();
             if($lastRef){
                 //cek jika beda tanggal, bacth_no + 1, ref_number reset ke 1
-                if($lastRef['date'] != date('Y-m-d')){
-                    $batchNo = $lastRef['batch_no'] + 1;
-                    $refnumber = 1;
-                }
-                //tanggal sama, batch_no tetap, ref_number +1
-                else{
+                // if($lastRef['date'] != date('Y-m-d')){
+                //     $batchNo = $lastRef['batch_no'] + 1;
+                //     $refnumber = 1;
+                // }
+                // //tanggal sama, batch_no tetap, ref_number +1
+                // else{
                     $batchNo = $lastRef['batch_no'];
 
                     //cek jika ref_number sudah lebih dari 999.999
@@ -490,7 +490,7 @@ class ApiConfirm extends Controller
                     }else{
                         $refnumber = $lastRef['reference_number'] + 1;
                     }
-                }
+                // }
             }
 
             if($type == 'production'){
@@ -773,6 +773,7 @@ class ApiConfirm extends Controller
                     DB::commit();
                     //request reversal
                     if(!isset($payOvo['status_code']) || $payOvo['status_code'] == '404'){
+                        sleep(5);
                         $reversal = Ovo::Reversal($trx, $insertPayOvo, $amount, $type);
 
                         if(isset($reversal['response'])){
