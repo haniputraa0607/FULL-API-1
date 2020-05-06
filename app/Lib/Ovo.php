@@ -406,7 +406,7 @@ class Ovo {
             }
             elseif($data['response_code'] == '17'){
                 $data['response_detail'] = "Transaction Decline";
-                $data['response_description'] = "You have cancelled the order";
+                $data['response_description'] = "You have canceled the order";
             }
             elseif($data['response_code'] == '25'){
                 $data['response_detail'] = "Transaction Not Found";
