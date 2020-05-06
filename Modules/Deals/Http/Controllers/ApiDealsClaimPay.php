@@ -648,12 +648,12 @@ class ApiDealsClaimPay extends Controller
         $lastRef = OvoReference::orderBy('id_ovo_reference', 'DESC')->first();
         if($lastRef){
             //cek jika beda tanggal, bacth_no + 1, ref_number reset ke 1
-            if($lastRef['date'] != date('Y-m-d')){
-                $batchNo = $lastRef['batch_no'] + 1;
-                $refnumber = 1;
-            }
-            //tanggal sama, batch_no tetap, ref_number +1
-            else{
+            // if($lastRef['date'] != date('Y-m-d')){
+            //     $batchNo = $lastRef['batch_no'] + 1;
+            //     $refnumber = 1;
+            // }
+            // //tanggal sama, batch_no tetap, ref_number +1
+            // else{
                 $batchNo = $lastRef['batch_no'];
 
                 //cek jika ref_number sudah lebih dari 999.999
@@ -664,7 +664,7 @@ class ApiDealsClaimPay extends Controller
                 }else{
                     $refnumber = $lastRef['reference_number'] + 1;
                 }
-            }
+            // }
         }else{
             $batch_no = 1;
             $refnumber = 1;
