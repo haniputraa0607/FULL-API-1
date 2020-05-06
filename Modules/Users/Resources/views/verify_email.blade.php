@@ -59,14 +59,33 @@
         border-radius: 5px;
         text-align: center;
     }
+
+    .header {
+        overflow: hidden;
+        background-color: #e6e6e6;
+    }
+
+    .header a {
+        float: left;
+        color: black;
+        text-align: center;
+        padding: 12px;
+        text-decoration: none;
+        font-size: 18px;
+        line-height: 10px;
+        border-radius: 4px;
+    }
   </style>
 </head>
 
 <body style="background-color: #f2f2f2;text-align: center">
-    <div class="logo">
-        <img src="{{env('AWS_URL')}}{{('img/logo.jpg')}}" alt="" style="height: 100px;margin: 20px;" /> </a>
+    <div class="header">
+        <a href="#default" class="logo-header">
+        <img src="{{ env('S3_URL_VIEW') }}{{ ('images/logo.png') }}" alt="logo" class="logo-default"  style="margin: 0 -10px;height: 44px;"/> </a>
+        </a>
     </div>
-    <h4 style="padding-bottom: 30px;">User Verify Email</h4>
+
+    <h4 style="padding-bottom: 30px; margin-top: 6%;">User Verify Email</h4>
     @if($status_verify == 'success')
         <div class="box-success">
             <p style="font-size: 16px;color: #256434">{{$message}}</p>
