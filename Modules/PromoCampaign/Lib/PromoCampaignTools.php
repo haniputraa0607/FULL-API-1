@@ -932,7 +932,7 @@ class PromoCampaignTools{
 	 * @param  int 		$id_user  id user
 	 * @return boolean	true/false
 	 */
-	public function validateUser($id_promo, $id_user, $phone, $device_type, $device_id, &$errors=[],$id_code=null){
+	public function validateUser($id_promo, $id_user, $phone, $device_type=null, $device_id, &$errors=[],$id_code=null){
 		$promo=PromoCampaign::find($id_promo);
 
 		if(!$promo){

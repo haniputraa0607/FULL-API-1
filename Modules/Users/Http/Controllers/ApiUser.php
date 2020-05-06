@@ -2925,7 +2925,7 @@ class ApiUser extends Controller
             if($autocrm){
                 return response()->json([
                     'status'    => 'success',
-                    'messages'  => ['Successfully sent email verification to your email']
+                    'messages'  => ['Verification sent to your email']
                 ]);
             }else{
                 return response()->json([
