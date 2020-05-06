@@ -394,7 +394,6 @@ class ApiPointInjectionController extends Controller
                     } else {
                         $userData[$key] = ['id_point_injection' => $post['id_point_injection'], 'id_user' => $value['id'], 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')];
                         PointInjectionUser::updateOrCreate(['id_point_injection' => $post['id_point_injection'], 'id_user' => $value['id']]);
-                        PointInjectionReport::updateOrCreate(['id_point_injection' => $post['id_point_injection'], 'id_user' => $value['id']], ['status' => 'Pending', 'point' => $post['total_point']]);
                     }
                 }
                 $userData = array_merge($getUser, $userData);
@@ -528,18 +527,6 @@ class ApiPointInjectionController extends Controller
 
             try {
                 PointInjectionUser::insert($userData);
-
-                foreach ($userData as $row){
-                    $createReport = [
-                        'id_point_injection' => $row['id_point_injection'],
-                        'id_user' => $row['id_user'],
-                        'point' => $post['total_point']??$post['point'],
-                        'status' => 'Pending',
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ];
-                    PointInjectionReport::insert($createReport);
-                }
                 $result = ['status'  => 'success'];
             } catch (\Exception $e) {
                 $result = [
@@ -660,6 +647,17 @@ class ApiPointInjectionController extends Controller
                 return response()->json($result);
             }
             foreach ($pointInjection as $valueUser) {
+                //add to table report first
+                $createReport = [
+                    'id_point_injection' => $valueUser['id_point_injection'],
+                    'id_user' => $valueUser['id_user'],
+                    'point' => $valueUser['point'],
+                    'status' => 'Failed',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+                PointInjectionReport::insert($createReport);
+
                 DB::beginTransaction();
                 $insertDataLogCash = app($this->balance)->addLogBalance($valueUser['id_user'], $valueUser['point'], $valueUser['id_point_injection'], 'Point Injection', 0);
 
@@ -690,7 +688,7 @@ class ApiPointInjectionController extends Controller
                 }else{
                     $arrTmp[$check]['users_count'] = $arrTmp[$check]['users_count'] + 1;
                 }
-                //update status to success
+                //update status report to success
                 PointInjectionReport::where('id_user', $valueUser['id_user'])->where('id_point_injection', $valueUser['id_point_injection'])
                     ->update(['status' => 'Success']);
 
