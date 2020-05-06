@@ -462,6 +462,10 @@ class ApiHistoryController extends Controller
 
     public function sorting($data, $order, $page)
     {
+        $date = [];
+        foreach ($data as $key => $row) {
+            $date[$key] = strtotime($row['date']);
+        }
         if ($order == 'new') {
             array_multisort($date, SORT_DESC, $data);
         }elseif ($order == 'old') {
@@ -483,11 +487,6 @@ class ApiHistoryController extends Controller
                 $next = false;
             }
             $data = array_slice($data, $start, $paginate);
-
-            $date = [];
-            foreach ($data as $key => $row) {
-                $date[$key] = strtotime($row['date']);
-            }
 
             return ['data' => $data, 'status' => $next];
         }
