@@ -1502,11 +1502,12 @@ class ApiOnlineTransaction extends Controller
         $getSettingTimer = Setting::where('key', 'setting_timer_ovo')->first();
         if($getSettingTimer){
             $insertTransaction['timer_ovo'] = (int)$getSettingTimer['value'];
-            $insertTransaction['message_timeout_ovo'] = "You have ".(int)$getSettingTimer['value']." seconds remaning to complete the payment";
+            // $insertTransaction['message_timeout_ovo'] = "You have ".(int)$getSettingTimer['value']." seconds remaning to complete the payment";
         }else{
             $insertTransaction['timer_ovo'] = NULL;
-            $insertTransaction['message_timeout_ovo'] = "You have 0 seconds remaning to complete the payment";
+            // $insertTransaction['message_timeout_ovo'] = "You have 0 seconds remaning to complete the payment";
         }
+        $insertTransaction['message_timeout_ovo'] = "Sorry, your payment deadline has expired";
         return response()->json([
             'status'   => 'success',
             'redirect' => true,
