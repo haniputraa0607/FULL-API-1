@@ -46,6 +46,7 @@ use Modules\PromoCampaign\Http\Requests\Step2PromoCampaignRequest;
 use Modules\PromoCampaign\Http\Requests\DeletePromoCampaignRequest;
 use Modules\PromoCampaign\Http\Requests\ValidateCode;
 use Modules\PromoCampaign\Http\Requests\UpdateCashBackRule;
+use Modules\PromoCampaign\Http\Requests\CheckUsed;
 
 use Modules\PromoCampaign\Lib\PromoCampaignTools;
 use App\Lib\MyHelper;
@@ -67,9 +68,11 @@ class ApiPromo extends Controller
         $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
     }
 
-    public function checkUsedPromo(Request $request)
+    public function checkUsedPromo(CheckUsed $request)
     {
     	$user = auth()->user();
+    	$datenow = date("Y-m-d H:i:s");
+    	$remove = 0;
 		DB::beginTransaction();
     	$user_promo = UserPromo::where('id_user','=',$user->id)->first();
     	if (!$user_promo) {
@@ -79,10 +82,31 @@ class ApiPromo extends Controller
     	if ($user_promo->promo_type == 'deals')
     	{
     		$promo = app($this->promo_campaign)->checkVoucher(null, null, 1);
+
+    		if ($promo) {
+    			if ($promo->used_at) {
+    				$remove = 1;
+    			}elseif($promo->dealVoucher->deal->deals_end < $datenow){
+    				$remove = 1;
+    			}
+    		}
+
     	}
     	else
     	{
     		$promo = app($this->promo_campaign)->checkPromoCode(null, null, 1, $user_promo->id_reference);
+			if ($promo) 
+			{
+				if ($promo->date_end < $datenow) {
+					$remove = 1;
+				}else{
+					$pct = new PromoCampaignTools;
+					$validate_user=$pct->validateUser($promo->id_promo_campaign, $user->id, $user->phone, null, $request->device_id, $error,$promo->id_promo_campaign_promo_code);
+					if (!$validate_user) {
+						$remove = 1;
+					}
+				}
+			}
     	}
 
     	if (!$promo) {
@@ -98,7 +122,8 @@ class ApiPromo extends Controller
     		'title'				=> $promo['deal_voucher']['deals']['deals_title']??$promo['promo_campaign']['promo_title'],
     		'description'		=> $desc,
     		'id_deals_user'		=> $promo['id_deals_user']??'',
-    		'promo_code'		=> $promo['promo_code']??''
+    		'promo_code'		=> $promo['promo_code']??'',
+    		'remove'			=> $remove
     	];
     	return response()->json(MyHelper::checkGet($result));
 
