@@ -86,7 +86,7 @@ class ApiPromo extends Controller
     		if ($promo) {
     			if ($promo->used_at) {
     				$remove = 1;
-    			}elseif($promo->dealVoucher->deal->deals_end < $datenow){
+    			}elseif($promo->voucher_expired_at < $datenow){
     				$remove = 1;
     			}
     		}
@@ -95,7 +95,7 @@ class ApiPromo extends Controller
     	else
     	{
     		$promo = app($this->promo_campaign)->checkPromoCode(null, null, 1, $user_promo->id_reference);
-			if ($promo) 
+			if ($promo)
 			{
 				if ($promo->date_end < $datenow) {
 					$remove = 1;
