@@ -81,7 +81,7 @@
 <body style="background-color: #f2f2f2;text-align: center">
     <div class="header">
         <a href="#default" class="logo-header">
-        <img src="{{ env('S3_URL_VIEW') }}{{ ('images/logo.png') }}" alt="logo" class="logo-default"  style="margin: 0 -10px;height: 44px;"/> </a>
+        <img src="{{ env('S3_URL_VIEW') }}{{ ('images/logo.png') }}" alt="logo" class="logo-default"  style="margin: 0 -10px;height: {{env('SIZE_LOGO_EMAIL_VERIFY')}}px;"/> </a>
         </a>
     </div>
 
