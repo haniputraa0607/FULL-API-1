@@ -144,7 +144,19 @@ class ApiDealsVoucherWebviewController extends Controller
                 $voucher['status'] = 'online used';
             }
         }
-
+        if($voucher['used_at']){
+            // $voucher['status_text']="Sudah digunakan pada \n".MyHelper::dateFormatInd($voucher['used_at'],false);
+            $voucher['status_text']="Used on ".date('d F Y', strtotime($voucher['used_at']));
+            $voucher['btn_disable'] = 1;
+        }elseif($voucher['voucher_expired_at']<date('Y-m-d H:i:s')){
+            // $voucher['status_text']="Telah berakhir pada \n".MyHelper::dateFormatInd($voucher['voucher_expired_at'],false);
+            $voucher['status_text']="Expired on ".date('d F Y', strtotime($voucher['voucher_expired_at']));
+            $voucher['btn_disable'] = 1;
+        }else{
+            // $voucher['status_text']="Berlaku hingga \n".MyHelper::dateFormatInd($voucher['voucher_expired_at'],false);
+            $voucher['status_text']="Valid until ".date('d F Y', strtotime($voucher['voucher_expired_at']));
+            $voucher['btn_disable'] = 0;
+        }
         $data = $voucher;
 
 
@@ -164,10 +176,12 @@ class ApiDealsVoucherWebviewController extends Controller
             'btn_online'            => 'Use Voucher',
             'is_offline'            => $data['deals_voucher']['deal']['is_offline'],
             'btn_offline'           => 'Redeem to Cashier',
+            'btn_disable'           => $data['btn_disable'],
             'header_online_voucher' => 'Online Transaction',
             'title_online_voucher'  => 'Apply promo on this app',
             'header_offline_voucher'=> 'Offline Transaction',
             'title_offline_voucher' => 'Redeem directly at Cashier',
+            'status_text'           => $data['status_text'],
             'button_text'           => 'Redeem',
             'text_before_scan'      => 'QR Code below<br>must be scanned by our Cashier',
             'popup_message'         => [
