@@ -6,6 +6,7 @@ use App\Jobs\FraudJob;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Log;
 
 use App\Http\Models\Membership;
 use App\Http\Models\UsersMembership;
@@ -1120,7 +1121,7 @@ class ApiPOS extends Controller
                 }
             }
         }
-        
+
         $hasil['success_menu']['total']         = $countDeleted;
         $hasil['success_menu']['list_menu']     = $deletedProduct;
         $hasil['failed_product']['list_menu']   = $failedProduct;
@@ -1331,6 +1332,7 @@ class ApiPOS extends Controller
 
     public function cronProductPricePriority()
     {
+        Log::info('cron price priority start : ' .date('Y-m-d H:i:s'));
         $getOutlet = Outlet::select('id_outlet', 'outlet_code')->where('is_24h', 1)->get()->toArray();
         $getProduct = Product::select('id_product')->get()->toArray();
         for ($i = 0; $i < count($getOutlet); $i++) {
@@ -1361,10 +1363,12 @@ class ApiPOS extends Controller
                 }
             }
         }
+        Log::info('cron price priority end : ' .date('Y-m-d H:i:s'));
     }
 
     public function cronProductPrice()
     {
+        Log::info('cron price start : ' .date('Y-m-d H:i:s'));
         $getOutlet = Outlet::select('id_outlet', 'outlet_code')->where('is_24h', 0)->get()->toArray();
         $getProduct = Product::select('id_product')->get()->toArray();
         for ($i = 0; $i < count($getOutlet); $i++) {
@@ -1395,10 +1399,12 @@ class ApiPOS extends Controller
                 }
             }
         }
+        Log::info('cron price end : ' .date('Y-m-d H:i:s'));
     }
 
     public function cronAddOnPrice()
     {
+        Log::info('cron add on price start : ' .date('Y-m-d H:i:s'));
         $getOutlet = Outlet::select('id_outlet', 'outlet_code')->get()->toArray();
         $getAddOn = ProductModifier::select('id_product_modifier', 'code')->get()->toArray();
         for ($i = 0; $i < count($getOutlet); $i++) {
@@ -1429,6 +1435,7 @@ class ApiPOS extends Controller
                 }
             }
         }
+        Log::info('cron add on price end : ' .date('Y-m-d H:i:s'));
     }
 
     public function syncMenu(Request $request)
