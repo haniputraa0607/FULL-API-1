@@ -42,6 +42,7 @@ Route::group(['prefix' => 'api', 'middleware' => ['log_activities', 'user_agent'
     Route::group(['middleware' => ['auth:api', 'scopes:apps'], 'prefix' => 'users', 'namespace' => 'Modules\Users\Http\Controllers'], function()
     {
         Route::any('send/email/verify', 'ApiUser@sendVerifyEmail');
+        Route::post('check/email/verify', 'ApiUser@checkVerifyEmail');
     });
 
     Route::group(['prefix' => 'home', 'namespace' => 'Modules\Users\Http\Controllers'], function()
