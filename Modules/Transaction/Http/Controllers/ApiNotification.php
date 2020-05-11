@@ -168,8 +168,8 @@ class ApiNotification extends Controller {
                     $kirim = $this->kirimOutlet($newTrx['transaction_receipt_number']);
                     if (isset($kirim['status']) && $kirim['status'] == 1) {
 
-                        // apply cashback to referrer
-                        \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($newTrx);
+                        // // apply cashback to referrer
+                        // \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($newTrx);
 
                         DB::commit();
                         // langsung
@@ -573,6 +573,9 @@ class ApiNotification extends Controller {
 
         if ($data['trasaction_payment_type'] != 'Balance') {
             if ($data['transaction_cashback_earned'] != 0) {
+
+                // apply cashback to referrer
+                \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback(Transaction::find($data['id_transaction']));
 
                 $insertDataLogCash = app($this->balance)->addLogBalance( $data['id_user'], $data['transaction_cashback_earned'], $data['id_transaction'], 'Transaction', $data['transaction_grandtotal']);
                 if (!$insertDataLogCash) {
@@ -1081,48 +1084,11 @@ Detail: ".$link['short'],
         }
 
         $config_fraud_use_queue = Configs::where('config_name', 'fraud use queue')->first()->is_active;
-        $fraudTrxDay = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 day%')->where('fraud_settings_status','Active')->first();
-        $fraudTrxWeek = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 week%')->where('fraud_settings_status','Active')->first();
 
         if($config_fraud_use_queue == 1){
             FraudJob::dispatch($userData, $trx, 'transaction')->onConnection('fraudqueue');
         }else {
-            //========= This process to check if user have fraud ============//
-            $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                ->where('transactions.id_user', $trx['id_user'])
-                ->whereRaw('DATE(transactions.transaction_date) = "' . date('Y-m-d', strtotime($trx['transaction_date'])) . '"')
-                ->where('transactions.transaction_payment_status', 'Completed')
-                ->whereNull('transaction_pickups.reject_at')
-                ->count();
-
-            $currentWeekNumber = date('W', strtotime($trx['transaction_date']));
-            $currentYear = date('Y', strtotime($trx['transaction_date']));
-            $dto = new DateTime();
-            $dto->setISODate($currentYear, $currentWeekNumber);
-            $start = $dto->format('Y-m-d');
-            $dto->modify('+6 days');
-            $end = $dto->format('Y-m-d');
-
-            $geCountTrxWeek = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                ->where('id_user', $trx['id_user'])
-                ->where('transactions.transaction_payment_status', 'Completed')
-                ->whereNull('transaction_pickups.reject_at')
-                ->whereRaw('Date(transactions.transaction_date) BETWEEN "' . $start . '" AND "' . $end . '"')
-                ->count();
-
-            $countTrxDay = $geCountTrxDay + 1;
-            $countTrxWeek = $geCountTrxWeek + 1;
-            //================================ End ================================//
-
-            if($config_fraud_use_queue != 1){
-                if($fraudTrxDay){
-                    $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxDay, $userData, null, $countTrxDay, $countTrxWeek, $trx['transaction_date'], 0, $trx['transaction_receipt_number']);
-                }
-
-                if($fraudTrxWeek){
-                    $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxWeek, $userData, null, $countTrxDay, $countTrxWeek, $trx['transaction_date'], 0, $trx['transaction_receipt_number']);
-                }
-            }
+            $checkFraud = app($this->setting_fraud)->checkFraudTrxOnline($userData, $trx);
         }
 
         return true;

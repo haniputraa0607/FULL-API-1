@@ -1294,41 +1294,8 @@ class ApiOnlineTransaction extends Controller
                     if($config_fraud_use_queue == 1){
                         FraudJob::dispatch($user, $insertTransaction, 'transaction')->onConnection('fraudqueue');
                     }else {
-                        //========= This process to check if user have fraud ============//
-                        $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                            ->where('transactions.id_user', $insertTransaction['id_user'])
-                            ->whereRaw('DATE(transactions.transaction_date) = "' . date('Y-m-d', strtotime($post['transaction_date'])) . '"')
-                            ->where('transactions.transaction_payment_status', 'Completed')
-                            ->whereNull('transaction_pickups.reject_at')
-                            ->count();
-
-                        $currentWeekNumber = date('W', strtotime($post['transaction_date']));
-                        $currentYear = date('Y', strtotime($post['transaction_date']));
-                        $dto = new DateTime();
-                        $dto->setISODate($currentYear, $currentWeekNumber);
-                        $start = $dto->format('Y-m-d');
-                        $dto->modify('+6 days');
-                        $end = $dto->format('Y-m-d');
-
-                        $geCountTrxWeek = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                            ->where('id_user', $insertTransaction['id_user'])
-                            ->where('transactions.transaction_payment_status', 'Completed')
-                            ->whereNull('transaction_pickups.reject_at')
-                            ->whereRaw('Date(transactions.transaction_date) BETWEEN "' . $start . '" AND "' . $end . '"')
-                            ->count();
-
-                        $countTrxDay = $geCountTrxDay + 1;
-                        $countTrxWeek = $geCountTrxWeek + 1;
-                        //================================ End ================================//
-
                         if($config_fraud_use_queue != 1){
-                            if($fraudTrxDay){
-                                $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxDay, $user, null, $countTrxDay, $countTrxWeek, $post['transaction_date'], 0, $insertTransaction['transaction_receipt_number']);
-                            }
-
-                            if($fraudTrxWeek){
-                                $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxWeek, $user, null, $countTrxDay, $countTrxWeek, $post['transaction_date'], 0, $insertTransaction['transaction_receipt_number']);
-                            }
+                            $checkFraud = app($this->setting_fraud)->checkFraudTrxOnline($user, $insertTransaction);
                         }
                     }
 
@@ -1386,7 +1353,7 @@ class ApiOnlineTransaction extends Controller
                         $savelocation = $this->saveLocation($post['latitude'], $post['longitude'], $insertTransaction['id_user'], $insertTransaction['id_transaction'], $insertTransaction['id_outlet']);
                      }
 
-                    PromoCampaignTools::applyReferrerCashback($insertTransaction);
+                    // PromoCampaignTools::applyReferrerCashback($insertTransaction);
 
                     DB::commit();
                     return response()->json([
@@ -1677,6 +1644,7 @@ class ApiOnlineTransaction extends Controller
 
         // check promo code
         $promo_error=null;
+        $use_referral = false;
         $promo['description']=null;
         $promo['detail']=null;
         $promo['discount']=0;
@@ -1691,6 +1659,11 @@ class ApiOnlineTransaction extends Controller
 	        	}
 	        	else
 	        	{
+                    $post['id_promo_campaign_promo_code'] = $code->id_promo_campaign_promo_code;
+                    if($code->promo_type == "Referral"){
+                        $promo_code_ref = $request->json('promo_code');
+                        $use_referral = true;
+                    }
 		            $pct=new PromoCampaignTools();
 		            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
 
@@ -2023,6 +1996,29 @@ class ApiOnlineTransaction extends Controller
             } else {
                 $post['cashback'] = $post['cashback'];
             }
+        }
+        // apply cashback
+        if ($use_referral){
+            $referral_rule = PromoCampaignReferral::where('id_promo_campaign',$code->id_promo_campaign)->first();
+            if(!$referral_rule){
+                DB::rollBack();
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['Insert Referrer Cashback Failed']
+                ]);
+            }
+            $referred_cashback = 0;
+            if($referral_rule->referred_promo_type == 'Cashback'){
+                if($referral_rule->referred_promo_unit == 'Percent'){
+                    $referred_discount_percent = $referral_rule->referred_promo_value<=100?$referral_rule->referred_promo_value:100;
+                    $referred_cashback = $post['subtotal']*$referred_discount_percent/100;
+                }else{
+                    if($post['subtotal'] >= $referral_rule->referred_min_value){
+                        $referred_cashback = $referral_rule->referred_promo_value<=$post['subtotal']?$referral_rule->referred_promo_value:$post['subtotal'];
+                    }
+                }
+            }
+            $post['cashback'] = $referred_cashback;
         }
         $cashback_text = explode('%earned_cashback%',Setting::select('value_text')->where('key', 'earned_cashback_text')->pluck('value_text')->first()?:'You\'ll receive %earned_cashback% for this transaction');
         $cashback_earned = (int) $post['cashback'];
