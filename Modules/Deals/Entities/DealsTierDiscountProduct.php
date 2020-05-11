@@ -42,7 +42,8 @@ class DealsTierDiscountProduct extends Eloquent
 	protected $fillable = [
 		'id_deals',
 		'id_product',
-		'id_product_category'
+		'id_product_category',
+		'product_type'
 	];
 
 	public function deal()

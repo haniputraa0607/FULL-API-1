@@ -1986,7 +1986,23 @@ class FeaturesTableSeeder extends Seeder
                     'feature_module' => 'Setting Timer OVO',
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
-                )
+                ),
+            247 =>
+	            array (
+	                'id_feature' => 248,
+	                'feature_type' => 'Update',
+	                'feature_module' => 'Deals Import',
+	                'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+	            ),
+            248 =>
+            	array (
+	                'id_feature' => 249,
+	                'feature_type' => 'Detail',
+	                'feature_module' => 'Deals Export',
+	                'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+	            )
         ));
     }
 }
