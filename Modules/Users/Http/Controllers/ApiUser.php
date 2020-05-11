@@ -2896,6 +2896,34 @@ class ApiUser extends Controller
         }
     }
 
+    function checkVerifyEmail(Request $request){
+        $post = $request->json()->all();
+
+        if(!empty($request->user())){
+            $id = $request->user()->id;
+            $user = User::where('id', $id)->first();
+
+            if($user){
+                return response()->json([
+                    'status'    => 'success',
+                    'result'  => [
+                        'email_verified' => $user['email_verified']
+                    ]
+                ]);
+            }else{
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['User Not Found']
+                ]);
+            }
+        }else{
+            return response()->json([
+                'status'    => 'fail',
+                'messages'  => ['User Not Found']
+            ]);
+        }
+    }
+
     function sendVerifyEmail(Request $request){
         $post = $request->json()->all();
 

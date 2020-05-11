@@ -24,7 +24,7 @@ class ProductGroup extends Model
 
     public function promo_category()
     {
-        return $this->belongsToMany(\Modules\Product\Entities\ProductPromoCategory::class,'product_group_product_promo_categories','id_product_group','id_product_promo_category')->distinct();
+        return $this->belongsToMany(\Modules\Product\Entities\ProductPromoCategory::class,'product_group_product_promo_categories','id_product_group','id_product_promo_category')->distinct()->withPivot('id_product_group','id_product_promo_category','position');
     }
 
     public function products()

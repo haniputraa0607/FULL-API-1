@@ -547,9 +547,17 @@ class ApiProductGroupController extends Controller
                         'product_category_order' => ($category['product_promo_category_order']-1000000)
                     ];
                 }
+                $product['position'] = $value['pivot']['position'];
                 $result['promo'.$id_product_promo_category]['products'][] = $product;
             }
             $result[$id_product_category]['products'][] = $product;
+        }
+        foreach ($result as $key => $value) {
+            if(!is_numeric($key)){
+                usort($result[$key]['products'],function($a,$b){
+                    return $a['position'] <=> $b['position'];
+                });
+            }
         }
         usort($result, function($a,$b){
             return ($b['product_category_order']*-1) <=> ($a['product_category_order']*-1);
