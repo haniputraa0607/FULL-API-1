@@ -110,8 +110,8 @@ class ApiTransactionCIMB extends Controller
             
             \App\Lib\ConnectPOS::create()->sendTransaction($transaction->id_transaction);
 
-            // apply cashback to referrer
-            \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($transaction);
+            // // apply cashback to referrer
+            // \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($transaction);
 
             $mid = [
                 'order_id' => $transaction->transaction_receipt_number,

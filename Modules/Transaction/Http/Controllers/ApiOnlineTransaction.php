@@ -1386,7 +1386,7 @@ class ApiOnlineTransaction extends Controller
                         $savelocation = $this->saveLocation($post['latitude'], $post['longitude'], $insertTransaction['id_user'], $insertTransaction['id_transaction'], $insertTransaction['id_outlet']);
                      }
 
-                    PromoCampaignTools::applyReferrerCashback($insertTransaction);
+                    // PromoCampaignTools::applyReferrerCashback($insertTransaction);
 
                     DB::commit();
                     return response()->json([
@@ -1677,6 +1677,7 @@ class ApiOnlineTransaction extends Controller
 
         // check promo code
         $promo_error=null;
+        $use_referral = false;
         $promo['description']=null;
         $promo['detail']=null;
         $promo['discount']=0;
@@ -1691,6 +1692,11 @@ class ApiOnlineTransaction extends Controller
 	        	}
 	        	else
 	        	{
+                    $post['id_promo_campaign_promo_code'] = $code->id_promo_campaign_promo_code;
+                    if($code->promo_type == "Referral"){
+                        $promo_code_ref = $request->json('promo_code');
+                        $use_referral = true;
+                    }
 		            $pct=new PromoCampaignTools();
 		            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
 
@@ -2023,6 +2029,29 @@ class ApiOnlineTransaction extends Controller
             } else {
                 $post['cashback'] = $post['cashback'];
             }
+        }
+        // apply cashback
+        if ($use_referral){
+            $referral_rule = PromoCampaignReferral::where('id_promo_campaign',$code->id_promo_campaign)->first();
+            if(!$referral_rule){
+                DB::rollBack();
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['Insert Referrer Cashback Failed']
+                ]);
+            }
+            $referred_cashback = 0;
+            if($referral_rule->referred_promo_type == 'Cashback'){
+                if($referral_rule->referred_promo_unit == 'Percent'){
+                    $referred_discount_percent = $referral_rule->referred_promo_value<=100?$referral_rule->referred_promo_value:100;
+                    $referred_cashback = $post['subtotal']*$referred_discount_percent/100;
+                }else{
+                    if($post['subtotal'] >= $referral_rule->referred_min_value){
+                        $referred_cashback = $referral_rule->referred_promo_value<=$post['subtotal']?$referral_rule->referred_promo_value:$post['subtotal'];
+                    }
+                }
+            }
+            $post['cashback'] = $referred_cashback;
         }
         $cashback_text = explode('%earned_cashback%',Setting::select('value_text')->where('key', 'earned_cashback_text')->pluck('value_text')->first()?:'You\'ll receive %earned_cashback% for this transaction');
         $cashback_earned = (int) $post['cashback'];

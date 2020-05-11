@@ -168,8 +168,8 @@ class ApiNotification extends Controller {
                     $kirim = $this->kirimOutlet($newTrx['transaction_receipt_number']);
                     if (isset($kirim['status']) && $kirim['status'] == 1) {
 
-                        // apply cashback to referrer
-                        \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($newTrx);
+                        // // apply cashback to referrer
+                        // \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($newTrx);
 
                         DB::commit();
                         // langsung
@@ -573,6 +573,9 @@ class ApiNotification extends Controller {
 
         if ($data['trasaction_payment_type'] != 'Balance') {
             if ($data['transaction_cashback_earned'] != 0) {
+
+                // apply cashback to referrer
+                \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback(Transaction::find($data['id_transaction']));
 
                 $insertDataLogCash = app($this->balance)->addLogBalance( $data['id_user'], $data['transaction_cashback_earned'], $data['id_transaction'], 'Transaction', $data['transaction_grandtotal']);
                 if (!$insertDataLogCash) {
