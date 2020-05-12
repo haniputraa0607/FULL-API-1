@@ -35,7 +35,7 @@ use App\Http\Models\DealsUser;
 use App\Http\Models\DealsPaymentMidtran;
 use App\Http\Models\DealsPaymentManual;
 use App\Http\Models\DealsPaymentOvo;
-use App\Http\Models\DealsPaymentIpay88;
+use Modules\IPay88\Entities\DealsPaymentIpay88;
 use App\Http\Models\UserTrxProduct;
 use Modules\Brand\Entities\Brand;
 
@@ -1571,7 +1571,7 @@ class ApiTransaction extends Controller
                     foreach($multiPayment as $dataKey => $dataPay){
                         if($dataPay['type'] == 'IPay88'){
                             $PayIpay = TransactionPaymentIpay88::find($dataPay['id_payment']);
-                            $payment[$dataKey]['name']      = $PayIpay->payment_method;
+                            $payment[$dataKey]['name']      = $PayIpay->payment_method?:'Credit / Debit Card';
                             $payment[$dataKey]['amount']    = $PayIpay->amount / 100;
                             $payment[$dataKey]['reject']    = $PayIpay->err_desc;
                         }else{
@@ -1886,7 +1886,7 @@ class ApiTransaction extends Controller
                 case 'Ipay88':
                     $payment = DealsPaymentIpay88::where('id_deals_user', $id)->first();
                     $result['payment'][] = [
-                        'name'      => $payment->payment_method,
+                        'name'      => $payment->payment_method?:'Credit / Debit Card',
                         'amount'    =>  MyHelper::requestNumber($payment->amount / 100,'_CURRENCY')
                     ];
                     break;
