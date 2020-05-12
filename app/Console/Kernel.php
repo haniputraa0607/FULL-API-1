@@ -129,6 +129,12 @@ class Kernel extends ConsoleKernel
          * To process fraud
          */
         $schedule->call('Modules\SettingFraud\Http\Controllers\ApiFraud@fraudCron')->cron('*/59 * * * *');
+
+        /**
+         * To cancel payment ipay
+         * run every 15 minute
+         */
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiCronTrxController@cancelTransactionIPay')->cron('*/15 * * * *');
     }
 
     /**
