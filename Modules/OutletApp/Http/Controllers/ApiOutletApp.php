@@ -654,11 +654,14 @@ class ApiOutletApp extends Controller
         if($pickup){
             //send notif to customer
             $user = User::find($order->id_user);
+            $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Accepted');
             $send = app($this->autocrm)->SendAutoCRM('Order Accepted', $user['phone'], [
                 "outlet_name" => $outlet['outlet_name'],
                 'id_transaction' => $order->id_transaction,
                 "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
-                "transaction_date" => $order->transaction_date]
+                "transaction_date" => $order->transaction_date,
+                'detail' => $detail
+                ]
             );
             if($send != true){
                 DB::rollBack();
@@ -724,11 +727,13 @@ class ApiOutletApp extends Controller
         if($pickup){
             //send notif to customer
             $user = User::find($order->id_user);
+            $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Reject');
             $send = app($this->autocrm)->SendAutoCRM('Order Ready', $user['phone'], [
                 "outlet_name" => $outlet['outlet_name'],
                 'id_transaction' => $order->id_transaction,
                 "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
-                "transaction_date" => $order->transaction_date
+                "transaction_date" => $order->transaction_date,
+                'detail' => $detail
             ]);
             if($send != true){
                 // DB::rollBack();
@@ -837,11 +842,13 @@ class ApiOutletApp extends Controller
         if($pickup){
             //send notif to customer
             $user = User::find($order->id_user);
+            $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Taken');
             $send = app($this->autocrm)->SendAutoCRM('Order Taken', $user['phone'], [
                 "outlet_name" => $outlet['outlet_name'],
                 'id_transaction' => $order->id_transaction,
                 "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
-                "transaction_date" => $order->transaction_date
+                "transaction_date" => $order->transaction_date,
+                'detail' => $detail
             ]);
 
             $updatePaymentStatus = Transaction::where('id_transaction', $order->id_transaction)->update(['transaction_payment_status' => 'Completed', 'show_rate_popup' => 1,'completed_at' => date('Y-m-d H:i:s')]);
@@ -1195,11 +1202,13 @@ class ApiOutletApp extends Controller
                             ]);
                     }
 
+                    $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Reject');
                     $send = app($this->autocrm)->SendAutoCRM('Order Reject', $user['phone'], [
                         "outlet_name" => $outlet['outlet_name'],
                         "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
                         "transaction_date" => $order->transaction_date,
                         'id_transaction' => $order->id_transaction,
+                        'detail' => $detail
                     ]);
                     if($send != true){
                         DB::rollBack();
