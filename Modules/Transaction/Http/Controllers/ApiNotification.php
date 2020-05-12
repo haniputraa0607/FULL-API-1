@@ -365,8 +365,7 @@ class ApiNotification extends Controller {
         $date    = $trx['transaction_date'];
         $outlet  = $trx['outlet']['outlet_name'];
         $receipt = $trx['transaction_receipt_number'];
-        $detail = $this->htmlDetail($trx['id_transaction']);
-        //$detail = $this->getHtml($trx, $trx['productTransaction'], $name, $phone, $date, $outlet, $receipt);
+        $detail = $this->htmlDetailOrder($trx['id_transaction'], 'Pending');
 
         if ($trx['transaction_payment_status'] == 'Pending') {
             $title = 'Pending';
@@ -410,8 +409,7 @@ class ApiNotification extends Controller {
         $date    = $trx['transaction_date'];
         $outlet  = $trx['outlet']['outlet_name'];
         $receipt = $trx['transaction_receipt_number'];
-        $detail = $this->htmlDetail($trx['id_transaction']);
-        //$detail = $this->getHtml($trx, $trx['productTransaction'], $name, $phone, $date, $outlet, $receipt);
+        $detail = $this->htmlDetailOrder($trx['id_transaction'], 'Expired');
 
         if ($trx['transaction_payment_status'] == 'Pending') {
             $title = 'Pending';
@@ -452,8 +450,7 @@ class ApiNotification extends Controller {
         $date    = $trx['transaction_date'];
         $outlet  = $trx['outlet']['outlet_name'];
         $receipt = $trx['transaction_receipt_number'];
-        $detail = $this->htmlDetail($trx['id_transaction']);
-        //$detail = $this->getHtml($trx, $trx['productTransaction'], $name, $phone, $date, $outlet, $receipt);
+        $detail = $this->htmlDetailOrder($trx['id_transaction'], 'Denied');
 
         if ($trx['transaction_payment_status'] == 'Pending') {
             $title = 'Pending';
@@ -499,8 +496,7 @@ class ApiNotification extends Controller {
         $date    = $trx['transaction_date'];
         $outlet  = $trx['outlet']['outlet_name'];
         $receipt = $trx['transaction_receipt_number'];
-        // $detail = $this->getHtml($trx, $trx['productTransaction'], $name, $phone, $date, $outlet, $receipt);
-        $detail = $this->htmlDetail($trx['id_transaction']);
+        $detail = $this->htmlDetailTrxSuccess($trx['id_transaction']);
 
         if ($trx['transaction_payment_status'] == 'Pending') {
             $title = 'Pending';
@@ -1584,7 +1580,7 @@ Detail: ".$link['short'],
             </table>';
     }
 
-    public function htmlDetail($id){
+    public function htmlDetailTrxSuccess($id){
         $list = Transaction::where([['id_transaction', $id]])->with(
             'user.city.province',
             'modifiers',
@@ -1598,52 +1594,13 @@ Detail: ".$link['short'],
             'modifiers',
             'outlet.city')->first();
 
-            $dataPayment = [];
+        $dataPayment = [];
 
-            $multiPayment = TransactionMultiplePayment::where('id_transaction', $list['id_transaction'])->get();
-            // return $multiPayment;
-            if (isset($multiPayment)) {
-                foreach ($multiPayment as $key => $value) {
-                    if ($value->type == 'Midtrans') {
-                        $getPayment = TransactionPaymentMidtran::where('id_transaction', $list['id_transaction'])->first();
-                        if (!empty($getPayment)) {
-                            $dataPush = [
-                                'payment_method' => $getPayment['bank'],
-                                'nominal' => $getPayment['gross_amount']
-                            ];
-                            array_push($dataPayment, $dataPush);
-                        }
-                    } elseif ($value->type == 'Balance') {
-                        $getPayment = TransactionPaymentBalance::where('id_transaction', $list['id_transaction'])->first();
-                        if (!empty($getPayment)) {
-                            $dataPush = [
-                                'payment_method' => 'MAXX Points',
-                                'nominal' => $getPayment['balance_nominal']
-                            ];
-                            array_push($dataPayment, $dataPush);
-                        }
-                    }elseif ($value->type == 'Ovo') {
-                        $getPayment = TransactionPaymentOvo::where('id_transaction', $list['id_transaction'])->first();
-                        if (!empty($getPayment)) {
-                            $dataPush = [
-                                'payment_method' => 'Ovo',
-                                'nominal' => $getPayment['amount']
-                            ];
-                            array_push($dataPayment, $dataPush);
-                        }
-                    }elseif ($value->type == 'Ipay88') {
-                        $getPayment = TransactionPaymentIpay88::where('id_transaction', $list['id_transaction'])->first();
-                        if (!empty($getPayment)) {
-                            $dataPush = [
-                                'payment_method' => $getPayment['payment_method'],
-                                'nominal' => $getPayment['amount']
-                            ];
-                            array_push($dataPayment, $dataPush);
-                        }
-                    }
-                }
-            }else{
-                if($list['trasaction_payment_type'] == 'Midtrans') {
+        $multiPayment = TransactionMultiplePayment::where('id_transaction', $list['id_transaction'])->get();
+        // return $multiPayment;
+        if (isset($multiPayment)) {
+            foreach ($multiPayment as $key => $value) {
+                if ($value->type == 'Midtrans') {
                     $getPayment = TransactionPaymentMidtran::where('id_transaction', $list['id_transaction'])->first();
                     if (!empty($getPayment)) {
                         $dataPush = [
@@ -1652,33 +1609,72 @@ Detail: ".$link['short'],
                         ];
                         array_push($dataPayment, $dataPush);
                     }
+                } elseif ($value->type == 'Balance') {
+                    $getPayment = TransactionPaymentBalance::where('id_transaction', $list['id_transaction'])->first();
+                    if (!empty($getPayment)) {
+                        $dataPush = [
+                            'payment_method' => 'MAXX Points',
+                            'nominal' => $getPayment['balance_nominal']
+                        ];
+                        array_push($dataPayment, $dataPush);
+                    }
+                }elseif ($value->type == 'Ovo') {
+                    $getPayment = TransactionPaymentOvo::where('id_transaction', $list['id_transaction'])->first();
+                    if (!empty($getPayment)) {
+                        $dataPush = [
+                            'payment_method' => 'Ovo',
+                            'nominal' => $getPayment['amount']
+                        ];
+                        array_push($dataPayment, $dataPush);
+                    }
+                }elseif ($value->type == 'Ipay88') {
+                    $getPayment = TransactionPaymentIpay88::where('id_transaction', $list['id_transaction'])->first();
+                    if (!empty($getPayment)) {
+                        $dataPush = [
+                            'payment_method' => $getPayment['payment_method'],
+                            'nominal' => $getPayment['amount']
+                        ];
+                        array_push($dataPayment, $dataPush);
+                    }
                 }
-
+            }
+        }else{
+            if($list['trasaction_payment_type'] == 'Midtrans') {
+                $getPayment = TransactionPaymentMidtran::where('id_transaction', $list['id_transaction'])->first();
+                if (!empty($getPayment)) {
+                    $dataPush = [
+                        'payment_method' => $getPayment['bank'],
+                        'nominal' => $getPayment['gross_amount']
+                    ];
+                    array_push($dataPayment, $dataPush);
+                }
             }
 
-            $detail = [];
+        }
 
-            $qrTest= '';
+        $detail = [];
 
-            if ($list['trasaction_type'] == 'Pickup Order') {
-                $detail = TransactionPickup::where('id_transaction', $list['id_transaction'])->first();
-                $qrTest = $detail['order_id'];
-            } elseif ($list['trasaction_type'] == 'Delivery') {
-                $detail = TransactionShipment::with('city.province')->where('id_transaction', $list['id_transaction'])->first();
-            }
+        $qrTest= '';
 
-            $list['data_payment'] = $dataPayment;
+        if ($list['trasaction_type'] == 'Pickup Order') {
+            $detail = TransactionPickup::where('id_transaction', $list['id_transaction'])->first();
+            $qrTest = $detail['order_id'];
+        } elseif ($list['trasaction_type'] == 'Delivery') {
+            $detail = TransactionShipment::with('city.province')->where('id_transaction', $list['id_transaction'])->first();
+        }
 
-            $list['detail'] = $detail;
+        $list['data_payment'] = $dataPayment;
 
-            $list['date'] = $list['transaction_date'];
+        $list['detail'] = $detail;
 
-            $qrCode = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data='.$qrTest;
-            // $qrCode = 'https://chart.googleapis.com/chart?chl='.$qrTest.'&chs=250x250&cht=qr&chld=H%7C0';
-            $qrCode = html_entity_decode($qrCode);
-            $list['qr'] = $qrCode;
+        $list['date'] = $list['transaction_date'];
 
-            $data = $list;
+        $qrCode = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data='.$qrTest;
+        // $qrCode = 'https://chart.googleapis.com/chart?chl='.$qrTest.'&chs=250x250&cht=qr&chld=H%7C0';
+        $qrCode = html_entity_decode($qrCode);
+        $list['qr'] = $qrCode;
+
+        $data = $list;
 
         if ($data['detail']['pickup_type'] == 'set time'){
             $data['text_siap'] = 'Pesanan Anda akan siap pada';
@@ -1695,7 +1691,41 @@ Detail: ".$link['short'],
             $textPick = 'Saat Ini';
         }
 
-        $html = view('transaction::email.detail_transaction')->with(compact('data'))->render();
+        $html = view('transaction::email.detail_transaction_success')->with(compact('data'))->render();
+        return $html;
+    }
+
+    public function htmlDetailOrder($id, $status){
+        $data = Transaction::where([['id_transaction', $id]])->with(
+            'user.city.province',
+            'outlet.city')->first();
+
+        if ($data['trasaction_type'] == 'Pickup Order') {
+            $detail = TransactionPickup::where('id_transaction', $data['id_transaction'])->first();
+            $qrTest = $detail['order_id'];
+        } elseif ($data['trasaction_type'] == 'Delivery') {
+            $detail = TransactionShipment::with('city.province')->where('id_transaction', $data['id_transaction'])->first();
+        }
+
+        $data['detail'] = $detail;
+
+        if($status == 'Expired'){
+            $data['status'] = 'Your order has expired';
+        }elseif ($status == 'Denied'){
+            $data['status'] = 'Your order has been rejected';
+        }elseif ($status == 'Pending'){
+            $data['status'] = 'Your order is pending';
+        }elseif ($status == 'Order Accepted'){
+            $data['status'] = 'Your order is accepted';
+        }elseif ($status == 'Order Ready'){
+            $data['status'] = 'Your order is ready';
+        }elseif ($status == 'Order Reject'){
+            $data['status'] = 'Your order is rejected';
+        }elseif ($status == 'Order Taken'){
+            $data['status'] = 'Your order is taken';
+        }
+
+        $html = view('transaction::email.detail_order')->with(compact('data'))->render();
         return $html;
     }
 
