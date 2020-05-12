@@ -164,6 +164,7 @@ class ApiDealsVoucherWebviewController extends Controller
             'title_offline_voucher' => 'Redeem directly at Cashier',
             'button_text'           => 'Redeem',
             'text_before_scan'      => 'QR Code below<br>must be scanned by our Cashier',
+            'custom_outlet_text'	=> $data['deals_voucher']['deal']['custom_outlet_text'],
             'popup_message'         => [
                 $data['deals_voucher']['deal']['deals_title'],
                 'will be used on the next transaction'

@@ -248,6 +248,10 @@ class ApiDeals extends Controller
             $data['deals_promo_id'] = null;
         }
 
+        if (isset($post['custom_outlet_text'])) {
+        	$data['custom_outlet_text'] = $post['custom_outlet_text'];
+        }
+
         return $data;
     }
 
