@@ -490,15 +490,17 @@ class ApiOrder extends Controller
                     ]);
             }
 
-            $newTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction', 'transaction_vouchers')->where('id_transaction', $order->id_transaction)->first();
+            $newTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction', 'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign')->where('id_transaction', $order->id_transaction)->first();
 
             $checkType = TransactionMultiplePayment::where('id_transaction', $order->id_transaction)->get()->toArray();
             $column = array_column($checkType, 'type');
 
-            if (!in_array('Balance', $column)) {
+            $use_referral = optional(optional($newTrx->promo_campaign_promo_code)->promo_campaign)->promo_type == 'Referral';
+
+            if (!in_array('Balance', $column) || $use_referral) {
 
             	$promo_source = null;
-            	if ( $newTrx->id_promo_campaign_promo_code || $newTrx->transaction_vouchers ) 
+            	if ( $newTrx->id_promo_campaign_promo_code || $newTrx->transaction_vouchers || $use_referral) 
             	{
             		if ( $newTrx->id_promo_campaign_promo_code ) {
             			$promo_source = 'promo_code';
@@ -509,7 +511,7 @@ class ApiOrder extends Controller
             		}
             	}
 
-            	if( app($this->trx)->checkPromoGetPoint($promo_source) )
+            	if( app($this->trx)->checkPromoGetPoint($promo_source) || $use_referral)
 				{
 	                $savePoint = app($this->getNotif)->savePoint($newTrx);
 	                // return $savePoint;
