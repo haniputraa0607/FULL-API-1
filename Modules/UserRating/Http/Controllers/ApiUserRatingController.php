@@ -42,7 +42,7 @@ class ApiUserRatingController extends Controller
             $query->select('id_outlet','outlet_code','outlet_name');
         },'user'=>function($query){
             $query->select('id','name','phone');
-        }]);
+        }])->orderBy('id_user_rating','desc');
 
         // if($outlet_code = ($request['outlet_code']??false)){
         //     $data->whereHas('transaction.outlet',function($query) use ($outlet_code){

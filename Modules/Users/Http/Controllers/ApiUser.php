@@ -413,7 +413,7 @@ class ApiUser extends Controller
                         }
 
                         if($conditionParameter == 'IOS'){
-                            $query = $query->notNull('users.android_device')->whereNotNull('users.ios_device');
+                            $query = $query->whereNull('users.android_device')->whereNotNull('users.ios_device');
                         }
 
                         if($conditionParameter == 'Both'){
@@ -579,19 +579,27 @@ class ApiUser extends Controller
                     if($condition['subject'] == 'device'){
 
                         if($conditionParameter == 'None'){
-                            $query = $query->orWhereNull('users.android_device')->orWhereNull('users.ios_device');
+                            $query = $query->orWhere(function ($q){
+                                $q->whereNull('users.android_device')->whereNull('users.ios_device');
+                            });
                         }
 
                         if($conditionParameter == 'Android'){
-                            $query = $query->orwhereNotNull('users.android_device')->orWhereNull('users.ios_device');
+                            $query = $query->orWhere(function ($q){
+                                $q->whereNotNull('users.android_device')->whereNull('users.ios_device');
+                            });
                         }
 
                         if($conditionParameter == 'IOS'){
-                            $query = $query->orwhereNull('users.android_device')->orwhereNotNull('users.ios_device');
+                            $query = $query->orWhere(function ($q){
+                                $q->whereNull('users.android_device')->whereNotNull('users.ios_device');
+                            });
                         }
 
                         if($conditionParameter == 'Both'){
-                            $query = $query->orwhereNotNull('users.android_device')->orwhereNotNull('users.ios_device');
+                            $query = $query->orWhere(function ($q){
+                                $q->orwhereNotNull('users.android_device')->orwhereNotNull('users.ios_device');
+                            });
                         }
                     }
 
