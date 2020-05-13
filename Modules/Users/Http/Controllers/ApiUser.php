@@ -73,58 +73,129 @@ class ApiUser extends Controller
             $order_field_be = $order_field;
         }
 
+        $queryUser = DB::table(env('DB_DATABASE').'.users as t_users')->select('t_users.name', 't_users.phone', 't_users.email');
         $queryApps = DB::table(env('DB2_DATABASE').'.log_activities_apps as t_log_activities')
-            ->leftJoin(env('DB_DATABASE').'.users as t_users','t_users.phone','=','t_log_activities.phone')
-            ->select('t_log_activities.*',
-                't_users.name',
-                't_users.email'
-            )->orderBy($order_field_apps, $order_method);
+            ->select('t_log_activities.*');
         $queryBe = DB::table(env('DB2_DATABASE').'.log_activities_be as t_log_activities')
-            ->leftJoin(env('DB_DATABASE').'.users as t_users','t_users.phone','=','t_log_activities.phone')
-            ->select('t_log_activities.*',
-                't_users.name',
-                't_users.email'
-            )->orderBy($order_field_be, $order_method);
+            ->select('t_log_activities.*');
+
+        if($order_field != 'name' && $order_field != 'email'){
+            $queryApps->orderBy($order_field_apps, $order_method);
+            $queryBe->orderBy($order_field_be, $order_method);
+        }
 
         if($conditions != null){
             foreach($conditions as $condition){
                 if(isset($condition['subject'])){
                     if($condition['subject'] == 'name' || $condition['subject'] == 'email'){
                         $var = "t_users.".$condition['subject'];
-                    }
-                    if($condition['subject'] == 'phone' || $condition['subject'] == 'url' || $condition['subject'] == 'subject' || $condition['subject'] == 'request' || $condition['subject'] == 'response' || $condition['subject'] == 'ip' || $condition['subject'] == 'useragent'){
-                        $var = "t_log_activities.".$condition['subject'];
-                    }
-                    if($condition['subject'] == 'response_status'){
-                        $var = "t_log_activities.".$condition['subject'];
-                    }
 
-                    if($rule == 'and'){
-                        if($condition['operator'] == 'like') {
-                            $queryApps = $queryApps->where($var, 'like', '%' . $condition['parameter'] . '%');
-                            $queryBe = $queryBe->where($var, 'like', '%' . $condition['parameter'] . '%');
-                        }else {
-                            $queryApps = $queryApps->where($var, '=', $condition['parameter']);
-                            $queryBe = $queryBe->where($var, '=', $condition['parameter']);
+                        if($rule == 'and'){
+                            if($condition['operator'] == 'like') {
+                                $queryUser = $queryUser->where($var, 'like', '%' . $condition['parameter'] . '%');
+                            }else {
+                                $queryUser = $queryUser->where($var, '=', $condition['parameter']);
+                            }
+                        } else {
+                            if($condition['operator'] == 'like') {
+                                $queryUser = $queryUser->orWhere($var, 'like', '%' . $condition['parameter'] . '%');
+                            }
+                            else {
+                                $queryUser = $queryUser->orWhere($var, '=', $condition['parameter']);
+                            }
                         }
-                    } else {
-                        if($condition['operator'] == 'like') {
-                            $queryApps = $queryApps->orWhere($var, 'like', '%' . $condition['parameter'] . '%');
-                            $queryBe = $queryBe->orWhere($var, 'like', '%' . $condition['parameter'] . '%');
+                    }else{
+                        if($condition['subject'] == 'phone' || $condition['subject'] == 'url' || $condition['subject'] == 'subject' || $condition['subject'] == 'request' || $condition['subject'] == 'response' || $condition['subject'] == 'ip' || $condition['subject'] == 'useragent'){
+                            $var = "t_log_activities.".$condition['subject'];
                         }
-                        else {
-                            $queryApps = $queryApps->orWhere($var, '=', $condition['parameter']);
-                            $queryBe = $queryBe->orWhere($var, '=', $condition['parameter']);
+                        if($condition['subject'] == 'response_status'){
+                            $var = "t_log_activities.".$condition['subject'];
+                        }
+
+                        if($rule == 'and'){
+                            if($condition['operator'] == 'like') {
+                                $queryApps = $queryApps->where($var, 'like', '%' . $condition['parameter'] . '%');
+                                $queryBe = $queryBe->where($var, 'like', '%' . $condition['parameter'] . '%');
+                            }else {
+                                $queryApps = $queryApps->where($var, '=', $condition['parameter']);
+                                $queryBe = $queryBe->where($var, '=', $condition['parameter']);
+                            }
+                        } else {
+                            if($condition['operator'] == 'like') {
+                                $queryApps = $queryApps->orWhere($var, 'like', '%' . $condition['parameter'] . '%');
+                                $queryBe = $queryBe->orWhere($var, 'like', '%' . $condition['parameter'] . '%');
+                            }
+                            else {
+                                $queryApps = $queryApps->orWhere($var, '=', $condition['parameter']);
+                                $queryBe = $queryBe->orWhere($var, '=', $condition['parameter']);
+                            }
                         }
                     }
                 }
             }
         }
 
-        $resultCountApps = $queryApps->count();
-        $resultCountBe = $queryBe->count();
-        $resultApps = $queryApps->skip($skip)->take($take)->get()->toArray();
-        $resultBe = $queryBe->skip($skip)->take($take)->get()->toArray();
+        $resultUser = $queryUser->get()->toArray();
+        $phoneUser = array_column($resultUser, 'phone');
+        if($phoneUser){
+            $resultCountApps = $queryApps->count();
+            $resultCountBe = $queryBe->count();
+            $resultApps = $queryApps->skip($skip)->take($take)->get()->toArray();
+            $resultBe = $queryBe->skip($skip)->take($take)->get()->toArray();
+
+            foreach ($resultApps as $key => $apps){
+                $getKey = array_search($apps->phone, $phoneUser);
+                $resultApps[$key]->name = $resultUser[$getKey]->name;
+                $resultApps[$key]->phone = $resultUser[$getKey]->phone;
+                $resultApps[$key]->email = $resultUser[$getKey]->email;
+            }
+
+            foreach ($resultBe as $key => $be){
+                $getKey = array_search($be->phone, $phoneUser);
+                $resultBe[$key]->name = $resultUser[$getKey]->name;
+                $resultBe[$key]->phone = $resultUser[$getKey]->phone;
+                $resultBe[$key]->email = $resultUser[$getKey]->email;
+            }
+
+            if($order_field == 'name'){
+                usort($resultApps, function($a, $b) use ($order_method){
+                    if($order_method == 'desc'){
+                        return $a->name < $b->name;
+                    }else{
+                        return $a->name <=> $b->name;
+                    }
+                });
+
+                usort($resultBe, function($a, $b) use ($order_method){
+                    if($order_method == 'desc'){
+                        return $a->name < $b->name;
+                    }else{
+                        return $a->name <=> $b->name;
+                    }
+                });
+            }elseif ($order_field == 'email'){
+                usort($resultApps, function($a, $b) use ($order_method){
+                    if($order_method == 'desc'){
+                        return $a->email < $b->email;
+                    }else{
+                        return $a->email <=> $b->email;
+                    }
+                });
+
+                usort($resultBe, function($a, $b) use ($order_method){
+                    if($order_method == 'desc'){
+                        return $a->email < $b->email;
+                    }else{
+                        return $a->email <=> $b->email;
+                    }
+                });
+            }
+        }else{
+            $resultCountApps = 0;
+            $resultCountBe = 0;
+            $resultApps = [];
+            $resultBe = [];
+        }
 
         if($resultApps || $resultBe){
             $response = ['status'	=> 'success',
