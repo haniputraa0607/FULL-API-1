@@ -95,7 +95,7 @@ class ApiHome extends Controller
                 $item['type']       = 'link';
             }
 
-            if ($value->id_news != "") {
+            if ($value->id_news != "" && isset($value->news->news_title)) {
                 $item['type']       = 'news';
                 $item['news_title'] = $value->news->news_title;
                 // if news, generate webview news detail url
