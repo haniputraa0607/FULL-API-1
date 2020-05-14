@@ -76,25 +76,25 @@ class IPay88Controller extends Controller
         $errMap = [
             // 'Duplicate transaction reference number' => '',
             // 'Merchant identifier is missing or unregistered' => '',
-            'Transaction exceeds maximum allowed amount' => 'Transaksi melebihi jumlah maksimum yang diperbolehkan',
+            'Transaction exceeds maximum allowed amount' => 'Transaction exceeds maximum allowed amount',
             // 'Unregistered merchant callback URL' => '',
             // 'Transaction signature is not match' => '',
             // 'Merchant account is suspended or inactive' => '',
-            'Invalid transaction amount format' => 'Format jumlah transaksi tidak valid',
-            'Invalid transaction currency format' => 'Format mata uang transaksi tidak valid',
+            'Invalid transaction amount format' => 'Invalid transaction amount format',
+            'Invalid transaction currency format' => 'Invalid transaction currency format',
             // 'Invalid merchant identifier' => '',
             // 'Invalid transaction channel identifier' => '',
-            'Invalid purchased item description format' => 'Format deskripsi item yang dibeli tidak valid',
-            'Invalid transaction reference number' => 'Nomor referensi transaksi tidak valid',
-            'Invalid customer email format' => 'Format email pelanggan tidak valid',
-            'Invalid customer name format' => 'Format nama pelanggan tidak valid',
-            'Transaction time has expired when receiving authorization response' => 'Waktu transaksi telah kedaluwarsa',
+            'Invalid purchased item description format' => 'Invalid purchased item description format',
+            'Invalid transaction reference number' => 'Invalid transaction reference number',
+            'Invalid customer email format' => 'Invalid email format',
+            'Invalid customer name format' => 'Invalid name',
+            'Transaction time has expired when receiving authorization response' => 'Transaction time has expired',
             // 'Payment method or channel is not subscribed' => '',
             // 'Transaction does not pass all fraud security check' => '',
         ];
         $error = '';
         if($post['ErrDesc']) {
-            $error = $errMap[ $post['ErrDesc'] ?? '' ] ?? 'Order dibatalkan, terjadi kesalahan di sistem';
+            $error = $errMap[ $post['ErrDesc'] ?? '' ] ?? 'Order canceled, an error occurred in the system';
         }
         $data = [
             'type' => $type,
