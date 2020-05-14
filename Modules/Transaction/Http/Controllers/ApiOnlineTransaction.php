@@ -938,7 +938,8 @@ class ApiOnlineTransaction extends Controller
             $dataProductMidtrans = [
                 'id'       => $checkProduct['id_product'],
                 'price'    => $checkPriceProduct['product_price']+$mod_subtotal,
-                'name'     => $checkProduct['product_name'].($more_mid_text?'('.trim($more_mid_text,',').')':''),
+                // 'name'     => $checkProduct['product_name'].($more_mid_text?'('.trim($more_mid_text,',').')':''), // name & modifier too long
+                'name'     => $checkProduct['product_name'],
                 'quantity' => $valueProduct['qty'],
             ];
             array_push($productMidtrans, $dataProductMidtrans);
