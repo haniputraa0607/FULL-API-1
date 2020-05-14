@@ -8,6 +8,7 @@ use DB;
 
 use App\Http\Models\Transaction;
 use App\Http\Models\TransactionMultiplePayment;
+use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\DealsUser;
 use App\Http\Models\Deal;
 use App\Http\Models\User;
