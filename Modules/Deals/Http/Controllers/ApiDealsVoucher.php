@@ -522,6 +522,11 @@ class ApiDealsVoucher extends Controller
             	}else{
             		$redeem_info = "Outlet only";
             	}
+
+            	if ($var['voucher_expired_at'] < date('Y-m-d H:i:s') || !empty($var['used_at'])) {
+            		$var['is_used'] = 0;
+            	}
+
                 return [
                     'id_deals'=> $var['deal_voucher']['id_deals']??null,
                     'voucher_expired_at'=> $var['voucher_expired_at'],
