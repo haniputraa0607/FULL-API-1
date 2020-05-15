@@ -860,7 +860,7 @@ class ApiDeals extends Controller
                 $calc = '*';
             }
 
-            if(is_numeric($calc)){
+            if(is_numeric($calc) && $value['deals_total_voucher'] !== 0){
                 if($calc||$admin){
                     $deals[$key]['percent_voucher'] = $calc*100/$value['deals_total_voucher'];
                 }else{
@@ -1545,6 +1545,9 @@ class ApiDeals extends Controller
         $deals = $this->getDealsData($post['id_deals'], $post['step'], $post['deals_type']);
 
         if (isset($deals)) {
+        	if (!empty($post['list_voucher'])) {
+        		$deals->load('deals_vouchers');
+        	}
             $deals = $deals->toArray();
         }else{
             $deals = false;
@@ -1651,6 +1654,17 @@ class ApiDeals extends Controller
 	        		break;
 	        }
 
+	        if (!empty($post['list_voucher'])) {
+	        	$temp_voucher = [];
+	        	foreach ($deals['deals_vouchers'] as $key => $value) {
+	        		$temp_voucher[]['voucher_code'] = $value['voucher_code'];
+	        	}
+
+	        	if (!empty($temp_voucher)) {
+        			$data['voucher'] = $temp_voucher;
+	        	}
+        	}
+
 	        unset(
 	        	$deals['id_deals'],
 	        	$deals['created_by'],
@@ -1667,7 +1681,18 @@ class ApiDeals extends Controller
 	        	$deals['deals_voucher_price_type'],
 	        	$deals['deals_voucher_price_pretty'],
 	        	$deals['url_webview'],
-	        	$deals['deals_content']
+	        	$deals['id_produk'],
+	        	$deals['id_brand'],
+	        	$deals['total_voucher_subscription'],
+	        	$deals['deals_total_claimed'],
+	        	$deals['deals_total_redeemed'],
+	        	$deals['deals_total_used'],
+	        	$deals['step_complete'],
+	        	$deals['created_at'],
+	        	$deals['updated_at'],
+	        	$deals['deals_vouchers'],
+	        	$deals['deals_content'],
+	        	$deals['deals_type']
 	        );
 
 	        $temp_deals = [];
@@ -1696,9 +1721,10 @@ class ApiDeals extends Controller
     {
     	$post = $request->json()->all();
     	$deals = $post['data']['rule'];
-    	$image_path = 'img/testDeals/';
-    	$warning_image_path = 'img/testWarning/';
+    	$image_path = 'img/deals/';
+    	$warning_image_path = 'img/deals/warning-image/';
     	$errors = [];
+    	$warnings = [];
 
     	db::beginTransaction();
 
@@ -1711,20 +1737,25 @@ class ApiDeals extends Controller
     		$deals['deals_image']
 
     	);
-    	$deals['deals_total_claimed'] = 0;
-    	$deals['deals_total_redeemed'] = 0;
-    	$deals['deals_total_used'] = 0;
-    	$deals['user_limit'] = $deals['user_limit']??0;
-        $deals['deals_start'] = !empty($post['deals_voucher_start']) ? date('Y-m-d H:i:s', strtotime($post['deals_start'])) : null;
-        $deals['deals_end'] = !empty($post['deals_voucher_start']) ? date('Y-m-d H:i:s', strtotime($post['deals_end'])) : null;
-        $deals['deals_publish_start'] = !empty($post['deals_voucher_start']) ? date('Y-m-d H:i:s', strtotime($post['deals_publish_start'])) : null;
-        $deals['deals_publish_end'] = !empty($post['deals_voucher_start']) ? date('Y-m-d H:i:s', strtotime($post['deals_publish_end'])) : null;
-        $deals['deals_voucher_start'] = !empty($post['deals_voucher_start']) ? date('Y-m-d H:i:s', strtotime($post['deals_voucher_start'])) : null;
+    	$deals['deals_type'] 			= $post['deals_type'];
+    	$deals['deals_total_claimed'] 	= 0;
+    	$deals['deals_total_redeemed'] 	= 0;
+    	$deals['deals_total_used'] 		= 0;
+    	$deals['id_brand'] 				= Brand::select('id_brand')->first()['id_brand']??null;
+    	$deals['user_limit'] 			= $deals['user_limit']??0;
+        $deals['deals_voucher_start'] 	= !empty($post['deals_voucher_start']) ? date('Y-m-d H:i:s', strtotime($post['deals_voucher_start'])) : null;
         $deals['deals_voucher_expired'] = !empty($post['deals_voucher_expired']) ? date('Y-m-d H:i:s', strtotime($post['deals_voucher_expired'])) : null;
         $deals['deals_voucher_duration'] = $post['deals_voucher_duration']??null;
-        $deals['created_by'] = auth()->user()->id;
-        $deals['last_updated_by'] = auth()->user()->id;
-    	
+        $deals['created_by'] 			= auth()->user()->id;
+        $deals['last_updated_by'] 		= auth()->user()->id;
+
+        if ($post['deals_type'] == 'Deals') {
+        	!empty($post['deals_start']) 	? $deals['deals_start'] = date('Y-m-d H:i:s', strtotime($post['deals_start'])) : $errors[] = 'Deals start date is required';
+	        !empty($post['deals_end']) 		? $deals['deals_end'] 	= date('Y-m-d H:i:s', strtotime($post['deals_end'])) : $errors[] = 'Deals end date is required';
+	        !empty($post['deals_publish_start']) ? $deals['deals_publish_start'] = date('Y-m-d H:i:s', strtotime($post['deals_publish_start'])) : $errors[] = 'Deals publish start date is required';
+	        !empty($post['deals_publish_end']) ? $deals['deals_publish_end'] = date('Y-m-d H:i:s', strtotime($post['deals_publish_end'])) : $errors[] = 'Deals publish end date is required';
+        }
+
     	if (isset($deals['deals_voucher_type'])) {
             if ($deals['deals_voucher_type'] == 'Unlimited') {
             	$deals['deals_total_voucher'] = 0;
@@ -1738,12 +1769,28 @@ class ApiDeals extends Controller
 					$deals['deals_list_voucher'] = null;
 				}
             }
+
+            if($deals['deals_voucher_type'] == 'List Vouchers'){
+            	$deals['deals_total_voucher'] = 0;
+            }
         }
 
 		$deals['deals_image'] = $this->uploadImageFromURL($deals['url_deals_image'], $image_path);
+		if (empty($deals['deals_image'])) {
+			$warnings[] = 'Deals Image url\'s invalid';
+		}
+
 		$deals['deals_warning_image'] = $this->uploadImageFromURL($deals['url_deals_warning_image'], $warning_image_path, 'warning');
+		if (!empty($deals['url_deals_warning_image']) && empty($deals['deals_warning_image'])) {
+			$warnings[] = 'Deals warning Image url\'s invalid';
+		}
 		$create = Deal::create($deals);
 		
+		if (!$create) {
+			db::rollback();
+        	return ['status' => 'fail', 'messages' => ['Create deals failed']];
+		}
+
 		// save content & detail content
 		foreach ($post['data']['content'] as $key => $value) {
 			$content = [
@@ -1952,13 +1999,65 @@ class ApiDeals extends Controller
         		break;
         }
 
+        if ( !empty($post['data']['voucher']) ) {
+        	$voucher = array_column($post['data']['voucher'], 'voucher_code');
+        	
+        	$strVoucher = array_map(
+				function($value) { return (string) strtoupper($value); },
+				$voucher
+			);
+        	$voucher_new = DealsVoucher::whereIn('voucher_code', $strVoucher)->get()->toArray();
+        	$voucher_new = array_column($voucher_new, 'voucher_code');
+
+        	$voucher_diff = array_diff($strVoucher,$voucher_new);
+        	$voucher_same = array_intersect($voucher_new, $strVoucher);
+
+
+            if (empty($voucher_diff)) 
+            {
+            	$warnings[] = 'No vouchers imported';
+            }
+            else
+            {
+	        	$dataVoucher = [];
+	        	foreach ($voucher_diff as $value) {
+	                array_push($dataVoucher, [
+	                    'id_deals'             => $create['id_deals'],
+	                    'voucher_code'         => strtoupper($value),
+	                    'deals_voucher_status' => 'Available',
+	                    'created_at'           => date('Y-m-d H:i:s'),
+	                    'updated_at'           => date('Y-m-d H:i:s')
+	                ]);
+	            }
+
+	            $saveVoucher = DealsVoucher::insert($dataVoucher);
+	            $updateDeals = Deal::where('id_deals', $create['id_deals'])->update(['deals_total_voucher' => count($voucher_diff)]);
+            }
+
+        	foreach ($voucher_same as $key => $value) {
+        		$warnings[] = 'Voucher '.$value.' already exists';
+        	}
+        }
+        elseif ($create['deals_voucher_type'] == 'List Vouchers') 
+        {
+        	$warnings[] = 'No vouchers imported';
+        }
+
         if (!empty($errors)) {
         	db::rollback();
         	return ['status' => 'fail', 'messages' => $errors];
         }
 
         db::commit();
-    	return ['status' => 'success', 'messages' => ['Deals has been imported']];
+        $result = [
+        	'status' => 'success', 
+        	'messages' => ['Deals has been imported'],
+        	'deals'	=> ['id_deals' => $create['id_deals'], 'created_at'  => $create['created_at']]
+        ];
+        if (!empty($warnings)) {
+        	$result['warning'] = $warnings;
+        }
+    	return $result;
     }
 
     public function uploadImageFromURL($url, $path, $img_type='deals')
@@ -1967,7 +2066,16 @@ class ApiDeals extends Controller
     		return null;
     	}
 
-    	$image = file_get_contents($url);
+    	try {
+    		@$image = file_get_contents($url);
+    		
+	    	if ($image === false) {
+	    		return null;
+	    	}
+    	} catch (Exception $e) {
+	    	return null;
+    		
+    	}
     	if ($img_type == 'warning') {
     		$upload = $this->uploadPhotoStrict($image, ($path), 100, 100);
     	}else{

@@ -25,12 +25,11 @@ class ImportDealsRequest extends FormRequest
             'deals_voucher_expired'     => 'nullable|date|after:deals_voucher_start',
         	'deals_voucher_duration'	=> 'nullable',
 
-            'data.rule.deals_type' 	=> 'required',
+            'data.rule.deals_type' 	=> 'nullable',
             'data.rule.deals_voucher_type' 	=> 'required',
             'data.rule.deals_promo_id_type' 	=> 'nullable',
             'data.rule.deals_promo_id' 	=> 'nullable',
             'data.rule.deals_title' 	=> 'required',
-            'data.rule.id_brand' 	=> 'required',
             'data.rule.promo_type' 	=> 'required',
 
             'data.outlet'	=> 'nullable',
