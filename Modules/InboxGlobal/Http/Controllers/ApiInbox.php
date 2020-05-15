@@ -53,8 +53,8 @@ class ApiInbox extends Controller
         $inboxes = InboxGlobal::select(\DB::raw('"global" as type, id_inbox_global as id_inbox,inbox_global_subject as subject,inbox_global_clickto as clickto, inbox_global_link as link, inbox_global_id_reference as id_reference, inbox_global_content as content, created_at, "unread" as status, 0 as id_brand'))->with('inbox_global_rule_parents', 'inbox_global_rule_parents.rules')
             ->where('inbox_global_start', '<=', $today)
             ->where('inbox_global_end', '>=', $today)
-            ->whereDate('inbox_global_start','>=',$max_date)
-			->union(UserInbox::select(\DB::raw('"private" as type,id_user_inboxes as id_inbox,inboxes_subject as subject,inboxes_clickto as clickto,inboxes_link as link,inboxes_id_reference as id_reference,inboxes_content as content,inboxes_send_at as created_at, CASE WHEN `read` = 1 THEN "read" ELSE "unread" END as status,id_brand'))->where('id_user','=',$user['id'])->whereDate('inboxes_send_at','>=',$max_date))
+            ->whereDate('inbox_global_start','>',$max_date)
+			->union(UserInbox::select(\DB::raw('"private" as type,id_user_inboxes as id_inbox,inboxes_subject as subject,inboxes_clickto as clickto,inboxes_link as link,inboxes_id_reference as id_reference,inboxes_content as content,inboxes_send_at as created_at, CASE WHEN `read` = 1 THEN "read" ELSE "unread" END as status,id_brand'))->where('id_user','=',$user['id'])->whereDate('inboxes_send_at','>',$max_date))
             ->orderBy('created_at', 'desc');
         if($request->page){
             $inboxes = $inboxes->paginate(50)
