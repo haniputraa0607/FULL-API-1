@@ -3,6 +3,7 @@
 namespace Modules\Transaction\Http\Controllers;
 
 use App\Http\Models\DailyTransactions;
+use App\Jobs\FraudJob;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -123,6 +124,8 @@ class ApiOnlineTransaction extends Controller
                 'messages'  => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
             ]);
         }
+
+        $config_fraud_use_queue = Configs::where('config_name', 'fraud use queue')->first()->is_active;
 
         $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
         if($use_product_variant && !isset($post['from_fake'])){
@@ -533,6 +536,19 @@ class ApiOnlineTransaction extends Controller
 
         $post['discount'] = -$post['discount'];
 
+        if (isset($post['payment_type']) && $post['payment_type'] == 'Balance') {
+            $post['cashback'] = 0;
+            $post['point']    = 0;
+        }
+
+        if ($request->json('promo_code') || $request->json('id_deals_user')) {
+        	$check = $this->checkPromoGetPoint($promo_source);
+        	if ( $check == 0 ) {
+        		$post['cashback'] = 0;
+            	$post['point']    = 0;
+        	}
+        }
+
         // apply cashback
         if ($use_referral){
             $referral_rule = PromoCampaignReferral::where('id_promo_campaign',$code->id_promo_campaign)->first();
@@ -555,19 +571,6 @@ class ApiOnlineTransaction extends Controller
                 }
             }
             $post['cashback'] = $referred_cashback;
-        }
-
-        if (isset($post['payment_type']) && $post['payment_type'] == 'Balance') {
-            $post['cashback'] = 0;
-            $post['point']    = 0;
-        }
-
-        if ($request->json('promo_code') || $request->json('id_deals_user')) {
-        	$check = $this->checkPromoGetPoint($promo_source);
-        	if ( $check == 0 ) {
-        		$post['cashback'] = 0;
-            	$post['point']    = 0;
-        	}
         }
 
         $detailPayment = [
@@ -734,15 +737,7 @@ class ApiOnlineTransaction extends Controller
                 ]);
             }
 
-            //======= Start Check Fraud Referral User =======//
-            $data = [
-                'id_user' => $insertTransaction['id_user'],
-                'referral_code' => $request->promo_code,
-                'referral_code_use_date' => $insertTransaction['transaction_date'],
-                'id_transaction' => $insertTransaction['id_transaction']
-            ];
-            app($this->setting_fraud)->fraudCheckReferralUser($data);
-            //======= End Check Fraud Referral User =======//
+            $promo_code_ref = $request->promo_code;
         }
         // add transaction voucher
         if($request->json('id_deals_user')){
@@ -771,8 +766,8 @@ class ApiOnlineTransaction extends Controller
 				$code->id_promo_campaign_promo_code,
 				$insertTransaction['id_transaction'],
 				$insertTransaction['id_outlet'],
-				$request->device_id,
-				$request->device_type
+				$request->device_id?:'',
+				$request->device_type?:''
 			);
 
         	if (!$promo_campaign_report) {
@@ -943,7 +938,8 @@ class ApiOnlineTransaction extends Controller
             $dataProductMidtrans = [
                 'id'       => $checkProduct['id_product'],
                 'price'    => $checkPriceProduct['product_price']+$mod_subtotal,
-                'name'     => $checkProduct['product_name'].($more_mid_text?'('.trim($more_mid_text,',').')':''),
+                // 'name'     => $checkProduct['product_name'].($more_mid_text?'('.trim($more_mid_text,',').')':''), // name & modifier too long
+                'name'     => $checkProduct['product_name'],
                 'quantity' => $valueProduct['qty'],
             ];
             array_push($productMidtrans, $dataProductMidtrans);
@@ -1264,152 +1260,7 @@ class ApiOnlineTransaction extends Controller
             }
         }
 
-        //insert pickup go-send
-        if($post['type'] == 'GO-SEND'){
-            $dataGoSend['id_transaction_pickup'] = $insertPickup['id_transaction_pickup'];
-            $dataGoSend['origin_name']           = $outlet['outlet_name'];
-            $dataGoSend['origin_phone']          = $outlet['outlet_phone'];
-            $dataGoSend['origin_address']        = $outlet['outlet_address'];
-            $dataGoSend['origin_latitude']       = $outlet['outlet_latitude'];
-            $dataGoSend['origin_longitude']      = $outlet['outlet_longitude'];
-            $dataGoSend['origin_note']           = '';
-            $dataGoSend['destination_name']      = $post['destination']['name'];
-            $dataGoSend['destination_phone']     = $post['destination']['phone'];
-            $dataGoSend['destination_address']   = $post['destination']['address'];
-            $dataGoSend['destination_latitude']  = $post['destination']['latitude'];
-            $dataGoSend['destination_longitude'] = $post['destination']['longitude'];
-
-            if(isset($post['destination_note'])){
-                $dataGoSend['destination_note'] = $post['destination']['note'];
-            }
-
-            $gosend = TransactionPickupGoSend::create($dataGoSend);
-            if (!$gosend) {
-                DB::rollBack();
-                return response()->json([
-                    'status'    => 'fail',
-                    'messages'  => ['Insert Transaction GO-SEND Failed']
-                ]);
-            }
-
-            $id_pickup_go_send = $gosend->id_transaction_pickup_go_send;
-        }
-
         if ($post['transaction_payment_status'] == 'Completed') {
-            //========= This process to check if user have fraud ============//
-            $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                ->where('transactions.id_user', $insertTransaction['id_user'])
-                ->whereRaw('DATE(transactions.transaction_date) = "'.date('Y-m-d', strtotime($post['transaction_date'])).'"')
-                ->where('transactions.transaction_payment_status','Completed')
-                ->whereNull('transaction_pickups.reject_at')
-                ->count();
-
-            $currentWeekNumber = date('W',strtotime($post['transaction_date']));
-            $currentYear = date('Y',strtotime($post['transaction_date']));
-            $dto = new DateTime();
-            $dto->setISODate($currentYear,$currentWeekNumber);
-            $start = $dto->format('Y-m-d');
-            $dto->modify('+6 days');
-            $end = $dto->format('Y-m-d');
-
-            $geCountTrxWeek = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                ->where('id_user', $insertTransaction['id_user'])
-                ->where('transactions.transaction_payment_status','Completed')
-                ->whereNull('transaction_pickups.reject_at')
-                ->whereRaw('Date(transactions.transaction_date) BETWEEN "'.$start.'" AND "'.$end.'"')
-                ->count();
-
-            $countTrxDay = $geCountTrxDay + 1;
-            $countTrxWeek = $geCountTrxWeek + 1;
-            //================================ End ================================//
-
-            if((($fraudTrxDay && $countTrxDay <= $fraudTrxDay['parameter_detail']) && ($fraudTrxWeek && $countTrxWeek <= $fraudTrxWeek['parameter_detail']))
-                || (!$fraudTrxDay && !$fraudTrxWeek)){
-
-                if ($insertTransaction['transaction_point_earned'] != 0) {
-                    $settingPoint = Setting::where('key', 'point_conversion_value')->first();
-
-                    //check membership
-                    if (!empty($user['memberships'][0]['membership_name'])) {
-                        $level = $user['memberships'][0]['membership_name'];
-                        $percentageP = $user['memberships'][0]['benefit_point_multiplier'] / 100;
-                        $percentageB = $user['memberships'][0]['benefit_cashback_multiplier'] / 100;
-                    } else {
-                        $level = null;
-                        $percentageP = 0;
-                        $percentageB = 0;
-                    }
-
-                    $dataLog = [
-                        'id_user'                     => $insertTransaction['id_user'],
-                        'point'                       => $insertTransaction['transaction_point_earned'],
-                        'id_reference'                => $insertTransaction['id_transaction'],
-                        'source'                      => 'Transaction',
-                        'grand_total'                 => $insertTransaction['transaction_grandtotal'],
-                        'point_conversion'            => $settingPoint['value'],
-                        'membership_level'            => $level,
-                        'membership_point_percentage' => $percentageP * 100
-                    ];
-
-                    $insertDataLog = LogPoint::create($dataLog);
-                    if (!$insertDataLog) {
-                        DB::rollBack();
-                        return response()->json([
-                            'status'    => 'fail',
-                            'messages'  => ['Insert Point Failed']
-                        ]);
-                    }
-
-                    //update point user
-                    $totalPoint = LogPoint::where('id_user',$insertTransaction['id_user'])->sum('point');
-                    $updateUserPoint = User::where('id', $insertTransaction['id_user'])->update(['points' => $totalPoint]);
-                }
-
-                if ($insertTransaction['transaction_cashback_earned'] != 0) {
-                    $insertDataLogCash = app($this->balance)->addLogBalance( $insertTransaction['id_user'], $insertTransaction['transaction_cashback_earned'], $insertTransaction['id_transaction'], 'Transaction', $insertTransaction['transaction_grandtotal']);
-                    if (!$insertDataLogCash) {
-                        DB::rollBack();
-                        return response()->json([
-                            'status'    => 'fail',
-                            'messages'  => ['Insert Cashback Failed']
-                        ]);
-                    }
-                    $usere  = User::where('id',$insertTransaction['id_user'])->first();
-                    $outlet = Outlet::where('id_outlet',$insertTransaction['id_outlet'])->first();
-                    $data_autocrm_cashback = [
-                    	"outlet_name"       => $outlet->outlet_name,
-                        "transaction_date"  => $insertTransaction['transaction_date'],
-                        'id_transaction'    => $insertTransaction['id_transaction'],
-                        'receipt_number'    => $insertTransaction['transaction_receipt_number'],
-                        'received_point'    => (string) $insertTransaction['transaction_cashback_earned']
-                    ];
-                }
-
-            }else{
-                if($countTrxDay > $fraudTrxDay['parameter_detail'] && $fraudTrxDay){
-                    $fraudFlag = 'transaction day';
-                }elseif($countTrxWeek > $fraudTrxWeek['parameter_detail'] && $fraudTrxWeek){
-                    $fraudFlag = 'transaction week';
-                }else{
-                    $fraudFlag = NULL;
-                }
-
-                $updatePointCashback = Transaction::where('id_transaction', $insertTransaction['id_transaction'])
-                    ->update([
-                        'transaction_point_earned' => NULL,
-                        'transaction_cashback_earned' => NULL,
-                        'fraud_flag' => $fraudFlag
-                    ]);
-
-                if(!$updatePointCashback){
-                    DB::rollBack();
-                    return response()->json([
-                        'status' => 'fail',
-                        'messages' => ['Failed update Point and Cashback']
-                    ]);
-                }
-            }
-
             $checkMembership = app($this->membership)->calculateMembership($user['phone']);
             if (!$checkMembership) {
                 DB::rollBack();
@@ -1435,25 +1286,25 @@ class ApiOnlineTransaction extends Controller
                     return response()->json($save);
                 }
 
-                // Fraud Detection
+                if($save['status'] == 'success'){
+                    $checkFraudPoint = app($this->setting_fraud)->fraudTrxPoint($sumBalance, $user, ['id_outlet' => $insertTransaction['id_outlet']]);
+                }
+
                 if ($post['transaction_payment_status'] == 'Completed' || $save['type'] == 'no_topup') {
+
+                    if($config_fraud_use_queue == 1){
+                        FraudJob::dispatch($user, $insertTransaction, 'transaction')->onConnection('fraudqueue');
+                    }else {
+                        if($config_fraud_use_queue != 1){
+                            $checkFraud = app($this->setting_fraud)->checkFraudTrxOnline($user, $insertTransaction);
+                        }
+                    }
 
                     //inset pickup_at when pickup_type = right now
                     if($insertPickup['pickup_type'] == 'right now'){
                         $updatePickup = TransactionPickup::where('id_transaction', $insertTransaction['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s')]);
                     }
-                    $userData = User::find($user['id']);
 
-                    if($fraudTrxDay){
-                        $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxDay, $userData, null, $countTrxDay, $countTrxWeek, $post['transaction_date'], 0, $insertTransaction['transaction_receipt_number']);
-                    }
-
-                    if($fraudTrxWeek){
-                        $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxWeek, $userData, null, $countTrxDay, $countTrxWeek, $post['transaction_date'], 0, $insertTransaction['transaction_receipt_number']);
-                    }
-                }
-
-                if ($save['type'] == 'no_topup') {
                     $mid['order_id'] = $insertTransaction['transaction_receipt_number'];
                     $mid['gross_amount'] = 0;
 
@@ -1495,12 +1346,6 @@ class ApiOnlineTransaction extends Controller
                         ]);
                     }
 
-                    if ($post['type'] == 'Pickup Order' || $post['type'] == 'Pickup Order') {
-                        $orderIdSend = $insertPickup['order_id'];
-                    } else {
-                        $orderIdSend = $insertShipment['order_id'];
-                    }
-
                     $sendNotifOutlet = $this->outletNotif($insertTransaction['id_transaction']);
                     // return $sendNotifOutlet;
                     $dataRedirect = $this->dataRedirect($insertTransaction['transaction_receipt_number'], 'trx', '1');
@@ -1509,7 +1354,7 @@ class ApiOnlineTransaction extends Controller
                         $savelocation = $this->saveLocation($post['latitude'], $post['longitude'], $insertTransaction['id_user'], $insertTransaction['id_transaction'], $insertTransaction['id_outlet']);
                      }
 
-                    PromoCampaignTools::applyReferrerCashback($insertTransaction);
+                    // PromoCampaignTools::applyReferrerCashback($insertTransaction);
 
                     DB::commit();
                     return response()->json([
@@ -1587,7 +1432,11 @@ class ApiOnlineTransaction extends Controller
                 'referral_code_use_date' => $insertTransaction['transaction_date'],
                 'id_transaction' => $insertTransaction['id_transaction']
             ];
-            app($this->setting_fraud)->fraudCheckReferralUser($data);
+            if($config_fraud_use_queue == 1){
+                FraudJob::dispatch($user, $data, 'referral user')->onConnection('fraudqueue');
+            }else{
+                app($this->setting_fraud)->fraudCheckReferralUser($data);
+            }
             //======= End Check Fraud Referral User =======//
         }
 
@@ -1621,11 +1470,12 @@ class ApiOnlineTransaction extends Controller
         $getSettingTimer = Setting::where('key', 'setting_timer_ovo')->first();
         if($getSettingTimer){
             $insertTransaction['timer_ovo'] = (int)$getSettingTimer['value'];
-            $insertTransaction['message_timeout_ovo'] = "You have ".(int)$getSettingTimer['value']." seconds remaning to complete the payment";
+            // $insertTransaction['message_timeout_ovo'] = "You have ".(int)$getSettingTimer['value']." seconds remaning to complete the payment";
         }else{
             $insertTransaction['timer_ovo'] = NULL;
-            $insertTransaction['message_timeout_ovo'] = "You have 0 seconds remaning to complete the payment";
+            // $insertTransaction['message_timeout_ovo'] = "You have 0 seconds remaning to complete the payment";
         }
+        $insertTransaction['message_timeout_ovo'] = "Sorry, your payment deadline has expired";
         return response()->json([
             'status'   => 'success',
             'redirect' => true,
@@ -1795,6 +1645,7 @@ class ApiOnlineTransaction extends Controller
 
         // check promo code
         $promo_error=null;
+        $use_referral = false;
         $promo['description']=null;
         $promo['detail']=null;
         $promo['discount']=0;
@@ -1809,6 +1660,11 @@ class ApiOnlineTransaction extends Controller
 	        	}
 	        	else
 	        	{
+                    $post['id_promo_campaign_promo_code'] = $code->id_promo_campaign_promo_code;
+                    if($code->promo_type == "Referral"){
+                        $promo_code_ref = $request->json('promo_code');
+                        $use_referral = true;
+                    }
 		            $pct=new PromoCampaignTools();
 		            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
 
@@ -2141,6 +1997,29 @@ class ApiOnlineTransaction extends Controller
             } else {
                 $post['cashback'] = $post['cashback'];
             }
+        }
+        // apply cashback
+        if ($use_referral){
+            $referral_rule = PromoCampaignReferral::where('id_promo_campaign',$code->id_promo_campaign)->first();
+            if(!$referral_rule){
+                DB::rollBack();
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['Insert Referrer Cashback Failed']
+                ]);
+            }
+            $referred_cashback = 0;
+            if($referral_rule->referred_promo_type == 'Cashback'){
+                if($referral_rule->referred_promo_unit == 'Percent'){
+                    $referred_discount_percent = $referral_rule->referred_promo_value<=100?$referral_rule->referred_promo_value:100;
+                    $referred_cashback = $post['subtotal']*$referred_discount_percent/100;
+                }else{
+                    if($post['subtotal'] >= $referral_rule->referred_min_value){
+                        $referred_cashback = $referral_rule->referred_promo_value<=$post['subtotal']?$referral_rule->referred_promo_value:$post['subtotal'];
+                    }
+                }
+            }
+            $post['cashback'] = $referred_cashback;
         }
         $cashback_text = explode('%earned_cashback%',Setting::select('value_text')->where('key', 'earned_cashback_text')->pluck('value_text')->first()?:'You\'ll receive %earned_cashback% for this transaction');
         $cashback_earned = (int) $post['cashback'];

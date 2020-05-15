@@ -311,7 +311,7 @@ class PromoCampaignTools{
 
 				if($discount<=0){
 					$message = $this->getMessage('error_product_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b>.';
-					$message = MyHelper::simpleReplace($message,['product'=>'product bertanda khusus', 'title' => $promo_title]);
+					$message = MyHelper::simpleReplace($message,['product'=>'specially marked product', 'title' => $promo_title]);
 
 					$errors[]= $message;
 					return false;
@@ -932,7 +932,7 @@ class PromoCampaignTools{
 	 * @param  int 		$id_user  id user
 	 * @return boolean	true/false
 	 */
-	public function validateUser($id_promo, $id_user, $phone, $device_type, $device_id, &$errors=[],$id_code=null){
+	public function validateUser($id_promo, $id_user, $phone, $device_type=null, $device_id, &$errors=[],$id_code=null){
 		$promo=PromoCampaign::find($id_promo);
 
 		if(!$promo){
@@ -946,14 +946,14 @@ class PromoCampaignTools{
 
 		if($promo->promo_type == 'Referral'){
 			if(User::find($id_user)->transaction_online){
-	        	$errors[]='Kode promo tidak ditemukan';
+	        	$errors[]='Voucher code is not found';
 				return false;
 			}
 			if(UserReferralCode::where([
 				'id_promo_campaign_promo_code'=>$id_code,
 				'id_user'=>$id_user
 			])->exists()){
-	        	$errors[]='Kode promo tidak ditemukan';
+	        	$errors[]='Voucher code is not found';
 	    		return false;
 			}
 	        $referer = UserReferralCode::where('id_promo_campaign_promo_code',$id_code)
@@ -961,7 +961,7 @@ class PromoCampaignTools{
 	            ->where('users.is_suspended','=',0)
 	            ->first();
 	        if(!$referer){
-	        	$errors[] = 'Kode promo tidak ditemukan';
+	        	$errors[] = 'Voucher code is not found';
 	        }
 		}
 

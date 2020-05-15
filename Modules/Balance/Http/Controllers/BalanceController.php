@@ -90,7 +90,11 @@ class BalanceController extends Controller
             'membership_cashback_percentage' => $cashback_percentage
         ];
 
-       $create = LogBalance::updateOrCreate(['id_user' => $id_user, 'id_reference' => $id_reference, 'source' => $source], $LogBalance);
+        if($source == 'Point Injection'){
+            $create = LogBalance::create($LogBalance);
+        }else{
+            $create = LogBalance::updateOrCreate(['id_user' => $id_user, 'id_reference' => $id_reference, 'source' => $source], $LogBalance);
+        }
 
         // get inserted data to hash
         $log_balance = LogBalance::find($create->id_log_balance);
@@ -219,7 +223,7 @@ class BalanceController extends Controller
         if ($data['balance_before'] >= $grandTotal) {
 
             if (!is_null($idTrx)) {
-                $dataTrx = Transaction::where('id_transaction', $idTrx)->with('outlet')->first();
+                $dataTrx = Transaction::where('id_transaction', $idTrx)->first();
 
                 if (empty($dataTrx)) {
                     return [
@@ -239,8 +243,6 @@ class BalanceController extends Controller
                             'messages' => ['fail to create transaction']
                         ];
                     }
-
-                    $dataCheck = Transaction::where('id_transaction', $idTrx)->first();
 
                     $dataPaymentBalance = [
                         'id_transaction'  => $idTrx,
@@ -273,7 +275,7 @@ class BalanceController extends Controller
                     return [
                         'status'   => 'success',
                         'type'     => 'no_topup',
-                        'result'   => $dataCheck
+                        'result'   => $dataTrx
                     ];
                 }
 

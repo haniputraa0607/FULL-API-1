@@ -448,15 +448,21 @@ class ApiDashboardSetting extends Controller
 				}
 
 				elseif(strpos($card['card_name'], 'Customer') !== false || strpos($card['card_name'], 'User') !== false || strpos($card['card_name'], 'Admin') !== false){
-					$value = User::whereDate('created_at', '<=', $end);
-					if(strpos($card['card_name'], 'Customer') !== false){
-						$value = $value->where('level', 'Customer');
-						if($url){
-							$url = $url."&level=Customer";
-						}else{
-							$url = "level=Customer";
-						}
-					}
+					if(isset($post['year']) && $post['year'] == 'alltime'){
+                        $value = User::orderBy('created_at', 'desc');
+                    }else{
+                        $value = User::whereDate('created_at', '<=', $end);
+                    }
+
+					if($card['card_name'] == 'Total Customer'){
+                        $value = $value->where('level', 'Customer');
+                        if($url){
+                            $url = $url."&level=Customer";
+                        }else{
+                            $url = "level=Customer";
+                        }
+                    }
+
 					if($card['card_name'] == 'Total Admin'){
 						$value = $value->where('level', 'Admin');
 						if($url){
@@ -465,7 +471,7 @@ class ApiDashboardSetting extends Controller
 							$url = "level=Admin";
 						}
 					}
-					if(strpos($card['card_name'], 'Super Admin') !== false){
+					if($card['card_name'] == 'Total Super Admin'){
 						$value =$value->where('level', 'Super Admin');
 						if($url){
 							$url = $url."&level=Super Admin";
@@ -474,7 +480,7 @@ class ApiDashboardSetting extends Controller
 						}
 					}
 					if(strpos($card['card_name'], 'New') !== false){
-						$value = $value->whereDate('created_at', '>=', $start);
+						$value = $value->whereDate('created_at', '>=', $start)->where('level', 'Customer');
 						if($url){
 							$url = $url.'&regis_date_start='.$start.'&regis_date_end='.$end;
 						}else{
@@ -482,7 +488,7 @@ class ApiDashboardSetting extends Controller
 						}
 					}
 					if(strpos($card['card_name'], 'Male') !== false){
-						$value = $value->where('gender', '=', 'Male');
+						$value = $value->where('gender', '=', 'Male')->where('level', 'Customer');
 						if($url){
 							$url = $url.'&gender=male';
 						}else{
@@ -490,21 +496,21 @@ class ApiDashboardSetting extends Controller
 						}
 					}
 					if(strpos($card['card_name'], 'Female') !== false){
-						$value = $value->where('gender', '=', 'Female');
+						$value = $value->where('gender', '=', 'Female')->where('level', 'Customer');
 						if($url){
 							$url = $url.'&gender=female';
 						}else{
 							$url = 'gender=female';
 						}
 					}
-					if(strpos($card['card_name'], 'Verified') !== false){
-						$value = $value->where('phone_verified', '=', '1');
+					if($card['card_name'] == 'Total Customer Verified'){
+						$value = $value->where('phone_verified', '=', '1')->where('level', 'Customer');
 					}
-					if(strpos($card['card_name'], 'Not Verified') !== false){
-						$value = $value->where('phone_verified', '=', '0');
+					if($card['card_name'] == 'Total Customer Not Verified'){
+						$value = $value->where('phone_verified', '=', '0')->where('level', 'Customer');
 					}
 					if(strpos($card['card_name'], 'Android') !== false){
-						$value = $value->where('android_device', '!=', '');
+						$value = $value->where('android_device', '!=', '')->where('level', 'Customer');
 						if($url){
 							$url = $url.'&device=android';
 						}else{
@@ -512,7 +518,7 @@ class ApiDashboardSetting extends Controller
 						}
 					}
 					if(strpos($card['card_name'], 'IOS') !== false){
-						$value = $value->where('ios_device', '!=', '');
+						$value = $value->where('ios_device', '!=', '')->where('level', 'Customer');
 						if($url){
 							$url = $url.'&device=ios';
 						}else{
@@ -520,10 +526,10 @@ class ApiDashboardSetting extends Controller
 						}
 					}
 					if(strpos($card['card_name'], 'Subscribed') !== false){
-						$value = $value->where('email_unsubscribed', '=', '0');
+						$value = $value->where('email_unsubscribed', '=', '0')->where('level', 'Customer');
 					}
 					if(strpos($card['card_name'], 'Unsubscribed') !== false){
-						$value = $value->where('email_unsubscribed', '=', '1');
+						$value = $value->where('email_unsubscribed', '=', '1')->where('level', 'Customer');
 					}
 					$value = $value->count();
 				}

@@ -2,6 +2,9 @@
 
 namespace Modules\Transaction\Http\Controllers;
 
+use App\Http\Models\Configs;
+use App\Http\Models\FraudSetting;
+use App\Jobs\FraudJob;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -87,7 +90,8 @@ class ApiConfirm extends Controller
                 $dataProductMidtrans = [
                     'id'       => $value['id_product'],
                     'price'    => abs($value['transaction_product_price']+$value['transaction_modifier_subtotal']),
-                    'name'     => $value['product']['product_name'].($more_name_text?'('.trim($more_name_text,',').')':''),
+                    // 'name'     => $value['product']['product_name'].($more_name_text?'('.trim($more_name_text,',').')':''), // name + modifier too long
+                    'name'     => $value['product']['product_name'],
                     'quantity' => $value['transaction_product_qty'],
                 ];
 
@@ -342,7 +346,7 @@ class ApiConfirm extends Controller
         elseif ($post['payment_type'] == 'Ipay88') {
 
             // save multiple payment
-            $trx_ipay88 = \Modules\IPay88\Lib\IPay88::create()->insertNewTransaction($check,'trx',$countGrandTotal);
+            $trx_ipay88 = \Modules\IPay88\Lib\IPay88::create()->insertNewTransaction($check,'trx',$countGrandTotal,$post);
             if(!$trx_ipay88){
                 DB::rollBack();
                 return response()->json([
@@ -474,12 +478,12 @@ class ApiConfirm extends Controller
             $lastRef = OvoReference::orderBy('id_ovo_reference', 'DESC')->first();
             if($lastRef){
                 //cek jika beda tanggal, bacth_no + 1, ref_number reset ke 1
-                if($lastRef['date'] != date('Y-m-d')){
-                    $batchNo = $lastRef['batch_no'] + 1;
-                    $refnumber = 1;
-                }
-                //tanggal sama, batch_no tetap, ref_number +1
-                else{
+                // if($lastRef['date'] != date('Y-m-d')){
+                //     $batchNo = $lastRef['batch_no'] + 1;
+                //     $refnumber = 1;
+                // }
+                // //tanggal sama, batch_no tetap, ref_number +1
+                // else{
                     $batchNo = $lastRef['batch_no'];
 
                     //cek jika ref_number sudah lebih dari 999.999
@@ -490,7 +494,7 @@ class ApiConfirm extends Controller
                     }else{
                         $refnumber = $lastRef['reference_number'] + 1;
                     }
-                }
+                // }
             }
 
             if($type == 'production'){
@@ -626,6 +630,14 @@ class ApiConfirm extends Controller
                             if($update){
                                 $updatePaymentStatus = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Completed','completed_at' => date('Y-m-d H:i:s')]);
                                 if($updatePaymentStatus){
+                                    $userData = User::where('id', $trx['id_user'])->first();
+                                    $config_fraud_use_queue = Configs::where('config_name', 'fraud use queue')->first()->is_active;
+
+                                    if($config_fraud_use_queue == 1){
+                                        FraudJob::dispatch($userData, $trx, 'transaction')->onConnection('fraudqueue');
+                                    }else {
+                                        $checkFraud = app($this->setting_fraud)->checkFraudTrxOnline($userData, $trx);
+                                    }
 
                                     \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
                                     $dataTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction')
@@ -639,8 +651,8 @@ class ApiConfirm extends Controller
                                         }
                                     }
 
-                                    // apply cashback to referrer
-                                    \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($dataTrx);
+                                    // // apply cashback to referrer
+                                    // \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($dataTrx);
 
                                     $mid = [
                                         'order_id' => $dataTrx['transaction_receipt_number'],
@@ -718,8 +730,13 @@ class ApiConfirm extends Controller
                         $dataUpdate['response_code'] = $response['responseCode'];
                         $dataUpdate = Ovo::detailResponse($dataUpdate);
                     }else{
-                        $dataUpdate['response_detail'] = "Transaction Timeout";
-                        $dataUpdate['response_description'] = "The payment deadline has expired";
+                        if(!isset($payOvo['status_code']) || $payOvo['status_code'] == '404'){
+                            $dataUpdate['response_detail'] = "Transaction Timeout";
+                            $dataUpdate['response_description'] = "The payment deadline has expired";
+                        }else{
+                            $dataUpdate['response_detail'] = "Transaction Failed";
+                            $dataUpdate['response_description'] = "Failed push payment";
+                        }
                     }
 
                     $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
@@ -768,6 +785,7 @@ class ApiConfirm extends Controller
                     DB::commit();
                     //request reversal
                     if(!isset($payOvo['status_code']) || $payOvo['status_code'] == '404'){
+                        sleep(5);
                         $reversal = Ovo::Reversal($trx, $insertPayOvo, $amount, $type);
 
                         if(isset($reversal['response'])){
@@ -789,11 +807,6 @@ class ApiConfirm extends Controller
 
                             $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
                         }
-                    }else{
-                        $dataUpdate['response_detail'] = "Transaction Failed";
-                        $dataUpdate['response_description'] = "Failed push payment";
-
-                        $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
                     }
                 }
             }

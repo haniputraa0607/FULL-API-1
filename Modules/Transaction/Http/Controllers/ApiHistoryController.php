@@ -466,12 +466,9 @@ class ApiHistoryController extends Controller
         foreach ($data as $key => $row) {
             $date[$key] = strtotime($row['date']);
         }
-
         if ($order == 'new') {
             array_multisort($date, SORT_DESC, $data);
-        }
-
-        if ($order == 'old') {
+        }elseif ($order == 'old') {
             array_multisort($date, SORT_ASC, $data);
         }
 
@@ -489,6 +486,7 @@ class ApiHistoryController extends Controller
                 $end = count($data);
                 $next = false;
             }
+            $data = array_slice($data, $start, $paginate);
 
             return ['data' => $data, 'status' => $next];
         }
@@ -967,7 +965,7 @@ class ApiHistoryController extends Controller
                 // $log[$key]['detail'] = $vou;
                 $dataList['type']   = 'voucher';
                 $dataList['id']      = $value['id_log_balance'];
-                $dataList['date']   = date('d M Y H:i', strtotime($vou['claimed_at']));
+                $dataList['date']   = date('d M Y H:i', strtotime($value['created_at']));
                 $dataList['outlet'] = 'Buy a Voucher';
                 $dataList['amount'] = '- ' . ltrim(MyHelper::requestNumber($value['balance'], '_POINT'), '-');
                 // $dataList['amount'] = number_format($value['balance'], 0, ',', '.');
@@ -995,6 +993,14 @@ class ApiHistoryController extends Controller
                 $dataList['id']      = $value['id_log_balance'];
                 $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
                 $dataList['outlet'] = 'Point Expired';
+                $dataList['amount'] = MyHelper::requestNumber($value['balance'], '_POINT');
+
+                $listBalance[$key] = $dataList;
+            } elseif($value['source'] == 'Referral Bonus') {
+                $dataList['type']   = 'profile';
+                $dataList['id']      = $value['id_log_balance'];
+                $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
+                $dataList['outlet'] = 'Referral Bonus';
                 $dataList['amount'] = MyHelper::requestNumber($value['balance'], '_POINT');
 
                 $listBalance[$key] = $dataList;

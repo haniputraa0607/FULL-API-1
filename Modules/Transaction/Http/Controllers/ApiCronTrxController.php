@@ -30,6 +30,7 @@ use App\Http\Models\AutocrmEmailLog;
 use App\Http\Models\Autocrm;
 use App\Http\Models\Setting;
 use App\Http\Models\LogPoint;
+use Modules\IPay88\Entities\TransactionPaymentIpay88;
 
 class ApiCronTrxController extends Controller
 {
@@ -58,7 +59,6 @@ class ApiCronTrxController extends Controller
         $count = 0;
         foreach ($getTrx as $key => $value) {
 
-        	db::begintransaction();
             $singleTrx = Transaction::where('id_transaction', $value->id_transaction)->with('outlet_name')->first();
             if (empty($singleTrx)) {
                 continue;
@@ -88,11 +88,14 @@ class ApiCronTrxController extends Controller
             //     continue;
             // }
 
+            DB::begintransaction();
+
             $singleTrx->transaction_payment_status = 'Cancelled';
             $singleTrx->void_date = $now;
             $singleTrx->save();
 
             if (!$singleTrx) {
+                DB::rollBack();
                 continue;
             }
 
@@ -101,7 +104,7 @@ class ApiCronTrxController extends Controller
             foreach($logBalance as $logB){
                 $reversal = app($this->balance)->addLogBalance( $singleTrx->id_user, abs($logB['balance']), $singleTrx->id_transaction, 'Reversal', $singleTrx->transaction_grandtotal);
 	            if (!$reversal) {
-	            	db::rollBack();
+	            	DB::rollBack();
 	            	continue;
 	            }
                 $usere= User::where('id',$singleTrx->id_user)->first();
@@ -120,19 +123,19 @@ class ApiCronTrxController extends Controller
             if ($value->id_promo_campaign_promo_code) {
             	$update_promo_report = app($this->promo_campaign)->deleteReport($value->id_transaction, $value->id_promo_campaign_promo_code);
             	if (!$update_promo_report) {
-	            	db::rollBack();
+	            	DB::rollBack();
 	            	continue;
-	            }	
+	            }
             }
 
             // return voucher
             $update_voucher = app($this->voucher)->returnVoucher($value->id_transaction);
             if (!$update_voucher) {
-            	db::rollBack();
+            	DB::rollBack();
             	continue;
             }
             $count++;
-            db::commit();
+            DB::commit();
 
         }
 
@@ -344,5 +347,23 @@ class ApiCronTrxController extends Controller
                                     ->update(['taken_by_system_at' => date('Y-m-d 00:00:00')]);
         return response()->json(['status' => 'success']);
 
+    }
+
+    public function cancelTransactionIPay()
+    {
+        // 15 minutes before
+        $max_time = date('Y-m-d H:i:s',time()-900);
+        $trxs = Transaction::select('id_transaction')->where([
+            'trasaction_payment_type' => 'Ipay88',
+            'transaction_payment_status' => 'Pending'
+        ])->where('transaction_date','<',$max_time)->take(50)->pluck('id_transaction');
+        foreach ($trxs as $id_trx) {
+            $trx_ipay = TransactionPaymentIpay88::where('id_transaction',$id_trx)->first();
+            $update = \Modules\IPay88\Lib\IPay88::create()->update($trx_ipay?:$id_trx,[
+                'type' =>'trx',
+                'Status' => '0',
+                'requery_response' => 'Cancelled by cron'
+            ],false,false);
+        }
     }
 }

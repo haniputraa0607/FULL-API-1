@@ -391,11 +391,14 @@ class ApiOrder extends Controller
         if($pickup){
             //send notif to customer
             $user = User::find($order->id_user);
+            $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Accepted');
+
             $send = app($this->autocrm)->SendAutoCRM('Order Accepted', $user['phone'], [
                 "outlet_name" => $outlet['outlet_name'],
                 "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
                 'id_transaction' => $order->id_transaction,
-                "transaction_date" => $order->transaction_date
+                "transaction_date" => $order->transaction_date,
+                'detail' => $detail
             ]);
             if($send != true){
                 DB::rollBack();
@@ -470,11 +473,14 @@ class ApiOrder extends Controller
         if($pickup){
             //send notif to customer
             $user = User::find($order->id_user);
+            $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Ready');
+
             $send = app($this->autocrm)->SendAutoCRM('Order Ready', $user['phone'], [
                 "outlet_name" => $outlet['outlet_name'],
                 "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
                 'id_transaction' => $order->id_transaction,
-                "transaction_date" => $order->transaction_date
+                "transaction_date" => $order->transaction_date,
+                'detail' => $detail,
             ]);
             if($send != true){
                 // DB::rollBack();
@@ -484,15 +490,17 @@ class ApiOrder extends Controller
                     ]);
             }
 
-            $newTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction', 'transaction_vouchers')->where('id_transaction', $order->id_transaction)->first();
+            $newTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction', 'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign')->where('id_transaction', $order->id_transaction)->first();
 
             $checkType = TransactionMultiplePayment::where('id_transaction', $order->id_transaction)->get()->toArray();
             $column = array_column($checkType, 'type');
 
-            if (!in_array('Balance', $column)) {
+            $use_referral = optional(optional($newTrx->promo_campaign_promo_code)->promo_campaign)->promo_type == 'Referral';
+
+            if (!in_array('Balance', $column) || $use_referral) {
 
             	$promo_source = null;
-            	if ( $newTrx->id_promo_campaign_promo_code || $newTrx->transaction_vouchers ) 
+            	if ( $newTrx->id_promo_campaign_promo_code || $newTrx->transaction_vouchers || $use_referral) 
             	{
             		if ( $newTrx->id_promo_campaign_promo_code ) {
             			$promo_source = 'promo_code';
@@ -503,7 +511,7 @@ class ApiOrder extends Controller
             		}
             	}
 
-            	if( app($this->trx)->checkPromoGetPoint($promo_source) )
+            	if( app($this->trx)->checkPromoGetPoint($promo_source) || $use_referral)
 				{
 	                $savePoint = app($this->getNotif)->savePoint($newTrx);
 	                // return $savePoint;
@@ -592,11 +600,14 @@ class ApiOrder extends Controller
         if($pickup){
             //send notif to customer
             $user = User::find($order->id_user);
+            $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Taken');
+
             $send = app($this->autocrm)->SendAutoCRM('Order Taken', $user['phone'], [
                 "outlet_name" => $outlet['outlet_name'],
                 "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
                 'id_transaction' => $order->id_transaction,
-                "transaction_date" => $order->transaction_date
+                "transaction_date" => $order->transaction_date,
+                'detail' => $detail
             ]);
 
 
@@ -967,11 +978,14 @@ class ApiOrder extends Controller
 
             //send notif to customer
             $user = User::where('id', $order['id_user'])->first()->toArray();
+            $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Reject');
+
             $send = app($this->autocrm)->SendAutoCRM('Order Reject', $user['phone'], [
                 "outlet_name" => $outlet['outlet_name'],
                 "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
                 'id_transaction' => $order->id_transaction,
-                "transaction_date" => $order->transaction_date
+                "transaction_date" => $order->transaction_date,
+                'detail' => $detail
             ]);
             if($send != true){
                 DB::rollBack();

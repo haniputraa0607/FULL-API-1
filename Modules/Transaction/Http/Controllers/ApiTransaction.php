@@ -35,6 +35,7 @@ use App\Http\Models\DealsUser;
 use App\Http\Models\DealsPaymentMidtran;
 use App\Http\Models\DealsPaymentManual;
 use App\Http\Models\DealsPaymentOvo;
+use Modules\IPay88\Entities\DealsPaymentIpay88;
 use App\Http\Models\UserTrxProduct;
 use Modules\Brand\Entities\Brand;
 
@@ -1532,9 +1533,10 @@ class ApiTransaction extends Controller
                     $payment = [];
                     foreach($multiPayment as $dataKey => $dataPay){
                         if($dataPay['type'] == 'Midtrans'){
-                            $payment[$dataKey]['name']      = 'Midtrans';
-                            $payment[$dataKey]['amount']    = TransactionPaymentMidtran::find($dataPay['id_payment'])->gross_amount;
-                            $payment[$dataKey]['reject']    = TransactionPaymentMidtran::find($dataPay['id_payment'])->status_message;
+                            $payMidtrans = TransactionPaymentMidtran::find($dataPay['id_payment']);
+                            $payment[$dataKey]['name']      = strtoupper(str_replace('_', ' ', $payMidtrans->payment_type)).' '.strtoupper($payMidtrans->bank);
+                            $payment[$dataKey]['amount']    = $payMidtrans->gross_amount;
+                            $payment[$dataKey]['reject']    = $payMidtrans->status_message;
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey] = $dataPay;
@@ -1568,9 +1570,10 @@ class ApiTransaction extends Controller
                     $payment = [];
                     foreach($multiPayment as $dataKey => $dataPay){
                         if($dataPay['type'] == 'IPay88'){
-                            $payment[$dataKey]['name']    = 'Credit / Debit Card';
-                            $payment[$dataKey]['amount']    = TransactionPaymentIpay88::find($dataPay['id_payment'])->amount / 100;
-                            $payment[$dataKey]['reject']    = TransactionPaymentIpay88::find($dataPay['id_payment'])->err_desc;
+                            $PayIpay = TransactionPaymentIpay88::find($dataPay['id_payment']);
+                            $payment[$dataKey]['name']      = $PayIpay->payment_method?:'Credit / Debit Card';
+                            $payment[$dataKey]['amount']    = $PayIpay->amount / 100;
+                            $payment[$dataKey]['reject']    = $PayIpay->err_desc;
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey] = $dataPay;
@@ -1789,13 +1792,13 @@ class ApiTransaction extends Controller
                     }
                     if ($list['detail']['taken_by_system_at'] != null) {
                         $result['detail']['detail_status'][] = [
-                        'text'  => 'Order Completed',
+                        'text'  => 'Your order has been completed',
                         'date'  => date('d F Y H:i', strtotime($list['detail']['taken_by_system_at']))
                     ];
                     }
                     if ($list['detail']['taken_at'] != null) {
                         $result['detail']['detail_status'][] = [
-                        'text'  => 'Order completed',
+                        'text'  => 'Your order has been picked up',
                         'date'  => date('d F Y H:i', strtotime($list['detail']['taken_at']))
                     ];
                     }
@@ -1869,8 +1872,8 @@ class ApiTransaction extends Controller
                 case 'Midtrans':
                     $payment = DealsPaymentMidtran::where('id_deals_user', $id)->first();
                     $result['payment'][] = [
-                        'name'      => 'Midtrans',
-                        'amount'    =>  MyHelper::requestNumber($payment->gross_amount,'_CURRENCY')
+                        'name'      => strtoupper(str_replace('_', ' ', $payment->payment_type)).' '.strtoupper($payment->bank),
+                        'amount'    => MyHelper::requestNumber($payment->gross_amount,'_CURRENCY')
                     ];
                     break;
                 case 'OVO':
@@ -1878,6 +1881,13 @@ class ApiTransaction extends Controller
                     $result['payment'][] = [
                         'name'      => 'OVO',
                         'amount'    =>  MyHelper::requestNumber($payment->amount,'_CURRENCY')
+                    ];
+                    break;
+                case 'Ipay88':
+                    $payment = DealsPaymentIpay88::where('id_deals_user', $id)->first();
+                    $result['payment'][] = [
+                        'name'      => $payment->payment_method?:'Credit / Debit Card',
+                        'amount'    =>  MyHelper::requestNumber($payment->amount / 100,'_CURRENCY')
                     ];
                     break;
             }
@@ -2014,6 +2024,13 @@ class ApiTransaction extends Controller
                 $status = 'USED';
             }
 
+            $price = 0;
+            if($data['detail']['voucher_price_cash'] != NULL){
+                $price = MyHelper::requestNumber($data['detail']['voucher_price_cash'],'_CURRENCY');
+            }elseif($data['detail']['voucher_price_point'] != NULL){
+                $price = MyHelper::requestNumber($data['detail']['voucher_price_point'],'_POINT').' points';
+            }
+
             $result = [
                 'type'                          => $data['type'],
                 'id_log_balance'                => $data['id_log_balance'],
@@ -2023,7 +2040,7 @@ class ApiTransaction extends Controller
                 'transaction_receipt_number'    => implode('', [strtotime($data['date']), $data['detail']['id_deals_user']]),
                 'transaction_date'              => date('d M Y H:i', strtotime($data['date'])),
                 'balance'                       => MyHelper::requestNumber($data['balance'], '_POINT'),
-                'transaction_grandtotal'        => MyHelper::requestNumber($data['detail']['voucher_price_cash'], '_CURRENCY'),
+                'transaction_grandtotal'        => $price,
                 'transaction_cashback_earned'   => null,
                 'name'                          => 'Buy Voucher',
                 'title'                         => $data['detail']['dealVoucher']['deal']['deals_title']

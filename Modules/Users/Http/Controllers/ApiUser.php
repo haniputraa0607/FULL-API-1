@@ -73,58 +73,129 @@ class ApiUser extends Controller
             $order_field_be = $order_field;
         }
 
+        $queryUser = DB::table(env('DB_DATABASE').'.users as t_users')->select('t_users.name', 't_users.phone', 't_users.email');
         $queryApps = DB::table(env('DB2_DATABASE').'.log_activities_apps as t_log_activities')
-            ->leftJoin(env('DB_DATABASE').'.users as t_users','t_users.phone','=','t_log_activities.phone')
-            ->select('t_log_activities.*',
-                't_users.name',
-                't_users.email'
-            )->orderBy($order_field_apps, $order_method);
+            ->select('t_log_activities.*');
         $queryBe = DB::table(env('DB2_DATABASE').'.log_activities_be as t_log_activities')
-            ->leftJoin(env('DB_DATABASE').'.users as t_users','t_users.phone','=','t_log_activities.phone')
-            ->select('t_log_activities.*',
-                't_users.name',
-                't_users.email'
-            )->orderBy($order_field_be, $order_method);
+            ->select('t_log_activities.*');
+
+        if($order_field != 'name' && $order_field != 'email'){
+            $queryApps->orderBy($order_field_apps, $order_method);
+            $queryBe->orderBy($order_field_be, $order_method);
+        }
 
         if($conditions != null){
             foreach($conditions as $condition){
                 if(isset($condition['subject'])){
                     if($condition['subject'] == 'name' || $condition['subject'] == 'email'){
                         $var = "t_users.".$condition['subject'];
-                    }
-                    if($condition['subject'] == 'phone' || $condition['subject'] == 'url' || $condition['subject'] == 'subject' || $condition['subject'] == 'request' || $condition['subject'] == 'response' || $condition['subject'] == 'ip' || $condition['subject'] == 'useragent'){
-                        $var = "t_log_activities.".$condition['subject'];
-                    }
-                    if($condition['subject'] == 'response_status'){
-                        $var = "t_log_activities.".$condition['subject'];
-                    }
 
-                    if($rule == 'and'){
-                        if($condition['operator'] == 'like') {
-                            $queryApps = $queryApps->where($var, 'like', '%' . $condition['parameter'] . '%');
-                            $queryBe = $queryBe->where($var, 'like', '%' . $condition['parameter'] . '%');
-                        }else {
-                            $queryApps = $queryApps->where($var, '=', $condition['parameter']);
-                            $queryBe = $queryBe->where($var, '=', $condition['parameter']);
+                        if($rule == 'and'){
+                            if($condition['operator'] == 'like') {
+                                $queryUser = $queryUser->where($var, 'like', '%' . $condition['parameter'] . '%');
+                            }else {
+                                $queryUser = $queryUser->where($var, '=', $condition['parameter']);
+                            }
+                        } else {
+                            if($condition['operator'] == 'like') {
+                                $queryUser = $queryUser->orWhere($var, 'like', '%' . $condition['parameter'] . '%');
+                            }
+                            else {
+                                $queryUser = $queryUser->orWhere($var, '=', $condition['parameter']);
+                            }
                         }
-                    } else {
-                        if($condition['operator'] == 'like') {
-                            $queryApps = $queryApps->orWhere($var, 'like', '%' . $condition['parameter'] . '%');
-                            $queryBe = $queryBe->orWhere($var, 'like', '%' . $condition['parameter'] . '%');
+                    }else{
+                        if($condition['subject'] == 'phone' || $condition['subject'] == 'url' || $condition['subject'] == 'subject' || $condition['subject'] == 'request' || $condition['subject'] == 'response' || $condition['subject'] == 'ip' || $condition['subject'] == 'useragent'){
+                            $var = "t_log_activities.".$condition['subject'];
                         }
-                        else {
-                            $queryApps = $queryApps->orWhere($var, '=', $condition['parameter']);
-                            $queryBe = $queryBe->orWhere($var, '=', $condition['parameter']);
+                        if($condition['subject'] == 'response_status'){
+                            $var = "t_log_activities.".$condition['subject'];
+                        }
+
+                        if($rule == 'and'){
+                            if($condition['operator'] == 'like') {
+                                $queryApps = $queryApps->where($var, 'like', '%' . $condition['parameter'] . '%');
+                                $queryBe = $queryBe->where($var, 'like', '%' . $condition['parameter'] . '%');
+                            }else {
+                                $queryApps = $queryApps->where($var, '=', $condition['parameter']);
+                                $queryBe = $queryBe->where($var, '=', $condition['parameter']);
+                            }
+                        } else {
+                            if($condition['operator'] == 'like') {
+                                $queryApps = $queryApps->orWhere($var, 'like', '%' . $condition['parameter'] . '%');
+                                $queryBe = $queryBe->orWhere($var, 'like', '%' . $condition['parameter'] . '%');
+                            }
+                            else {
+                                $queryApps = $queryApps->orWhere($var, '=', $condition['parameter']);
+                                $queryBe = $queryBe->orWhere($var, '=', $condition['parameter']);
+                            }
                         }
                     }
                 }
             }
         }
 
-        $resultCountApps = $queryApps->count();
-        $resultCountBe = $queryBe->count();
-        $resultApps = $queryApps->skip($skip)->take($take)->get()->toArray();
-        $resultBe = $queryBe->skip($skip)->take($take)->get()->toArray();
+        $resultUser = $queryUser->get()->toArray();
+        $phoneUser = array_column($resultUser, 'phone');
+        if($phoneUser){
+            $resultCountApps = $queryApps->count();
+            $resultCountBe = $queryBe->count();
+            $resultApps = $queryApps->skip($skip)->take($take)->get()->toArray();
+            $resultBe = $queryBe->skip($skip)->take($take)->get()->toArray();
+
+            foreach ($resultApps as $key => $apps){
+                $getKey = array_search($apps->phone, $phoneUser);
+                $resultApps[$key]->name = $resultUser[$getKey]->name;
+                $resultApps[$key]->phone = $resultUser[$getKey]->phone;
+                $resultApps[$key]->email = $resultUser[$getKey]->email;
+            }
+
+            foreach ($resultBe as $key => $be){
+                $getKey = array_search($be->phone, $phoneUser);
+                $resultBe[$key]->name = $resultUser[$getKey]->name;
+                $resultBe[$key]->phone = $resultUser[$getKey]->phone;
+                $resultBe[$key]->email = $resultUser[$getKey]->email;
+            }
+
+            if($order_field == 'name'){
+                usort($resultApps, function($a, $b) use ($order_method){
+                    if($order_method == 'desc'){
+                        return $a->name < $b->name;
+                    }else{
+                        return $a->name <=> $b->name;
+                    }
+                });
+
+                usort($resultBe, function($a, $b) use ($order_method){
+                    if($order_method == 'desc'){
+                        return $a->name < $b->name;
+                    }else{
+                        return $a->name <=> $b->name;
+                    }
+                });
+            }elseif ($order_field == 'email'){
+                usort($resultApps, function($a, $b) use ($order_method){
+                    if($order_method == 'desc'){
+                        return $a->email < $b->email;
+                    }else{
+                        return $a->email <=> $b->email;
+                    }
+                });
+
+                usort($resultBe, function($a, $b) use ($order_method){
+                    if($order_method == 'desc'){
+                        return $a->email < $b->email;
+                    }else{
+                        return $a->email <=> $b->email;
+                    }
+                });
+            }
+        }else{
+            $resultCountApps = 0;
+            $resultCountBe = 0;
+            $resultApps = [];
+            $resultBe = [];
+        }
 
         if($resultApps || $resultBe){
             $response = ['status'	=> 'success',
@@ -413,7 +484,7 @@ class ApiUser extends Controller
                         }
 
                         if($conditionParameter == 'IOS'){
-                            $query = $query->notNull('users.android_device')->whereNotNull('users.ios_device');
+                            $query = $query->whereNull('users.android_device')->whereNotNull('users.ios_device');
                         }
 
                         if($conditionParameter == 'Both'){
@@ -579,19 +650,27 @@ class ApiUser extends Controller
                     if($condition['subject'] == 'device'){
 
                         if($conditionParameter == 'None'){
-                            $query = $query->orWhereNull('users.android_device')->orWhereNull('users.ios_device');
+                            $query = $query->orWhere(function ($q){
+                                $q->whereNull('users.android_device')->whereNull('users.ios_device');
+                            });
                         }
 
                         if($conditionParameter == 'Android'){
-                            $query = $query->orwhereNotNull('users.android_device')->orWhereNull('users.ios_device');
+                            $query = $query->orWhere(function ($q){
+                                $q->whereNotNull('users.android_device')->whereNull('users.ios_device');
+                            });
                         }
 
                         if($conditionParameter == 'IOS'){
-                            $query = $query->orwhereNull('users.android_device')->orwhereNotNull('users.ios_device');
+                            $query = $query->orWhere(function ($q){
+                                $q->whereNull('users.android_device')->whereNotNull('users.ios_device');
+                            });
                         }
 
                         if($conditionParameter == 'Both'){
-                            $query = $query->orwhereNotNull('users.android_device')->orwhereNotNull('users.ios_device');
+                            $query = $query->orWhere(function ($q){
+                                $q->orwhereNotNull('users.android_device')->orwhereNotNull('users.ios_device');
+                            });
                         }
                     }
 
@@ -1172,20 +1251,18 @@ class ApiUser extends Controller
                         $check = array_column($check,'id_user');
 
                         if($deviceCus && count($deviceCus) > (int)$fraud['parameter_detail'] && array_search($datauser[0]['id'], $check) !== false){
-                            $sendFraud = app($this->setting_fraud)->SendFraudDetection($fraud['id_fraud_setting'], $datauser[0], null, ['device_id' => $device_id, 'device_type' => $request->json('device_type')], 0, 0, null, 0);
+                            $sendFraud = app($this->setting_fraud)->checkFraud($fraud, $datauser[0], ['device_id' => $device_id, 'device_type' => $request->json('device_type')], 0, 0, null, 0);
                             $data = User::with('city')->where('phone', '=', $datauser[0]['phone'])->get()->toArray();
 
                             if ($data[0]['is_suspended'] == 1) {
                                 return response()->json([
                                     'status' => 'fail',
-                                    // 'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
-                                    'messages' => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
+                                    'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at hello@maxxcoffee.id']
                                 ]);
                             } else {
                                 return response()->json([
                                     'status' => 'fail',
-                                    // 'messages' => ['Akun Anda tidak dapat login di device ini karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
-                                    'messages' => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
+                                    'messages' => ['Your account cannot log in on this device because it shows suspicious activity. For more information, please contact our customer service at hello@maxxcoffee.id']
                                 ]);
                             }
                         }
@@ -1466,20 +1543,20 @@ class ApiUser extends Controller
                             $check = array_column($check,'id_user');
 
                             if($deviceCus && count($deviceCus) > (int)$fraud['parameter_detail'] && array_search($data[0]['id'], $check) !== false){
-                                $sendFraud = app($this->setting_fraud)->SendFraudDetection($fraud['id_fraud_setting'], $data[0], null, ['device_id' => $device_id, 'device_type' => $device_type], 0, 0, null, 0);
+                                $sendFraud = app($this->setting_fraud)->checkFraud($fraud, $data[0], ['device_id' => $device_id, 'device_type' => $request->json('device_type')], 0, 0, null, 0);
                                 $data = User::with('city')->where('phone', '=', $phone)->get()->toArray();
 
                                 if ($data[0]['is_suspended'] == 1) {
                                     return response()->json([
                                         'status' => 'fail',
                                         // 'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
-                                        'messages' => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
+                                        'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at hello@maxxcoffee.id']
                                     ]);
                                 } else {
                                     return response()->json([
                                         'status' => 'fail',
                                         // 'messages' => ['Akun Anda tidak dapat di daftarkan karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee']
-                                        'messages' => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
+                                        'messages' => ['Your account cannot log in on this device because it shows suspicious activity. For more information, please contact our customer service at hello@maxxcoffee.id']
                                     ]);
                                 }
                             }
@@ -1705,6 +1782,10 @@ class ApiUser extends Controller
                 }
                 if($request->json('email')){
                     $dataupdate['email'] = $request->json('email');
+                    //when change email, update status email to unverified
+                    if($request->json('email') != $data[0]['email']){
+                        $dataupdate['email_verified'] = '0';
+                    }
                 }
                 if($request->json('gender')){
                     $dataupdate['gender'] = $request->json('gender');
@@ -1831,7 +1912,7 @@ class ApiUser extends Controller
                         'job' => $datauser[0]['job'],
                         'address' => $datauser[0]['address']
                     ],
-                    'message'	=> 'Data telah berhasil diubah'
+                    'message'	=> 'Data has been changed successfully'
                 ];
                 if($use_custom_province){
                     $result['result']['id_province'] = $datauser[0]['id_province'];
@@ -2894,6 +2975,34 @@ class ApiUser extends Controller
         }
     }
 
+    function checkVerifyEmail(Request $request){
+        $post = $request->json()->all();
+
+        if(!empty($request->user())){
+            $id = $request->user()->id;
+            $user = User::where('id', $id)->first();
+
+            if($user){
+                return response()->json([
+                    'status'    => 'success',
+                    'result'  => [
+                        'email_verified' => $user['email_verified']
+                    ]
+                ]);
+            }else{
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['User Not Found']
+                ]);
+            }
+        }else{
+            return response()->json([
+                'status'    => 'fail',
+                'messages'  => ['User Not Found']
+            ]);
+        }
+    }
+
     function sendVerifyEmail(Request $request){
         $post = $request->json()->all();
 
@@ -2923,7 +3032,7 @@ class ApiUser extends Controller
             if($autocrm){
                 return response()->json([
                     'status'    => 'success',
-                    'messages'  => ['Successfully sent email verification to your email']
+                    'messages'  => ['Verification sent to your email']
                 ]);
             }else{
                 return response()->json([

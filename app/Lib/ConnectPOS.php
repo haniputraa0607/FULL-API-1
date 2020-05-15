@@ -183,7 +183,7 @@ class ConnectPOS{
 					foreach ($balance as $payBalance) {
 						$pay = [
 							'number'        => 1,
-							'type'          => 'POIN MOBILE',
+							'type'          => 'POINMOBILE',
 							'amount'        => (float) $payBalance['balance_nominal'],
 							'changeAmount' => 0,
 							'cardNumber'   => 0,
@@ -214,7 +214,7 @@ class ConnectPOS{
 						if ($balance) {
 							$pay = [
 								'number'        => $key + 1,
-								'type'          => 'POIN MOBILE',
+								'type'          => 'POINMOBILE',
 								'amount'        => (float) $balance['balance_nominal'],
 								'changeAmount' => 0,
 								'cardNumber'   => 0,

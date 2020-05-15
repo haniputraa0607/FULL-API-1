@@ -3,6 +3,33 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <link href="{{ env('S3_URL_VIEW') }}{{('css/slide.css') }}" rel="stylesheet">
     <style type="text/css">
+        .table-bordered {
+            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+        }
+        .table-bordered td, .table-bordered th {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        #table-fraud-list {
+            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+        }
+
+        #table-fraud-list td, #table-fraud-list th {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        #table-fraud-list th {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            text-align: left;
+            background-color: #BFBFBF;
+            color: white;
+        }
+
         .kotak {
             margin : 10px;
             padding: 10px;
@@ -444,7 +471,7 @@
                                 $email_logo = env('S3_URL_API').('img/logo.jpg');
                             }
                         ?>
-                        <img class="CToWUd" id="detail_logo_center" src="{{$email_logo}}" style="border:0 none;line-height:100%;outline:none;text-decoration:none;height: 100px;margin-bottom: -60px;width: 150px;" alt="" height="50px">
+                        <img class="CToWUd" id="detail_logo_center" src="{{$email_logo}}" style="border:0 none;line-height:100%;outline:none;text-decoration:none;height: 100px;margin-bottom: -60px;">
                     </td>
                     <td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:'Source Sans Pro',sans-serif;line-height:1.5;margin:0;padding:0" width="15" height="100"></td>
                 </tr>

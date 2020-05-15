@@ -380,11 +380,12 @@ class ApiDealsClaimPay extends Controller
                         $getSettingTimer = Setting::where('key', 'setting_timer_ovo')->first();
                         if($getSettingTimer){
                             $result['timer_ovo'] = (int)$getSettingTimer['value'];
-                            $result['message_timeout_ovo'] = "You have ".(int)$getSettingTimer['value']." seconds remaning to complete the payment";
+                            // $result['message_timeout_ovo'] = "You have ".(int)$getSettingTimer['value']." seconds remaning to complete the payment";
                         }else{
                             $result['timer_ovo'] = NULL;
-                            $result['message_timeout_ovo'] = "You have 0 seconds remaning to complete the payment";
+                            // $result['message_timeout_ovo'] = "You have 0 seconds remaning to complete the payment";
                         }
+                        $result['message_timeout_ovo'] = "Sorry, your payment deadline has expired";
                         $result['redirect'] = true;
                         $result['ovo'] = $return['result']['ovo'];
                     }else{
@@ -433,7 +434,7 @@ class ApiDealsClaimPay extends Controller
         //IF USING BALANCE
         if ($request->json('balance') == true){
             /* BALANCE */
-            $pay = $this->balance($dataDeals, $voucher,$request->json('payment_deals') );
+            $pay = $this->balance($dataDeals, $voucher,$request->json('payment_deals'), $request->json()->all());
         }else{
 
             /* BALANCE */
@@ -459,7 +460,7 @@ class ApiDealsClaimPay extends Controller
 
             /* IPay88 */
             if ($request->json('payment_deals') && $request->json('payment_deals') == "ipay88") {
-                $pay = $this->ipay88($dataDeals, $voucher);
+                $pay = $this->ipay88($dataDeals, $voucher, null, $request->json()->all());
                 $ipay88 = [
                     'MERCHANT_TRANID'   => $pay['order_id'],
                     'AMOUNT'            => $pay['amount'],
@@ -555,14 +556,19 @@ class ApiDealsClaimPay extends Controller
     }
 
     /* IPay88 */
-    function ipay88($deals, $voucher, $grossAmount=null)
+    function ipay88($deals, $voucher, $grossAmount=null,$post = null)
     {
+        $ipay = \Modules\IPay88\Lib\IPay88::create();
+        $payment_id = $post['payment_id']??''; // ex. CREDIT_CARD, OVO, MANDIRI_ATM
         // simpan dulu di deals payment ipay88
         $data = [
-            'id_deals'      => $deals->id_deals,
-            'id_deals_user' => $voucher->id_deals_user,
-            'amount'  => $voucher->voucher_price_cash*100,
-            'order_id'      => time().sprintf("%05d", $voucher->id_deals_user).'-'.$voucher->id_deals_user
+            'id_deals'       => $deals->id_deals,
+            'id_deals_user'  => $voucher->id_deals_user,
+            'amount'         => $voucher->voucher_price_cash*100,
+            'order_id'       => time().sprintf("%05d", $voucher->id_deals_user).'-'.$voucher->id_deals_user,
+            'payment_id'     => $ipay->getPaymentId($payment_id??''), // ex. 1,2,3,7,19
+            'payment_method' => $ipay->getPaymentMethod($payment_id), // ex CREDIT CARD, BRI VA, MANDIRI ATM
+            'user_contact'   => $post['phone']??null
         ];
         if (is_null($grossAmount)) {
             if (!$this->updateInfoDealUsers($voucher->id_deals_user, ['payment_method' => 'Ipay88'])) {
@@ -647,12 +653,12 @@ class ApiDealsClaimPay extends Controller
         $lastRef = OvoReference::orderBy('id_ovo_reference', 'DESC')->first();
         if($lastRef){
             //cek jika beda tanggal, bacth_no + 1, ref_number reset ke 1
-            if($lastRef['date'] != date('Y-m-d')){
-                $batchNo = $lastRef['batch_no'] + 1;
-                $refnumber = 1;
-            }
-            //tanggal sama, batch_no tetap, ref_number +1
-            else{
+            // if($lastRef['date'] != date('Y-m-d')){
+            //     $batchNo = $lastRef['batch_no'] + 1;
+            //     $refnumber = 1;
+            // }
+            // //tanggal sama, batch_no tetap, ref_number +1
+            // else{
                 $batchNo = $lastRef['batch_no'];
 
                 //cek jika ref_number sudah lebih dari 999.999
@@ -663,7 +669,7 @@ class ApiDealsClaimPay extends Controller
                 }else{
                     $refnumber = $lastRef['reference_number'] + 1;
                 }
-            }
+            // }
         }else{
             $batch_no = 1;
             $refnumber = 1;
@@ -791,8 +797,13 @@ class ApiDealsClaimPay extends Controller
                     $dataUpdate['response_code'] = $response['responseCode'];
                     $dataUpdate = Ovo::detailResponse($dataUpdate);
                 }else{
-                    $dataUpdate['response_detail'] = "Transaction Timeout";
-                    $dataUpdate['response_description'] = "The payment deadline has expired";
+                    if(!isset($payOvo['status_code']) || $payOvo['status_code'] == '404'){
+                        $dataUpdate['response_detail'] = "Transaction Timeout";
+                        $dataUpdate['response_description'] = "The payment deadline has expired";
+                    }else{
+                        $dataUpdate['response_detail'] = "Transaction Failed";
+                        $dataUpdate['response_description'] = "Failed push payment";
+                    }
                 }
                 \DB::beginTransaction();
 
@@ -837,12 +848,6 @@ class ApiDealsClaimPay extends Controller
 
                         $update = DealsPaymentOvo::where('id_deals_user', $voucher['id_deals_user'])->update($dataUpdate);
                     }
-                }else{
-                    $dataUpdate['response_detail'] = "Transaction Failed";
-                    $dataUpdate['response_description'] = "Failed push payment";
-
-                    $update = DealsPaymentOvo::where('id_deals_user', $voucher['id_deals_user'])->update($dataUpdate);
-
                 }
                 DB::commit();
             }
@@ -943,7 +948,7 @@ class ApiDealsClaimPay extends Controller
     }
 
     /* BALANCE */
-    function balance($deals, $voucher, $paymentMethod = null)
+    function balance($deals, $voucher, $paymentMethod = null,$post=null)
     {
         $myBalance   = app($this->balance)->balanceNow($voucher->id_user);
         $kurangBayar = $myBalance - $voucher->voucher_price_cash;
@@ -968,7 +973,7 @@ class ApiDealsClaimPay extends Controller
                     }elseif($paymentMethod == 'cimb'){
                         return $this->cimb($deals, $voucher, -$kurangBayar);
                     }elseif($paymentMethod == 'ipay88'){
-                        return $this->ipay88($deals, $voucher, -$kurangBayar);
+                        return $this->ipay88($deals, $voucher, -$kurangBayar,$post);
                     }
                 }
             }

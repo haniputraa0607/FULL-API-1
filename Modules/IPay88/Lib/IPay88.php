@@ -1,11 +1,14 @@
 <?php 
 namespace Modules\IPay88\Lib;
 
+use App\Http\Models\Configs;
+use App\Jobs\FraudJob;
 use Illuminate\Support\Facades\Log;
 use DB;
 
 use App\Http\Models\Transaction;
 use App\Http\Models\TransactionMultiplePayment;
+use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\DealsUser;
 use App\Http\Models\Deal;
 use App\Http\Models\User;
@@ -22,6 +25,7 @@ class IPay88
 {
 	public static $obj = null;
 	function __construct() {
+        $this->notif = "Modules\Transaction\Http\Controllers\ApiNotification";
 		$this->autocrm = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
 		$this->promo_campaign = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
 		$this->voucher  = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
@@ -102,14 +106,15 @@ class IPay88
 			$trx = Transaction::with('user')
 			->join('transaction_payment_ipay88s','transaction_payment_ipay88s.id_transaction','=','transactions.id_transaction')
 			->where('transactions.id_transaction',$reference)->first();
-			if(!$trx) return false;
+        	$payment_ipay = TransactionPaymentIpay88::where('id_transaction',$trx->id_transaction)->first();
+			if(!($trx && $payment_ipay)) return false;
 			$data += [
 				'RefNo' => $trx->transaction_receipt_number,
 				'Amount' => $trx->amount,
 				'ProdDesc' => Setting::select('value_text')->where('key','ipay88_product_desc')->pluck('value_text')->first()?:$trx->transaction_receipt_number,
 				'UserName' => $trx->user->name,
 				'UserEmail' => $trx->user->email,
-				'UserContact' => $trx->user->phone,
+				'UserContact' => $payment_ipay->user_contact?:$trx->user->phone,
 				'Remark' => '',
 				'ResponseURL' => env('API_URL').'api/ipay88/detail/trx',
 				'BackendURL' => env('API_URL').'api/ipay88/notif/trx',
@@ -124,14 +129,15 @@ class IPay88
 			->join('deals_payment_ipay88s','deals_payment_ipay88s.id_deals_user','=','deals_users.id_deals_user')
 			->join('deals','deals.id_deals','=','deals_payment_ipay88s.id_deals')
 			->first();
-			if(!$deals_user) return false;
+        	$payment_ipay = DealsPaymentIpay88::where('id_deals_user',$deals_user->id_deals_user)->first();
+			if(!($deals_user && $payment_ipay)) return false;
 			$data += [
 				'RefNo' => $deals_user->order_id,
 				'Amount' => $deals_user->amount,
 				'ProdDesc' => 'Voucher '.$deals_user->deals_title,
 				'UserName' => $deals_user->user->name,
 				'UserEmail' => $deals_user->user->email,
-				'UserContact' => $deals_user->user->phone,
+				'UserContact' => $payment_ipay->user_contact?:$deals_user->user->phone,
 				'Remark' => '',
 				'ResponseURL' => env('API_URL').'api/ipay88/detail/deals',
 				'BackendURL' => env('API_URL').'api/ipay88/notif/deals',
@@ -193,7 +199,7 @@ class IPay88
 	 * @param  String $type 	trx/deals
 	 * @return Object           TransactionPaymentIpay88 / DealsPaymentIpay88
 	 */
-	public function insertNewTransaction($data, $type='trx',$grandtotal) {
+	public function insertNewTransaction($data, $type='trx',$grandtotal,$post=null) {
 		$result = TransactionPaymentIpay88::where('id_transaction',$data['id_transaction'])->first();
 		if($result){
 			return $result;
@@ -201,7 +207,10 @@ class IPay88
 		if($type == 'trx'){
 			$toInsert = [
 				'id_transaction' => $data['id_transaction'],
-				'amount' => $grandtotal*100
+				'amount' => $grandtotal*100,
+				'payment_id' => $this->getPaymentId($post['payment_id']??''),
+				'payment_method' => $this->getPaymentMethod($post['payment_id']??''),
+				'user_contact' => $post['phone']??null
 			];
 
 			$result = TransactionPaymentIpay88::create($toInsert);
@@ -215,6 +224,13 @@ class IPay88
 		}
 		return $result;
 	}
+	/**
+	 * Update transaction ipay table
+	 * @param  Model $model     [Transaction/Deals]Ipay88 Object or Integer => id_transaction
+	 * @param  Array $data 		update data (request data from ipay)
+	 * @param  Boolean $response_only  Save response requery only, ignore other
+	 * @param  Boolean $saveToLog  Save update data to log or not
+	 */
 	public function update($model,$data,$response_only = false,$saveToLog = true) {
 		if($response_only){
 			return $model->update(['requery_response'=>$data['requery_response']]);
@@ -222,7 +238,21 @@ class IPay88
 		DB::beginTransaction();
         switch ($data['type']) {
             case 'trx':
-            	$trx = Transaction::with('user')->where('id_transaction',$model->id_transaction)->first();
+            	$amount = 0;
+            	if(is_numeric($model)){
+	            	$id_transaction = $model;
+            	} else {
+            		$id_transaction = $model->id_transaction;
+            		$amount = $model->amount / 100;
+            	}
+            	$trx = Transaction::with('user','outlet')->where('id_transaction',$id_transaction)->first();
+            	if (!$amount) {
+            		$amount = $trx->transaction_grandtotal;
+            	}
+                $mid = [
+                    'order_id' => $trx['transaction_receipt_number'],
+                    'gross_amount' => $amount
+                ];
             	switch ($data['Status']) {
             		case '1':
 	                    $update = $trx->update(['transaction_payment_status'=>'Completed','completed_at'=>date('Y-m-d H:i:s')]);
@@ -234,20 +264,32 @@ class IPay88
 	                        ];
 	                    }
 
+	                    //inset pickup_at when pickup_type = right now
+						if($trx['trasaction_type'] == 'Pickup Order'){
+							$detailTrx = TransactionPickup::where('id_transaction', $id_transaction)->first();
+							if($detailTrx['pickup_type'] == 'right now'){
+								$settingTime = Setting::where('key', 'processing_time')->first();
+								if($settingTime && isset($settingTime['value'])){
+									$updatePickup = TransactionPickup::where('id_transaction', $detailTrx['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s', strtotime('+ '.$settingTime['value'].'minutes'))]);
+								}else{
+									$updatePickup = TransactionPickup::where('id_transaction', $detailTrx['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s')]);
+								}
+							}
+						}
+
 				        $trx->load('outlet');
-				        $trx->load('productTransaction');
-				        $send = app($this->autocrm)->SendAutoCRM('Transaction Success', $trx->user->phone, [
-				            'notif_type' => 'trx',
-				            'header_label' => 'Sukses',
-				            'id_transaction' => $trx['id_transaction'],
-				            'date' => $trx['transaction_date'],
-				            'status' => $trx['transaction_payment_status'],
-				            'name'  => $trx->user->name,
-				            'order_id' => $trx['transaction_receipt_number'],
-				            'outlet_name' => $trx->outlet->outlet_name,
-				            'detail' => $this->getHtml($trx, $trx['productTransaction'], $trx->user->name, $trx->user->phone, $trx['transaction_date'], $trx->outlet->outlet_name, $trx['transaction_receipt_number']),
-				            'id_reference' => $trx['transaction_receipt_number'].','.$trx['id_outlet']
-				        ]);
+						$trx->load('productTransaction');
+
+						$userData = User::where('id', $trx['id_user'])->first();
+						$config_fraud_use_queue = Configs::where('config_name', 'fraud use queue')->first()->is_active;
+
+						if($config_fraud_use_queue == 1){
+							FraudJob::dispatch($userData, $trx, 'transaction')->onConnection('fraudqueue');
+						}else {
+							$checkFraud = app($this->setting_fraud)->checkFraudTrxOnline($userData, $trx);
+						}
+
+				        $send = app($this->notif)->notification($mid, $trx);
             			break;
 
             		case '6':
@@ -262,20 +304,9 @@ class IPay88
             			break;
 
             		case '0':
-	                    $update = $trx->update(['transaction_payment_status'=>'Cancelled']);
+	                    $update = $trx->update(['transaction_payment_status'=>'Cancelled','void_date'=>date('Y-m-d H:i:s')]);
 		                $trx->load('outlet_name');
-				        $send = app($this->autocrm)->SendAutoCRM('Transaction Failed', $trx->user->phone, [
-				            'notif_type' => 'trx',
-				            'header_label' => 'Gagal',
-				            'date' => $trx['transaction_date'],
-				            'id_transaction' => $trx['id_transaction'],
-				            'status' => $trx['transaction_payment_status'],
-				            'name'  => $trx->user->name,
-				            'id' => $trx['transaction_receipt_number'],
-				            'outlet_name' => $trx->outlet->outlet_name,
-				            'detail' => $this->getHtml($trx, $trx['productTransaction'], $trx->user->name, $trx->user->phone, $trx['transaction_date'], $trx->outlet->outlet_name, $trx['transaction_receipt_number']),
-				            'id_reference' => $trx['transaction_receipt_number'].','.$trx['id_outlet']
-				        ]);
+		                // $send = app($this->notif)->notificationDenied($mid, $trx);
 
 				        //return balance
 				        $payBalance = TransactionMultiplePayment::where('id_transaction', $trx->id_transaction)->where('type', 'Balance')->first();
@@ -400,7 +431,15 @@ class IPay88
                 # code...
                 break;
         }
+    	if(is_numeric($model)){
+        	DB::commit();
+        	return 1;
+    	}
         if(!$saveToLog){
+			$up = $model->update([
+				'status' => $data['Status'],
+				'requery_response' => $data['requery_response']??''
+			]);
         	DB::commit();
         	return 1;
         }
@@ -480,7 +519,11 @@ class IPay88
     	return $this->payment_id[$payment_method]??null;
     }
     public function getPaymentMethod($payment_id,$pretty=true){
-        $payment_method = array_flip($this->payment_id)[$payment_id]??null;
+    	if(is_numeric($payment_id)){
+	        $payment_method = array_flip($this->payment_id)[$payment_id]??null;
+    	}else{
+    		$payment_method = $payment_id;
+    	}
     	if($pretty){
 	        $payment_method = $payment_method?str_replace('_', ' ', $payment_method):null;
     	}
