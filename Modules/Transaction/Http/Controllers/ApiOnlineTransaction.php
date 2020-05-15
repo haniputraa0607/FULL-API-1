@@ -1477,7 +1477,7 @@ class ApiOnlineTransaction extends Controller
             $insertTransaction['timer_ovo'] = NULL;
             // $insertTransaction['message_timeout_ovo'] = "You have 0 seconds remaning to complete the payment";
         }
-        $insertTransaction['message_timeout_ovo'] = "Sorry, your payment deadline has expired";
+        $insertTransaction['message_timeout_ovo'] = "Sorry, your payment has expired";
         return response()->json([
             'status'   => 'success',
             'redirect' => true,
