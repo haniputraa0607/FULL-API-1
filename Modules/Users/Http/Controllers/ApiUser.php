@@ -1524,7 +1524,19 @@ class ApiUser extends Controller
             }
             if($data[0]['phone_verified'] == 0){
                 if(Auth::attempt(['phone' => $phone, 'password' => $request->json('pin')])){
-                    if(isset($post['device_id']) && isset($post['device_type'])) {
+                    if(isset($post['device_id'])) {
+                        if(!isset($post['device_type'])){
+                            if(!empty($request->header('user-agent-view'))){
+                                $useragent = $request->header('user-agent-view');
+                            }else{
+                                $useragent = $_SERVER['HTTP_USER_AGENT'];
+                            }
+
+                            if(stristr($useragent,'iOS')) $post['device_type'] = 'iOS';
+                            if(stristr($useragent,'okhttp')) $post['device_type'] = 'Android';
+                            if(stristr($useragent,'GuzzleHttp')) $post['device_type'] = 'Browser';
+                        }
+
                         $device_id = $post['device_id'];
                         $device_type = $post['device_type'];
                         $fraud = FraudSetting::where('parameter', 'LIKE', '%device ID%')->where('fraud_settings_status', 'Active')->first();

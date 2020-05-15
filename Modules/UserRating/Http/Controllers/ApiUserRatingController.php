@@ -283,7 +283,7 @@ class ApiUserRatingController extends Controller
                     'transaction_vouchers.deals_voucher.deal',
                     'promo_campaign_promo_code.promo_campaign',
                     'outlet.city')
-                    ->whereDate('transaction_date','>=',$max_date)
+                    ->whereDate('transaction_date','>',$max_date)
                     ->orderBy('transaction_date','desc')
                     ->first();
             }else{
@@ -297,7 +297,7 @@ class ApiUserRatingController extends Controller
                     'transaction_vouchers.deals_voucher.deal',
                     'promo_campaign_promo_code.promo_campaign',
                     'outlet.city')
-                    ->whereDate('transaction_date','>=',$max_date)
+                    ->whereDate('transaction_date','>',$max_date)
                     ->orderBy('transaction_date','desc')
                     ->first();
             }

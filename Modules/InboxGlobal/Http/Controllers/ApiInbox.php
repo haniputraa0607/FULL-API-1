@@ -13,6 +13,7 @@ use App\Http\Models\InboxGlobalRule;
 use App\Http\Models\InboxGlobalRuleParent;
 use App\Http\Models\InboxGlobalRead;
 use App\Http\Models\News;
+use App\Http\Models\Setting;
 
 use Modules\InboxGlobal\Http\Requests\MarkedInbox;
 use Modules\InboxGlobal\Http\Requests\DeleteUserInbox;
@@ -47,10 +48,13 @@ class ApiInbox extends Controller
         $countUnread = 0;
         $countInbox = 0;
         $arrDate = [];
+        $setting_date = Setting::select('value')->where('key','inbox_max_days')->pluck('value')->first();
+        $max_date = date('Y-m-d',time() - ((is_numeric($setting_date)?$setting_date:30) * 86400));
         $inboxes = InboxGlobal::select(\DB::raw('"global" as type, id_inbox_global as id_inbox,inbox_global_subject as subject,inbox_global_clickto as clickto, inbox_global_link as link, inbox_global_id_reference as id_reference, inbox_global_content as content, created_at, "unread" as status, 0 as id_brand'))->with('inbox_global_rule_parents', 'inbox_global_rule_parents.rules')
             ->where('inbox_global_start', '<=', $today)
             ->where('inbox_global_end', '>=', $today)
-            ->union(UserInbox::select(\DB::raw('"private" as type,id_user_inboxes as id_inbox,inboxes_subject as subject,inboxes_clickto as clickto,inboxes_link as link,inboxes_id_reference as id_reference,inboxes_content as content,inboxes_send_at as created_at, CASE WHEN `read` = 1 THEN "read" ELSE "unread" END as status,id_brand'))->where('id_user','=',$user['id']))
+            ->whereDate('inbox_global_start','>',$max_date)
+			->union(UserInbox::select(\DB::raw('"private" as type,id_user_inboxes as id_inbox,inboxes_subject as subject,inboxes_clickto as clickto,inboxes_link as link,inboxes_id_reference as id_reference,inboxes_content as content,inboxes_send_at as created_at, CASE WHEN `read` = 1 THEN "read" ELSE "unread" END as status,id_brand'))->where('id_user','=',$user['id'])->whereDate('inboxes_send_at','>',$max_date))
             ->orderBy('created_at', 'desc');
         if($request->page){
             $inboxes = $inboxes->paginate(50)
@@ -259,12 +263,14 @@ class ApiInbox extends Controller
 
 		$today = date("Y-m-d H:i:s");
 		$countUnread = 0;
-
+        $setting_date = Setting::select('value')->where('key','inbox_max_days')->pluck('value')->first();
+        $max_date = date('Y-m-d',time() - ((is_numeric($setting_date)?$setting_date:30) * 86400));
 		$read = array_pluck(InboxGlobalRead::where('id_user', $user['id'])->get(), 'id_inbox_global');
 
 		$globals = InboxGlobal::with('inbox_global_rule_parents', 'inbox_global_rule_parents.rules')
 							->where('inbox_global_start', '<=', $today)
 							->where('inbox_global_end', '>=', $today)
+                            ->whereDate('inbox_global_start','>=',$max_date)
 							->get()
 							->toArray();
 
@@ -285,7 +291,7 @@ class ApiInbox extends Controller
 			}
 		}
 
-		$privates = UserInbox::where('id_user','=',$user['id'])->where('read', '0')->get();
+		$privates = UserInbox::where('id_user','=',$user['id'])->where('read', '0')->whereDate('inboxes_send_at','>=',$max_date)->get();
 
 
 		$countUnread = $countUnread + count($privates);
