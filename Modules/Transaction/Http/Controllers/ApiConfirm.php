@@ -732,7 +732,7 @@ class ApiConfirm extends Controller
                     }else{
                         if(!isset($payOvo['status_code']) || $payOvo['status_code'] == '404'){
                             $dataUpdate['response_detail'] = "Transaction Timeout";
-                            $dataUpdate['response_description'] = "The payment deadline has expired";
+                            $dataUpdate['response_description'] = "your payment has expired";
                         }else{
                             $dataUpdate['response_detail'] = "Transaction Failed";
                             $dataUpdate['response_description'] = "Failed push payment";

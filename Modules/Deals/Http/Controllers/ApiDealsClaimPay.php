@@ -385,7 +385,7 @@ class ApiDealsClaimPay extends Controller
                             $result['timer_ovo'] = NULL;
                             // $result['message_timeout_ovo'] = "You have 0 seconds remaning to complete the payment";
                         }
-                        $result['message_timeout_ovo'] = "Sorry, your payment deadline has expired";
+                        $result['message_timeout_ovo'] = "Sorry, your payment has expired";
                         $result['redirect'] = true;
                         $result['ovo'] = $return['result']['ovo'];
                     }else{
@@ -799,7 +799,7 @@ class ApiDealsClaimPay extends Controller
                 }else{
                     if(!isset($payOvo['status_code']) || $payOvo['status_code'] == '404'){
                         $dataUpdate['response_detail'] = "Transaction Timeout";
-                        $dataUpdate['response_description'] = "The payment deadline has expired";
+                        $dataUpdate['response_description'] = "your payment has expired";
                     }else{
                         $dataUpdate['response_detail'] = "Transaction Failed";
                         $dataUpdate['response_description'] = "Failed push payment";
