@@ -1434,8 +1434,10 @@ class ApiOnlineTransaction extends Controller
             ];
             if($config_fraud_use_queue == 1){
                 FraudJob::dispatch($user, $data, 'referral user')->onConnection('fraudqueue');
+                FraudJob::dispatch($user, $data, 'referral')->onConnection('fraudqueue');
             }else{
                 app($this->setting_fraud)->fraudCheckReferralUser($data);
+                app($this->setting_fraud)->fraudCheckReferral($data);
             }
             //======= End Check Fraud Referral User =======//
         }
