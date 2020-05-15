@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use DB;
 
 use App\Http\Models\Transaction;
+use App\Http\Models\TransactionPickup;
 use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\DealsUser;

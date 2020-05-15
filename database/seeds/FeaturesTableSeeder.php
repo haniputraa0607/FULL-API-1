@@ -1986,7 +1986,15 @@ class FeaturesTableSeeder extends Seeder
                     'feature_module' => 'Setting Timer OVO',
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
-                )
+                ),
+            247 =>
+                array (
+                    'id_feature' => 248,
+                    'feature_type' => 'Setting',
+                    'feature_module' => 'Setting Inbox User',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
         ));
     }
 }

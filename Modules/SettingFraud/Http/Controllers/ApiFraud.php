@@ -670,7 +670,7 @@ class ApiFraud extends Controller
                     ];
                     $data[] = $dtInsert;
                 }
-                FraudBetweenTransaction::insert($data);
+                DB::table('fraud_between_transaction')->insert($data);
             }
 
             if($fraudSetting['forward_admin_status'] == '1'){
@@ -926,9 +926,9 @@ class ApiFraud extends Controller
         $start = date('Y-m-d H:i:s',strtotime('-'.(int)$time.' minutes',strtotime($end)));
 
         $getDailyLog = DailyCheckPromoCode::where('id_user', $data['id_user'])
-                        ->where('created_at','>=',$start)
-                        ->where('created_at','<=',$end)
-                        ->count();
+            ->where('created_at','>=',$start)
+            ->where('created_at','<=',$end)
+            ->count();
 
         if($getDailyLog > $numberOfViolation){
             $userData = User::where('id', $data['id_user'])->first();
@@ -990,7 +990,7 @@ class ApiFraud extends Controller
             $start = date('Y-m-d', strtotime('-'.$paramater.' day', strtotime($end)));
 
             $getDataTransaction = DailyTransactions::whereRaw('DATE(created_at) BETWEEN "'.$start.'" AND "'.$end.'"')
-                                ->where('referral_code','ABC1')
+                                ->where('referral_code', $data['referral_code'])
                                 ->groupBy('referral_code')
                                 ->select('referral_code', DB::raw('COUNT(referral_code) as count_data'))
                                 ->get()->toArray();
@@ -1585,7 +1585,7 @@ class ApiFraud extends Controller
 
                     if($differentTime <= (int)$parameterDetail){
                         $userData = User::where('id', $getDailyTrxUser[$i]['id_user'])->first();
-                        $checkFraudMinute = $this->SendFraudDetection($fraudSetting['id_fraud_setting'], $userData, null, null, 0, null, 0, 0, [$getDailyTrxUser[$i]['id_transaction'], $getDailyTrxUser[$i+1]['id_transaction']]);
+                        $checkFraudMinute = $this->checkFraud($fraudSetting, $userData, null, 0, 0, null, 0, [$getDailyTrxUser[$i]['id_transaction'], $getDailyTrxUser[$i+1]['id_transaction']]);
                     }
                     DailyTransactions::where('id_daily_transaction', $getDailyTrxUser[$i]['id_daily_transaction'])->update(['flag_check' => 1]);
                 }
@@ -1682,7 +1682,7 @@ class ApiFraud extends Controller
                 $contentEmail = ['data_fraud' => $content];
                 $sendFraud = $this->SendFraudDetection($fraudSetting['id_fraud_setting'], $userData, null, null, 0, $dt['fraud_setting_auto_suspend_status'], $dt['fraud_setting_forward_admin_status'], $contentEmail);
                 if($sendFraud){
-                    FraudDetectionLogReferral::where('id_fraud_detection_log_referral_users', $dt['id_fraud_detection_log_referral'])->update(['execution_status' => 1]);
+                    FraudDetectionLogReferral::where('id_fraud_detection_log_referral', $dt['id_fraud_detection_log_referral'])->update(['execution_status' => 1]);
                 }
             }
         }
