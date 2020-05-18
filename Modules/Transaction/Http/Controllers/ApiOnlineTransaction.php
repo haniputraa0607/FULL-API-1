@@ -1434,8 +1434,10 @@ class ApiOnlineTransaction extends Controller
             ];
             if($config_fraud_use_queue == 1){
                 FraudJob::dispatch($user, $data, 'referral user')->onConnection('fraudqueue');
+                FraudJob::dispatch($user, $data, 'referral')->onConnection('fraudqueue');
             }else{
                 app($this->setting_fraud)->fraudCheckReferralUser($data);
+                app($this->setting_fraud)->fraudCheckReferral($data);
             }
             //======= End Check Fraud Referral User =======//
         }
@@ -1475,7 +1477,7 @@ class ApiOnlineTransaction extends Controller
             $insertTransaction['timer_ovo'] = NULL;
             // $insertTransaction['message_timeout_ovo'] = "You have 0 seconds remaning to complete the payment";
         }
-        $insertTransaction['message_timeout_ovo'] = "Sorry, your payment deadline has expired";
+        $insertTransaction['message_timeout_ovo'] = "Sorry, your payment has expired";
         return response()->json([
             'status'   => 'success',
             'redirect' => true,

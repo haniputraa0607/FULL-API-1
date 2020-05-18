@@ -93,7 +93,7 @@ class IPay88Controller extends Controller
             // 'Transaction does not pass all fraud security check' => '',
         ];
         $error = '';
-        if($post['ErrDesc']) {
+        if($post['ErrDesc']??'') {
             $error = $errMap[ $post['ErrDesc'] ?? '' ] ?? 'Order canceled, an error occurred in the system';
         }
         $data = [

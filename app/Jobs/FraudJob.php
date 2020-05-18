@@ -145,6 +145,7 @@ class FraudJob implements ShouldQueue
                             'grand_total'                 => $dataTrx['transaction_grandtotal'],
                             'point_conversion'            => $settingPoint,
                             'membership_level'            => $level,
+                            'membership_level'            => $level,
                             'membership_point_percentage' => $percentageP * 100
                         ];
 
@@ -237,6 +238,8 @@ class FraudJob implements ShouldQueue
             }
         }elseif ($this->type == 'referral user'){
             app('Modules\SettingFraud\Http\Controllers\ApiFraud')->fraudCheckReferralUser($this->data);
+        }elseif ($this->type == 'referral'){
+            app('Modules\SettingFraud\Http\Controllers\ApiFraud')->fraudCheckReferral($this->data);
         }
     }
 }
