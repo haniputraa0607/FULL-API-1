@@ -1763,23 +1763,12 @@ class ApiTransaction extends Controller
 
             if ($list['trasaction_payment_type'] != 'Offline') {
                 if ($list['transaction_payment_status'] == 'Cancelled') {
-                    $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order awaits confirmation payment',
-                        'date'  => date('d F Y H:i', strtotime($list['created_at']))
-                    ];
                     foreach ($list['payment'] as $key => $value) {
                         if (isset($value['reject'])) {
-                            if(isset($value['name']) && $value['name'] == 'OVO'){
-                                $result['detail']['detail_status'][] = [
-                                    'text'  => 'Your transaction failed because ' . $value['reject'],
-                                    'date'  => date('d F Y H:i', strtotime($list['void_date']))
-                                ];
-                            }else{
-                                $result['detail']['detail_status'][] = [
-                                    'text'  => 'Your order has been canceled because ' . $value['reject'],
-                                    'date'  => date('d F Y H:i', strtotime($list['void_date']))
-                                ];
-                            }
+                            $result['detail']['detail_status'][] = [
+                                'text'  => 'Your transaction failed because ' . $value['reject'],
+                                'date'  => date('d F Y H:i', strtotime($list['void_date']))
+                            ];
                         } else {
                             $result['detail']['detail_status'][] = [
                                 'text'  => 'Your order has been canceled',
@@ -1787,6 +1776,10 @@ class ApiTransaction extends Controller
                             ];
                         }
                     }
+                    $result['detail']['detail_status'][] = [
+                        'text'  => 'Your order awaits confirmation payment',
+                        'date'  => date('d F Y H:i', strtotime($list['created_at']))
+                    ];
                 } else if($list['transaction_payment_status'] == 'Pending'){
                     $result['detail']['detail_status'][] = [
                         'text'  => 'Your order awaits confirmation payment',
