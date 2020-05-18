@@ -98,7 +98,7 @@ class FraudJob implements ShouldQueue
                             $percentageP = 0;
                         }
 
-                        $point = floor(app('Modules\POS\Http\Controllers\ApiPos')->count('point', $this->data) * $percentageP);
+                        $point = floor(app('Modules\POS\Http\Controllers\ApiPOS')->count('point', $this->data) * $percentageP);
                         $dataTrx['transaction_point_earned'] = $point;
                     }
 
@@ -114,7 +114,7 @@ class FraudJob implements ShouldQueue
 
                         $data = $this->data;
                         $data['total'] = $this->data['grand_total'];
-                        $cashback = floor(app('Modules\POS\Http\Controllers\ApiPos')->count('cashback', $data) * $percentageB);
+                        $cashback = floor(app('Modules\POS\Http\Controllers\ApiPOS')->count('cashback', $data) * $percentageB);
 
                         //count some trx user
                         $countSettingCashback = TransactionSetting::get();
