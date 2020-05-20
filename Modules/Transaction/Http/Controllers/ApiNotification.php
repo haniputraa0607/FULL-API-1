@@ -1584,16 +1584,9 @@ Detail: ".$link['short'],
         $list = Transaction::where([['id_transaction', $id]])->with(
             'user.city.province',
             'modifiers',
-            'productTransaction.product.product_group',
-            'productTransaction.product.product_variants',
-            'productTransaction.product.product_group.product_category',
-            'productTransaction.modifiers',
-            'productTransaction.product.product_photos',
-            'productTransaction.product.product_discounts',
-            'transaction_payment_offlines',
-            'modifiers',
+            'productTransaction',
+            'products_variant',
             'outlet.city')->first();
-
         $dataPayment = [];
 
         $multiPayment = TransactionMultiplePayment::where('id_transaction', $list['id_transaction'])->get();
@@ -1618,7 +1611,7 @@ Detail: ".$link['short'],
                         ];
                         array_push($dataPayment, $dataPush);
                     }
-                }elseif ($value->type == 'Ovo') {
+                }elseif (strtolower($value->type) == 'ovo') {
                     $getPayment = TransactionPaymentOvo::where('id_transaction', $list['id_transaction'])->first();
                     if (!empty($getPayment)) {
                         $dataPush = [
@@ -1627,7 +1620,7 @@ Detail: ".$link['short'],
                         ];
                         array_push($dataPayment, $dataPush);
                     }
-                }elseif ($value->type == 'Ipay88') {
+                }elseif ($value->type == 'IPay88') {
                     $getPayment = TransactionPaymentIpay88::where('id_transaction', $list['id_transaction'])->first();
                     if (!empty($getPayment)) {
                         $dataPush = [
@@ -1654,11 +1647,11 @@ Detail: ".$link['short'],
 
         $detail = [];
 
-        $qrTest= '';
+        $qr= '';
 
         if ($list['trasaction_type'] == 'Pickup Order') {
             $detail = TransactionPickup::where('id_transaction', $list['id_transaction'])->first();
-            $qrTest = $detail['order_id'];
+            $qr = $detail['order_id'];
         } elseif ($list['trasaction_type'] == 'Delivery') {
             $detail = TransactionShipment::with('city.province')->where('id_transaction', $list['id_transaction'])->first();
         }
@@ -1669,7 +1662,7 @@ Detail: ".$link['short'],
 
         $list['date'] = $list['transaction_date'];
 
-        $qrCode = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data='.$qrTest;
+        $qrCode = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data='.$qr;
         // $qrCode = 'https://chart.googleapis.com/chart?chl='.$qrTest.'&chs=250x250&cht=qr&chld=H%7C0';
         $qrCode = html_entity_decode($qrCode);
         $list['qr'] = $qrCode;

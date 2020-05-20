@@ -139,6 +139,14 @@ class Transaction extends Model
 					->withTimestamps();
 	}
 
+    public function products_variant()
+    {
+        return $this->belongsToMany(\App\Http\Models\Product::class, 'transaction_products', 'id_transaction', 'id_product')
+            ->select('product_variants.*')
+            ->join('product_product_variants', 'product_product_variants.id_product', '=', 'products.id_product_category')
+            ->join('product_variants', 'product_variants.id_product_variant', '=', 'product_product_variants.id_product_variant');
+    }
+
 	public function modifiers()
 	{
 		return $this->hasMany(\App\Http\Models\TransactionProductModifier::class,'id_transaction');
