@@ -614,9 +614,27 @@ class ApiOnlineTransaction extends Controller
             ];
         } elseif($post['type'] == 'GO-SEND'){
             //check key GO-SEND
-            $checkKey = Gosend::checkKey();
-            if(isset($checkKey) && $checkKey['status'] == 'fail'){
-                DB::rollBack();
+            $dataAddress = $post['destination'];
+            $dataAddress['latitude'] = number_format($dataAddress['latitude'],8);
+            $dataAddress['longitude'] = number_format($dataAddress['longitude'],8);
+            if($dataAddress['id_user_address']??false){
+                $dataAddressKeys = ['id_user_address'=>$dataAddress['id_user_address']];
+            }else{
+                $dataAddressKeys = [
+                    'latitude' => $dataAddress['latitude'],
+                    'longitude' => $dataAddress['longitude']
+                ];
+            }
+            $dataAddressKeys['id_user'] = $user['id'];
+            $addressx = UserAddress::where($dataAddressKeys)->first();
+            if(!$addressx){
+                UserAddress::create($dataAddressKeys+$dataAddress);
+            }elseif(!$addressx->favorite){
+                $addressx->update($dataAddress);
+            }
+            $checkKey = GoSend::checkKey();
+            if(is_array($checkKey) && $checkKey['status'] == 'fail'){
+                DB::rollback();
                 return response()->json($checkKey);
             }
 
