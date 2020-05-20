@@ -84,7 +84,8 @@ class User extends Authenticatable
 		'first_pin_change',
 		'celebrate',
 		'job',
-		'address'
+		'address',
+        'email_verified_valid_time'
 	];
 
 	public function city()

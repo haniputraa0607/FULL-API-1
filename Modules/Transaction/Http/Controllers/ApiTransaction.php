@@ -1624,7 +1624,7 @@ class ApiTransaction extends Controller
             if ($list['trasaction_type'] == 'Pickup Order') {
                 $detail = TransactionPickup::where('id_transaction', $list['id_transaction'])->first()->toArray();
                 if($detail){
-                    $qr      = $detail['order_id'].strtotime($list['transaction_date']);
+                    $qr      = $detail['order_id'];
 
                     $qrCode = 'https://chart.googleapis.com/chart?chl='.$qr.'&chs=250x250&cht=qr&chld=H%7C0';
                     $qrCode =   html_entity_decode($qrCode);
