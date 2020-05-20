@@ -15,6 +15,7 @@ use App\Http\Models\TransactionPickup;
 use App\Http\Models\TransactionPickupGoSend;
 use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentMidtran;
+use Modules\IPay88\Entities\TransactionPaymentIpay88;
 use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\TransactionPaymentOvo;
 use App\Http\Models\TransactionPaymentOffline;
@@ -891,6 +892,18 @@ class ApiOrder extends Controller
                                     ]);
                                 }
                             }
+                        } elseif (strtolower($pay['type']) == 'ipay88') {
+                            $payIpay = TransactionPaymentIpay88::find($pay['id_payment']);
+                            if ($payIpay) {
+                                $refund = app($this->balance)->addLogBalance($order['id_user'], $point = ($payIpay['amount']/100), $order['id_transaction'], 'Rejected Order', $order['transaction_grandtotal']);
+                                if ($refund == false) {
+                                    DB::rollback();
+                                    return response()->json([
+                                        'status'   => 'fail',
+                                        'messages' => ['Insert Cashback Failed'],
+                                    ]);
+                                }
+                            }
                         }
                         else{
                             $payMidtrans = TransactionPaymentMidtran::find($pay['id_payment']);
@@ -925,6 +938,7 @@ class ApiOrder extends Controller
                 }else{
                     $payMidtrans = TransactionPaymentMidtran::where('id_transaction', $order['id_transaction'])->first();
                     $payOvo = TransactionPaymentOvo::where('id_transaction', $order['id_transaction'])->first();
+                    $payIpay     = TransactionPaymentIpay88::where('id_transaction', $order['id_transaction'])->first();
                     if($payMidtrans){
                         $refund = app($this->balance)->addLogBalance( $order['id_user'], $payMidtrans['gross_amount'], $order['id_transaction'], 'Rejected Order Midtrans', $order['transaction_grandtotal']);
                         if ($refund == false) {
@@ -942,6 +956,15 @@ class ApiOrder extends Controller
                             return response()->json([
                                 'status'    => 'fail',
                                 'messages'  => ['Insert Cashback Failed']
+                            ]);
+                        }
+                    } elseif ($payIpay) {
+                        $refund = app($this->balance)->addLogBalance($order['id_user'], $point = ($payIpay['amount']/100), $order['id_transaction'], 'Rejected Order', $order['transaction_grandtotal']);
+                        if ($refund == false) {
+                            DB::rollback();
+                            return response()->json([
+                                'status'   => 'fail',
+                                'messages' => ['Insert Cashback Failed'],
                             ]);
                         }
                     }else{
