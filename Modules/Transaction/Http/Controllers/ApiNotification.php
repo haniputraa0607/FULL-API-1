@@ -1586,6 +1586,8 @@ Detail: ".$link['short'],
             'modifiers',
             'productTransaction',
             'products_variant',
+            'vouchers',
+            'promo_campaign_promo_code',
             'outlet.city')->first();
         $dataPayment = [];
 
