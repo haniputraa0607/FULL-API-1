@@ -291,7 +291,7 @@ class ApiPromoCampaign extends Controller
             'promo_campaign_tier_discount_product',
             'promo_campaign_buyxgety_rules.product',
             'promo_campaign_buyxgety_product_requirement',
-            'promo_campaign_reports'
+            // 'promo_campaign_reports'
         ];
         $promoCampaign = PromoCampaign::with($data)->where('id_promo_campaign', '=', $post['id_promo_campaign'])->first();
         if ($promoCampaign['code_type'] == 'Single') {
@@ -1519,6 +1519,12 @@ class ApiPromoCampaign extends Controller
         }
         else
         {
+        	$promo_code = (string) $promo_code;
+        	$checkCode = PromoCampaignPromoCode::where('promo_code',$promo_code)->first();
+
+        	if ($checkCode) {
+        		return ['status' => 'fail', 'messages' => 'promo code already exists'];
+        	}
             $generateCode['id_promo_campaign']  = $id;
             $generateCode['promo_code']         = $promo_code;
             $generateCode['created_at']         = date('Y-m-d H:i:s');

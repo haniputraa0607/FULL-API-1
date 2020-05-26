@@ -21,6 +21,8 @@ use App\Http\Models\SpinTheWheel;
 use App\Http\Models\Setting;
 use Modules\Brand\Entities\Brand;
 use App\Http\Models\DealsPromotionTemplate;
+use Modules\ProductVariant\Entities\ProductGroup;
+use App\Http\Models\Product;
 
 use Modules\Deals\Entities\DealsProductDiscount;
 use Modules\Deals\Entities\DealsProductDiscountRule;
@@ -29,6 +31,8 @@ use Modules\Deals\Entities\DealsTierDiscountRule;
 use Modules\Deals\Entities\DealsBuyxgetyProductRequirement;
 use Modules\Deals\Entities\DealsBuyxgetyRule;
 use Modules\Deals\Entities\DealsUserLimit;
+use Modules\Deals\Entities\DealsContent;
+use Modules\Deals\Entities\DealsContentDetail;
 
 use DB;
 
@@ -38,9 +42,12 @@ use Modules\Deals\Http\Requests\Deals\Delete;
 use Modules\Deals\Http\Requests\Deals\ListDeal;
 use Modules\Deals\Http\Requests\Deals\DetailDealsRequest;
 use Modules\Deals\Http\Requests\Deals\UpdateContentRequest;
+use Modules\Deals\Http\Requests\Deals\ImportDealsRequest;
 use Modules\Deals\Http\Requests\Deals\UpdateComplete;
 
 use Illuminate\Support\Facades\Schema;
+
+use Image;
 
 class ApiDeals extends Controller
 {
@@ -857,7 +864,7 @@ class ApiDeals extends Controller
                 $calc = '*';
             }
 
-            if(is_numeric($calc)){
+            if(is_numeric($calc) && $value['deals_total_voucher'] !== 0){
                 if($calc||$admin){
                     $deals[$key]['percent_voucher'] = $calc*100/$value['deals_total_voucher'];
                 }else{
@@ -1533,4 +1540,727 @@ class ApiDeals extends Controller
 
         return response()->json(['status' => 'success']);
     }
+
+    public function export(DetailDealsRequest $request)
+    {
+        $post = $request->json()->all();
+        $user = $request->user();
+
+        $deals = $this->getDealsData($post['id_deals'], $post['step'], $post['deals_type']);
+
+        if (isset($deals)) {
+        	if (!empty($post['list_voucher'])) {
+        		$deals->load('deals_vouchers');
+        	}
+            $deals = $deals->toArray();
+        }else{
+            $deals = false;
+        }
+
+        $data['rule'] = [];
+        $data['outlet'] = [];
+        if ($deals) 
+        {
+	        $data['outlet'] = [];
+	        foreach ($deals['outlets'] as $key => $value) {
+	        	$data['outlet'][] = [
+	        		'outlet_code' => $value['outlet_code'],
+	        		'outlet_name' => $value['outlet_name']
+	        	];
+	        }
+	        if ($data['outlet'] == []) {
+	        	unset($data['outlet']);
+	        }
+
+	        $data['content'] = [];
+	        $i = 0;
+	        foreach ($deals['deals_content'] as $key => $value) {
+	        	$data['content'][$i] = [
+	        		'title' => $value['title'],
+	        		'visibility' => $value['is_active'] ? 'visible' : 'hidden'
+	        	];
+
+	        	foreach ($value['deals_content_details'] as $key2 => $value2) {
+	        		// return [$value2['content']];
+	        		$data['content'][$i]['detail_'.($key2+1)] = $value2['content'];
+	        	}
+	        	$i++;
+	        }
+
+	        switch ($deals['promo_type']) 
+	        {
+	        	case 'Product discount':
+	        		
+	        		$deals['is_all_product'] = $deals['deals_product_discount_rules']['is_all_product'];
+	        		$deals['product_discount_type'] = $deals['deals_product_discount_rules']['discount_type'];
+	        		$deals['product_discount_value'] = $deals['deals_product_discount_rules']['discount_value'];
+	        		$deals['product_discount_max_qty'] = $deals['deals_product_discount_rules']['max_product'];
+	        		$deals['product_discount_max_discount'] = $deals['deals_product_discount_rules']['max_percent_discount'];
+
+	        		$temp_product = [];
+	        		foreach ($deals['deals_product_discount'] as $key => $value) {
+	        			$temp_product[] = [
+	        				'product_code' => $value['product']['product_code']??$value['product_group']['product_group_code']??'', 
+	        				'product_name' => $value['product']['product_name']??$value['product_group']['product_group_name']??''
+	        			];
+	        		}
+
+	        		$data['detail_rule_product_discount'] = $temp_product;
+	        		if ($data['detail_rule_product_discount'] == [] ) {
+	        			unset($data['detail_rule_product_discount']);
+	        		}
+	        		break;
+	        	
+	        	case 'Tier discount':
+
+	        		$deals['tier_discount_product_code'] = $deals['deals_tier_discount_product']['product']['product_code']??$deals['deals_tier_discount_product']['product_group']['product_group_code']??'';
+	        		$deals['tier_discount_product_name'] = $deals['deals_tier_discount_product']['product']['product_name']??$deals['deals_tier_discount_product']['product_group']['product_group_name']??'';
+
+	        		$data['detail_rule_tier_discount'] = $deals['deals_tier_discount_rules'];
+	        		foreach ($data['detail_rule_tier_discount'] as $key => $value) {
+	        			unset(
+	        				$data['detail_rule_tier_discount'][$key]['id_deals_tier_discount_rule'],
+	        				$data['detail_rule_tier_discount'][$key]['id_deals']
+	        			);
+	        		}
+	        		if ($data['detail_rule_tier_discount'] == [] ) {
+	        			unset($data['detail_rule_tier_discount']);
+	        		}
+
+	        		break;
+	        	
+	        	case 'Buy X Get Y':
+					
+					$deals['buy_x_get_y_discount_product_code'] = $deals['deals_buyxgety_product_requirement']['product']['product_code']??$deals['deals_buyxgety_product_requirement']['product_group']['product_group_code']??'';
+	        		$deals['buy_x_get_y_discount_product_name'] = $deals['deals_buyxgety_product_requirement']['product']['product_name']??$deals['deals_buyxgety_product_requirement']['product_group']['product_group_name']??'';
+
+	        		$data['detail_rule_buyxgety_discount'] = [];
+	        		foreach ($deals['deals_buyxgety_rules'] as $key => $value) {
+	        			$data['detail_rule_buyxgety_discount'][] = [
+	        				'min_qty'	=> $value['min_qty_requirement'],
+	        				'max_qty' 	=> $value['max_qty_requirement'],
+	        				'discount_type'		=> $value['discount_type'],
+	        				'discount_value'	=> $value['discount_value'],
+	        				'max_discount' 		=> $value['max_percent_discount'],
+	        				'benefit_product_code' => $value['product']['product_code']??$value['product_group']['product_group_code']??'',
+	        				'benefit_product_name' => $value['product']['product_name']??$value['product_group']['product_group_name']??'',
+	        				'benefit_product_qty'  => $value['benefit_qty']
+	        			];
+	        		}
+
+	        		if ($data['detail_rule_buyxgety_discount'] == [] ) {
+	        			unset($data['detail_rule_buyxgety_discount']);
+	        		}
+	        		break;
+	        	
+	        	default:
+	        		$data['detail_rule'] = [];
+	        		break;
+	        }
+
+	        if (!empty($post['list_voucher'])) {
+	        	$temp_voucher = [];
+	        	foreach ($deals['deals_vouchers'] as $key => $value) {
+	        		$temp_voucher[]['voucher_code'] = $value['voucher_code'];
+	        	}
+
+	        	if (!empty($temp_voucher)) {
+        			$data['voucher'] = $temp_voucher;
+	        	}
+        	}
+
+	        unset(
+	        	$deals['id_deals'],
+	        	$deals['created_by'],
+	        	$deals['last_updated_by'],
+	        	$deals['created_by_user'],
+	        	$deals['outlets'],
+	        	$deals['deals_product_discount_rules'],
+	        	$deals['deals_product_discount'],
+	        	$deals['deals_tier_discount_rules'],
+	        	$deals['deals_tier_discount_product'],
+	        	$deals['deals_buyxgety_rules'],
+	        	$deals['deals_buyxgety_product_requirement'],
+	        	$deals['deals_status'],
+	        	$deals['deals_voucher_price_type'],
+	        	$deals['deals_voucher_price_pretty'],
+	        	$deals['url_webview'],
+	        	$deals['id_produk'],
+	        	$deals['id_brand'],
+	        	$deals['total_voucher_subscription'],
+	        	$deals['deals_total_claimed'],
+	        	$deals['deals_total_redeemed'],
+	        	$deals['deals_total_used'],
+	        	$deals['step_complete'],
+	        	$deals['created_at'],
+	        	$deals['updated_at'],
+	        	$deals['deals_vouchers'],
+	        	$deals['deals_content'],
+	        	$deals['deals_type']
+	        );
+
+	        $temp_deals = [];
+	        foreach ($deals as $key => $value) {
+	        	$temp_deals[] = [$key, $value];
+	        }
+	        $data['rule'] = $temp_deals;
+
+            $result = [
+                'status'  => 'success',
+                'result'  => $data
+            ];
+        } 
+        else 
+        {
+            $result = [
+                'status'  => 'fail',
+                'messages'  => ['Deals Not Found']
+            ];
+        }
+
+        return response()->json($result);
+    }
+
+    public function Import(ImportDealsRequest $request)
+    {
+    	$post = $request->json()->all();
+    	$deals = $post['data']['rule'];
+    	$image_path = 'img/deals/';
+    	$warning_image_path = 'img/deals/warning-image/';
+    	$errors = [];
+    	$warnings = [];
+
+    	db::beginTransaction();
+
+    	// save deals
+    	unset(
+    		$deals['deals_start'], 
+    		$deals['deals_end'], 
+    		$deals['deals_publish_start'],
+    		$deals['deals_publish_end'],
+    		$deals['deals_image']
+
+    	);
+    	$deals['deals_type'] 			= $post['deals_type'];
+    	$deals['deals_total_claimed'] 	= 0;
+    	$deals['deals_total_redeemed'] 	= 0;
+    	$deals['deals_total_used'] 		= 0;
+    	$deals['id_brand'] 				= Brand::select('id_brand')->first()['id_brand']??null;
+    	$deals['user_limit'] 			= $deals['user_limit']??0;
+        $deals['deals_voucher_start'] 	= !empty($post['deals_voucher_start']) ? date('Y-m-d H:i:s', strtotime($post['deals_voucher_start'])) : null;
+        $deals['deals_voucher_expired'] = !empty($post['deals_voucher_expired']) ? date('Y-m-d H:i:s', strtotime($post['deals_voucher_expired'])) : null;
+        $deals['deals_voucher_duration'] = $post['deals_voucher_duration']??null;
+        $deals['created_by'] 			= auth()->user()->id;
+        $deals['last_updated_by'] 		= auth()->user()->id;
+
+        if ($post['deals_type'] == 'Deals') {
+        	!empty($post['deals_start']) 	? $deals['deals_start'] = date('Y-m-d H:i:s', strtotime($post['deals_start'])) : $errors[] = 'Deals start date is required';
+	        !empty($post['deals_end']) 		? $deals['deals_end'] 	= date('Y-m-d H:i:s', strtotime($post['deals_end'])) : $errors[] = 'Deals end date is required';
+	        !empty($post['deals_publish_start']) ? $deals['deals_publish_start'] = date('Y-m-d H:i:s', strtotime($post['deals_publish_start'])) : $errors[] = 'Deals publish start date is required';
+	        !empty($post['deals_publish_end']) ? $deals['deals_publish_end'] = date('Y-m-d H:i:s', strtotime($post['deals_publish_end'])) : $errors[] = 'Deals publish end date is required';
+        }
+
+    	if (isset($deals['deals_voucher_type'])) {
+            if ($deals['deals_voucher_type'] == 'Unlimited') {
+            	$deals['deals_total_voucher'] = 0;
+            }
+
+            if ($deals['deals_type'] == 'Promotion')
+            {
+	            if($deals['deals_voucher_type'] == 'List Vouchers'){
+					$deals['deals_list_voucher'] = str_replace("\r\n", ',', $deals['voucher_code']);
+				}else{
+					$deals['deals_list_voucher'] = null;
+				}
+            }
+
+            if($deals['deals_voucher_type'] == 'List Vouchers'){
+            	$deals['deals_total_voucher'] = 0;
+            }
+        }
+
+		$deals['deals_image'] = $this->uploadImageFromURL($deals['url_deals_image'], $image_path);
+		if (empty($deals['deals_image'])) {
+			$warnings[] = 'Deals Image url\'s invalid';
+		}
+
+		$deals['deals_warning_image'] = $this->uploadImageFromURL($deals['url_deals_warning_image'], $warning_image_path, 'warning');
+		if (!empty($deals['url_deals_warning_image']) && empty($deals['deals_warning_image'])) {
+			$warnings[] = 'Deals warning Image url\'s invalid';
+		}
+		$create = Deal::create($deals);
+		
+		if (!$create) {
+			db::rollback();
+        	return ['status' => 'fail', 'messages' => ['Create deals failed']];
+		}
+
+		// save content & detail content
+		foreach ($post['data']['content'] as $key => $value) {
+			$content = [
+				'id_deals' => $create['id_deals'],
+				'title' => $value['title'],
+				'order' => $key,
+				'is_active' => ($value['visibility']??false) == 'visible' ? 1 : 0,
+			];
+
+			$saveContent = DealsContent::create($content);
+			unset($value['title'], $value['visibility']);
+			$i = 1;
+			foreach ($value as $key2 => $value2) {
+				$content_detail[$i] = [
+					'id_deals_content' => $saveContent['id_deals_content'],
+					'content' => $value2,
+					'order' => $i,
+					'created_at' => date('Y-m-d H:i:s'),
+            		'updated_at' => date('Y-m-d H:i:s')
+				];
+				$i++;
+			}
+			if (!empty($content_detail)) {
+				$saveContentDetail = DealsContentDetail::insert($content_detail);
+			}
+		}
+
+		// save outlet
+		if ( !empty($post['data']['outlet']) ) 
+		{
+			$outletCode = [];
+			$outletCodeName = [];
+			$id_outlet = [];
+			foreach ($post['data']['outlet']??[] as $key => $value) {
+				$outletCode[] = $value['outlet_code'];
+				$outletCodeName[$value['outlet_code']] = $value['outlet_name'];
+			}
+
+			$outlet = Outlet::whereIn('outlet_code', $outletCode)->select('id_outlet', 'outlet_code')->get();
+
+			foreach ($outlet as $key => $value) {
+				$id_outlet[] = $value['id_outlet'];
+				unset($outletCodeName[$value['outlet_code']]);
+			}
+			$saveOutlet = $this->saveOutlet($create, $id_outlet);
+
+			foreach ($outletCodeName as $key => $value) {
+				$errors[] = 'Outlet '.$key.' - '.$value.' not found';
+			}
+		}
+
+    	switch ($deals['promo_type']) 
+        {
+        	case 'Product discount':
+        		$rule['id_deals'] = $create['id_deals'];
+        		$rule['is_all_product'] = $deals['is_all_product'];
+        		$rule['discount_type'] 	= $deals['product_discount_type'];
+        		$rule['discount_value'] = $deals['product_discount_value'];
+        		$rule['max_product'] 	= $deals['product_discount_max_qty'];
+        		$rule['max_percent_discount'] = $deals['product_discount_max_discount'];
+        		$saveRule = DealsProductDiscountRule::create($rule);
+
+        		if (!empty($post['data']['detail_rule_product_discount'])) 
+				{
+					$ruleBenefit = [];
+					$ruleProductCode = [];
+					$ruleProductCodeName = [];
+					foreach ( $post['data']['detail_rule_product_discount']??[] as $key => $value ) {
+						$ruleProductCode[] = $value['product_code'];
+						$ruleProductCodeName[$value['product_code']] = $value['product_name'];
+					}
+
+					if ($create['product_type'] == 'single') {
+						$ruleProduct = Product::whereIn('product_code', $ruleProductCode)->select('id_product', 'product_code')->get();
+					}else{					
+						$ruleProduct = ProductGroup::where('product_group_code', $ruleProductCode)->select('id_product_group', 'product_group_code')->get();
+					}
+
+					foreach ($ruleProduct as $key => $value) {
+						$ruleProductId[$value['product_code']??$value['product_group_code']] = $value['id_product']??$value['product_group_code'];
+						unset($ruleProductCodeName[$value['product_code']??$value['product_group_code']]);
+					}
+
+	        		foreach ( $post['data']['detail_rule_product_discount']??[] as $key => $value ) {
+
+	        			if ( isset($ruleProductCodeName[$value['product_code']]) ) {
+	        				continue;
+	        			}
+
+	        			$ruleBenefit[] = [
+	        				'id_deals'				=> $create['id_deals'],
+	        				'product_type'			=> $create['product_type'],
+	        				'id_product' 			=> $ruleProductId[$value['product_code']],
+	        				'created_at' 			=> date('Y-m-d H:i:s'),
+	            			'updated_at' 			=> date('Y-m-d H:i:s')
+	        			];
+	        		}
+
+					$saveRuleBenefit = DealsProductDiscount::insert($ruleBenefit);
+
+					foreach ($ruleProductCodeName as $key => $value) {
+						$errors[] = 'Product '.$key.' - '.$value.' not found';
+					}
+				}
+        		break;
+        	
+        	case 'Tier discount':
+
+				$rule['id_deals'] = $create['id_deals'];
+				$rule['product_type'] = $create['product_type'];
+
+				if ($create['product_type'] == 'single') {
+					$rule['id_product'] = Product::where('product_code', $post['data']['rule']['tier_discount_product_code'])->select('id_product')->first()['id_product']??null;
+				}else{					
+					$rule['id_product'] = ProductGroup::where('product_group_code', $post['data']['rule']['tier_discount_product_code'])->select('id_product_group')->first()['id_product_group']??null;
+				}
+
+				if (empty($rule['id_product'])) {
+					$errors[] = 'Product '.$post['data']['rule']['tier_discount_product_code'].' - '.$post['data']['rule']['tier_discount_product_name'].' not found';
+					break;
+				}
+
+				$save = DealsTierDiscountProduct::create($rule);
+        		foreach ($post['data']['detail_rule_tier_discount'] as $key => $value) {
+
+        			$ruleBenefit[] = [
+        				'id_deals'				=> $create['id_deals'],
+        				'min_qty'				=> $value['min_qty'],
+        				'max_qty'				=> $value['max_qty'],
+        				'discount_type'			=> $value['discount_type'],
+        				'discount_value'		=> $value['discount_value'],
+        				'max_percent_discount'	=> $value['max_percent_discount'],
+        				'created_at' 			=> date('Y-m-d H:i:s'),
+	            		'updated_at' 			=> date('Y-m-d H:i:s')
+        			];
+        		}
+        		
+        		$saveRuleBenefit = DealsTierDiscountRule::insert($ruleBenefit);
+        		break;
+        	
+        	case 'Buy X Get Y':
+
+				$rule['id_deals'] = $create['id_deals'];
+				$rule['product_type'] = $create['product_type'];
+
+				if ($create['product_type'] == 'single') {
+					$rule['id_product'] = Product::where('product_code', $post['data']['rule']['buy_x_get_y_discount_product_code'])->select('id_product')->first()['id_product']??null;
+				}else{					
+					$rule['id_product'] = ProductGroup::where('product_group_code', $post['data']['rule']['buy_x_get_y_discount_product_code'])->select('id_product_group')->first()['id_product_group']??null;
+				}
+
+				if (empty($rule['id_product'])) {
+					$errors[] = 'Product '.$post['data']['rule']['buy_x_get_y_discount_product_code'].' - '.$post['data']['rule']['buy_x_get_y_discount_product_name'].' not found';
+					break;
+				}
+
+				$save = DealsBuyxgetyProductRequirement::create($rule);
+
+				if (!empty($post['data']['detail_rule_buyxgety_discount'])) 
+				{
+					$ruleBenefit = [];
+					$ruleProductCode = [];
+					$ruleProductCodeName = [];
+					foreach ( $post['data']['detail_rule_buyxgety_discount']??[] as $key => $value ) {
+						$ruleProductCode[] = $value['benefit_product_code'];
+						$ruleProductCodeName[$value['benefit_product_code']] = $value['benefit_product_name'];
+					}
+
+					$ruleProduct = Product::whereIn('product_code', $ruleProductCode)->select('id_product','product_code')->get();
+
+					foreach ($ruleProduct as $key => $value) {
+						$ruleProductId[$value['product_code']] = $value['id_product'];
+						unset($ruleProductCodeName[$value['product_code']]);
+					}
+
+	        		foreach ( $post['data']['detail_rule_buyxgety_discount']??[] as $key => $value ) {
+
+	        			if ( isset($ruleProductCodeName[$value['benefit_product_code']]) ) {
+	        				continue;
+	        			}
+
+	        			$ruleBenefit[] = [
+	        				'id_deals'				=> $create['id_deals'],
+	        				'min_qty_requirement'	=> $value['min_qty'],
+	        				'max_qty_requirement' 	=> $value['max_qty'],
+	        				'discount_type'			=> $value['discount_type'],
+	        				'discount_value'		=> $value['discount_value'],
+	        				'max_percent_discount' 	=> $value['max_discount'],
+	        				'benefit_id_product' 	=> $ruleProductId[$value['benefit_product_code']],
+	        				'benefit_qty'  			=> $value['benefit_product_qty'],
+	        				'created_at' 			=> date('Y-m-d H:i:s'),
+	            			'updated_at' 			=> date('Y-m-d H:i:s')
+	        			];
+	        		}
+
+					$saveRuleBenefit = DealsBuyxgetyRule::insert($ruleBenefit);
+
+					foreach ($ruleProductCodeName as $key => $value) {
+						$errors[] = 'Product '.$key.' - '.$value.' not found';
+					}
+				}
+        		break;
+        	
+        	default:
+        		$errors[] = 'Deals rules not found';
+        		break;
+        }
+
+        if ( !empty($post['data']['voucher']) ) {
+        	$voucher = array_column($post['data']['voucher'], 'voucher_code');
+        	
+        	$strVoucher = array_map(
+				function($value) { return (string) strtoupper($value); },
+				$voucher
+			);
+        	$voucher_new = DealsVoucher::whereIn('voucher_code', $strVoucher)->get()->toArray();
+        	$voucher_new = array_column($voucher_new, 'voucher_code');
+
+        	$voucher_diff = array_diff($strVoucher,$voucher_new);
+        	$voucher_same = array_intersect($voucher_new, $strVoucher);
+
+
+            if (empty($voucher_diff)) 
+            {
+            	$warnings[] = 'No vouchers imported';
+            }
+            else
+            {
+	        	$dataVoucher = [];
+	        	foreach ($voucher_diff as $value) {
+	                array_push($dataVoucher, [
+	                    'id_deals'             => $create['id_deals'],
+	                    'voucher_code'         => strtoupper($value),
+	                    'deals_voucher_status' => 'Available',
+	                    'created_at'           => date('Y-m-d H:i:s'),
+	                    'updated_at'           => date('Y-m-d H:i:s')
+	                ]);
+	            }
+
+	            $saveVoucher = DealsVoucher::insert($dataVoucher);
+	            $updateDeals = Deal::where('id_deals', $create['id_deals'])->update(['deals_total_voucher' => count($voucher_diff)]);
+            }
+
+        	foreach ($voucher_same as $key => $value) {
+        		$warnings[] = 'Voucher '.$value.' already exists';
+        	}
+        }
+        elseif ($create['deals_voucher_type'] == 'List Vouchers') 
+        {
+        	$warnings[] = 'No vouchers imported';
+        }
+
+        if (!empty($errors)) {
+        	db::rollback();
+        	return ['status' => 'fail', 'messages' => $errors];
+        }
+
+        db::commit();
+        $result = [
+        	'status' => 'success', 
+        	'messages' => ['Deals has been imported'],
+        	'deals'	=> ['id_deals' => $create['id_deals'], 'created_at'  => $create['created_at']]
+        ];
+        if (!empty($warnings)) {
+        	$result['warning'] = $warnings;
+        }
+    	return $result;
+    }
+
+    public function uploadImageFromURL($url, $path, $img_type='deals')
+    {
+    	if (empty($url)) {
+    		return null;
+    	}
+
+    	try {
+    		@$image = file_get_contents($url);
+    		
+	    	if ($image === false) {
+	    		return null;
+	    	}
+    	} catch (Exception $e) {
+	    	return null;
+    		
+    	}
+    	if ($img_type == 'warning') {
+    		$upload = $this->uploadPhotoStrict($image, ($path), 100, 100);
+    	}else{
+    		$upload = $this->uploadPhotoStrict($image, ($path), 500, 500);
+    	}
+    	
+		if (isset($upload['status']) && $upload['status'] == "success") {
+            $deals_image = $upload['path'];
+        } else {
+            $result = [
+                'error'    => 1,
+                'status'   => 'fail',
+                'messages' => ['fail upload image']
+            ];
+
+        	return $result;
+        }
+
+        return $deals_image;
+    }
+
+    public function getProductByCode($product_type, $code)
+    {
+		if ($product_type == 'single') 
+		{
+    		$product = Product::select('id_product')->whereIn('product_code',$code)->first();
+    	}
+    	else
+    	{
+    		$product = ProductGroup::select('id_product_group')->where('product_group_code', $code)->first();
+    	}
+
+    	return $product['id_product']??$product['id_product_group']??null;
+    }
+
+   	public static function uploadPhotoStrict($foto, $path, $width=800, $height=800, $name=null, $forceextension=null) {
+		// kalo ada foto1
+   		$decoded = ($foto);
+		if($forceextension != null)
+			$ext = $forceextension;
+		else
+			$ext = MyHelper::checkExtensionImageBase64($decoded);
+
+		if($name != null)
+			$pictName = $name.$ext;
+		else
+			$pictName = mt_rand(0, 1000).''.time().''.$ext;
+
+		// path
+		$upload = $path.$pictName;
+
+		if($ext=='.gif'){
+			if(env('STORAGE') &&  env('STORAGE') == 's3'){
+				$resource = $decoded;
+
+				$save = Storage::disk('s3')->put($upload, $resource, 'public');
+				if ($save) {
+						$result = [
+							'status' => 'success',
+							'path'  => $upload
+						];
+				}
+				else {
+					$result = [
+						'status' => 'fail'
+					];
+				}
+			}else{
+				if (!file_exists($path)) {
+					mkdir($path, 666, true);
+				}
+				if (file_put_contents($upload, $decoded)) {
+						$result = [
+							'status' => 'success',
+							'path'  => $upload
+						];
+				}
+				else {
+					$result = [
+						'status' => 'fail'
+					];
+				}
+			}
+		}else{
+			$img = Image::make($decoded);
+			$imgwidth = $img->width();
+			$imgheight = $img->height();
+
+			/* if($width > 1000){
+					$img->resize(1000, null, function ($constraint) {
+							$constraint->aspectRatio();
+							$constraint->upsize();
+					});
+			} */
+
+			if($imgwidth < $imgheight){
+				//potrait
+				if($imgwidth < $width){
+					$img->resize($width, null, function ($constraint) {
+						$constraint->aspectRatio();
+						$constraint->upsize();
+					});
+				}
+
+				if($imgwidth > $width){
+					$img->resize($width, null, function ($constraint) {
+						$constraint->aspectRatio();
+					});
+				}
+			} else {
+				//landscape
+				if($imgheight < $height){
+					$img->resize(null, $height, function ($constraint) {
+						$constraint->aspectRatio();
+						$constraint->upsize();
+					});
+				}
+				if($imgheight > $height){
+					$img->resize(null, $height, function ($constraint) {
+						$constraint->aspectRatio();
+					});
+				}
+
+			}
+			/* if($imgwidth < $width){
+				$img->resize($width, null, function ($constraint) {
+					$constraint->aspectRatio();
+					$constraint->upsize();
+				});
+				$imgwidth = $img->width();
+				$imgheight = $img->height();
+			}
+
+			if($imgwidth > $width){
+				$img->resize($width, null, function ($constraint) {
+					$constraint->aspectRatio();
+				});
+				$imgwidth = $img->width();
+				$imgheight = $img->height();
+			}
+
+			if($imgheight < $height){
+				$img->resize(null, $height, function ($constraint) {
+					$constraint->aspectRatio();
+					$constraint->upsize();
+				});
+			} */
+
+			$img->crop($width, $height);
+
+			if(env('STORAGE') &&  env('STORAGE') == 's3'){
+				$resource = $img->stream()->detach();
+
+				$save = Storage::disk('s3')->put($upload, $resource, 'public');
+				if ($save) {
+						$result = [
+							'status' => 'success',
+							'path'  => $upload
+						];
+				}
+				else {
+					$result = [
+						'status' => 'fail'
+					];
+				}
+			}else{
+				if ($img->save($upload)) {
+						$result = [
+							'status' => 'success',
+							'path'  => $upload
+						];
+				}
+				else {
+					$result = [
+						'status' => 'fail'
+					];
+				}
+			}
+		}
+
+
+		return $result;
+	}
 }
