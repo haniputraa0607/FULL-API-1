@@ -75,10 +75,24 @@ class PromoCampaign extends Eloquent
 		'promo_type',
 		'used_code',
 		'limitation_usage',
+		'user_type',
+		'specific_user',
 		'step_complete',
 		'product_type',
 		'promo_campaign_warning_image'
 	];
+
+	protected $appends  = ['url_promo_campaign_warning_image'];
+
+	// ATTRIBUTE WARNING IMAGE URL
+	public function getUrlPromoCampaignWarningImageAttribute() {
+		if (empty($this->promo_campaign_warning_image)) {
+            return null;
+        }
+        else {
+            return env('S3_URL_API').$this->promo_campaign_warning_image;
+        }
+	}
 
 	public function user()
     {
