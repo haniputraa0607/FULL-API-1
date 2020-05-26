@@ -80,7 +80,7 @@ class Deal extends Model
 		'deals_promo_id',
 		'deals_title',
 		'deals_second_title',
-		// 'deals_description',
+		'deals_description',
 		// 'deals_tos',
 		// 'deals_short_description',
 		'deals_image',
@@ -112,7 +112,7 @@ class Deal extends Model
         'is_all_outlet'
 	];
 
-	protected $appends  = ['url_deals_image', 'deals_status', 'deals_voucher_price_type', 'deals_voucher_price_pretty', 'url_webview'];
+	protected $appends  = ['url_deals_image', 'deals_status', 'deals_voucher_price_type', 'deals_voucher_price_pretty', 'url_webview', 'url_deals_warning_image'];
 
 	public function getUrlWebviewAttribute() {
 		return env('API_URL') ."api/webview/deals/". $this->id_deals ."/". $this->deals_type;
@@ -162,6 +162,16 @@ class Deal extends Model
         }
         else {
             return env('S3_URL_API').$this->deals_image;
+        }
+	}
+
+	// ATTRIBUTE WARNING IMAGE URL
+	public function getUrlDealsWarningImageAttribute() {
+		if (empty($this->deals_warning_image)) {
+            return null;
+        }
+        else {
+            return env('S3_URL_API').$this->deals_warning_image;
         }
 	}
 

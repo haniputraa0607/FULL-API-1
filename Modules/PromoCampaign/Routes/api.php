@@ -30,6 +30,9 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:be'], 'pref
     Route::post('report', 'ApiPromoCampaign@report');
     Route::post('coupon', 'ApiPromoCampaign@coupon');
 
+    Route::post('export', 'ApiPromoExportImport@exportPromoCampaign');
+    Route::post('import', 'ApiPromoExportImport@importPromoCampaign');
+
     Route::post('show-step1', 'ApiPromoCampaign@showStep1');
     Route::post('show-step2', 'ApiPromoCampaign@showStep2');
 });
