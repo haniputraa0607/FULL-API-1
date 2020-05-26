@@ -55,7 +55,7 @@
     @foreach ($data['product_group'] as $key => $item)
         <tr style="text-align:right">
             <td colspan="5" width="50%" style="background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 5%" valign="top" align="left">
-                <div class="left"><span style="font-size: 16px">@if(empty($item['product_group_name'])){{$item['product_name']}}@else{{$item['product_group_name']}}@endif ({{$item['transaction_product_qty']}})</span></div>
+                <div class="left"><span style="font-size: 16px;color:#8fd6bd;">{{$item['transaction_product_qty']}}x </span><span style="font-size: 16px">@if(empty($item['product_group_name'])){{$item['product_name']}} @else{{$item['product_group_name']}}@endif</span></div>
                 <div class="right"><span style="font-size: 16px">{{ \App\Lib\MyHelper::requestNumber(floatval ($item['transaction_product_price']), '_CURRENCY') }}</span></div>
                 <div class="dotted"></div>
             </td>
@@ -73,9 +73,9 @@
                     $variant .= $vrt['product_variant_name'].', ';
                 }
 
-                if($topping !== '') $topping = '( '.substr($topping, 0, -2).' )<br>';
-                if($variant !== '') $variant = '( '.substr($variant, 0, -2).' )';
-                echo '<span style="color:#999;;font-size:14px;"><i>'.$topping.$variant.'</i></span>';
+                if($topping !== '') $topping = substr($topping, 0, -2).'<br>';
+                if($variant !== '') $variant = substr($variant, 0, -2);
+                echo '<span style="color:#999;;font-size:14px;"><i>'.$topping.$variant.'</i><br>'.$item['transaction_product_note'].'</span>';
                 ?>
             </td>
         </tr>
