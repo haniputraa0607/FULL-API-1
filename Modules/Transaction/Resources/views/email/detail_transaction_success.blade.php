@@ -20,7 +20,7 @@
                     $email_logo = env('AWS_URL').$setting['email_logo'];
                 }
             }else{
-                $email_logo = 'http://localhost/GitWork/maxxcoffee-cust-view/public/images/logo_login.png';//env('S3_URL_API').('img/logo.jpg');
+                $email_logo = env('S3_URL_API').('img/logo.jpg');
             }
             ?>
             <img class="img-responsive" style="display: block;max-width: 100%;height: 100px" src="{{$email_logo}}">
@@ -54,10 +54,14 @@
 
     @foreach ($data['productTransaction'] as $key => $item)
         <tr style="text-align:right">
-            <td width="50%" style="background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 5%" valign="top" align="left">
-            <span style="color:#555;font-size:18px;line-height:1.5;margin:0;padding:0">{{$item['product']['product_name']}} ({{$item['transaction_product_qty']}})
-            </span><br>
-
+            <td colspan="5" width="50%" style="background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 5%" valign="top" align="left">
+                <div class="left"><span style="font-size: 16px">{{$item['product']['product_name']}} ({{$item['transaction_product_qty']}})</span></div>
+                <div class="right"><span style="font-size: 16px">{{ \App\Lib\MyHelper::requestNumber(floatval ($item['transaction_product_price']), '_CURRENCY') }}</span></div>
+                <div class="dotted"></div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="5" style="background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 10%" valign="top" align="left">
                 <?php
                 $topping = '';
                 foreach ($data['modifiers'] as $mf){
@@ -71,16 +75,13 @@
 
                 if($topping !== '') $topping = '( '.substr($topping, 0, -2).' )<br>';
                 if($variant !== '') $variant = '( '.substr($variant, 0, -2).' )';
-                echo '<span style="color:#999;;font-size:14px;margin-left:10%;"><i>'.$topping.$variant.'</i></span>';
+                echo '<span style="color:#999;;font-size:14px;"><i>'.$topping.$variant.'</i></span>';
                 ?>
-            </td>
-            <td  colspan="2" style="background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;" valign="top" align="right">
-                <span style="color:#555;font-size:14px;line-height:1.5;margin:0;padding:0">{{ \App\Lib\MyHelper::requestNumber(floatval ($item['transaction_product_price']), '_CURRENCY') }}</span>
             </td>
         </tr>
     @endforeach
 
-    <tr style="text-align:right">
+    <tr style="text-align:right;padding-top: 15px">
         <td rowspan="3" style="background:#f5f5f5;" align="center">
             <img class="img-responsive" style="display: block;max-width: 100%;height: 80px" src="{{env('S3_URL_API').('img/icon_email_1.png')}}">
         </td>
@@ -94,7 +95,7 @@
     @if($data['transaction_discount'] != 0)
         <tr style="text-align:right">
             <td style="background:#f5f5f5;" valign="top"  align="right">
-                <span style="color:#fc0303;font-size:14px;line-height:1.5;margin:0;padding:0">Discount:
+                <span style="color:#555;font-size:14px;line-height:1.5;margin:0;padding:0">Discount:
                      @if(isset($data['promo_campaign_promo_code']['promo_code']))
                         <br>({{$data['promo_campaign_promo_code']['promo_code']}})
                     @elseif(isset($data['vouchers'][0]['voucher_code']))
@@ -136,7 +137,7 @@
         </tr>
         <tr>
             <td width="50%" style="background:#fcfcfc;border-collapse:collapse;border-spacing:0;color:#555;;line-height:1.5;margin:0;padding:0px 10px" valign="top"  align="center">
-                <span style="color:#555;;font-size:20px;line-height:1.5;margin:0;padding:0"><b>Detail Outlet</b></span>
+                <span style="color:#555;;font-size:20px;line-height:1.5;margin:0;padding:0"><b>Outlet Detail</b></span>
             </td>
             <td colspan="2" width="50%" style="background:#fcfcfc;border-collapse:collapse;border-spacing:0;color:#555;;line-height:1.5;margin:0;padding:0px 10px" valign="top"  align="center">
                 <span style="color:#555;;font-size:20px;line-height:1.5;margin:0;padding:0"><b>Payment Detail</b></span>
