@@ -44,6 +44,7 @@ class ApiConfirm extends Controller
         $this->autocrm  = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
         $this->voucher  = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
         $this->promo_campaign	= "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+        $this->balance = "Modules\Balance\Http\Controllers\BalanceController";
     }
 
     public function confirmTransaction(ConfirmPayment $request) {
