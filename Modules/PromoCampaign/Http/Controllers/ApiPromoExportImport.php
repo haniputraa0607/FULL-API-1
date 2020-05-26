@@ -73,11 +73,11 @@ class ApiPromoExportImport extends Controller
         $promo = PromoCampaign::with(
                             'promo_campaign_have_tags.promo_campaign_tag',
                             'promo_campaign_product_discount_rules',
-                            'promo_campaign_product_discount.product',
+                            'promo_campaign_product_discount',
                             'promo_campaign_tier_discount_rules',
-                            'promo_campaign_tier_discount_product.product',
+                            'promo_campaign_tier_discount_product',
                             'promo_campaign_buyxgety_rules.product',
-                            'promo_campaign_buyxgety_product_requirement.product',
+                            'promo_campaign_buyxgety_product_requirement',
                             'outlets'
                         )
                         ->where('id_promo_campaign', '=', $post['id_promo_campaign'])
@@ -474,7 +474,7 @@ class ApiPromoExportImport extends Controller
         		break;
         }
 
-        if (!$saveRuleBenefit || !$saveRule) {
+        if ( (isset($saveRuleBenefit) && !$saveRuleBenefit) || (isset($saveRule) && !$saveRule) ) {
 			$errors[] = 'Create Rule failed';
 		}
 
