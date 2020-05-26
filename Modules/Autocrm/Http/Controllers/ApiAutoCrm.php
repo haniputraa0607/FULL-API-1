@@ -84,7 +84,7 @@ class ApiAutoCrm extends Controller
 
 					if($autocrm_title == 'Transaction Success'){
 
-						Mail::send('emails.test2', $data, function($message) use ($to,$subject,$name,$setting,$variables)
+						Mail::send('emails.email_trx_success', $data, function($message) use ($to,$subject,$name,$setting,$variables)
 						{
 
 							if(stristr($to, 'gmail.con')){
