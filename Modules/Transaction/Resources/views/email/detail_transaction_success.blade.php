@@ -13,11 +13,11 @@
     <tr>
         <td colspan="3" style="background:#fcfcfc;border-collapse:collapse;border-spacing:0;color:#555;;line-height:1.5;margin:0;padding:15px 10px" valign="top"  align="center">
             <?php
-            if(isset($setting['email_logo'])){
-                if(stristr($setting['email_logo'], 'http')){
-                    $email_logo = $setting['email_logo'];
+            if(isset($data['setting']['email_logo'])){
+                if(stristr($data['setting']['email_logo'], 'http')){
+                    $email_logo = $data['setting']['email_logo'];
                 }else{
-                    $email_logo = env('AWS_URL').$setting['email_logo'];
+                    $email_logo = env('AWS_URL').$data['setting']['email_logo'];
                 }
             }else{
                 $email_logo = env('S3_URL_API').('img/logo.jpg');
@@ -155,15 +155,28 @@
                 {{ $data['outlet']['outlet_phone'] }}
                 </span>
             </td>
+            <?php $i= 1?>
             @foreach($data['data_payment'] as $dp)
-                <td style="background:#fcfcfc;border-spacing:0;color:#555;;line-height:1.5;margin:0;padding:3px 10px" valign="top"  align="center">
-                    <span style="color:#555;font-size:14px;line-height:1.5;margin:0;padding-left:5%">{{strtoupper($dp['payment_method'])}}</span>
-                </td>
-                <td width="5%" style="background:#fcfcfc;border-spacing:0;color:#555;;line-height:1.5;margin:0;padding:2px 10px" valign="top"  align="right">
-                    <span style="color:#555;font-size:14px;line-height:1.5;margin:0;padding-right:2px">{{ \App\Lib\MyHelper::requestNumber(floatval ($dp['nominal']), '_CURRENCY') }}</span>
-                </td>
-            @endforeach
+                @if($i==1)
+                    <td style="background:#fcfcfc;border-spacing:0;color:#555;margin:0;padding-top:3px" valign="top"  align="center">
+                        <span style="color:#555;font-size:14px;margin:0;padding-left:3%">{{strtoupper($dp['payment_method'])}}</span>
+                    </td>
+                    <td width="5%" style="background:#fcfcfc;border-spacing:0;color:#555;margin:0;padding-top:3px" valign="top"  align="right">
+                        <span style="color:#555;font-size:14px;margin:0;padding-right:2px">{{ \App\Lib\MyHelper::requestNumber(floatval ($dp['nominal']), '_CURRENCY') }}</span>
+                    </td>
         </tr>
+    @else
+        <tr>
+            <td style="background:#fcfcfc;border-spacing:0;color:#555;margin:0;@if($i==count($data['data_payment']))padding-bottom: 10%;@endif" valign="top"  align="center">
+                <span style="color:#555;font-size:14px;margin:0;padding-left:3%">{{strtoupper($dp['payment_method'])}}</span>
+            </td>
+            <td width="5%" style="background:#fcfcfc;border-spacing:0;color:#555;margin:0;@if($i==count($data['data_payment']))padding-bottom: 10%;@endif" valign="top"  align="right">
+                <span style="color:#555;font-size:14px;margin:0;padding-right:2px">{{ \App\Lib\MyHelper::requestNumber(floatval ($dp['nominal']), '_CURRENCY') }}</span>
+            </td>
+        </tr>
+    @endif
+    <?php $i++?>
+    @endforeach
     @endif
     <tr>
         <td colspan="3"></td>
