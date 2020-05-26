@@ -94,6 +94,10 @@
         <div class="box-failed">
             <p style="font-size: 16px;color: #e73d4a;">{{$message}}</p>
         </div>
+    @elseif($status_verify == 'expired')
+        <div class="box-failed">
+            <p style="font-size: 16px;color: #e73d4a;">{{$message}}</p>
+        </div>
     @else
         <div class="box-already">
             <p style="font-size: 16px;color: #27a4b0;">{{$message}}</p>

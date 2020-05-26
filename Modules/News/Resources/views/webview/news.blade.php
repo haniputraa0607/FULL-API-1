@@ -335,9 +335,9 @@
                 <div class="row space-bottom">
                     <div class="row container kotak-title">
                         <div class="col-12 text-bot text-custom-px Ubuntu space-text"> <span> {{ date('l', strtotime($news[0]['news_post_date'])) }}, {{ date('d F Y', strtotime($news[0]['news_post_date'])) }} &nbsp;&nbsp;&nbsp; {{ date('H:i', strtotime($news[0]['news_post_date'])) }}  </span></div>
-                        <div class="col-12 text-bot text-black Ubuntu-Medium" style=" line-height: 21px;padding-bottom: 10px;padding-top: 4px;"> <strong> @if($news[0]['news_second_title'] == null){{ strtoupper($news[0]['news_title']) }} @else {{ strtoupper($news[0]['news_second_title']) }} @endif</strong></div>
+                        <div class="col-12 text-bot text-black Ubuntu-Medium" style=" line-height: 21px;padding-bottom: 10px;padding-top: 4px;"> <strong> {{ strtoupper($news[0]['news_title']) }}</strong></div>
                     </div>
-                    <img src="{{ $news[0]['url_news_image_dalam'] }}" style="height: 50vw;">
+                    @if(isset($news[0]['url_news_image_dalam']))<img src="{{ $news[0]['url_news_image_dalam'] }}" style="height: 50vw;">@endif
                 </div>
             </div>
         </div>
