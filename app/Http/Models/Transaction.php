@@ -139,6 +139,14 @@ class Transaction extends Model
 					->withTimestamps();
 	}
 
+    public function product_group()
+    {
+        return $this->belongsToMany(\App\Http\Models\Product::class, 'transaction_products', 'id_transaction', 'id_product')
+            ->select('transaction_products.*','product_groups.product_group_name', 'products.product_name')->leftJoin('product_groups', 'product_groups.id_product_group', '=', 'products.id_product_group')
+            ->withPivot('id_transaction_product', 'transaction_product_qty', 'transaction_product_price', 'transaction_product_price_base', 'transaction_product_price_tax', 'transaction_product_subtotal', 'transaction_modifier_subtotal', 'transaction_product_discount', 'transaction_product_note')
+            ->withTimestamps();
+    }
+
     public function products_variant()
     {
         return $this->belongsToMany(\App\Http\Models\Product::class, 'transaction_products', 'id_transaction', 'id_product')
