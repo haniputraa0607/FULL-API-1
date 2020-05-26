@@ -9,7 +9,7 @@
 		<td width="10px;"></td>
 		<td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0">
 			<p style="color:#555;font-family:\'Source Sans Pro\',sans-serif;font-size:14px;line-height:1.5;margin:0;padding:0">
-				Thank you for your atention.
+				Thank you for your attention.
 			</p>
 		</td>
 		<td width="10px;"></td>
