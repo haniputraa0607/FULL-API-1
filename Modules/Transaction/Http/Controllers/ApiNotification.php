@@ -1687,6 +1687,18 @@ Detail: ".$link['short'],
             $textPick = 'Saat Ini';
         }
 
+        $getSetting = Setting::where('key', 'LIKE', 'email%')->get()->toArray();
+        $setting = array();
+        foreach ($getSetting as $key => $value) {
+            if($value['key'] == 'email_setting_url'){
+                $setting[$value['key']]  = (array)json_decode($value['value_text']);
+            }else{
+                $setting[$value['key']] = $value['value'];
+            }
+        }
+
+        $data['setting'] = $setting;
+
         $html = view('transaction::email.detail_transaction_success')->with(compact('data'))->render();
         return $html;
     }
