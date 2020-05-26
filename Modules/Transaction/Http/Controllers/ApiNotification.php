@@ -1609,7 +1609,7 @@ Detail: ".$link['short'],
                     $getPayment = TransactionPaymentBalance::where('id_transaction', $list['id_transaction'])->first();
                     if (!empty($getPayment)) {
                         $dataPush = [
-                            'payment_method' => 'MAXX Points',
+                            'payment_method' => 'MAXX Point',
                             'nominal' => $getPayment['balance_nominal']
                         ];
                         array_push($dataPayment, $dataPush);

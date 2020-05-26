@@ -151,11 +151,12 @@ class Transaction extends Model
     {
         return $this->belongsToMany(\App\Http\Models\Product::class, 'transaction_products', 'id_transaction', 'id_product')
             ->select('product_variants.*')
-            ->join('product_product_variants', 'product_product_variants.id_product', '=', 'products.id_product_category')
+            ->join('product_product_variants', 'product_product_variants.id_product', '=', 'products.id_product')
             ->join('product_variants', 'product_variants.id_product_variant', '=', 'product_product_variants.id_product_variant');
     }
 
-	public function modifiers()
+
+    public function modifiers()
 	{
 		return $this->hasMany(\App\Http\Models\TransactionProductModifier::class,'id_transaction');
 	}
