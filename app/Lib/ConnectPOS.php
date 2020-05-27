@@ -10,6 +10,7 @@ use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionPaymentOvo;
 use App\Http\Models\LogActivitiesPosTransactionsOnline;
 use App\Http\Models\TransactionOnlinePos;
+use App\Http\Models\Setting;
 use Modules\Transaction\Entities\TransactionPaymentCimb;
 use Modules\IPay88\Entities\TransactionPaymentIpay88;
 
@@ -77,9 +78,17 @@ class ConnectPOS{
 		$users = [];
 		$outlets = [];
 		$transactions = [];
+        $expired = Setting::where('key', 'qrcode_expired')->first();
+        if (!$expired || ($expired && $expired->value == null)) {
+            $expired = '10';
+        } else {
+            $expired = $expired->value;
+        }
+        $timestamp = strtotime('+' . $expired . ' minutes');
 		foreach ($trxDatas as $trxData) {
 			$user = $trxData['user'];
 			$users[] = $user->phone;
+	        $memberUid = MyHelper::createQRV2($timestamp, $user->id);
 			$transactions[$user->phone] = $trxData->toArray();
 			$transactions[$user->phone]['outlet_name'] = $trxData->outlet->outlet_name;
 			$outlets[] = env('POS_OUTLET_OVERWRITE')?:$trxData->outlet->outlet_code;
@@ -114,13 +123,13 @@ class ConnectPOS{
 					'notes'=> '', // “”
 					'appliedPromo'=> $appliedPromo, // kalau pakai prromo / “”
 					'pos'=> [ //hardcode
-					'id'=> 1,
-					'cashDrawer'=> 1,
-					'cashierId'=> ''
-				],
-				'customer'=> [
+						'id'=> 1,
+						'cashDrawer'=> 1,
+						'cashierId'=> ''
+					],
+					'customer'=> [
 						// 'id'=> MyHelper::createQR(time(), $trxData->user->phone), // uid
-						'id'=> $trxData->user->id, // uid
+						'id'=> $memberUid, // uid
 						'name'=> $trxData->user->name, //name
 						'gender'=> $trxData->user->gender?:'', //gender / “”
 						'age'=> $trxData->user->birthday?(date_diff(date_create($trxData->user->birthday), date_create('now'))->y):'', // age / “”
