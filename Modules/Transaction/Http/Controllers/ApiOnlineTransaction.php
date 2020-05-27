@@ -1752,6 +1752,10 @@ class ApiOnlineTransaction extends Controller
         }
         // end check promo code
 
+        if (empty($request->json('id_deals_user')) && empty($request->json('promo_code'))) {
+        	$promo = null;
+        }
+
         $tree = [];
         // check and group product
         $subtotal = 0;
