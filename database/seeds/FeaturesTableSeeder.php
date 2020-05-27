@@ -1986,7 +1986,47 @@ class FeaturesTableSeeder extends Seeder
                     'feature_module' => 'Setting Timer OVO',
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
-                )
+                ),
+            247 =>
+                array (
+                    'id_feature' => 248,
+                    'feature_type' => 'Setting',
+                    'feature_module' => 'Setting Inbox User',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            248 =>
+	            array (
+	                'id_feature' => 249,
+	                'feature_type' => 'Update',
+	                'feature_module' => 'Deals Import',
+	                'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+	            ),
+            249 =>
+            	array (
+	                'id_feature' => 250,
+	                'feature_type' => 'Detail',
+	                'feature_module' => 'Deals Export',
+	                'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+	            ),
+	        250 =>
+	            array (
+	                'id_feature' => 251,
+	                'feature_type' => 'Update',
+	                'feature_module' => 'Promo Campaign Import',
+	                'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+	            ),
+            251 =>
+            	array (
+	                'id_feature' => 252,
+	                'feature_type' => 'Detail',
+	                'feature_module' => 'Promo Campaign Export',
+	                'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+	            )
         ));
     }
 }

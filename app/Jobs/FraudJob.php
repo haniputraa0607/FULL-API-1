@@ -98,7 +98,7 @@ class FraudJob implements ShouldQueue
                             $percentageP = 0;
                         }
 
-                        $point = floor(app('Modules\POS\Http\Controllers\ApiPos')->count('point', $this->data) * $percentageP);
+                        $point = floor(app('Modules\POS\Http\Controllers\ApiPOS')->count('point', $this->data) * $percentageP);
                         $dataTrx['transaction_point_earned'] = $point;
                     }
 
@@ -114,7 +114,7 @@ class FraudJob implements ShouldQueue
 
                         $data = $this->data;
                         $data['total'] = $this->data['grand_total'];
-                        $cashback = floor(app('Modules\POS\Http\Controllers\ApiPos')->count('cashback', $data) * $percentageB);
+                        $cashback = floor(app('Modules\POS\Http\Controllers\ApiPOS')->count('cashback', $data) * $percentageB);
 
                         //count some trx user
                         $countSettingCashback = TransactionSetting::get();
@@ -144,6 +144,7 @@ class FraudJob implements ShouldQueue
                             'source'                      => 'Transaction',
                             'grand_total'                 => $dataTrx['transaction_grandtotal'],
                             'point_conversion'            => $settingPoint,
+                            'membership_level'            => $level,
                             'membership_level'            => $level,
                             'membership_point_percentage' => $percentageP * 100
                         ];
@@ -237,6 +238,8 @@ class FraudJob implements ShouldQueue
             }
         }elseif ($this->type == 'referral user'){
             app('Modules\SettingFraud\Http\Controllers\ApiFraud')->fraudCheckReferralUser($this->data);
+        }elseif ($this->type == 'referral'){
+            app('Modules\SettingFraud\Http\Controllers\ApiFraud')->fraudCheckReferral($this->data);
         }
     }
 }

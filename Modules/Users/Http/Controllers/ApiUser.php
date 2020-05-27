@@ -48,6 +48,7 @@ use Hash;
 use DB;
 use Mail;
 use Auth;
+use function GuzzleHttp\Psr7\str;
 
 class ApiUser extends Controller
 {
@@ -73,58 +74,129 @@ class ApiUser extends Controller
             $order_field_be = $order_field;
         }
 
+        $queryUser = DB::table(env('DB_DATABASE').'.users as t_users')->select('t_users.name', 't_users.phone', 't_users.email');
         $queryApps = DB::table(env('DB2_DATABASE').'.log_activities_apps as t_log_activities')
-            ->leftJoin(env('DB_DATABASE').'.users as t_users','t_users.phone','=','t_log_activities.phone')
-            ->select('t_log_activities.*',
-                't_users.name',
-                't_users.email'
-            )->orderBy($order_field_apps, $order_method);
+            ->select('t_log_activities.*');
         $queryBe = DB::table(env('DB2_DATABASE').'.log_activities_be as t_log_activities')
-            ->leftJoin(env('DB_DATABASE').'.users as t_users','t_users.phone','=','t_log_activities.phone')
-            ->select('t_log_activities.*',
-                't_users.name',
-                't_users.email'
-            )->orderBy($order_field_be, $order_method);
+            ->select('t_log_activities.*');
+
+        if($order_field != 'name' && $order_field != 'email'){
+            $queryApps->orderBy($order_field_apps, $order_method);
+            $queryBe->orderBy($order_field_be, $order_method);
+        }
 
         if($conditions != null){
             foreach($conditions as $condition){
                 if(isset($condition['subject'])){
                     if($condition['subject'] == 'name' || $condition['subject'] == 'email'){
                         $var = "t_users.".$condition['subject'];
-                    }
-                    if($condition['subject'] == 'phone' || $condition['subject'] == 'url' || $condition['subject'] == 'subject' || $condition['subject'] == 'request' || $condition['subject'] == 'response' || $condition['subject'] == 'ip' || $condition['subject'] == 'useragent'){
-                        $var = "t_log_activities.".$condition['subject'];
-                    }
-                    if($condition['subject'] == 'response_status'){
-                        $var = "t_log_activities.".$condition['subject'];
-                    }
 
-                    if($rule == 'and'){
-                        if($condition['operator'] == 'like') {
-                            $queryApps = $queryApps->where($var, 'like', '%' . $condition['parameter'] . '%');
-                            $queryBe = $queryBe->where($var, 'like', '%' . $condition['parameter'] . '%');
-                        }else {
-                            $queryApps = $queryApps->where($var, '=', $condition['parameter']);
-                            $queryBe = $queryBe->where($var, '=', $condition['parameter']);
+                        if($rule == 'and'){
+                            if($condition['operator'] == 'like') {
+                                $queryUser = $queryUser->where($var, 'like', '%' . $condition['parameter'] . '%');
+                            }else {
+                                $queryUser = $queryUser->where($var, '=', $condition['parameter']);
+                            }
+                        } else {
+                            if($condition['operator'] == 'like') {
+                                $queryUser = $queryUser->orWhere($var, 'like', '%' . $condition['parameter'] . '%');
+                            }
+                            else {
+                                $queryUser = $queryUser->orWhere($var, '=', $condition['parameter']);
+                            }
                         }
-                    } else {
-                        if($condition['operator'] == 'like') {
-                            $queryApps = $queryApps->orWhere($var, 'like', '%' . $condition['parameter'] . '%');
-                            $queryBe = $queryBe->orWhere($var, 'like', '%' . $condition['parameter'] . '%');
+                    }else{
+                        if($condition['subject'] == 'phone' || $condition['subject'] == 'url' || $condition['subject'] == 'subject' || $condition['subject'] == 'request' || $condition['subject'] == 'response' || $condition['subject'] == 'ip' || $condition['subject'] == 'useragent'){
+                            $var = "t_log_activities.".$condition['subject'];
                         }
-                        else {
-                            $queryApps = $queryApps->orWhere($var, '=', $condition['parameter']);
-                            $queryBe = $queryBe->orWhere($var, '=', $condition['parameter']);
+                        if($condition['subject'] == 'response_status'){
+                            $var = "t_log_activities.".$condition['subject'];
+                        }
+
+                        if($rule == 'and'){
+                            if($condition['operator'] == 'like') {
+                                $queryApps = $queryApps->where($var, 'like', '%' . $condition['parameter'] . '%');
+                                $queryBe = $queryBe->where($var, 'like', '%' . $condition['parameter'] . '%');
+                            }else {
+                                $queryApps = $queryApps->where($var, '=', $condition['parameter']);
+                                $queryBe = $queryBe->where($var, '=', $condition['parameter']);
+                            }
+                        } else {
+                            if($condition['operator'] == 'like') {
+                                $queryApps = $queryApps->orWhere($var, 'like', '%' . $condition['parameter'] . '%');
+                                $queryBe = $queryBe->orWhere($var, 'like', '%' . $condition['parameter'] . '%');
+                            }
+                            else {
+                                $queryApps = $queryApps->orWhere($var, '=', $condition['parameter']);
+                                $queryBe = $queryBe->orWhere($var, '=', $condition['parameter']);
+                            }
                         }
                     }
                 }
             }
         }
 
-        $resultCountApps = $queryApps->count();
-        $resultCountBe = $queryBe->count();
-        $resultApps = $queryApps->skip($skip)->take($take)->get()->toArray();
-        $resultBe = $queryBe->skip($skip)->take($take)->get()->toArray();
+        $resultUser = $queryUser->get()->toArray();
+        $phoneUser = array_column($resultUser, 'phone');
+        if($phoneUser){
+            $resultCountApps = $queryApps->count();
+            $resultCountBe = $queryBe->count();
+            $resultApps = $queryApps->skip($skip)->take($take)->get()->toArray();
+            $resultBe = $queryBe->skip($skip)->take($take)->get()->toArray();
+
+            foreach ($resultApps as $key => $apps){
+                $getKey = array_search($apps->phone, $phoneUser);
+                $resultApps[$key]->name = $resultUser[$getKey]->name;
+                $resultApps[$key]->phone = $resultUser[$getKey]->phone;
+                $resultApps[$key]->email = $resultUser[$getKey]->email;
+            }
+
+            foreach ($resultBe as $key => $be){
+                $getKey = array_search($be->phone, $phoneUser);
+                $resultBe[$key]->name = $resultUser[$getKey]->name;
+                $resultBe[$key]->phone = $resultUser[$getKey]->phone;
+                $resultBe[$key]->email = $resultUser[$getKey]->email;
+            }
+
+            if($order_field == 'name'){
+                usort($resultApps, function($a, $b) use ($order_method){
+                    if($order_method == 'desc'){
+                        return $a->name < $b->name;
+                    }else{
+                        return $a->name <=> $b->name;
+                    }
+                });
+
+                usort($resultBe, function($a, $b) use ($order_method){
+                    if($order_method == 'desc'){
+                        return $a->name < $b->name;
+                    }else{
+                        return $a->name <=> $b->name;
+                    }
+                });
+            }elseif ($order_field == 'email'){
+                usort($resultApps, function($a, $b) use ($order_method){
+                    if($order_method == 'desc'){
+                        return $a->email < $b->email;
+                    }else{
+                        return $a->email <=> $b->email;
+                    }
+                });
+
+                usort($resultBe, function($a, $b) use ($order_method){
+                    if($order_method == 'desc'){
+                        return $a->email < $b->email;
+                    }else{
+                        return $a->email <=> $b->email;
+                    }
+                });
+            }
+        }else{
+            $resultCountApps = 0;
+            $resultCountBe = 0;
+            $resultApps = [];
+            $resultBe = [];
+        }
 
         if($resultApps || $resultBe){
             $response = ['status'	=> 'success',
@@ -413,7 +485,7 @@ class ApiUser extends Controller
                         }
 
                         if($conditionParameter == 'IOS'){
-                            $query = $query->notNull('users.android_device')->whereNotNull('users.ios_device');
+                            $query = $query->whereNull('users.android_device')->whereNotNull('users.ios_device');
                         }
 
                         if($conditionParameter == 'Both'){
@@ -579,19 +651,27 @@ class ApiUser extends Controller
                     if($condition['subject'] == 'device'){
 
                         if($conditionParameter == 'None'){
-                            $query = $query->orWhereNull('users.android_device')->orWhereNull('users.ios_device');
+                            $query = $query->orWhere(function ($q){
+                                $q->whereNull('users.android_device')->whereNull('users.ios_device');
+                            });
                         }
 
                         if($conditionParameter == 'Android'){
-                            $query = $query->orwhereNotNull('users.android_device')->orWhereNull('users.ios_device');
+                            $query = $query->orWhere(function ($q){
+                                $q->whereNotNull('users.android_device')->whereNull('users.ios_device');
+                            });
                         }
 
                         if($conditionParameter == 'IOS'){
-                            $query = $query->orwhereNull('users.android_device')->orwhereNotNull('users.ios_device');
+                            $query = $query->orWhere(function ($q){
+                                $q->whereNull('users.android_device')->whereNotNull('users.ios_device');
+                            });
                         }
 
                         if($conditionParameter == 'Both'){
-                            $query = $query->orwhereNotNull('users.android_device')->orwhereNotNull('users.ios_device');
+                            $query = $query->orWhere(function ($q){
+                                $q->orwhereNotNull('users.android_device')->orwhereNotNull('users.ios_device');
+                            });
                         }
                     }
 
@@ -1445,7 +1525,19 @@ class ApiUser extends Controller
             }
             if($data[0]['phone_verified'] == 0){
                 if(Auth::attempt(['phone' => $phone, 'password' => $request->json('pin')])){
-                    if(isset($post['device_id']) && isset($post['device_type'])) {
+                    if(isset($post['device_id'])) {
+                        if(!isset($post['device_type'])){
+                            if(!empty($request->header('user-agent-view'))){
+                                $useragent = $request->header('user-agent-view');
+                            }else{
+                                $useragent = $_SERVER['HTTP_USER_AGENT'];
+                            }
+
+                            if(stristr($useragent,'iOS')) $post['device_type'] = 'iOS';
+                            if(stristr($useragent,'okhttp')) $post['device_type'] = 'Android';
+                            if(stristr($useragent,'GuzzleHttp')) $post['device_type'] = 'Browser';
+                        }
+
                         $device_id = $post['device_id'];
                         $device_type = $post['device_type'];
                         $fraud = FraudSetting::where('parameter', 'LIKE', '%device ID%')->where('fraud_settings_status', 'Active')->first();
@@ -2896,6 +2988,34 @@ class ApiUser extends Controller
         }
     }
 
+    function checkVerifyEmail(Request $request){
+        $post = $request->json()->all();
+
+        if(!empty($request->user())){
+            $id = $request->user()->id;
+            $user = User::where('id', $id)->first();
+
+            if($user){
+                return response()->json([
+                    'status'    => 'success',
+                    'result'  => [
+                        'email_verified' => $user['email_verified']
+                    ]
+                ]);
+            }else{
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['User Not Found']
+                ]);
+            }
+        }else{
+            return response()->json([
+                'status'    => 'fail',
+                'messages'  => ['User Not Found']
+            ]);
+        }
+    }
+
     function sendVerifyEmail(Request $request){
         $post = $request->json()->all();
 
@@ -2915,25 +3035,40 @@ class ApiUser extends Controller
                     'messages'  => ['Email does not match']
                 ]);
             }
-
             $phone = $user['phone'];
-            $encrypt = MyHelper::encrypt2019($phone.'|'.$post['email']);
-            $autocrm = app($this->autocrm)->SendAutoCRM('Email Verify', $phone,
-                ['button_verify' => '<a href="'.env('URL_EMAIL_VERIFY').'/email/verify/'.$encrypt.'" style="background-color: #8fd6bd; border: none; color: white;padding: 15px 32px;text-align: center;text-decoration: none;display: inline-block;margin: 4px 2px;cursor: pointer;font-family: Ubuntu-Bold">Verify Email</a>'
-                ]);
 
-            if($autocrm){
-                return response()->json([
-                    'status'    => 'success',
-                    'messages'  => ['Successfully sent email verification to your email']
-                ]);
+            //update expired time
+            $getSettingTimeExpired = Setting::where('key', 'setting_expired_time_email_verify')->first();
+            if($getSettingTimeExpired){
+                $dateTimeExpired = date("Y-m-d H:i:s", strtotime("+".$getSettingTimeExpired['value']." minutes"));
+            }else{
+                $dateTimeExpired = date("Y-m-d H:i:s", strtotime("+30 minutes"));
+            }
+            $updateDateTimeExpired = User::where('phone', $phone)->update(['email_verified_valid_time' => $dateTimeExpired]);
+
+            if($updateDateTimeExpired){
+                $encrypt = MyHelper::encrypt2019($phone.'|'.$post['email']);
+                $autocrm = app($this->autocrm)->SendAutoCRM('Email Verify', $phone,
+                    ['button_verify' => '<a href="'.env('URL_EMAIL_VERIFY').'/email/verify/'.$encrypt.'" style="background-color: #8fd6bd; border: none; color: white;padding: 15px 32px;text-align: center;text-decoration: none;display: inline-block;margin: 4px 2px;cursor: pointer;font-family: Ubuntu-Bold">Verify Email</a>'
+                    ]);
+
+                if($autocrm){
+                    return response()->json([
+                        'status'    => 'success',
+                        'messages'  => ['Verification sent to your email']
+                    ]);
+                }else{
+                    return response()->json([
+                        'status'    => 'fail',
+                        'messages'  => ['Failed to send']
+                    ]);
+                }
             }else{
                 return response()->json([
                     'status'    => 'fail',
-                    'messages'  => ['Failed to send']
+                    'messages'  => ['Failed update expired time']
                 ]);
             }
-
         }else{
             return response()->json([
                 'status' => 'fail',
@@ -2958,6 +3093,9 @@ class ApiUser extends Controller
                     if(!empty($user)){
                         if($user['email_verified'] == 1){
                             $data = ['status_verify' => 'already', 'message' => 'This page is expired, your email is already verified', 'settings' => $setting];
+                            return view('users::verify_email', $data);
+                        }elseif(strtotime(date('Y-m-d H:i:s')) > strtotime($user['email_verified_valid_time'])){
+                            $data = ['status_verify' => 'expired', 'message' => 'This page is expired, please re-request verify email from apps', 'settings' => $setting];
                             return view('users::verify_email', $data);
                         }else{
                             $udpate = User::where('phone', $phone)->where('email', $email)->update(['email_verified' => 1]);

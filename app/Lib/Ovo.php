@@ -17,6 +17,8 @@ use App\Http\Models\TransactionPaymentOvo;
 use App\Http\Models\DealsPaymentOvo;
 use Modules\Outlet\Entities\OutletOvo;
 use App\Http\Models\Setting;
+use DateTime;
+use DateTimeZone;
 
 class Ovo {
 
@@ -70,7 +72,12 @@ class Ovo {
         $data['processingCode'] = "040000";
         $data['amount'] = (int)$amount;
         // $data['date'] = date('Y-m-d H:i:s.v', strtotime($dataTrx['transaction_date']));
-        $data['date'] = date('Y-m-d H:i:s.v');
+        // $data['date'] = date('Y-m-d H:i:s.v');
+
+        //for millisecond data appears, because if you using a date('Y-m-d H:i:s.v') always return 000
+        $datenow = DateTime::createFromFormat('U.u', microtime(true));
+        $data['date'] = $datenow->setTimezone(new DateTimeZone('Asia/Jakarta'))->format("Y-m-d H:i:s.v");
+
         $data['referenceNumber'] = $dataPay['reference_number'];
         $data['tid']        = $tid;
         $data['mid']        = $mid;
@@ -205,7 +212,13 @@ class Ovo {
         $data['type'] = "0400";
         $data['processingCode'] = "040000";
         $data['amount'] = $amount;
-        $data['date'] = date('Y-m-d H:i:s.v');
+
+        // $data['date'] = date('Y-m-d H:i:s.v');
+
+        //for millisecond data appears, because if you using a date('Y-m-d H:i:s.v') always return 000
+        $datenow = DateTime::createFromFormat('U.u', microtime(true));
+        $data['date'] = $datenow->setTimezone(new DateTimeZone('Asia/Jakarta'))->format("Y-m-d H:i:s.v");
+
         $data['referenceNumber'] = $dataPay['reference_number'];
         $data['tid']        = $tid;
         $data['mid']        = $mid;
@@ -300,7 +313,13 @@ class Ovo {
         $data['type'] = "0200";
         $data['processingCode'] = "020040";
         $data['amount'] = $transaction['transaction_grandtotal']??$transaction['amount'];
-        $data['date'] = date('Y-m-d H:i:s.v');
+
+        // $data['date'] = date('Y-m-d H:i:s.v');
+
+        //for millisecond data appears, because if you using a date('Y-m-d H:i:s.v') always return 000
+        $datenow = DateTime::createFromFormat('U.u', microtime(true));
+        $data['date'] = $datenow->setTimezone(new DateTimeZone('Asia/Jakarta'))->format("Y-m-d H:i:s.v");
+
         $data['referenceNumber'] = $transaction['reference_number'];
         $data['tid']        = $tid;
         $data['mid']        = $mid;
@@ -402,11 +421,11 @@ class Ovo {
         if(isset($data['response_code'])){
             if($data['response_code'] == '14'){
                $data['response_detail'] = "Invalid Mobile Number / OVO ID";
-               $data['response_description'] = "Your order could not be completed. Please check your OVO details.";
+               $data['response_description'] = "your mobile number is not registered on OVO";
             }
             elseif($data['response_code'] == '17'){
                 $data['response_detail'] = "Transaction Decline";
-                $data['response_description'] = "You have cancelled the order";
+                $data['response_description'] = "you have canceled the payment";
             }
             elseif($data['response_code'] == '25'){
                 $data['response_detail'] = "Transaction Not Found";
@@ -489,7 +508,13 @@ class Ovo {
         $data['type'] = "0100";
         $data['processingCode'] = "040000";
         $data['amount'] = (int)$dataTrx['transaction_grandtotal'];
-        $data['date'] = date('Y-m-d H:i:s.v');
+
+        // $data['date'] = date('Y-m-d H:i:s.v');
+
+        //for millisecond data appears, because if you using a date('Y-m-d H:i:s.v') always return 000
+        $datenow = DateTime::createFromFormat('U.u', microtime(true));
+        $data['date'] = $datenow->setTimezone(new DateTimeZone('Asia/Jakarta'))->format("Y-m-d H:i:s.v");
+
         $data['referenceNumber'] = $dataPay['reference_number'];
         $data['tid'] = env('OVO_TID');
         $data['mid'] = env('OVO_MID');

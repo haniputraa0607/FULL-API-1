@@ -42,7 +42,7 @@ class ApiUserRatingController extends Controller
             $query->select('id_outlet','outlet_code','outlet_name');
         },'user'=>function($query){
             $query->select('id','name','phone');
-        }]);
+        }])->orderBy('id_user_rating','desc');
 
         // if($outlet_code = ($request['outlet_code']??false)){
         //     $data->whereHas('transaction.outlet',function($query) use ($outlet_code){
@@ -268,16 +268,8 @@ class ApiUserRatingController extends Controller
                 ){
                     return MyHelper::checkGet([]);
                 }
-                $log_popup->refuse_count++;
-                $log_popup->last_popup = date('Y-m-d H:i:s');
-                $log_popup->save();
-            }else{
-                UserRatingLog::create([
-                    'id_user' => $user->id,
-                    'refuse_count' => 1,
-                    'last_popup' => date('Y-m-d H:i:s')
-                ]);
             }
+            $max_date = date('Y-m-d',time() - ((Setting::select('value')->where('key','popup_max_days')->pluck('value')->first()?:3) * 86400));
             if($use_product_variant){
                 $transaction = Transaction::where(['show_rate_popup'=>1,'id_user'=>$user->id])->with(
                     // 'user.city.province',
@@ -291,6 +283,8 @@ class ApiUserRatingController extends Controller
                     'transaction_vouchers.deals_voucher.deal',
                     'promo_campaign_promo_code.promo_campaign',
                     'outlet.city')
+                    ->whereDate('transaction_date','>',$max_date)
+                    ->orderBy('transaction_date','desc')
                     ->first();
             }else{
                 $transaction = Transaction::where(['show_rate_popup'=>1,'id_user'=>$user->id])->with(
@@ -303,10 +297,23 @@ class ApiUserRatingController extends Controller
                     'transaction_vouchers.deals_voucher.deal',
                     'promo_campaign_promo_code.promo_campaign',
                     'outlet.city')
+                    ->whereDate('transaction_date','>',$max_date)
+                    ->orderBy('transaction_date','desc')
                     ->first();
             }
             if(!$transaction){
                 return MyHelper::checkGet([]);
+            }
+            if($log_popup) {
+                $log_popup->refuse_count++;
+                $log_popup->last_popup = date('Y-m-d H:i:s');
+                $log_popup->save();
+            }else{
+                UserRatingLog::create([
+                    'id_user' => $user->id,
+                    'refuse_count' => 1,
+                    'last_popup' => date('Y-m-d H:i:s')
+                ]);
             }
         }
         $result['id'] = $transaction->id_transaction;

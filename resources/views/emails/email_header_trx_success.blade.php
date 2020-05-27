@@ -1,8 +1,35 @@
 <head>
-      <link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
-      <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <link href="{{ env('S3_URL_VIEW') }}{{('css/slide.css') }}" rel="stylesheet">
     <style type="text/css">
+        .table-bordered {
+            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+        }
+        .table-bordered td, .table-bordered th {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        #table-fraud-list {
+            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+        }
+
+        #table-fraud-list td, #table-fraud-list th {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        #table-fraud-list th {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            text-align: left;
+            background-color: #BFBFBF;
+            color: white;
+        }
+
         .kotak {
             margin : 10px;
             padding: 10px;
@@ -35,8 +62,8 @@
         }
 
         .kotak-inside {
-        	padding-left: 25px;
-        	padding-right: 25px
+            padding-left: 25px;
+            padding-right: 25px
         }
 
         body {
@@ -64,15 +91,15 @@
         }
 
         .space-nice {
-        	padding-bottom: 20px;
+            padding-bottom: 20px;
         }
 
         .space-bottom-big {
-        	padding-bottom: 25px;
+            padding-bottom: 25px;
         }
 
         .space-top {
-        	padding-top: 5px;
+            padding-top: 5px;
         }
 
         .line-bottom {
@@ -388,9 +415,9 @@
             margin-top: 1rem;
             margin-bottom: 1rem;
             border: 0;
-                border-top-color: currentcolor;
-                border-top-style: none;
-                border-top-width: 0px;
+            border-top-color: currentcolor;
+            border-top-style: none;
+            border-top-width: 0px;
             border-top: 1px solid rgba(0,0,0,.1);
             box-sizing: content-box;
             height: 0;
@@ -414,31 +441,21 @@
             color: white;
         }
 
-        .table-bordered {
-            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
-            border-collapse: collapse;
+        div{
+            height:1em;
         }
-        .table-bordered td, .table-bordered th {
-            border: 1px solid #ddd;
-            padding: 8px;
+        .left,.right{
+            padding:1px 0.5em;
+            background:#f5f5f5;
+            float:right;
         }
-
-        #table-fraud-list {
-            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
-            border-collapse: collapse;
-        }
-
-        #table-fraud-list td, #table-fraud-list th {
-            border: 1px solid #ddd;
-            padding: 8px;
+        .left{
+            float:left;
+            clear:both;
         }
 
-        #table-fraud-list th {
-            padding-top: 12px;
-            padding-bottom: 12px;
-            text-align: left;
-            background-color: #BFBFBF;
-            color: white;
+        .dotted {
+            border-bottom: 1px dashed grey;
         }
     </style>
 </head>
@@ -457,24 +474,6 @@
         <td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:'Source Sans Pro',sans-serif;line-height:1.5;margin:0;padding:0" bgcolor="#ffffff">
             <table style="border-collapse:collapse;border-spacing:0;margin:0;padding:0" width="100%" align="left">
                 <tbody>
-                <tr>
-                    <td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:'Source Sans Pro',sans-serif;line-height:1.5;margin:0;padding:0" width="15" height="100"></td>
-                    <td id="logoheader_center" style="border-collapse:collapse;border-spacing:0;color:#000;font-family:'Arial',sans-serif;line-height:1.5;margin:0;padding:0;text-align:center" height="100">
-                        <?php
-                        if(isset($setting['email_logo'])){
-                            if(stristr($setting['email_logo'], 'http')){
-                                $email_logo = $setting['email_logo'];
-                            }else{
-                                $email_logo = env('AWS_URL').$setting['email_logo'];
-                            }
-                        }else{
-                            $email_logo = env('S3_URL_API').('img/logo.jpg');
-                        }
-                        ?>
-                            <img class="CToWUd" id="detail_logo_center" src="{{$email_logo}}" style="border:0 none;line-height:100%;outline:none;text-decoration:none;height: 100px;margin-bottom: -60px;">
-                    </td>
-                    <td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:'Source Sans Pro',sans-serif;line-height:1.5;margin:0;padding:0" width="15" height="100"></td>
-                </tr>
                 <tr>
                     <td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:'Source Sans Pro',sans-serif;line-height:1.5;margin:0;padding:0" width="15"></td>
                     <td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:'Source Sans Pro',sans-serif;line-height:1.5;margin:0;padding:0" width="550" align="left"><table style="border-collapse:collapse;border-spacing:0;margin:0;padding:0" width="100%" align="left">

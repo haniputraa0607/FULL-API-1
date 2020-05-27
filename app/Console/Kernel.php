@@ -58,7 +58,7 @@ class Kernel extends ConsoleKernel
          * cancel all pending transaction that have been more than 1 x 24 hours
          * run every hour
          */
-        $schedule->call('Modules\Transaction\Http\Controllers\ApiCronTrxController@cron')->hourly();
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiCronTrxController@cron')->cron('*/15 * * * *');
 
         /**
          * update all pickup transaction that have been more than 1 x 24 hours
@@ -92,21 +92,21 @@ class Kernel extends ConsoleKernel
 
         /**
          * To process sync menu price for priority outlet from the POS
-         * Run every day at 00:05
+         * Run every day at 00:01
          */
-        $schedule->call('Modules\POS\Http\Controllers\ApiPOS@cronProductPricePriority')->dailyAt('00:05');
+        $schedule->call('Modules\POS\Http\Controllers\ApiPOS@cronProductPricePriority')->dailyAt('00:01');
 
         /**
          * To process sync menu price from the POS
-         * Run every day at 00:30
+         * Run every day at 00:05
          */
-        $schedule->call('Modules\POS\Http\Controllers\ApiPOS@cronProductPrice')->dailyAt('00:30');
+        $schedule->call('Modules\POS\Http\Controllers\ApiPOS@cronProductPrice')->dailyAt('00:05');
 
         /**
          * To process sync add on price from the POS
-         * Run every day at 00:10
+         * Run every day at 00:15
          */
-        $schedule->call('Modules\POS\Http\Controllers\ApiPOS@cronAddOnPrice')->dailyAt('00:10');
+        $schedule->call('Modules\POS\Http\Controllers\ApiPOS@cronAddOnPrice')->dailyAt('00:15');
 
         /**
          * To make daily transaction reports (offline and online transactions)
@@ -129,6 +129,7 @@ class Kernel extends ConsoleKernel
          * To process fraud
          */
         $schedule->call('Modules\SettingFraud\Http\Controllers\ApiFraud@fraudCron')->cron('*/59 * * * *');
+
     }
 
     /**

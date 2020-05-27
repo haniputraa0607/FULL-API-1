@@ -84,7 +84,7 @@ class ApiAutoCrm extends Controller
 
 					if($autocrm_title == 'Transaction Success'){
 
-						Mail::send('emails.test2', $data, function($message) use ($to,$subject,$name,$setting,$variables)
+						Mail::send('emails.email_trx_success', $data, function($message) use ($to,$subject,$name,$setting,$variables)
 						{
 
 							if(stristr($to, 'gmail.con')){
@@ -786,29 +786,29 @@ class ApiAutoCrm extends Controller
 					if($replace['reference'] == 'variables'){
 						if(isset($variables[$replace['reference']])){
 							if($replace['custom_rule'] != ""){
-								$replaced = $replace['custom_rule']." ".number_format($variables[$replace['reference']], 2, '.', ',');
+								$replaced = $replace['custom_rule']." ".number_format($variables[$replace['reference']], 0, ',', '.');
 							} else {
-								$replaced = number_format($replace['reference'], 2, '.', ',');
+								$replaced = number_format($replace['reference'], 0, ',', '.');
 							}
 						} else {
 							if($replace['custom_rule'] != ""){
-								$replaced = $replace['custom_rule']." ".number_format($replace['default_value'], 2, '.', ',');
+								$replaced = $replace['custom_rule']." ".number_format($replace['default_value'], 0, ',', '.');
 							} else {
-								$replaced = number_format($replace['default_value'], 2, '.', ',');
+								$replaced = number_format($replace['default_value'], 0, ',', '.');
 							}
 						}
 					} else {
 						if($user[$replace['reference']] != ""){
 							if($replace['custom_rule'] != ""){
-								$replaced = $replace['custom_rule']." ".number_format($user[$replace['reference']], 2, '.', ',');
+								$replaced = $replace['custom_rule']." ".number_format($user[$replace['reference']], 0, ',', '.');
 							} else {
-								$replaced = number_format($user[$replace['reference']], 2, '.', ',');
+								$replaced = number_format($user[$replace['reference']], 0, ',', '.');
 							}
 						} else {
 							if($replace['custom_rule'] != ""){
-								$replaced = $replace['custom_rule']." ".number_format($replace['default_value'], 2, '.', ',');
+								$replaced = $replace['custom_rule']." ".number_format($replace['default_value'], 0, ',', '.');
 							} else {
-								$replaced = number_format($replace['default_value'], 2, '.', ',');
+								$replaced = number_format($replace['default_value'], 0, ',', '.');
 							}
 						}
 					}
@@ -821,7 +821,7 @@ class ApiAutoCrm extends Controller
 					}
 				}
 
-				if($replace['keyword'] == "%kenangan_points%"){
+				if($replace['keyword'] == "%maxx_points%"){
 				    $text = str_replace("%point%",number_format($replaced, 0, ',', '.'), $text);
 				    $text = str_replace("%points%",number_format($replaced, 0, ',', '.'), $text);
 				    $text = str_replace($replace['keyword'],number_format($replaced, 0, ',', '.'), $text);
@@ -831,7 +831,6 @@ class ApiAutoCrm extends Controller
 			}
 
 			if(!empty($variables)){
-			 //   dd($variables);
 				foreach($variables as $key => $var){
 				    if(is_string($var)){
     					$text = str_replace('%'.$key.'%',$var, $text);

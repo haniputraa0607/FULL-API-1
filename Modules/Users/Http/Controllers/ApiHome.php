@@ -95,7 +95,7 @@ class ApiHome extends Controller
                 $item['type']       = 'link';
             }
 
-            if ($value->id_news != "") {
+            if ($value->id_news != "" && isset($value->news->news_title)) {
                 $item['type']       = 'news';
                 $item['news_title'] = $value->news->news_title;
                 // if news, generate webview news detail url
@@ -734,7 +734,7 @@ class ApiHome extends Controller
             'status' => 'success',
             'result' => [
                 'splash_screen_url' => $splash."?update=".time(),
-                'splash_screen_duration' => $duration??5,
+                'splash_screen_duration' => (int)$duration??5,
                 'splash_screen_ext' => '.'.end($ext)
             ]
         ];

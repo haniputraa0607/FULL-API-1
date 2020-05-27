@@ -168,8 +168,8 @@ class ApiNotification extends Controller {
                     $kirim = $this->kirimOutlet($newTrx['transaction_receipt_number']);
                     if (isset($kirim['status']) && $kirim['status'] == 1) {
 
-                        // apply cashback to referrer
-                        \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($newTrx);
+                        // // apply cashback to referrer
+                        // \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($newTrx);
 
                         DB::commit();
                         // langsung
@@ -365,8 +365,7 @@ class ApiNotification extends Controller {
         $date    = $trx['transaction_date'];
         $outlet  = $trx['outlet']['outlet_name'];
         $receipt = $trx['transaction_receipt_number'];
-        $detail = $this->htmlDetail($trx['id_transaction']);
-        //$detail = $this->getHtml($trx, $trx['productTransaction'], $name, $phone, $date, $outlet, $receipt);
+        $detail = $this->htmlDetailOrder($trx['id_transaction'], 'Pending');
 
         if ($trx['transaction_payment_status'] == 'Pending') {
             $title = 'Pending';
@@ -410,8 +409,7 @@ class ApiNotification extends Controller {
         $date    = $trx['transaction_date'];
         $outlet  = $trx['outlet']['outlet_name'];
         $receipt = $trx['transaction_receipt_number'];
-        $detail = $this->htmlDetail($trx['id_transaction']);
-        //$detail = $this->getHtml($trx, $trx['productTransaction'], $name, $phone, $date, $outlet, $receipt);
+        $detail = $this->htmlDetailOrder($trx['id_transaction'], 'Expired');
 
         if ($trx['transaction_payment_status'] == 'Pending') {
             $title = 'Pending';
@@ -452,8 +450,7 @@ class ApiNotification extends Controller {
         $date    = $trx['transaction_date'];
         $outlet  = $trx['outlet']['outlet_name'];
         $receipt = $trx['transaction_receipt_number'];
-        $detail = $this->htmlDetail($trx['id_transaction']);
-        //$detail = $this->getHtml($trx, $trx['productTransaction'], $name, $phone, $date, $outlet, $receipt);
+        $detail = $this->htmlDetailOrder($trx['id_transaction'], 'Denied');
 
         if ($trx['transaction_payment_status'] == 'Pending') {
             $title = 'Pending';
@@ -499,8 +496,7 @@ class ApiNotification extends Controller {
         $date    = $trx['transaction_date'];
         $outlet  = $trx['outlet']['outlet_name'];
         $receipt = $trx['transaction_receipt_number'];
-        // $detail = $this->getHtml($trx, $trx['productTransaction'], $name, $phone, $date, $outlet, $receipt);
-        $detail = $this->htmlDetail($trx['id_transaction']);
+        $detail = $this->htmlDetailTrxSuccess($trx['id_transaction']);
 
         if ($trx['transaction_payment_status'] == 'Pending') {
             $title = 'Pending';
@@ -571,8 +567,12 @@ class ApiNotification extends Controller {
             $updateUserPoint = User::where('id', $data['id_user'])->update(['points' => $totalPoint]);
         }
 
+        // apply cashback to referrer
+        \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback(Transaction::find($data['id_transaction']));
+
         if ($data['trasaction_payment_type'] != 'Balance') {
             if ($data['transaction_cashback_earned'] != 0) {
+
 
                 $insertDataLogCash = app($this->balance)->addLogBalance( $data['id_user'], $data['transaction_cashback_earned'], $data['id_transaction'], 'Transaction', $data['transaction_grandtotal']);
                 if (!$insertDataLogCash) {
@@ -1081,48 +1081,11 @@ Detail: ".$link['short'],
         }
 
         $config_fraud_use_queue = Configs::where('config_name', 'fraud use queue')->first()->is_active;
-        $fraudTrxDay = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 day%')->where('fraud_settings_status','Active')->first();
-        $fraudTrxWeek = FraudSetting::where('parameter', 'LIKE', '%transactions in 1 week%')->where('fraud_settings_status','Active')->first();
 
         if($config_fraud_use_queue == 1){
             FraudJob::dispatch($userData, $trx, 'transaction')->onConnection('fraudqueue');
         }else {
-            //========= This process to check if user have fraud ============//
-            $geCountTrxDay = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                ->where('transactions.id_user', $trx['id_user'])
-                ->whereRaw('DATE(transactions.transaction_date) = "' . date('Y-m-d', strtotime($trx['transaction_date'])) . '"')
-                ->where('transactions.transaction_payment_status', 'Completed')
-                ->whereNull('transaction_pickups.reject_at')
-                ->count();
-
-            $currentWeekNumber = date('W', strtotime($trx['transaction_date']));
-            $currentYear = date('Y', strtotime($trx['transaction_date']));
-            $dto = new DateTime();
-            $dto->setISODate($currentYear, $currentWeekNumber);
-            $start = $dto->format('Y-m-d');
-            $dto->modify('+6 days');
-            $end = $dto->format('Y-m-d');
-
-            $geCountTrxWeek = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')
-                ->where('id_user', $trx['id_user'])
-                ->where('transactions.transaction_payment_status', 'Completed')
-                ->whereNull('transaction_pickups.reject_at')
-                ->whereRaw('Date(transactions.transaction_date) BETWEEN "' . $start . '" AND "' . $end . '"')
-                ->count();
-
-            $countTrxDay = $geCountTrxDay + 1;
-            $countTrxWeek = $geCountTrxWeek + 1;
-            //================================ End ================================//
-
-            if($config_fraud_use_queue != 1){
-                if($fraudTrxDay){
-                    $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxDay, $userData, null, $countTrxDay, $countTrxWeek, $trx['transaction_date'], 0, $trx['transaction_receipt_number']);
-                }
-
-                if($fraudTrxWeek){
-                    $checkFraud = app($this->setting_fraud)->checkFraud($fraudTrxWeek, $userData, null, $countTrxDay, $countTrxWeek, $trx['transaction_date'], 0, $trx['transaction_receipt_number']);
-                }
-            }
+            $checkFraud = app($this->setting_fraud)->checkFraudTrxOnline($userData, $trx);
         }
 
         return true;
@@ -1617,66 +1580,23 @@ Detail: ".$link['short'],
             </table>';
     }
 
-    public function htmlDetail($id){
+    public function htmlDetailTrxSuccess($id){
         $list = Transaction::where([['id_transaction', $id]])->with(
             'user.city.province',
             'modifiers',
-            'productTransaction.product.product_group',
-            'productTransaction.product.product_variants',
-            'productTransaction.product.product_group.product_category',
-            'productTransaction.modifiers',
-            'productTransaction.product.product_photos',
-            'productTransaction.product.product_discounts',
-            'transaction_payment_offlines',
-            'modifiers',
+            'productTransaction',
+            'product_group',
+            'products_variant',
+            'vouchers',
+            'promo_campaign_promo_code',
             'outlet.city')->first();
+        $dataPayment = [];
 
-            $dataPayment = [];
-
-            $multiPayment = TransactionMultiplePayment::where('id_transaction', $list['id_transaction'])->get();
-            // return $multiPayment;
-            if (isset($multiPayment)) {
-                foreach ($multiPayment as $key => $value) {
-                    if ($value->type == 'Midtrans') {
-                        $getPayment = TransactionPaymentMidtran::where('id_transaction', $list['id_transaction'])->first();
-                        if (!empty($getPayment)) {
-                            $dataPush = [
-                                'payment_method' => $getPayment['bank'],
-                                'nominal' => $getPayment['gross_amount']
-                            ];
-                            array_push($dataPayment, $dataPush);
-                        }
-                    } elseif ($value->type == 'Balance') {
-                        $getPayment = TransactionPaymentBalance::where('id_transaction', $list['id_transaction'])->first();
-                        if (!empty($getPayment)) {
-                            $dataPush = [
-                                'payment_method' => 'MAXX Points',
-                                'nominal' => $getPayment['balance_nominal']
-                            ];
-                            array_push($dataPayment, $dataPush);
-                        }
-                    }elseif ($value->type == 'Ovo') {
-                        $getPayment = TransactionPaymentOvo::where('id_transaction', $list['id_transaction'])->first();
-                        if (!empty($getPayment)) {
-                            $dataPush = [
-                                'payment_method' => 'Ovo',
-                                'nominal' => $getPayment['amount']
-                            ];
-                            array_push($dataPayment, $dataPush);
-                        }
-                    }elseif ($value->type == 'Ipay88') {
-                        $getPayment = TransactionPaymentIpay88::where('id_transaction', $list['id_transaction'])->first();
-                        if (!empty($getPayment)) {
-                            $dataPush = [
-                                'payment_method' => $getPayment['payment_method'],
-                                'nominal' => $getPayment['amount']
-                            ];
-                            array_push($dataPayment, $dataPush);
-                        }
-                    }
-                }
-            }else{
-                if($list['trasaction_payment_type'] == 'Midtrans') {
+        $multiPayment = TransactionMultiplePayment::where('id_transaction', $list['id_transaction'])->get();
+        // return $multiPayment;
+        if (isset($multiPayment)) {
+            foreach ($multiPayment as $key => $value) {
+                if ($value->type == 'Midtrans') {
                     $getPayment = TransactionPaymentMidtran::where('id_transaction', $list['id_transaction'])->first();
                     if (!empty($getPayment)) {
                         $dataPush = [
@@ -1685,33 +1605,72 @@ Detail: ".$link['short'],
                         ];
                         array_push($dataPayment, $dataPush);
                     }
+                } elseif ($value->type == 'Balance') {
+                    $getPayment = TransactionPaymentBalance::where('id_transaction', $list['id_transaction'])->first();
+                    if (!empty($getPayment)) {
+                        $dataPush = [
+                            'payment_method' => 'MAXX Point',
+                            'nominal' => $getPayment['balance_nominal']
+                        ];
+                        array_push($dataPayment, $dataPush);
+                    }
+                }elseif (strtolower($value->type) == 'ovo') {
+                    $getPayment = TransactionPaymentOvo::where('id_transaction', $list['id_transaction'])->first();
+                    if (!empty($getPayment)) {
+                        $dataPush = [
+                            'payment_method' => 'Ovo',
+                            'nominal' => $getPayment['amount']
+                        ];
+                        array_push($dataPayment, $dataPush);
+                    }
+                }elseif ($value->type == 'IPay88') {
+                    $getPayment = TransactionPaymentIpay88::where('id_transaction', $list['id_transaction'])->first();
+                    if (!empty($getPayment)) {
+                        $dataPush = [
+                            'payment_method' => $getPayment['payment_method'],
+                            'nominal' => $getPayment['amount']
+                        ];
+                        array_push($dataPayment, $dataPush);
+                    }
                 }
-
+            }
+        }else{
+            if($list['trasaction_payment_type'] == 'Midtrans') {
+                $getPayment = TransactionPaymentMidtran::where('id_transaction', $list['id_transaction'])->first();
+                if (!empty($getPayment)) {
+                    $dataPush = [
+                        'payment_method' => $getPayment['bank'],
+                        'nominal' => $getPayment['gross_amount']
+                    ];
+                    array_push($dataPayment, $dataPush);
+                }
             }
 
-            $detail = [];
+        }
 
-            $qrTest= '';
+        $detail = [];
 
-            if ($list['trasaction_type'] == 'Pickup Order') {
-                $detail = TransactionPickup::where('id_transaction', $list['id_transaction'])->first();
-                $qrTest = $detail['order_id'];
-            } elseif ($list['trasaction_type'] == 'Delivery') {
-                $detail = TransactionShipment::with('city.province')->where('id_transaction', $list['id_transaction'])->first();
-            }
+        $qr= '';
 
-            $list['data_payment'] = $dataPayment;
+        if ($list['trasaction_type'] == 'Pickup Order') {
+            $detail = TransactionPickup::where('id_transaction', $list['id_transaction'])->first();
+            $qr = $detail['order_id'];
+        } elseif ($list['trasaction_type'] == 'Delivery') {
+            $detail = TransactionShipment::with('city.province')->where('id_transaction', $list['id_transaction'])->first();
+        }
 
-            $list['detail'] = $detail;
+        $list['data_payment'] = $dataPayment;
 
-            $list['date'] = $list['transaction_date'];
+        $list['detail'] = $detail;
 
-            $qrCode = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data='.$qrTest;
-            // $qrCode = 'https://chart.googleapis.com/chart?chl='.$qrTest.'&chs=250x250&cht=qr&chld=H%7C0';
-            $qrCode = html_entity_decode($qrCode);
-            $list['qr'] = $qrCode;
+        $list['date'] = $list['transaction_date'];
 
-            $data = $list;
+        $qrCode = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data='.$qr;
+        // $qrCode = 'https://chart.googleapis.com/chart?chl='.$qrTest.'&chs=250x250&cht=qr&chld=H%7C0';
+        $qrCode = html_entity_decode($qrCode);
+        $list['qr'] = $qrCode;
+
+        $data = $list;
 
         if ($data['detail']['pickup_type'] == 'set time'){
             $data['text_siap'] = 'Pesanan Anda akan siap pada';
@@ -1728,7 +1687,53 @@ Detail: ".$link['short'],
             $textPick = 'Saat Ini';
         }
 
-        $html = view('transaction::email.detail_transaction')->with(compact('data'))->render();
+        $getSetting = Setting::where('key', 'LIKE', 'email%')->get()->toArray();
+        $setting = array();
+        foreach ($getSetting as $key => $value) {
+            if($value['key'] == 'email_setting_url'){
+                $setting[$value['key']]  = (array)json_decode($value['value_text']);
+            }else{
+                $setting[$value['key']] = $value['value'];
+            }
+        }
+
+        $data['setting'] = $setting;
+
+        $html = view('transaction::email.detail_transaction_success')->with(compact('data'))->render();
+        return $html;
+    }
+
+    public function htmlDetailOrder($id, $status){
+        $data = Transaction::where([['id_transaction', $id]])->with(
+            'user.city.province',
+            'outlet.city')->first();
+
+        if ($data['trasaction_type'] == 'Pickup Order') {
+            $detail = TransactionPickup::where('id_transaction', $data['id_transaction'])->first();
+            $qrTest = $detail['order_id'];
+        } elseif ($data['trasaction_type'] == 'Delivery') {
+            $detail = TransactionShipment::with('city.province')->where('id_transaction', $data['id_transaction'])->first();
+        }
+
+        $data['detail'] = $detail;
+
+        if($status == 'Expired'){
+            $data['status'] = 'Your order has expired';
+        }elseif ($status == 'Denied'){
+            $data['status'] = 'Your order has been rejected';
+        }elseif ($status == 'Pending'){
+            $data['status'] = 'Your order is pending';
+        }elseif ($status == 'Order Accepted'){
+            $data['status'] = 'Your order is accepted';
+        }elseif ($status == 'Order Ready'){
+            $data['status'] = 'Your order is ready';
+        }elseif ($status == 'Order Reject'){
+            $data['status'] = 'Your order is rejected';
+        }elseif ($status == 'Order Taken'){
+            $data['status'] = 'Your order is taken';
+        }
+
+        $html = view('transaction::email.detail_order')->with(compact('data'))->render();
         return $html;
     }
 

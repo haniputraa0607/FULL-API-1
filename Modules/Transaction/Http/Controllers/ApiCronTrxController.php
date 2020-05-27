@@ -22,6 +22,7 @@ use Mail;
 use App\Jobs\CronBalance;
 
 use App\Http\Models\Transaction;
+use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionProduct;
 use App\Http\Models\TransactionPickup;
 use App\Http\Models\User;
@@ -30,6 +31,7 @@ use App\Http\Models\AutocrmEmailLog;
 use App\Http\Models\Autocrm;
 use App\Http\Models\Setting;
 use App\Http\Models\LogPoint;
+use Modules\IPay88\Entities\TransactionPaymentIpay88;
 
 class ApiCronTrxController extends Controller
 {
@@ -42,6 +44,8 @@ class ApiCronTrxController extends Controller
         $this->balance  = "Modules\Balance\Http\Controllers\BalanceController";
         $this->voucher  = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
         $this->promo_campaign	= "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+        $this->getNotif = "Modules\Transaction\Http\Controllers\ApiNotification";
+        $this->trx    = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
     }
 
     public function cron(Request $request)
@@ -49,25 +53,16 @@ class ApiCronTrxController extends Controller
         $crossLine = date('Y-m-d H:i:s', strtotime('- 3days'));
         $dateLine  = date('Y-m-d H:i:s', strtotime('- 1days'));
         $now       = date('Y-m-d H:i:s');
+        $expired   = date('Y-m-d H:i:s',strtotime('- 15minutes'));
 
-        $getTrx = Transaction::where('transaction_payment_status', 'Pending')->where('transaction_date', '<=', $now)->get();
+        $getTrx = Transaction::where('transaction_payment_status', 'Pending')->where('transaction_date', '<=', $expired)->get();
 
         if (empty($getTrx)) {
             return response()->json(['empty']);
         }
         $count = 0;
-        foreach ($getTrx as $key => $value) {
-
-            $singleTrx = Transaction::where('id_transaction', $value->id_transaction)->with('outlet_name')->first();
-            if (empty($singleTrx)) {
-                continue;
-            }
-
-            $expired_at = date('Y-m-d H:i:s', strtotime('+30 minutes', strtotime($singleTrx->transaction_date)));
-
-            if ($expired_at >= $now) {
-                continue;
-            }
+        foreach ($getTrx as $key => $singleTrx) {
+            $singleTrx->load('outlet_name');
 
             $productTrx = TransactionProduct::where('id_transaction', $singleTrx->id_transaction)->get();
             if (empty($productTrx)) {
@@ -78,8 +73,17 @@ class ApiCronTrxController extends Controller
             if (empty($user)) {
                 continue;
             }
-
-            $connectMidtrans = Midtrans::expire($singleTrx->transaction_receipt_number);
+            if($singleTrx->trasaction_payment_type == 'Midtrans') {
+                $connectMidtrans = Midtrans::expire($singleTrx->transaction_receipt_number);
+            }elseif($singleTrx->trasaction_payment_type == 'Ipay88') {
+                $trx_ipay = TransactionPaymentIpay88::where('id_transaction',$singleTrx->id_transaction)->first();
+                $update = \Modules\IPay88\Lib\IPay88::create()->update($trx_ipay?:$singleTrx->id_transaction,[
+                    'type' =>'trx',
+                    'Status' => '0',
+                    'requery_response' => 'Cancelled by cron'
+                ],false,false);
+                continue;                
+            }
             // $detail = $this->getHtml($singleTrx, $productTrx, $user->name, $user->phone, $singleTrx->created_at, $singleTrx->transaction_receipt_number);
 
             // $autoCrm = app($this->autocrm)->SendAutoCRM('Transaction Online Cancel', $user->phone, ['date' => $singleTrx->created_at, 'status' => $singleTrx->transaction_payment_status, 'name'  => $user->name, 'id' => $singleTrx->transaction_receipt_number, 'receipt' => $detail, 'id_reference' => $singleTrx->transaction_receipt_number]);
@@ -119,8 +123,8 @@ class ApiCronTrxController extends Controller
             }
 
             // delete promo campaign report
-            if ($value->id_promo_campaign_promo_code) {
-            	$update_promo_report = app($this->promo_campaign)->deleteReport($value->id_transaction, $value->id_promo_campaign_promo_code);
+            if ($singleTrx->id_promo_campaign_promo_code) {
+            	$update_promo_report = app($this->promo_campaign)->deleteReport($singleTrx->id_transaction, $singleTrx->id_promo_campaign_promo_code);
             	if (!$update_promo_report) {
 	            	DB::rollBack();
 	            	continue;
@@ -128,7 +132,7 @@ class ApiCronTrxController extends Controller
             }
 
             // return voucher
-            $update_voucher = app($this->voucher)->returnVoucher($value->id_transaction);
+            $update_voucher = app($this->voucher)->returnVoucher($singleTrx->id_transaction);
             if (!$update_voucher) {
             	DB::rollBack();
             	continue;
@@ -337,14 +341,68 @@ class ApiCronTrxController extends Controller
     }
 
     public function completeTransactionPickup(){
-        $idTrx = Transaction::whereDate('transaction_date', '<', date('Y-m-d'))->where('trasaction_type', 'Pickup Order')->pluck('id_transaction')->toArray();
+        $trxs = Transaction::whereDate('transaction_date', '<', date('Y-m-d'))
+            ->where('trasaction_type', 'Pickup Order')
+            ->join('transaction_pickups','transaction_pickups.id_transaction','=','transactions.id_transaction')
+            ->whereNull('taken_at')
+            ->whereNull('reject_at')
+            ->whereNull('taken_by_system_at')
+            ->get();
+        $idTrx = [];
+        // apply point if ready_at null
+        foreach ($trxs as $newTrx) {
+            $idTrx[] = $newTrx->id_transaction;
+            if(!empty($newTrx->ready_at) || $newTrx->transaction_payment_status != 'Completed'){
+                continue;
+            }
+            $newTrx->load('user.memberships', 'outlet', 'productTransaction', 'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign');
+
+            $checkType = TransactionMultiplePayment::where('id_transaction', $newTrx->id_transaction)->get()->toArray();
+            $column = array_column($checkType, 'type');
+
+            $use_referral = optional(optional($newTrx->promo_campaign_promo_code)->promo_campaign)->promo_type == 'Referral';
+
+            if ((!in_array('Balance', $column) || $use_referral) && $newTrx->user) {
+
+                $promo_source = null;
+                if ( $newTrx->id_promo_campaign_promo_code || $newTrx->transaction_vouchers || $use_referral) 
+                {
+                    if ( $newTrx->id_promo_campaign_promo_code ) {
+                        $promo_source = 'promo_code';
+                    }
+                    elseif ( ($newTrx->transaction_vouchers[0]->status??false) == 'success' )
+                    {
+                        $promo_source = 'voucher_online';
+                    }
+                }
+
+                if( app($this->trx)->checkPromoGetPoint($promo_source) || $use_referral)
+                {
+                    $savePoint = app($this->getNotif)->savePoint($newTrx);
+                }
+            }
+        }
         //update taken_by_sistem_at
         $dataTrx = TransactionPickup::whereIn('id_transaction', $idTrx)
-                                    ->whereNull('ready_at')
-                                    ->whereNull('reject_at')
-                                    ->whereNull('taken_by_system_at')
                                     ->update(['taken_by_system_at' => date('Y-m-d 00:00:00')]);
         return response()->json(['status' => 'success']);
+    }
 
+    public function cancelTransactionIPay()
+    {
+        // 15 minutes before
+        $max_time = date('Y-m-d H:i:s',time()-900);
+        $trxs = Transaction::select('id_transaction')->where([
+            'trasaction_payment_type' => 'Ipay88',
+            'transaction_payment_status' => 'Pending'
+        ])->where('transaction_date','<',$max_time)->take(50)->pluck('id_transaction');
+        foreach ($trxs as $id_trx) {
+            $trx_ipay = TransactionPaymentIpay88::where('id_transaction',$id_trx)->first();
+            $update = \Modules\IPay88\Lib\IPay88::create()->update($trx_ipay?:$id_trx,[
+                'type' =>'trx',
+                'Status' => '0',
+                'requery_response' => 'Cancelled by cron'
+            ],false,false);
+        }
     }
 }

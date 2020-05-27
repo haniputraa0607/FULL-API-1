@@ -73,10 +73,34 @@ class IPay88Controller extends Controller
                 break;
             default:
         }
+        $errMap = [
+            // 'Duplicate transaction reference number' => '',
+            // 'Merchant identifier is missing or unregistered' => '',
+            'Transaction exceeds maximum allowed amount' => 'Transaction exceeds maximum allowed amount',
+            // 'Unregistered merchant callback URL' => '',
+            // 'Transaction signature is not match' => '',
+            // 'Merchant account is suspended or inactive' => '',
+            'Invalid transaction amount format' => 'Invalid transaction amount format',
+            'Invalid transaction currency format' => 'Invalid transaction currency format',
+            // 'Invalid merchant identifier' => '',
+            // 'Invalid transaction channel identifier' => '',
+            'Invalid purchased item description format' => 'Invalid purchased item description format',
+            'Invalid transaction reference number' => 'Invalid transaction reference number',
+            'Invalid customer email format' => 'Invalid email format',
+            'Invalid customer name format' => 'Invalid name',
+            'Transaction time has expired when receiving authorization response' => 'Transaction time has expired',
+            // 'Payment method or channel is not subscribed' => '',
+            // 'Transaction does not pass all fraud security check' => '',
+        ];
+        $error = '';
+        if($post['ErrDesc']??'') {
+            $error = $errMap[ $post['ErrDesc'] ?? '' ] ?? 'Order canceled, an error occurred in the system';
+        }
         $data = [
             'type' => $type,
             'id_reference' => $trx_ipay88->id_transaction?:$trx_ipay88->id_deals_user,
-            'payment_status' => $payment_status
+            'payment_status' => $payment_status,
+            'error' => $error
         ];
         return view('ipay88::redirect',$data);
     }
