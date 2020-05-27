@@ -135,22 +135,22 @@ class ApiPOS extends Controller
 
             $timestamp = strtotime('+' . $expired . ' minutes');
             $memberUid = MyHelper::createQRV2($timestamp, $user['id']);
-            $header['order_number'] = $check['transaction_receipt_number'];
-            $header['outlet_id'] = $outlet['outlet_code'];
+            $header['orderNumber'] = $check['transaction_receipt_number'];
+            $header['outletId'] = $outlet['outlet_code'];
             // $header['order_id'] = $check['order_id'];
-            $header['booking_code'] = $check['order_id'];
+            $header['bookingCode'] = $check['order_id'];
             // $header['posting_date'] = date('Ymd', strtotime($check['transaction_date']));
-            $header['business_date'] = date('Ymd', strtotime($check['transaction_date']));
-            $header['trx_date'] = date('Ymd', strtotime($check['transaction_date']));
-            $header['trx_start_time'] = $trx_start_time?date('Ymd His', strtotime($trx_start_time)) : '';
-            $header['trx_end_time'] = $check['completed_at'] ? date('Ymd His', strtotime($check['completed_at'])) : '';
+            $header['businessDate'] = date('Ymd', strtotime($check['transaction_date']));
+            $header['trxDate'] = date('Ymd', strtotime($check['transaction_date']));
+            $header['trxStartTime'] = $trx_start_time?date('Ymd His', strtotime($trx_start_time)) : '';
+            $header['trxEndTime'] = $check['completed_at'] ? date('Ymd His', strtotime($check['completed_at'])) : '';
             $header['pax'] = count($check['products']);
-            $header['order_type'] = 'take away';
-            $header['grand_total'] = (float) $check['transaction_grandtotal'];
-            $header['sub_total'] = (float) $check['transaction_subtotal'];
+            $header['orderType'] = 'take away';
+            $header['grandTotal'] = (float) $check['transaction_grandtotal'];
+            $header['subTotal'] = (float) $check['transaction_subtotal'];
             $header['tax'] = (float) $check['transaction_tax'];
             $header['notes'] = '';
-            $header['applied_promo'] = $check['id_promo_campaign_promo_code'] ? 'MOBILE APPS PROMO' : '';
+            $header['appliedPromo'] = $check['id_promo_campaign_promo_code'] ? 'MOBILE APPS PROMO' : '';
             // $header['process_at'] = $check['pickup_type'] ?? '';
             // $header['process_date_time'] = $check['pickup_at'] ?? '';
             // $header['status_order'] = '';
@@ -185,9 +185,9 @@ class ApiPOS extends Controller
                             'number'        => 1,
                             'type'          => 'POINMOBILE',
                             'amount'        => (float) $payBalance['balance_nominal'],
-                            'change_amount' => 0,
-                            'card_number'   => 0,
-                            'card_owner'    => $user['name']
+                            'changeAmount' => 0,
+                            'cardNumber'   => 0,
+                            'cardOwner'    => $user['name']
                         ];
                         $payment[] = $pay;
                     }
@@ -199,9 +199,9 @@ class ApiPOS extends Controller
                                 'number'        => 1,
                                 'type'          => 'GOPAY',
                                 'amount'        => (float) $payMidtrans['gross_amount'],
-                                'change_amount' => 0,
-                                'card_number'   => 0,
-                                'card_owner'    => $user['name']
+                                'changeAmount' => 0,
+                                'cardNumber'   => 0,
+                                'cardOwner'    => $user['name']
                             ];
                             $payment[] = $pay;
                         }
@@ -216,9 +216,9 @@ class ApiPOS extends Controller
                                 'number'        => $key + 1,
                                 'type'          => 'POINMOBILE',
                                 'amount'        => (float) $balance['balance_nominal'],
-                                'change_amount' => 0,
-                                'card_number'   => 0,
-                                'card_owner'    => $user['name']
+                                'changeAmount' => 0,
+                                'cardNumber'   => 0,
+                                'cardOwner'    => $user['name']
                             ];
                             $payment[] = $pay;
                         }
@@ -229,9 +229,9 @@ class ApiPOS extends Controller
                                 'number'        => $key + 1,
                                 'type'          => 'GOPAY',
                                 'amount'        => (float) $midtrans['gross_amount'],
-                                'change_amount' => 0,
-                                'card_number'   => '',
-                                'card_owner'    => ''
+                                'changeAmount' => 0,
+                                'cardNumber'   => '',
+                                'cardOwner'    => ''
                             ];
                             $payment[] = $pay;
                         }
@@ -242,10 +242,10 @@ class ApiPOS extends Controller
                                 'number'            => $key + 1,
                                 'type'              => 'OVO',
                                 'amount'            => (float) $ovo['amount'],
-                                'change_amount'     => 0,
-                                'card_number'       => $ovo['phone'],
-                                'card_owner'        => '',
-                                'reference_number'  => $ovo['approval_code']
+                                'changeAmount'     => 0,
+                                'cardNumber'       => $ovo['phone'],
+                                'cardOwner'        => '',
+                                'referenceNumber'  => $ovo['approval_code']
                             ];
                             $payment[] = $pay;
                         }
@@ -256,9 +256,9 @@ class ApiPOS extends Controller
                                 'number'            => $key + 1,
                                 'type'              => 'Cimb',
                                 'amount'            => (float) $cimb['amount'] ?? $check['transaction_grandtotal'],
-                                'change_amount'     => 0,
-                                'card_number'       => '',
-                                'card_owner'        => ''
+                                'changeAmount'     => 0,
+                                'cardNumber'       => '',
+                                'cardOwner'        => ''
                             ];
                             $payment[] = $pay;
                         }
@@ -269,10 +269,10 @@ class ApiPOS extends Controller
                                 'number'            => $key + 1,
                                 'type'              => 'IPAY88',
                                 'amount'            => (float) $ipay['amount'] / 100,
-                                'change_amount'     => 0,
-                                'card_number'       => '',
-                                'card_owner'        => '',
-                                'reference_number'  => $ipay['trans_id']
+                                'changeAmount'     => 0,
+                                'cardNumber'       => '',
+                                'cardOwner'        => '',
+                                'referenceNumber'  => $ipay['trans_id']
                             ];
                             $payment[] = $pay;
                         }
@@ -292,19 +292,19 @@ class ApiPOS extends Controller
                 $tax = 0;
                 $val = [
                     'number' => $key + 1,
-                    'menu_id' => $menu['product_group']['product_group_code'],
-                    'sap_matnr' => $menu['product_code'],
-                    'category_id' => $menu['category_id_pos'],
+                    'menuId' => $menu['product_group']['product_group_code'],
+                    'sapMatnr' => $menu['product_code'],
+                    'categoryId' => $menu['category_id_pos'],
                     'qty' => (int) $menu['pivot']['transaction_product_qty'],
                     'price' => (float) $menu['pivot']['transaction_product_price'] - $menu['pivot']['transaction_modifier_subtotal'],
                     'discount' => (float) $menu['pivot']['transaction_product_discount'],
-                    'gross_amount' => $menu['pivot']['transaction_product_subtotal'] - $menu['pivot']['transaction_modifier_subtotal'],
-                    'net_amount' => $menu['pivot']['transaction_product_subtotal'] - $tax,
+                    'grossAmount' => $menu['pivot']['transaction_product_subtotal'] - $menu['pivot']['transaction_modifier_subtotal'],
+                    'netAmount' => $menu['pivot']['transaction_product_subtotal'] - $tax,
                     'tax' => $tax,
                     'type' => $menu['product_variants'][1]['product_variant_code'] == 'general_type' ? null : $menu['product_variants'][1]['product_variant_code'],
                     'size' => $menu['product_variants'][0]['product_variant_code'] == 'general_size' ? null : $menu['product_variants'][0]['product_variant_code'],
-                    'promo_number' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
-                    'promo_type' => $check['id_promo_campaign_promo_code'] ? '5' : null,
+                    'promoNumber' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
+                    'promoType' => $check['id_promo_campaign_promo_code'] ? '5' : null,
                     'status' => 'ACTIVE'
                     // 'amount' => (float) $menu['pivot']['transaction_product_subtotal']
                 ];
@@ -315,19 +315,19 @@ class ApiPOS extends Controller
                 $tax = 0;
                 $val = [
                     'number' => $key + 1 + $last,
-                    'menu_id' => $modifier['product_modifier']['menu_id_pos'],
-                    'sap_matnr' => $modifier['code'],
-                    'category_id' => $modifier['product_modifier']['category_id_pos'],
+                    'menuId' => $modifier['product_modifier']['menu_id_pos'],
+                    'sapMatnr' => $modifier['code'],
+                    'categoryId' => $modifier['product_modifier']['category_id_pos'],
                     'qty' => (int) $modifier['qty'],
                     'price' => (float) $modifier['transaction_product_modifier_price'] / $modifier['qty'],
                     'discount' => 0,
-                    'gross_amount' => $modifier['transaction_product_modifier_price'],
-                    'net_amount' => $modifier['transaction_product_modifier_price'] - $tax,
+                    'grossAmount' => $modifier['transaction_product_modifier_price'],
+                    'netAmount' => $modifier['transaction_product_modifier_price'] - $tax,
                     'tax' => $tax,
                     'type' => null,
                     'size' => null,
-                    'promo_number' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
-                    'promo_type' => $check['id_promo_campaign_promo_code'] ? '5' : null,
+                    'promoNumber' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
+                    'promoType' => $check['id_promo_campaign_promo_code'] ? '5' : null,
                     'status' => 'ACTIVE'
                     // 'amount' => $modifier['transaction_product_modifier_price']
                 ];
@@ -348,10 +348,10 @@ class ApiPOS extends Controller
             }
 
             $send = app($this->autocrm)->SendAutoCRM('Order Accepted', $user['phone'], [
-                "outlet_name" => $outlet['outlet_name'],
-                "id_reference" => $check['transaction_receipt_number'] . ',' . $outlet['id_outlet'],
-                'id_transaction' => $check['id_transaction'],
-                "transaction_date" => $check['transaction_date']
+                "outletName" => $outlet['outlet_name'],
+                "idReference" => $check['transaction_receipt_number'] . ',' . $outlet['id_outlet'],
+                'idTransaction' => $check['id_transaction'],
+                "transactionDate" => $check['transaction_date']
             ]);
 
             return response()->json(['status' => 'success', 'result' => $transactions]);
