@@ -108,10 +108,11 @@ class ApiPOS extends Controller
         }
 
         $check = Transaction::join('transaction_pickups', 'transactions.id_transaction', '=', 'transaction_pickups.id_transaction')
-            ->with(['modifiers', 'modifiers.product_modifier', 'products', 'products.product_variants' => function ($query) {
+            ->with(['modifiers', 'modifiers.product_modifier', 'products', 'products.product_group', 'products.product_variants' => function ($query) {
                 $query->orderBy('parent');
             }, 'product_detail', 'vouchers', 'productTransaction.modifiers', 'promo_campaign_promo_code'])
             ->where('order_id', '=', $post['order_id'])
+            ->where('id_outlet', '=', $outlet['id_outlet'])
             ->where('transactions.transaction_date', '>=', date("Y-m-d") . " 00:00:00")
             ->where('transactions.transaction_date', '<=', date("Y-m-d") . " 23:59:59")
             ->first();
@@ -130,30 +131,40 @@ class ApiPOS extends Controller
                 $expired = $expired->value;
             }
 
+            $trx_start_time = $check['pickup_at']?:$check['completed_at'];
+
             $timestamp = strtotime('+' . $expired . ' minutes');
             $memberUid = MyHelper::createQRV2($timestamp, $user['id']);
             $header['order_number'] = $check['transaction_receipt_number'];
-            $header['order_id'] = $check['order_id'];
-            $header['posting_date'] = date('Ymd', strtotime($check['transaction_date']));
+            $header['outlet_id'] = $outlet['outlet_code'];
+            // $header['order_id'] = $check['order_id'];
+            $header['booking_code'] = $check['order_id'];
+            // $header['posting_date'] = date('Ymd', strtotime($check['transaction_date']));
+            $header['business_date'] = date('Ymd', strtotime($check['transaction_date']));
             $header['trx_date'] = date('Ymd', strtotime($check['transaction_date']));
-            $header['trx_start_time'] = date('Ymd His', strtotime($check['transaction_date']));
+            $header['trx_start_time'] = $trx_start_time?date('Ymd His', strtotime($trx_start_time)) : '';
             $header['trx_end_time'] = $check['completed_at'] ? date('Ymd His', strtotime($check['completed_at'])) : '';
-            $header['process_at'] = $check['pickup_type'] ?? '';
-            $header['process_date_time'] = $check['pickup_at'] ?? '';
-            $header['status_order'] = '';
-            $header['accepted_date_time'] = date('Ymd His', strtotime($check['receive_at']));
-            $header['ready_date_time'] = date('Ymd His', strtotime($check['ready_at']));
-            $header['taken_date_time'] = date('Ymd His', strtotime($check['taken_at']));
-            $header['reject_date_time'] = date('Ymd His', strtotime($check['reject_at']));
             $header['pax'] = count($check['products']);
             $header['order_type'] = 'take away';
-            $header['total_order'] = (float) $check['transaction_grandtotal'];
+            $header['grand_total'] = (float) $check['transaction_grandtotal'];
+            $header['sub_total'] = (float) $check['transaction_subtotal'];
+            $header['tax'] = (float) $check['transaction_tax'];
             $header['notes'] = '';
             $header['applied_promo'] = $check['id_promo_campaign_promo_code'] ? 'MOBILE APPS PROMO' : '';
+            // $header['process_at'] = $check['pickup_type'] ?? '';
+            // $header['process_date_time'] = $check['pickup_at'] ?? '';
+            // $header['status_order'] = '';
+            // $header['accepted_date_time'] = date('Ymd His', strtotime($check['receive_at']));
+            // $header['ready_date_time'] = date('Ymd His', strtotime($check['ready_at']));
+            // $header['taken_date_time'] = date('Ymd His', strtotime($check['taken_at']));
+            // $header['reject_date_time'] = date('Ymd His', strtotime($check['reject_at']));
             $header['pos'] = [
-                'id' => 1,
-                'cash_drawer' => 2,
-                'cashier_id' => 'M1907123'
+                'id'=> 1,
+                'cashDrawer'=> 1,
+                'cashierId'=> '',
+                // 'id' => 1,
+                // 'cash_drawer' => 2,
+                // 'cashier_id' => 'M1907123'
             ];
             $header['customer'] = [
                 'id' => $memberUid,
@@ -278,33 +289,47 @@ class ApiPOS extends Controller
             $item = [];
             $last = 0;
             foreach ($check['products'] as $key => $menu) {
+                $tax = 0;
                 $val = [
                     'number' => $key + 1,
+                    'menu_id' => $menu['product_group']['product_group_code'],
                     'sap_matnr' => $menu['product_code'],
+                    'category_id' => $menu['category_id_pos'],
                     'qty' => (int) $menu['pivot']['transaction_product_qty'],
                     'price' => (float) $menu['pivot']['transaction_product_price'] - $menu['pivot']['transaction_modifier_subtotal'],
+                    'discount' => (float) $menu['pivot']['transaction_product_discount'],
+                    'gross_amount' => $menu['pivot']['transaction_product_subtotal'] - $menu['pivot']['transaction_modifier_subtotal'],
+                    'net_amount' => $menu['pivot']['transaction_product_subtotal'] - $tax,
+                    'tax' => $tax,
                     'type' => $menu['product_variants'][1]['product_variant_code'] == 'general_type' ? null : $menu['product_variants'][1]['product_variant_code'],
                     'size' => $menu['product_variants'][0]['product_variant_code'] == 'general_size' ? null : $menu['product_variants'][0]['product_variant_code'],
-                    'discount' => (float) $menu['pivot']['transaction_product_discount'],
                     'promo_number' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
                     'promo_type' => $check['id_promo_campaign_promo_code'] ? '5' : null,
-                    'amount' => (float) $menu['pivot']['transaction_product_subtotal']
+                    'status' => 'ACTIVE'
+                    // 'amount' => (float) $menu['pivot']['transaction_product_subtotal']
                 ];
                 $item[] = $val;
                 $last = $key + 1;
             }
             foreach ($check['modifiers'] as $key => $modifier) {
+                $tax = 0;
                 $val = [
                     'number' => $key + 1 + $last,
+                    'menu_id' => $modifier['product_modifier']['menu_id_pos'],
                     'sap_matnr' => $modifier['code'],
+                    'category_id' => $modifier['product_modifier']['category_id_pos'],
                     'qty' => (int) $modifier['qty'],
-                    'price' => (float) $modifier['transaction_product_modifier_price'] / $modifier->qty,
+                    'price' => (float) $modifier['transaction_product_modifier_price'] / $modifier['qty'],
+                    'discount' => 0,
+                    'gross_amount' => $modifier['transaction_product_modifier_price'],
+                    'net_amount' => $modifier['transaction_product_modifier_price'] - $tax,
+                    'tax' => $tax,
                     'type' => null,
                     'size' => null,
-                    'discount' => 0,
                     'promo_number' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
                     'promo_type' => $check['id_promo_campaign_promo_code'] ? '5' : null,
-                    'amount' => $modifier['transaction_product_modifier_price']
+                    'status' => 'ACTIVE'
+                    // 'amount' => $modifier['transaction_product_modifier_price']
                 ];
                 $item[] = $val;
             }
