@@ -1651,7 +1651,7 @@ class ApiOnlineTransaction extends Controller
         $promo['description']=null;
         $promo['detail']=null;
         $promo['type']=null;
-        $promo['cashback']=0;
+        $promo['value']=0;
         $promo['discount']=0;
         $promo_source = null;
         if($request->json('promo_code'))
@@ -1682,6 +1682,7 @@ class ApiOnlineTransaction extends Controller
 		            $promo['description']	= $discount_promo['new_description'];
 		            $promo['detail'] 		= $discount_promo['promo_detail'];
 		            $promo['discount'] 		= $discount_promo['discount'];
+		            $promo['value'] 		= $discount_promo['discount'];
 		            $promo['is_free'] 		= $discount_promo['is_free'];
 		            $promo['type'] 			= 'discount';
 		            $promo_source 			= 'promo_code';
@@ -1728,6 +1729,7 @@ class ApiOnlineTransaction extends Controller
 				$promo['description'] = $discount_promo['new_description'];
 	            $promo['detail'] = $discount_promo['promo_detail'];
 	            $promo['discount'] = $discount_promo['discount'];
+	            $promo['value'] = $discount_promo['discount'];
 	            $promo['is_free'] = $discount_promo['is_free'];
 	            $promo['type'] = 'discount';
 		        $promo_source = 'voucher_online';
@@ -2044,7 +2046,7 @@ class ApiOnlineTransaction extends Controller
         {
             if ($code->promo_campaign_referral->referred_promo_type == 'Cashback') 
             {
-            	$promo['cashback'] = (int) $post['cashback'];
+            	$promo['value'] = (int) $post['cashback'];
             }
         }
 
