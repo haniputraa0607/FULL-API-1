@@ -1650,6 +1650,8 @@ class ApiOnlineTransaction extends Controller
         $use_referral = false;
         $promo['description']=null;
         $promo['detail']=null;
+        $promo['type']=null;
+        $promo['cashback']=0;
         $promo['discount']=0;
         $promo_source = null;
         if($request->json('promo_code'))
@@ -1672,15 +1674,27 @@ class ApiOnlineTransaction extends Controller
 
 		            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors);
 
+
 		            if (isset($discount_promo['is_free']) && $discount_promo['is_free'] == 1) {
 		            	// unset($discount_promo['item']);
 		            	$discount_promo['discount'] = 0;
 		            }
-		            $promo['description'] = $discount_promo['new_description'];
-		            $promo['detail'] = $discount_promo['promo_detail'];
-		            $promo['discount'] = $discount_promo['discount'];
-		            $promo['is_free'] = $discount_promo['is_free'];
-		            $promo_source = 'promo_code';
+		            $promo['description']	= $discount_promo['new_description'];
+		            $promo['detail'] 		= $discount_promo['promo_detail'];
+		            $promo['discount'] 		= $discount_promo['discount'];
+		            $promo['is_free'] 		= $discount_promo['is_free'];
+		            $promo['type'] 			= 'discount';
+		            $promo_source 			= 'promo_code';
+
+		            if ($code['promo_type'] == 'Referral') 
+		            {
+		            	$code->load('promo_campaign_referral');
+			            if ($code->promo_campaign_referral->referred_promo_type == 'Cashback') 
+			            {
+			            	$promo['type'] = 'cashback';
+			            	$promo['detail'] = 'Referral (Cashback)';
+			            }
+		            }
 
 		            if ( !empty($errore) || !empty($errors)) {
 		            	$promo_error = app($this->promo_campaign)->promoError('transaction', $errore, $errors);
@@ -1715,6 +1729,7 @@ class ApiOnlineTransaction extends Controller
 	            $promo['detail'] = $discount_promo['promo_detail'];
 	            $promo['discount'] = $discount_promo['discount'];
 	            $promo['is_free'] = $discount_promo['is_free'];
+	            $promo['type'] = 'discount';
 		        $promo_source = 'voucher_online';
 
 				if ( !empty($errors) ) {
@@ -2000,6 +2015,7 @@ class ApiOnlineTransaction extends Controller
                 $post['cashback'] = $post['cashback'];
             }
         }
+
         // apply cashback
         if ($use_referral){
             $referral_rule = PromoCampaignReferral::where('id_promo_campaign',$code->id_promo_campaign)->first();
@@ -2023,6 +2039,15 @@ class ApiOnlineTransaction extends Controller
             }
             $post['cashback'] = $referred_cashback;
         }
+
+        if (($code['promo_type']??false) == 'Referral') 
+        {
+            if ($code->promo_campaign_referral->referred_promo_type == 'Cashback') 
+            {
+            	$promo['cashback'] = (int) $post['cashback'];
+            }
+        }
+
         $cashback_text = explode('%earned_cashback%',Setting::select('value_text')->where('key', 'earned_cashback_text')->pluck('value_text')->first()?:'You\'ll receive %earned_cashback% for this transaction');
         $cashback_earned = (int) $post['cashback'];
 
@@ -2080,6 +2105,7 @@ class ApiOnlineTransaction extends Controller
 
         $result['total_payment_pretty'] = MyHelper::requestNumber(($grandtotal-$used_point),'_CURRENCY');
         $result['total_payment'] = MyHelper::requestNumber(($grandtotal-$used_point),$rn);
+
         return MyHelper::checkGet($result)+['messages'=>$error_msg, 'promo_error'=>$promo_error, 'promo'=>$promo];
     }
 
