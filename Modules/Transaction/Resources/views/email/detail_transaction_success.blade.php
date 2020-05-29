@@ -52,10 +52,10 @@
         </th>
     </tr>
 
-    @foreach ($data['product_group'] as $key => $item)
+    @foreach ($data['productTransaction'] as $key => $item)
         <tr style="text-align:right">
             <td colspan="5" width="50%" style="background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 5%" valign="top" align="left">
-                <div class="left"><span style="font-size: 16px;color:#8fd6bd;">{{$item['transaction_product_qty']}}x </span><span style="font-size: 16px">@if(empty($item['product_group_name'])){{$item['product_name']}} @else{{$item['product_group_name']}}@endif</span></div>
+                <div class="left"><span style="font-size: 16px;color:#8fd6bd;">{{$item['transaction_product_qty']}}x </span><span style="font-size: 16px">@if(!isset($item['product']['product_group']['product_group_name'])){{$item['product']['product_name']}} @else{{$item['product']['product_group']['product_group_name']}}@endif</span></div>
                 <div class="right"><span style="font-size: 16px">{{ \App\Lib\MyHelper::requestNumber(floatval ($item['transaction_product_price']), '_CURRENCY') }}</span></div>
                 <div class="dotted"></div>
             </td>
@@ -64,12 +64,12 @@
             <td colspan="5" style="background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 10%" valign="top" align="left">
                 <?php
                 $topping = '';
-                foreach ($data['modifiers'] as $mf){
+                foreach ($item['modifiers'] as $mf){
                     $topping .= $mf['text']. '('.$mf['qty'].'), ';
                 }
 
                 $variant = '';
-                foreach ($data['products_variant'] as $vrt){
+                foreach ($item['product']['product_variants'] as $vrt){
                     $variant .= $vrt['product_variant_name'].', ';
                 }
 
