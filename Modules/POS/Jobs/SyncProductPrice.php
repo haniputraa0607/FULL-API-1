@@ -43,8 +43,8 @@ class SyncProductPrice implements ShouldQueue
 
         foreach ($this->data['price_detail'] as $price) {
             $outlet = Outlet::where('id_outlet', $price['id_outlet'])->first();
-            if (!Schema::connection('mysql3')->hasTable('outlet_' . $outlet->outlet_code)) {
-                Schema::connection('mysql3')->create('outlet_' . $outlet->outlet_code, function ($table) {
+            if (!Schema::connection('mysql')->hasTable('outlet_product_price_periodes')) {
+                Schema::connection('mysql')->create('outlet_product_price_periodes', function ($table) {
                     $table->bigIncrements('id_product_price_periode');
                     $table->unsignedInteger('id_product');
                     $table->unsignedInteger('id_outlet');
@@ -56,11 +56,11 @@ class SyncProductPrice implements ShouldQueue
                 });
             }
 
-            $inBetween = DB::connection('mysql3')->table('outlet_' . $outlet->outlet_code)
+            $inBetween = DB::connection('mysql')->table('outlet_product_price_periodes')
                 ->where('id_product', $price['id_product'])
                 ->where('id_outlet', $price['id_outlet'])
                 ->whereIn('id_product_price_periode', function ($q) use ($price, $outlet) {
-                    $q->from('outlet_' . $outlet->outlet_code)
+                    $q->from('outlet_product_price_periodes')
                         ->selectRaw('id_product_price_periode')
                         ->where('start_date', '>=', $price['start_date'])->where('end_date', '<=', $price['end_date']);
                 })
@@ -69,11 +69,11 @@ class SyncProductPrice implements ShouldQueue
 
             if (!empty($inBetween)) {
                 foreach ($inBetween as $between) {
-                    DB::connection('mysql3')->table('outlet_' . $outlet->outlet_code)->where('id_product_price_periode', $between->id_product_price_periode)->delete();
+                    DB::connection('mysql')->table('outlet_product_price_periodes')->where('id_product_price_periode', $between->id_product_price_periode)->delete();
                 }
             }
 
-            DB::connection('mysql3')->table('outlet_' . $outlet->outlet_code)->insert($price);
+            DB::connection('mysql')->table('outlet_product_price_periodes')->insert($price);
         }
         DB::commit();
     }

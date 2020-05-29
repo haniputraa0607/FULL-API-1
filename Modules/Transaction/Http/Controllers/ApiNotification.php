@@ -1583,12 +1583,14 @@ Detail: ".$link['short'],
     public function htmlDetailTrxSuccess($id){
         $list = Transaction::where([['id_transaction', $id]])->with(
             'user.city.province',
+            'productTransaction.product.product_group',
+            'productTransaction.product.product_variants',
+            'productTransaction.product.product_group.product_category',
+            'productTransaction.modifiers',
+            'productTransaction.product.product_photos',
+            'productTransaction.product.product_discounts',
+            'transaction_payment_offlines',
             'modifiers',
-            'productTransaction',
-            'product_group',
-            'products_variant',
-            'vouchers',
-            'promo_campaign_promo_code',
             'outlet.city')->first();
         $dataPayment = [];
 
