@@ -1425,6 +1425,7 @@ class ApiTransaction extends Controller
                     'productTransaction.product.product_category',
                     'productTransaction.modifiers',
                     'productTransaction.product.product_photos',
+                    'productTransaction.product.product_group',
                     'productTransaction.product.product_discounts',
                     'transaction_payment_offlines',
                     'transaction_vouchers.deals_voucher.deal',
@@ -1775,7 +1776,7 @@ class ApiTransaction extends Controller
                 $result['product_transaction'][$keyTrx]['transaction_product_sub_item']         = '@'.MyHelper::requestNumber($valueTrx['transaction_product_subtotal'] / $valueTrx['transaction_product_qty'],'_CURRENCY');
                 $result['product_transaction'][$keyTrx]['transaction_modifier_subtotal']        = MyHelper::requestNumber($valueTrx['transaction_modifier_subtotal'],'_CURRENCY');
                 $result['product_transaction'][$keyTrx]['transaction_product_note']             = $valueTrx['transaction_product_note'];
-                $result['product_transaction'][$keyTrx]['product']['product_name']              = $valueTrx['product']['product_name'];
+                $result['product_transaction'][$keyTrx]['product']['product_name']              = $valueTrx['product']['product_group']['product_group_name'];
                 $discount = $discount + $valueTrx['transaction_product_discount'];
                 if(isset($valueTrx['product']['product_variants'])){
                     foreach ($valueTrx['product']['product_variants'] as $keyVar => $valueVar) {
