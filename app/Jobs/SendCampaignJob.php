@@ -16,6 +16,7 @@ use App\Http\Models\CampaignSmsSent;
 use App\Http\Models\CampaignPushSent;
 use App\Http\Models\Outlet;
 use App\Http\Models\News;
+use App\Http\Models\Deal;
 use App\Http\Models\Setting;
 use App\Http\Models\OauthAccessToken;
 //use Modules\Campaign\Http\Requests\campaign_list;
