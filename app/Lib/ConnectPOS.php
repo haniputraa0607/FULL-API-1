@@ -14,6 +14,8 @@ use App\Http\Models\Setting;
 use Modules\Transaction\Entities\TransactionPaymentCimb;
 use Modules\IPay88\Entities\TransactionPaymentIpay88;
 
+use App\Jobs\SendPOS;
+
 class ConnectPOS{
 	public static $obj = null;
 	/**
@@ -58,13 +60,20 @@ class ConnectPOS{
 		// 3.Signature formula Md5(requestName + requestId + requestDate + requestDestination + secretKey + json_encode(body.content))
 		$data['signature'] = md5($head['requestName'].$head['requestId'].$head['requestDate'].$head['requestDestination'].$this->secret.json_encode($data['body']));
 	}
-
+	/**
+	 * Add to queue
+	 * @param string $value [description]
+	 */
+	public function sendTransaction(...$id_transactions)
+	{
+        SendPOS::dispatch($id_transactions)->allOnConnection('database');
+	}
 	/**
 	 * send transaction to POS
 	 * @param  Integer $id_transactions one or more id_transaction separated by comma
 	 * @return boolean          true if success, otherwise false
 	 */
-	public function sendTransaction(...$id_transactions) {
+	public function doSendTransaction(...$id_transactions) {
 		$module_url = '/MobileReceiver/transaction';
 		$trxDatas = Transaction::whereIn('transactions.id_transaction',$id_transactions)
 		->where('transaction_payment_status','Completed')
