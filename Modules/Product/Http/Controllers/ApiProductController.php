@@ -761,7 +761,7 @@ class ApiProductController extends Controller
          if (!file_exists('img/product/item/')) {
             mkdir('img/product/item/', 0777, true);
         }
-         $upload = MyHelper::uploadPhotoStrict($post['photo'], 'img/product/item/', 300, 300, 'default', '.png');
+         $upload = MyHelper::uploadPhotoStrict($post['photo'], 'img/product/item/', 400, 400, 'default', '.png');
 
          if (isset($upload['status']) && $upload['status'] == "success") {
             $result = [
