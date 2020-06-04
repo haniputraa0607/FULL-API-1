@@ -61,6 +61,15 @@ class ApiMembership extends Controller
 					if(isset($membership['membership_name_color'])){
 						$data['membership_name_color'] = str_replace('#','',$membership['membership_name_color']);
 					}
+					if(isset($membership['membership_background_card_color'])){
+						$data['membership_background_card_color'] = str_replace('#','',$membership['membership_background_card_color']);
+					}
+					if(isset($membership['membership_text_color_benefit'])){
+						$data['membership_text_color_benefit'] = str_replace('#','',$membership['membership_text_color_benefit']);
+					}
+					if(isset($membership['membership_bg_color_benefit'])){
+						$data['membership_bg_color_benefit'] = str_replace('#','',$membership['membership_bg_color_benefit']);
+					}
 
 					if (isset($membership['membership_image'])) {
 						if (!file_exists('img/membership/')) {
@@ -103,6 +112,29 @@ class ApiMembership extends Controller
 							$result = [
 									'status'	=> 'fail',
 									'messages'	=> ['Upload Membership Image failed.']
+								];
+							return response()->json($result);
+						}
+					}
+
+					if (isset($membership['membership_background_card_pattern'])) {
+						if (!file_exists('img/membership/')) {
+							mkdir('img/membership/', 0777, true);
+						}
+
+						//delete photo
+						if($cur['membership_background_card_pattern']){
+							$deletebgphoto = MyHelper::deletePhoto($cur['membership_background_card_pattern']);
+						}
+						$upload = MyHelper::uploadPhotoStrict($membership['membership_background_card_pattern'], $path = 'img/membership/', 250, 250);
+
+						if ($upload['status'] == "success") {
+							$data['membership_background_card_pattern'] = $upload['path'];
+						} else{
+							DB::rollBack();
+							$result = [
+									'status'	=> 'fail',
+									'messages'	=> ['Upload Membership Pattern failed.']
 								];
 							return response()->json($result);
 						}
