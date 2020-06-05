@@ -1564,18 +1564,22 @@ class ApiTransaction extends Controller
                                     $payMidtrans = TransactionPaymentMidtran::find($mp['id_payment']);
                                     $payment['name']      = strtoupper(str_replace('_', ' ', $payMidtrans->payment_type)).' '.strtoupper($payMidtrans->bank);
                                     $payment['amount']    = $payMidtrans->gross_amount;
-                                    $list['payment'][] = $payment;
+                                    $payment['reject']    = $payMidtrans->status_message;
+                                    $list['payment'][]    = $payment;
                                     break;
                                 case 'Ovo':
-                                    $payment = TransactionPaymentOvo::find($mp['id_payment']);
+                                    $payOvo = TransactionPaymentOvo::find($mp['id_payment']);
+                                    $payment = $payOvo;
                                     $payment['name']    = 'OVO';
-                                    $list['payment'][] = $payment;
+                                    $payment['reject']  = $payOvo->response_description;
+                                    $list['payment'][]  = $payment;
                                     break;
                                 case 'Ipay88':
                                     $PayIpay = TransactionPaymentIpay88::find($mp['id_payment']);
                                     $payment['name']    = $PayIpay->payment_method;
-                                    $payment['amount']    = $PayIpay->amount / 100;
-                                    $list['payment'][] = $payment;
+                                    $payment['amount']  = $PayIpay->amount / 100;
+                                    $payment['reject']  = $PayIpay->err_desc;
+                                    $list['payment'][]  = $payment;
                                     break;
                                 case 'Offline':
                                     $payment = TransactionPaymentOffline::where('id_transaction', $list['id_transaction'])->get();
@@ -1625,12 +1629,13 @@ class ApiTransaction extends Controller
                             $payMidtrans = TransactionPaymentMidtran::find($dataPay['id_payment']);
                             $payment[$dataKey]['name']      = strtoupper(str_replace('_', ' ', $payMidtrans->payment_type)).' '.strtoupper($payMidtrans->bank);
                             $payment[$dataKey]['amount']    = $payMidtrans->gross_amount;
+                            $payment[$dataKey]['reject']    = $payMidtrans->status_message;
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
-                            $payment[$dataKey] = $dataPay;
-                            $list['balance'] = $dataPay['balance_nominal'];
-                            $payment[$dataKey]['name']          = 'Balance';
-                            $payment[$dataKey]['amount']        = $dataPay['balance_nominal'];
+                            $payment[$dataKey]              = $dataPay;
+                            $list['balance']                = $dataPay['balance_nominal'];
+                            $payment[$dataKey]['name']      = 'Balance';
+                            $payment[$dataKey]['amount']    = $dataPay['balance_nominal'];
                         }
                     }
                     $list['payment'] = $payment;
@@ -1640,14 +1645,16 @@ class ApiTransaction extends Controller
                     $payment = [];
                     foreach($multiPayment as $dataKey => $dataPay){
                         if($dataPay['type'] == 'Ovo'){
-                            $payment[$dataKey] = TransactionPaymentOvo::find($dataPay['id_payment']);
+                            $payOvo = TransactionPaymentOvo::find($dataPay['id_payment']);
+                            $payment[$dataKey] = $payOvo;
                             $payment[$dataKey]['name']    = 'OVO';
+                            $payment[$dataKey]['reject']  = $payOvo->response_description;
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey] = $dataPay;
-                            $list['balance'] = $dataPay['balance_nominal'];
-                            $payment[$dataKey]['name']          = 'Balance';
-                            $payment[$dataKey]['amount']        = $dataPay['balance_nominal'];
+                            $list['balance']                = $dataPay['balance_nominal'];
+                            $payment[$dataKey]['name']      = 'Balance';
+                            $payment[$dataKey]['amount']    = $dataPay['balance_nominal'];
                         }
                     }
                     $list['payment'] = $payment;
@@ -1658,14 +1665,15 @@ class ApiTransaction extends Controller
                     foreach($multiPayment as $dataKey => $dataPay){
                         if($dataPay['type'] == 'IPay88'){
                             $PayIpay = TransactionPaymentIpay88::find($dataPay['id_payment']);
-                            $payment[$dataKey]['name']    = $PayIpay->payment_method;
+                            $payment[$dataKey]['name']      = $PayIpay->payment_method;
                             $payment[$dataKey]['amount']    = $PayIpay->amount / 100;
+                            $payment[$dataKey]['reject']    = $PayIpay->err_desc;
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
-                            $payment[$dataKey] = $dataPay;
-                            $list['balance'] = $dataPay['balance_nominal'];
-                            $payment[$dataKey]['name']          = 'Balance';
-                            $payment[$dataKey]['amount']        = $dataPay['balance_nominal'];
+                            $payment[$dataKey]              = $dataPay;
+                            $list['balance']                = $dataPay['balance_nominal'];
+                            $payment[$dataKey]['name']      = 'Balance';
+                            $payment[$dataKey]['amount']    = $dataPay['balance_nominal'];
                         }
                     }
                     $list['payment'] = $payment;
