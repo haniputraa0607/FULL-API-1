@@ -40,6 +40,7 @@ class ApiNewsWebview extends Controller
         if ($news) {
             // return $news['result'];
             $totalOutletNews = count($news['news_outlet']);
+            $totalProductNews = count($news['news_product']);
             return view('news::webview.news', ['news' => [$news], 'total_outlet' => $totalOutlet, 'total_outlet_news' => $totalOutletNews, 'total_product' => $totalProduct, 'total_product_news' => $totalProductNews]);
         }else {
             return view('error', ['msg' => 'Something went wrong, try again']);
@@ -86,10 +87,15 @@ class ApiNewsWebview extends Controller
                     $news['news_product'][$keyProduct]['product_image'] = null;
                 }
             }
-
-            $news['news_post_date'] = date('l, d F Y  H:i', strtotime($news['news_post_date']));
-            $news['news_event_date'] = date('d', strtotime($news['news_event_date_start'])) . ' - ' . date('d F Y', strtotime($news['news_event_date_end']));
-            $news['news_event_hours'] = date('H:i', strtotime($news['news_event_time_start'])) . ' - ' . date('H:i', strtotime($news['news_event_time_end']));
+            
+            //$news['news_post_date'] = date('l, d F Y  H:i', strtotime($news['news_post_date']));
+            $news['news_post_date'] = date('Y-m-d H:i:s', strtotime($news['news_post_date']));
+            if($news['news_event_date_start'] != null && $news['news_event_time_end'] != null){
+                $news['news_event_date'] = date('d', strtotime($news['news_event_date_start'])) . ' - ' . date('d F Y', strtotime($news['news_event_date_end']));
+            }
+            if($news['news_event_time_start'] != null && $news['news_event_time_end'] != null){
+                $news['news_event_hours'] = date('H:i', strtotime($news['news_event_time_start'])) . ' - ' . date('H:i', strtotime($news['news_event_time_end']));
+            }
             unset($news['news_publish_date']);
             unset($news['news_expired_date']);
             unset($news['news_event_date_start']);
