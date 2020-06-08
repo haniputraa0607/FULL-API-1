@@ -57,9 +57,11 @@ class Favorite extends Model
 				->join('product_prices','products.id_product','=','product_prices.id_product')
 				->where('product_prices.id_outlet',$id_outlet)
 				->groupBy('products.id_product')->first()->toArray();
-			$product_group['variants'] = ProductVariant::select('product_variants.id_product_variant','product_variant_name','product_variant_code')
+			$product_group['variants'] = ProductVariant::select('product_variants.id_product_variant','product_variants.product_variant_name','product_variants.product_variant_code')
 				->join('product_product_variants','product_product_variants.id_product_variant','product_variants.id_product_variant')
+				->join('product_variants as parent','parent.id_product_variant', '=', 'product_variants.parent')
 				->where('product_product_variants.id_product',$id_product)
+				->orderBy('parent.product_variant_position')
 				->get()->toArray();
 			unset($product_group['products']);
 			return $product_group;
