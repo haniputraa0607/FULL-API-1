@@ -306,6 +306,7 @@ class ApiNews extends Controller
                 DB::commit();
                 if($save){
                     $send = app($this->autocrm)->SendAutoCRM('Create News', $request->user()->phone, [
+                        'id_news' => $save->id_news,
                         'title' => $data['news_title']??'',
                         'content' => $data['news_content_long']??'',
                         'image' => $data['news_image_dalam']??'',
@@ -400,6 +401,7 @@ class ApiNews extends Controller
 				}
                 if($save){
                     $send = app($this->autocrm)->SendAutoCRM('Update News', $request->user()->phone, [
+                        'id_news' => $request->json('id_news'),
                         'title' => $data['news_title']??'',
                         'content' => $data['news_content_long']??'',
                         'image' => $data['news_image_dalam']??'',
