@@ -158,7 +158,12 @@ class ApiFraud extends Controller
                         ->whereRaw('Date(transaction_date) = "'.date('Y-m-d', strtotime($dateTime)).'"')
                         ->where('id_user',$user['id'])
                         ->orderBy('transactions.created_at','desc')
-                        ->select('transactions.*')
+                        ->select('transactions.*',
+                            DB::raw('(CASE
+                                WHEN (select balance from log_balances  where log_balances.id_reference = transactions.id_transaction AND log_balances.balance > 0 AND  log_balances.source ="Transaction" ) 
+                                is NULL THEN NULL
+                                ELSE (select balance from log_balances  where log_balances.id_reference = transactions.id_transaction AND log_balances.balance > 0 AND  log_balances.source ="Transaction" )
+                            END) as balance'))
                         ->with(['outlet_city','user'])->get()->toArray();
 
                     $stringTransactionDay = '';
@@ -191,7 +196,7 @@ class ApiFraud extends Controller
                             $stringTransactionDay .= '<td>'.$val['outlet_city']['outlet_name'].'</td>';
                             $stringTransactionDay .= '<td>'.date('d F Y',strtotime($val['transaction_date'])).'</td>';
                             $stringTransactionDay .= '<td>'.date('H:i',strtotime($val['transaction_date'])).'</td>';
-                            $stringTransactionDay .= '<td>'.($val['transaction_cashback_earned'] != NULL ? $val['transaction_cashback_earned'] : '0').'</td>';
+                            $stringTransactionDay .= '<td>'.($val['balance'] != NULL ? $val['balance'] : '0').'</td>';
                             $stringTransactionDay .= '<td>'.number_format($val['transaction_grandtotal']).'</td>';
                             $stringTransactionDay .= '<tr>';
                         }
@@ -262,7 +267,12 @@ class ApiFraud extends Controller
                        ->where('id_user', $user['id'])
                        ->whereRaw('Date(transaction_date) BETWEEN "' . $start . '" AND "' . $end . '"')
                        ->orderBy('transactions.created_at', 'desc')
-                       ->select('transactions.*')
+                       ->select('transactions.*',
+                           DB::raw('(CASE
+                                WHEN (select balance from log_balances  where log_balances.id_reference = transactions.id_transaction AND log_balances.balance > 0 AND  log_balances.source ="Transaction" ) 
+                                is NULL THEN NULL
+                                ELSE (select balance from log_balances  where log_balances.id_reference = transactions.id_transaction AND log_balances.balance > 0 AND  log_balances.source ="Transaction" )
+                            END) as balance'))
                        ->with(['outlet_city', 'user'])->get();
 
                    $stringTransactionWeek = '';
@@ -295,7 +305,7 @@ class ApiFraud extends Controller
                            $stringTransactionWeek .= '<td>' . $val['outlet']['outlet_name'] . '</td>';
                            $stringTransactionWeek .= '<td>' . date('d F Y', strtotime($val['transaction_date'])) . '</td>';
                            $stringTransactionWeek .= '<td>' . date('H:i', strtotime($val['transaction_date'])) . '</td>';
-                           $stringTransactionWeek .= '<td>' . ($val['transaction_cashback_earned'] != NULL ? $val['transaction_cashback_earned'] : '0') . '</td>';
+                           $stringTransactionWeek .= '<td>' . ($val['balance'] != NULL ? $val['balance'] : '0') . '</td>';
                            $stringTransactionWeek .= '<td>' . number_format($val['transaction_grandtotal']) . '</td>';
                            $stringTransactionWeek .= '<tr>';
                        }
@@ -457,7 +467,12 @@ class ApiFraud extends Controller
                         ->whereRaw('Date(transaction_date) = "'.date('Y-m-d', strtotime($dateTime)).'"')
                         ->where('id_user',$user['id'])
                         ->orderBy('transactions.created_at','desc')
-                        ->select('transactions.*')
+                        ->select('transactions.*',
+                            DB::raw('(CASE
+                                WHEN (select balance from log_balances  where log_balances.id_reference = transactions.id_transaction AND log_balances.balance > 0 AND  log_balances.source ="Transaction" ) 
+                                is NULL THEN NULL
+                                ELSE (select balance from log_balances  where log_balances.id_reference = transactions.id_transaction AND log_balances.balance > 0 AND  log_balances.source ="Transaction" )
+                            END) as balance'))
                         ->with(['outlet_city','user'])->get()->toArray();
 
                     $stringTransactionDay = '';
@@ -490,7 +505,7 @@ class ApiFraud extends Controller
                             $stringTransactionDay .= '<td>'.$val['outlet_city']['outlet_name'].'</td>';
                             $stringTransactionDay .= '<td>'.date('d F Y',strtotime($val['transaction_date'])).'</td>';
                             $stringTransactionDay .= '<td>'.date('H:i',strtotime($val['transaction_date'])).'</td>';
-                            $stringTransactionDay .= '<td>'.($val['transaction_cashback_earned'] != NULL ? $val['transaction_cashback_earned'] : '0').'</td>';
+                            $stringTransactionDay .= '<td>'.($val['balance'] != NULL ? $val['balance'] : '0').'</td>';
                             $stringTransactionDay .= '<td>'.number_format($val['transaction_grandtotal']).'</td>';
                             $stringTransactionDay .= '<tr>';
                         }
@@ -556,7 +571,12 @@ class ApiFraud extends Controller
                         ->where('id_user',$user['id'])
                         ->whereRaw('Date(transaction_date) BETWEEN "'.$start.'" AND "'.$end.'"')
                         ->orderBy('transactions.created_at','desc')
-                        ->select('transactions.*')
+                        ->select('transactions.*',
+                            DB::raw('(CASE
+                                WHEN (select balance from log_balances  where log_balances.id_reference = transactions.id_transaction AND log_balances.balance > 0 AND  log_balances.source ="Transaction" ) 
+                                is NULL THEN NULL
+                                ELSE (select balance from log_balances  where log_balances.id_reference = transactions.id_transaction AND log_balances.balance > 0 AND  log_balances.source ="Transaction" )
+                            END) as balance'))
                         ->with(['outlet_city','user'])->get();
 
                     $stringTransactionWeek = '';
@@ -589,7 +609,7 @@ class ApiFraud extends Controller
                             $stringTransactionWeek .= '<td>'.$val['outlet']['outlet_name'].'</td>';
                             $stringTransactionWeek .= '<td>'.date('d F Y',strtotime($val['transaction_date'])).'</td>';
                             $stringTransactionWeek .= '<td>'.date('H:i',strtotime($val['transaction_date'])).'</td>';
-                            $stringTransactionWeek .= '<td>'.($val['transaction_cashback_earned'] != NULL ? $val['transaction_cashback_earned'] : '0').'</td>';
+                            $stringTransactionWeek .= '<td>'.($val['balance'] != NULL ? $val['balance'] : '0').'</td>';
                             $stringTransactionWeek .= '<td>'.number_format($val['transaction_grandtotal']).'</td>';
                             $stringTransactionWeek .= '<tr>';
                         }
@@ -1283,7 +1303,11 @@ class ApiFraud extends Controller
             ->whereNull('transaction_pickups.reject_at')
             ->whereRaw('Date(transaction_date) = "'.date('Y-m-d', strtotime($detailLog['fraud_detection_date'])).'"')
             ->where('id_user',$detailLog['id_user'])
-            ->select('transactions.*')
+            ->select('transactions.*',  DB::raw('(CASE
+                                WHEN (select balance from log_balances  where log_balances.id_reference = transactions.id_transaction AND log_balances.balance > 0 AND  log_balances.source ="Transaction" ) 
+                                is NULL THEN NULL
+                                ELSE (select balance from log_balances  where log_balances.id_reference = transactions.id_transaction AND log_balances.balance > 0 AND  log_balances.source ="Transaction" )
+                            END) as balance'))
             ->with('outlet')->get();
         $detailUser = User::where('id',$detailLog['id_user'])->first();
         return response()->json([
@@ -1314,7 +1338,11 @@ class ApiFraud extends Controller
             ->whereNull('transaction_pickups.reject_at')
             ->where('id_user',$detailLog['id_user'])
             ->whereRaw('Date(transaction_date) BETWEEN "'.$start.'" AND "'.$end.'"')
-            ->select('transactions.*')
+            ->select('transactions.*',  DB::raw('(CASE
+                                WHEN (select balance from log_balances  where log_balances.id_reference = transactions.id_transaction AND log_balances.balance > 0 AND  log_balances.source ="Transaction" ) 
+                                is NULL THEN NULL
+                                ELSE (select balance from log_balances  where log_balances.id_reference = transactions.id_transaction AND log_balances.balance > 0 AND  log_balances.source ="Transaction" )
+                            END) as balance'))
             ->with('outlet')->get();
         $detailUser = User::where('id',$detailLog['id_user'])->first();
         return response()->json([
