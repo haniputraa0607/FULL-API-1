@@ -129,6 +129,10 @@ class Kernel extends ConsoleKernel
          * To process fraud
          */
         $schedule->call('Modules\SettingFraud\Http\Controllers\ApiFraud@fraudCron')->cron('*/59 * * * *');
+        /**
+         * Synchrone ShopeePay Merchant
+         */
+        // $schedule->call('Modules\ShopeePay\Http\Controllers\ShopeePayController@syncMerchant')->cron('* * * * *');
 
     }
 
