@@ -130,9 +130,9 @@ class Kernel extends ConsoleKernel
          */
         $schedule->call('Modules\SettingFraud\Http\Controllers\ApiFraud@fraudCron')->cron('*/59 * * * *');
         /**
-         * Synchrone ShopeePay Merchant
+         * Void failed transaction shopeepay
          */
-        // $schedule->call('Modules\ShopeePay\Http\Controllers\ShopeePayController@syncMerchant')->cron('* * * * *');
+        $schedule->call('Modules\ShopeePay\Http\Controllers\ShopeePayController@cronCancel')->cron('*/5 * * * *');
 
     }
 

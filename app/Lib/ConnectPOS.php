@@ -8,6 +8,7 @@ use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionPaymentOvo;
+use Modules\ShopeePay\Entities\TransactionPaymentShopeePay;
 use App\Http\Models\LogActivitiesPosTransactionsOnline;
 use App\Http\Models\TransactionOnlinePos;
 use App\Http\Models\Setting;
@@ -291,6 +292,20 @@ class ConnectPOS{
 								'cardNumber'       => '',
 								'cardOwner'        => '',
 								'referenceNumber'  => $ipay['trans_id']
+							];
+							$payment[] = $pay;
+						}
+					} elseif (strtolower($payMulti['type']) == 'shopeepay') {
+						$shopeepay = TransactionPaymentShopeePay::find($payMulti['id_payment']);
+						if ($shopeepay) {
+							$pay = [
+								'number'            => $key + 1,
+								'type'              => 'SHOPEEPAY',
+								'amount'            => (float) $shopeepay['amount']/100,
+								'changeAmount'     => 0,
+								'cardNumber'       => '',
+								'cardOwner'        => '',
+								'referenceNumber'  => $shopeepay['transaction_sn']
 							];
 							$payment[] = $pay;
 						}
