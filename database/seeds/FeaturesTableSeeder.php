@@ -2026,7 +2026,15 @@ class FeaturesTableSeeder extends Seeder
 	                'feature_module' => 'Promo Campaign Export',
 	                'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
-	            )
+	            ),
+            252 =>
+                array (
+                    'id_feature' => 253,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Setting Timer ShopeePay',
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                ),
         ));
     }
 }
