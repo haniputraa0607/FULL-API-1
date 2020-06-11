@@ -39,20 +39,21 @@ class ApiReferralController extends Controller
             PromoCampaignTools::createReferralCode($user->id);
             $referral = UserReferralCode::with(['promo_code', 'promo_code.promo_campaign_referral'])->where('id_user', $user->id)->get()->first();
         }
-
-        $benefit_reffered = implode('', [$referral->promo_code->promo_campaign_referral->referred_promo_value, $retVal = ($referral->promo_code->promo_campaign_referral->referred_promo_unit == 'Percent') ? '%' : ' point']);
-        $benefit_refferer = implode('', [$referral->promo_code->promo_campaign_referral->referrer_promo_value, $retVal = ($referral->promo_code->promo_campaign_referral->referred_promo_unit == 'Percent') ? '%' : ' point']);
+        $bnf_referred_percent = $referral->promo_code->promo_campaign_referral->referred_promo_unit == 'Percent';
+        $benefit_reffered = implode('', [MyHelper::requestNumber($referral->promo_code->promo_campaign_referral->referred_promo_value,$bnf_referred_percent?'':'_POINT'), $retVal = ($bnf_referred_percent ? '%' : ' point')]);
+        $bnf_referrer_percent = $referral->promo_code->promo_campaign_referral->referrer_promo_unit == 'Percent';
+        $benefit_refferer = implode('', [MyHelper::requestNumber($referral->promo_code->promo_campaign_referral->referrer_promo_value,$bnf_referrer_percent?'':'_POINT'), $retVal = ($bnf_referrer_percent ? '%' : ' point')]);
         
         $setting = Setting::where('key', 'referral_messages')->orWhere('key', 'referral_content_title')->orWhere('key', 'referral_content_description')->orWhere('key', 'referral_text_header')->orWhere('key', 'referral_text_button')->get()->toArray();
         foreach ($setting as $key => $value) {
             switch ($value['key']) {
                 case 'referral_messages':
-                    $message = str_replace(['%value%', '%code%'], [$benefit_reffered, $referral->promo_code->promo_code], $value['value_text']);
+                    $message = str_replace(['%benefit_referrer%', '%benefit_referred%', '%code%', '%value%', '%code%'], [$benefit_refferer, $benefit_reffered, $referral->promo_code->promo_code, $benefit_reffered, $referral->promo_code->promo_code], $value['value_text']);
                     break;
                 case 'referral_content_description':
                     $detail[$value['key']] = [];
                     foreach (json_decode($value['value_text']) as $keyDesc => $valueDesc) {
-                        $detail[$value['key']][$keyDesc] = str_replace(['%benefit_referrer%', '%benefit_referred%'], [$benefit_refferer, $benefit_reffered], $valueDesc);
+                        $detail[$value['key']][$keyDesc] = str_replace(['%benefit_referrer%', '%benefit_referred%', '%code%'], [$benefit_refferer, $benefit_reffered, $referral->promo_code->promo_code], $valueDesc);
                     }
                     break;
                 default:
