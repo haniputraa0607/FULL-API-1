@@ -29,6 +29,9 @@ use App\Http\Models\Transaction;
 use App\Http\Models\WhatsappContent;
 use App\Http\Models\News;
 
+use App\Jobs\SendPromotionJob;
+use App\Jobs\GeneratePromotionRecipient;
+
 use App\Lib\MyHelper;
 use App\Lib\PushNotificationHelper;
 use App\Lib\classMaskingJson;
@@ -1440,44 +1443,8 @@ class ApiPromotion extends Controller
 			// check promotion content if exist
 			if(count($promotion->contents) > 0){
 				// get all users when there are no filters
-				if(count($promotion->promotion_rule_parents) <= 0){
-					$users = User::get();
-				}
-				// filter user
-				else{
-					$cond = Promotion::with(['promotion_rule_parents', 'promotion_rule_parents.rules'])->where('id_promotion','=',$promotion['id_promotion'])->first();
-					$userFilter = app($this->user)->UserFilter($cond['promotion_rule_parents']);
-					$users = [];
-					if($userFilter){
-						$users = $userFilter['result'];
-						$exUserQueue = PromotionQueue::where('id_promotion_content', $promotion->contents[0]['id_promotion_content'])->select('id_user')->distinct()->get();
-
-						$idUsers = array_diff(array_pluck($users, 'id'), array_pluck($exUserQueue, 'id_user'));
-						$users = User::whereIn('id', $idUsers)->get();
-					}
-					if($promotion['promotion_user_limit'] == '1' || $promotion['promotion_type'] == 'Campaign Series'){
-						$exUser = PromotionSent::where('id_promotion_content', $promotion->contents[0]['id_promotion_content'])->select('id_user')->distinct()->get();
-						$exUserQueue = PromotionQueue::where('id_promotion_content', $promotion->contents[0]['id_promotion_content'])->select('id_user')->distinct()->get();
-
-						$idUsers = array_diff(array_pluck($users, 'id'), array_pluck($exUser, 'id_user'));
-						$idUsers = array_diff($idUsers, array_pluck($exUserQueue, 'id_user'));
-						$users = User::whereIn('id', $idUsers)->get();
-					}
-				}
-
-				$dataPromotionQueue = array();
-				foreach($users as $key => $user){
-					$queue['id_user'] = $user['id'];
-					$queue['id_promotion_content'] = $promotion['contents'][0]['id_promotion_content'];
-					$queue['send_at'] = date('Y-m-d').' '.$timeNow;
-					$queue['created_at'] = date('Y-m-d H:i:s');
-					$queue['updated_at'] = date('Y-m-d H:i:s');
-
-					$dataPromotionQueue[] = $queue;
-					$countUser++;
-				}
-
-				$insertPromotionQueue = PromotionQueue::insert($dataPromotionQueue);
+				$promotion_type = 'other';
+				GeneratePromotionRecipient::dispatch($promotion, $promotion_type)->allOnConnection('database');
 			}
 
 		}
@@ -1486,49 +1453,20 @@ class ApiPromotion extends Controller
 		if(!isset($post['id_promotion'])){
 			$promotionSeries = Promotion::join('promotion_schedules', 'promotions.id_promotion', 'promotion_schedules.id_promotion')
 										->where('promotion_type', 'Campaign Series')
-										->where('promotion_schedules.schedule_time', '<=', $timeNow)
-										->where('promotion_schedules.schedule_time', '>=', $timeNow2)
+										// ->where('promotion_schedules.schedule_time', '<=', $timeNow)
+										// ->where('promotion_schedules.schedule_time', '>=', $timeNow2)
 										->get();
 			// return $promotionSeries;
+			$promotion_type = 'series';
 			foreach ($promotionSeries as $promotion) {
-				// check promotion content if exist
-				if(count($promotion->contents) > 0){
-					foreach ($promotion->contents as $key => $content) {
-						if($content['promotion_series_days'] > 0){
-							$dateSend = date('Y-m-d', strtotime('-'.$content['promotion_series_days'].' days', strtotime(date('Y-m-d'))));
-							$idUsers = PromotionSent::where('id_promotion_content', $promotion->contents[$key-1]['id_promotion_content'])
-													->whereDate('send_at', $dateSend)
-													->whereNotIn('id_user', function($q) use ($content){
-														$q->select('id_user')->from('promotion_sents')->where('id_promotion_content', $content['id_promotion_content']);
-													})
-													->select('id_user')->distinct()->get();
-							$users = User::whereIn('id', $idUsers)->get();
-
-							if(count($users) > 0){
-								$dataPromotionQueue = array();
-								foreach($users as $user){
-									$queue['id_user'] = $user['id'];
-									$queue['id_promotion_content'] = $content['id_promotion_content'];
-									$queue['send_at'] = date('Y-m-d').' '.$timeNow;
-									$queue['created_at'] = date('Y-m-d H:i:s');
-									$queue['updated_at'] = date('Y-m-d H:i:s');
-
-									$dataPromotionQueue[] = $queue;
-									$countUser++;
-								}
-
-								$insertPromotionQueue = PromotionQueue::insert($dataPromotionQueue);
-							}
-						}
-					}
-				}
+				GeneratePromotionRecipient::dispatch($promotion, $promotion_type)->allOnConnection('database');
 			}
 		}
 
 		return ([
 			'status'  => 'success',
-			'result'  => 'Promotion queue has been added.',
-			'count_user' => $countUser
+			'result'  => 'Promotion queue has been added.'
+			// 'count_user' => $countUser
 		]);
 	}
 
@@ -1539,86 +1477,12 @@ class ApiPromotion extends Controller
 		$countUser = 0;
 
 		$queue = PromotionQueue::with(['content', 'content.promotion','user'])->where('send_at', '<=', $now)->orderBy('send_at', 'ASC')->limit(100)->get();
-
 		$dataPromotionSent = array();
 		foreach($queue as $key => $dataQueue){
-			$idref = null;
-			if($dataQueue['content']['id_deals'] != null){
-				$sendDeals = $this->sendDeals($dataQueue['content']['id_promotion_content'],$dataQueue['user']);
-				if(isset($sendDeals['status']) && $sendDeals['status'] == 'success'){
-					$idref = $sendDeals['result'][0]['id_deals_voucher'];
-					$dataVoucher = $sendDeals['result'];
-					$idDealsVoucher = array_pluck($dataVoucher,'id_deals_voucher');
-				}else{
-					$deleteQueue = PromotionQueue::where('id_promotion_queue', $dataQueue['id_promotion_queue'])->delete();
-					continue;
-				}
-			}
-
-			if($dataQueue['content']['promotion_channel_email'] == '1'){
-				$sendEmail = $this->sendEmail($dataQueue['content']['id_promotion_content'],$dataQueue['user'], $now);
-				$channelEmail = '1';
-			}else{
-				$channelEmail = '0';
-			}
-
-			if($dataQueue['content']['promotion_channel_sms'] == '1'){
-				$sendSms = $this->sendSms($dataQueue['content']['id_promotion_content'],$dataQueue['user']);
-				$channelSms = '1';
-			}else{
-				$channelSms = '0';
-			}
-
-			if($dataQueue['content']['promotion_channel_push'] == '1'){
-				$sendPush = $this->sendPush($dataQueue['content']['id_promotion_content'],$dataQueue['user']);
-				$channelPush = '1';
-			}else{
-				$channelPush = '0';
-			}
-
-			if($dataQueue['content']['promotion_channel_inbox'] == '1'){
-				$sendInbox = $this->sendInbox($dataQueue['content']['id_promotion_content'],$dataQueue['user'],$idref);
-				$channelInbox = '1';
-			}else{
-				$channelInbox = '0';
-			}
-
-			if($dataQueue['content']['promotion_channel_whatsapp'] == '1'){
-				$sendWhatsapp = $this->sendWhatsapp($dataQueue['content']['id_promotion_content'],$dataQueue['user']);
-				$channelWhatsapp = '1';
-			}else{
-				$channelWhatsapp = '0';
-			}
-
-			if($dataQueue['content']['promotion']['promotion_type'] == 'Campaign Series'){ $seriesNo = 1;}
-			else{ $seriesNo = 0;}
-
-			$sent = [
-				'id_promotion_content' 	=> $dataQueue['content']['id_promotion_content'],
-				'id_user' 				=> $dataQueue['user']['id'],
-				'send_at'				=> $now,
-				'channel_email'			=> $channelEmail,
-				'channel_sms'			=> $channelSms,
-				'channel_push'			=> $channelPush,
-				'channel_inbox'			=> $channelInbox,
-				'channel_whatsapp'		=> $channelWhatsapp,
-				'series_no'				=> $seriesNo,
-				'created_at'			=> date('Y-m-d H:i:s'),
-				'updated_at'			=> date('Y-m-d H:i:s')
-			];
-
-			if(isset($idDealsVoucher)){
-				$sent['id_deals_voucher'] 	= implode(',',$idDealsVoucher);
-			}
-
-			$dataPromotionSent[] = $sent;
-
+			SendPromotionJob::dispatch($dataQueue)->allOnConnection('database');
 			$countUser++;
-			$deleteQueue = PromotionQueue::where('id_promotion_queue', $dataQueue['id_promotion_queue'])->delete();
-
 		}
 
-		$insertPromotionSent = PromotionSent::insert($dataPromotionSent);
 		return ([
 			'status'  => 'success',
 			'result'  => 'Promotion has been sent.',
