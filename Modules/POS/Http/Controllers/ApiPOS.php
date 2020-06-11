@@ -23,6 +23,7 @@ use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\TransactionPaymentOvo;
 use App\Http\Models\TransactionPaymentCimb;
+use Modules\ShopeePay\Entities\TransactionPaymentShopeePay;
 use App\Http\Models\TransactionVoucher;
 use App\Http\Models\TransactionSetting;
 use App\Http\Models\User;
@@ -273,6 +274,20 @@ class ApiPOS extends Controller
                                 'cardNumber'       => '',
                                 'cardOwner'        => '',
                                 'referenceNumber'  => $ipay['trans_id']
+                            ];
+                            $payment[] = $pay;
+                        }
+                    } elseif (strtolower($payMulti['type']) == 'shopeepay') {
+                        $shopeepay = TransactionPaymentShopeePay::find($payMulti['id_payment']);
+                        if ($shopeepay) {
+                            $pay = [
+                                'number'            => $key + 1,
+                                'type'              => 'SHOPEEPAY',
+                                'amount'            => (float) $shopeepay['amount']/100,
+                                'changeAmount'     => 0,
+                                'cardNumber'       => '',
+                                'cardOwner'        => '',
+                                'referenceNumber'  => $shopeepay['transaction_sn']
                             ];
                             $payment[] = $pay;
                         }
