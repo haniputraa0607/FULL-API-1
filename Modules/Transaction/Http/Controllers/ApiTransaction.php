@@ -1586,7 +1586,7 @@ class ApiTransaction extends Controller
                                 case 'Shopeepay':
                                     $shopeePay = TransactionPaymentShopeePay::find($mp['id_payment']);
                                     $payment['name']    = 'Shopee Pay';
-                                    $payment['amount']  = $shopeePay->amount;
+                                    $payment['amount']  = $shopeePay->amount / 100;
                                     $payment['reject']  = ($shopeePay->additional_info == '{}') ? '' : $shopeePay->additional_info; 
                                     $list['payment'][]  = $payment;
                                     break;
@@ -1694,7 +1694,7 @@ class ApiTransaction extends Controller
                         if($dataPay['type'] == 'Shopeepay'){
                             $payShopee = TransactionPaymentShopeePay::find($dataPay['id_payment']);
                             $payment[$dataKey]['name']      = 'Shopee Pay';
-                            $payment[$dataKey]['amount']    = $payShopee->amount;
+                            $payment[$dataKey]['amount']    = $payShopee->amount / 100;
                             $payment[$dataKey]['reject']    = ($payShopee->additional_info == '{}') ? '' : $payShopee->additional_info;
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
@@ -2020,7 +2020,7 @@ class ApiTransaction extends Controller
                     $payment = DealsPaymentShopeePay::where('id_deals_user', $id)->first();
                     $result['payment'][] = [
                         'name'      => 'Shopee Pay',
-                        'amount'    =>  MyHelper::requestNumber($payment->amount,'_CURRENCY')
+                        'amount'    =>  MyHelper::requestNumber($payment->amount / 100,'_CURRENCY')
                     ];
                     break;
             }

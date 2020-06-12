@@ -1171,6 +1171,59 @@ class ApiPOS extends Controller
         ];
     }
 
+    public function syncAddOnDeactive(Request $request)
+    {
+        $post = $request->json()->all();
+        $api = $this->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
+
+        $countDeleted   = 0;
+        $deletedAddOn = [];
+        $failedAddOn  = [];
+
+        foreach ($post['add-on'] as $menu) {
+            if (!isset($menu['sap_matnr'])) {
+                $failedAddOn[] = 'fail to sync deactive because sap_matnr not set';
+                continue;
+            }
+
+            $getProductModifier = ProductModifier::select('id_product_modifier')->where('code', $menu['sap_matnr'])->first();
+            if (!$getProductModifier) {
+                $failedAddOn[] = 'fail to sync deactive because sap_matnr ' . $menu['sap_matnr'] . ' not availabe';
+                continue;
+            } else {
+                foreach ($menu['store_code'] as $outlet) {
+                    $getOutlet = Outlet::select('id_outlet')->where('outlet_code', $outlet)->first();
+                    if (!$getOutlet) {
+                        $failedAddOn[] = 'fail to sync deactive because store_code ' . $outlet . ' not availabe';
+                        continue;
+                    } else {
+                        DB::beginTransaction();
+
+                        ProductModifierPrice::where([
+                            'id_product_modifier' => $getProductModifier->id_product_modifier,
+                            'id_outlet' => $getOutlet->id_outlet
+                        ])->update(['product_modifier_status' => 'Inactive']);
+
+                        DB::commit();
+                        $countDeleted       = $countDeleted + 1;
+                        $deletedAddOn[]   = 'Success to sync deactive, product modifier ' . $menu['sap_matnr'] . ' outlet ' . $outlet;
+                    }
+                }
+            }
+        }
+
+        $hasil['success_menu']['total']         = $countDeleted;
+        $hasil['success_menu']['list_menu']     = $deletedAddOn;
+        $hasil['failed_product']['list_menu']   = $failedAddOn;
+        return [
+            'status'    => 'success',
+            'result'    => $hasil,
+        ];
+    }
+
     public function syncAddOn(Request $request)
     {
         $post = $request->json()->all();
