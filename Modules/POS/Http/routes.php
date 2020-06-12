@@ -18,6 +18,7 @@ Route::group(['prefix' => 'api/v1/pos/', 'namespace' => 'Modules\POS\Http\Contro
         Route::post('menu/sync/price', 'ApiPOS@syncProductPrice');
         Route::post('add-on/sync/price', 'ApiPOS@syncAddOnPrice');
         Route::post('menu/sync/deactive', 'ApiPOS@syncProductDeactive');
+        Route::post('add-on/sync/deactive', 'ApiPOS@syncAddOnDeactive');
         Route::any('transaction/refund', 'ApiPOS@transactionRefund');
         Route::any('transaction/detail', 'ApiPOS@transactionDetail');
     });
