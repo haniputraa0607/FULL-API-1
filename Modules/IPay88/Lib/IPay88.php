@@ -30,6 +30,7 @@ class IPay88
 		$this->autocrm = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
 		$this->promo_campaign = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
 		$this->voucher  = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
+        $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiFraud";
 
 		$this->posting_url = ENV('IPAY88_POSTING_URL');
 		$this->requery_url = ENV('IPAY88_REQUERY_URL');
