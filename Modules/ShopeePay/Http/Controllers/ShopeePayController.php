@@ -304,6 +304,87 @@ class ShopeePayController extends Controller
     }
 
     /**
+     * Cron set deals user payment status cancel
+     * @param  [type] $params [description]
+     * @return [type]         [description]
+     */
+    public function cronCancelDeals()
+    {
+        $now       = date('Y-m-d H:i:s');
+        $expired   = date('Y-m-d H:i:s', time() - $this->validity_period);
+
+        $getTrx = DealsUser::where('paid_status', 'Pending')
+            ->join('deals_payment_shopee_pays', 'deals_users.id_deals_user', '=', 'deals_payment_shopee_pays.id_deals_user')
+            ->where('payment_method', 'Shopeepay')
+            ->where('claimed_at', '<=', $expired)->get();
+
+        if (empty($getTrx)) {
+            return response()->json(['empty']);
+        }
+        $count = 0;
+        foreach ($getTrx as $key => $singleTrx) {
+
+            $user = User::where('id', $singleTrx->id_user)->first();
+            if (empty($user)) {
+                continue;
+            }
+
+            // get status from shopeepay
+            $status = $this->checkStatus($singleTrx->id_deals_user, 'deals', $errors);
+            if (!$status) {
+                \Log::error('Failed get shopeepay status deals user ' . $singleTrx->id_deals_user . ': ', $errors);
+                continue;
+            }
+            DB::begintransaction();
+            // is transaction success?
+            if (($status['response']['payment_status'] ?? false) == '1') {
+                // void transaction
+                $void_reference_id = null;
+                $void              = $this->void($singleTrx->id_deals_user, 'deals', $errors, $void_reference_id);
+                if (!$void) {
+                    \Log::error('Failed void deals ' . $singleTrx->id_deals_user . ': ', $errors);
+                    continue;
+                }
+                if (($void['response']['errcode'] ?? 123) == 0) {
+                    $up = DealsPaymentShopeePay::where('id_deals_user', $singleTrx->id_deals_user)->update(['void_reference_id' => $void_reference_id]);
+                }
+            }
+
+            $singleTrx->paid_status = 'Cancelled';
+            $singleTrx->save();
+
+            if (!$singleTrx) {
+                DB::rollBack();
+                continue;
+            }
+
+            //reversal balance
+            $logBalance = LogBalance::where('id_reference', $singleTrx->id_deals_user)->where('source', 'Deals Balance')->where('balance', '<', 0)->get();
+            foreach($logBalance as $logB){
+                $reversal = app($this->balance)->addLogBalance( $singleTrx->id_user, abs($logB['balance']), $singleTrx->id_deals_user, 'Deals Reversal', $singleTrx->voucher_price_point?:$singleTrx->voucher_price_cash);
+                if (!$reversal) {
+                    DB::rollBack();
+                    continue;
+                }
+                // $usere= User::where('id',$singleTrx->id_user)->first();
+                // $send = app($this->autocrm)->SendAutoCRM('Transaction Failed Point Refund', $usere->phone,
+                //     [
+                //         "outlet_name"       => $singleTrx->outlet_name->outlet_name,
+                //         "transaction_date"  => $singleTrx->transaction_date,
+                //         'id_transaction'    => $singleTrx->id_transaction,
+                //         'receipt_number'    => $singleTrx->transaction_receipt_number,
+                //         'received_point'    => (string) abs($logB['balance'])
+                //     ]
+                // );
+            }
+
+            $count++;
+            DB::commit();
+        }
+        return response()->json([$count]);
+    }
+
+    /**
      * The signature is a hash-based message authentication code (HMAC) using the SHA256
      * cryptographic function and the aforementioned secret key, operated on the request JSON.
      * @param  [type] $data [description]

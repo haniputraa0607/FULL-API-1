@@ -817,6 +817,7 @@ class ApiHistoryController extends Controller
         $log = LogBalance::where('log_balances.id_user', $id);
 
         if (isset($post['outlet']) || isset($post['brand'])) {
+            dd('haaaa');
             $log->where(function ($query) use ($post) {
                 $query->whereIn(
                     'log_balances.id_log_balance',
@@ -970,6 +971,14 @@ class ApiHistoryController extends Controller
                 $dataList['amount'] = '- ' . ltrim(MyHelper::requestNumber($value['balance'], '_POINT'), '-');
                 // $dataList['amount'] = number_format($value['balance'], 0, ',', '.');
                 // $dataList['online'] = 1;
+
+                $listBalance[$key] = $dataList;
+            } elseif($value['source'] == 'Deals Reversal') {
+                $dataList['type']   = 'profile';
+                $dataList['id']      = $value['id_log_balance'];
+                $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
+                $dataList['outlet'] = 'Reversal';
+                $dataList['amount'] = MyHelper::requestNumber($value['balance'], '_POINT');
 
                 $listBalance[$key] = $dataList;
             } elseif ($value['source'] == 'Reversal Duplicate') {

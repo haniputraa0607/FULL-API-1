@@ -55,10 +55,16 @@ class Kernel extends ConsoleKernel
         $schedule->call('Modules\Transaction\Http\Controllers\ApiCronTrxController@checkSchedule')->dailyAt('02:00');
 
         /**
-         * cancel all pending transaction that have been more than 1 x 24 hours
+         * cancel all pending transaction that have been more than 15 minutes
          * run every hour
          */
         $schedule->call('Modules\Transaction\Http\Controllers\ApiCronTrxController@cron')->cron('*/15 * * * *');
+
+        /**
+         * cancel all pending deals that have been more than 15 minutes
+         * run every hour
+         */
+        $schedule->call('Modules\Deals\Http\Controllers\ApiCronDealsController@cancel')->cron('*/15 * * * *');
 
         /**
          * update all pickup transaction that have been more than 1 x 24 hours
@@ -133,6 +139,10 @@ class Kernel extends ConsoleKernel
          * Void failed transaction shopeepay
          */
         $schedule->call('Modules\ShopeePay\Http\Controllers\ShopeePayController@cronCancel')->cron('*/5 * * * *');
+        /**
+         * Void failed transaction shopeepay
+         */
+        $schedule->call('Modules\ShopeePay\Http\Controllers\ShopeePayController@cronCancelDeals')->cron('*/5 * * * *');
 
     }
 
