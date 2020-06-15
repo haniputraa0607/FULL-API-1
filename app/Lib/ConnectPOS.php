@@ -67,7 +67,7 @@ class ConnectPOS{
 	 */
 	public function sendTransaction(...$id_transactions)
 	{
-        SendPOS::dispatch($id_transactions)->allOnConnection('database');
+        SendPOS::dispatch($id_transactions)->allOnConnection('send_pos_jobs');
 	}
 	/**
 	 * send transaction to POS
