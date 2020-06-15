@@ -48,6 +48,13 @@ return [
             'retry_after' => 90,
         ],
 
+        'send_pos_jobs' => [
+            'driver' => 'database',
+            'table' => 'send_pos_jobs',
+            'queue' => 'send_pos_jobs',
+            'retry_after' => 600,
+        ],
+
         'beanstalkd' => [
             'driver' => 'beanstalkd',
             'host' => 'localhost',
