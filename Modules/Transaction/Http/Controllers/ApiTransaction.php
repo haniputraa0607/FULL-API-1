@@ -1293,7 +1293,7 @@ class ApiTransaction extends Controller
     public function transactionList($key){
         $start = date('Y-m-01 00:00:00');
         $end = date('Y-m-d 23:59:59');
-        $list = Transaction::orderBy('id_transaction', 'DESC')->with('user', 'productTransaction.product.product_category')->where('trasaction_type', ucwords($key))->where('created_at', '>=', $start)->where('created_at', '<=', $end)->paginate(10);
+        $list = Transaction::leftJoin('outlets','outlets.id_outlet','=','transactions.id_outlet')->orderBy('id_transaction', 'DESC')->with('user', 'productTransaction.product.product_category')->where('trasaction_type', ucwords($key))->where('transactions.created_at', '>=', $start)->where('transactions.created_at', '<=', $end)->paginate(10);
 
         return response()->json(MyHelper::checkGet($list));
     }
@@ -1311,7 +1311,9 @@ class ApiTransaction extends Controller
                               'transaction_products.*',
                               'users.*',
                               'products.*',
-                              'product_categories.*')
+                              'product_categories.*',
+                              'outlets.outlet_code', 'outlets.outlet_name')
+                    ->leftJoin('outlets','outlets.id_outlet','=','transactions.id_outlet')
                     ->leftJoin('transaction_products','transactions.id_transaction','=','transaction_products.id_transaction')
                     ->leftJoin('users','transactions.id_user','=','users.id')
                     ->leftJoin('products','products.id_product','=','transaction_products.id_product')
@@ -1336,6 +1338,15 @@ class ApiTransaction extends Controller
                         $var = 'products.'.$con['subject'];
                     } elseif ($con['subject'] == 'product_category') {
                         $var = 'product_categories.product_category_name';
+                    }
+
+                    if ($con['subject'] == 'outlet_code' || $con['subject'] == 'outlet_name') {
+                        $var = 'outlets.'.$con['subject'];
+                        if ($post['rule'] == 'and') {
+                            $query = $query->where($var, $con['operator'], $con['parameter']);
+                        } else {
+                            $query = $query->orWhere($var, $con['operator'], $con['parameter']);
+                        }
                     }
 
                     if ($con['subject'] == 'receipt' || $con['subject'] == 'name' || $con['subject'] == 'phone' || $con['subject'] == 'email' || $con['subject'] == 'product_name' || $con['subject'] == 'product_code' || $con['subject'] == 'product_category') {
@@ -1586,7 +1597,7 @@ class ApiTransaction extends Controller
                                 case 'Shopeepay':
                                     $shopeePay = TransactionPaymentShopeePay::find($mp['id_payment']);
                                     $payment['name']    = 'Shopee Pay';
-                                    $payment['amount']  = $shopeePay->amount;
+                                    $payment['amount']  = $shopeePay->amount / 100;
                                     $payment['reject']  = ($shopeePay->additional_info == '{}') ? '' : $shopeePay->additional_info; 
                                     $list['payment'][]  = $payment;
                                     break;
@@ -1694,7 +1705,7 @@ class ApiTransaction extends Controller
                         if($dataPay['type'] == 'Shopeepay'){
                             $payShopee = TransactionPaymentShopeePay::find($dataPay['id_payment']);
                             $payment[$dataKey]['name']      = 'Shopee Pay';
-                            $payment[$dataKey]['amount']    = $payShopee->amount;
+                            $payment[$dataKey]['amount']    = $payShopee->amount / 100;
                             $payment[$dataKey]['reject']    = ($payShopee->additional_info == '{}') ? '' : $payShopee->additional_info;
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
@@ -2020,7 +2031,7 @@ class ApiTransaction extends Controller
                     $payment = DealsPaymentShopeePay::where('id_deals_user', $id)->first();
                     $result['payment'][] = [
                         'name'      => 'Shopee Pay',
-                        'amount'    =>  MyHelper::requestNumber($payment->amount,'_CURRENCY')
+                        'amount'    =>  MyHelper::requestNumber($payment->amount / 100,'_CURRENCY')
                     ];
                     break;
             }
