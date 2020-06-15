@@ -1505,6 +1505,7 @@ class ApiOnlineTransaction extends Controller
         $insertTransaction['cancel_message'] = 'Are you sure you want to cancel this transaction?';
 
         $getSettingTimer = Setting::where('key', 'setting_timer_ovo')->first();
+        $insertTransaction['timer_shopeepay'] = (int) MyHelper::setting('shopeepay_validity_period','value', 300);
         if($getSettingTimer){
             $insertTransaction['timer_ovo'] = (int)$getSettingTimer['value'];
             // $insertTransaction['message_timeout_ovo'] = "You have ".(int)$getSettingTimer['value']." seconds remaning to complete the payment";
@@ -1512,6 +1513,7 @@ class ApiOnlineTransaction extends Controller
             $insertTransaction['timer_ovo'] = NULL;
             // $insertTransaction['message_timeout_ovo'] = "You have 0 seconds remaning to complete the payment";
         }
+        $insertTransaction['message_timeout_shopeepay'] = "Sorry, your payment has expired";
         $insertTransaction['message_timeout_ovo'] = "Sorry, your payment has expired";
         return response()->json([
             'status'   => 'success',
