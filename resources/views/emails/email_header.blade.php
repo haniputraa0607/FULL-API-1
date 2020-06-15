@@ -471,7 +471,7 @@
                                 $email_logo = env('S3_URL_API').('img/logo.jpg');
                             }
                         ?>
-                        <img class="CToWUd" id="detail_logo_center" src="{{$email_logo}}" style="border:0 none;line-height:100%;outline:none;text-decoration:none;height: 100px;margin-bottom: -60px;">
+                        <img class="CToWUd" id="detail_logo_center" src="{{$email_logo}}" width="150" style="width:100%;max-width:150px;">
                     </td>
                     <td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:'Source Sans Pro',sans-serif;line-height:1.5;margin:0;padding:0" width="15" height="100"></td>
                 </tr>

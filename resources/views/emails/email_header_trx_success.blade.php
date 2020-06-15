@@ -441,22 +441,6 @@
             color: white;
         }
 
-        div{
-            height:1em;
-        }
-        .left,.right{
-            padding:1px 0.5em;
-            background:#f5f5f5;
-            float:right;
-        }
-        .left{
-            float:left;
-            clear:both;
-        }
-
-        .dotted {
-            border-bottom: 1px dashed grey;
-        }
     </style>
 </head>
 
