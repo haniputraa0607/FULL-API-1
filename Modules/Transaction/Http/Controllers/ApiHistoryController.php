@@ -817,7 +817,6 @@ class ApiHistoryController extends Controller
         $log = LogBalance::where('log_balances.id_user', $id);
 
         if (isset($post['outlet']) || isset($post['brand'])) {
-            dd('haaaa');
             $log->where(function ($query) use ($post) {
                 $query->whereIn(
                     'log_balances.id_log_balance',
