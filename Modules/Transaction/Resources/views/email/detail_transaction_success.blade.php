@@ -54,11 +54,9 @@
 
     @foreach ($data['productTransaction'] as $key => $item)
         <tr style="text-align:right">
-            <td colspan="3" width="50%" style="background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 5%" valign="top" align="left">
-                <div class="left" style="height:1em;padding:1px 0.5em;background:#f5f5f5;float:right;float:left;clear:both;"><span style="font-size: 16px;color:#8fd6bd;">{{$item['transaction_product_qty']}}x </span><span style="font-size: 16px">@if(!isset($item['product']['product_group']['product_group_name'])){{$item['product']['product_name']}} @else{{$item['product']['product_group']['product_group_name']}}@endif</span></div>
-                <div class="right" style="height:1em;padding:1px 0.5em;background:#f5f5f5;float:right;"><span style="font-size: 16px">{{ \App\Lib\MyHelper::requestNumber(floatval ($item['transaction_product_price']), '_CURRENCY') }}</span></div>
-                <div class="dotted" style="height:1em;border-bottom: 1px dashed grey !important;"></div>
-            </td>
+            <td style="max-width:400px;background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 5%" valign="top" align="left"><span style="font-size: 16px;color:#8fd6bd;">{{$item['transaction_product_qty']}}x </span><span style="font-size: 16px">@if(!isset($item['product']['product_group']['product_group_name'])){{$item['product']['product_name']}} @else{{$item['product']['product_group']['product_group_name']}}@endif</span></td>
+            <td style="max-width:600px;background:#f5f5f5;padding-bottom:10px;"><table width="100%" style="max-width: 100%"><td width="500px" style="max-width:100px;border-bottom: 1px dashed #8c8c8c;"></td></table></td>
+            <td style="max-width:50px;background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 5%" valign="top" align="left"><span style="font-size: 16px">{{ \App\Lib\MyHelper::requestNumber(floatval ($item['transaction_product_price']), '_CURRENCY') }}</span></td>
         </tr>
         <tr>
             <td colspan="3" style="background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 10%" valign="top" align="left">
