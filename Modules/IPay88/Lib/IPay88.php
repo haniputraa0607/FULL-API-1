@@ -427,13 +427,19 @@ class IPay88
 			                $up1 = $deals->update(['deals_total_claimed' => $deals->deals_total_claimed - 1]);
 			                if (!$up1) {
 			                    DB::rollBack();
-			                    continue;
+		                        return [
+		                            'status'=>'fail',
+		                            'messages' => ['Failed update total claimed']
+		                        ];
 			                }
 			            }
 			            $up2 = DealsVoucher::where('id_deals_voucher', $deals_user->id_deals_voucher)->update(['deals_voucher_status' => 'Available']);
 			            if (!$up2) {
 			                DB::rollBack();
-			                continue;
+	                        return [
+	                            'status'=>'fail',
+	                            'messages' => ['Failed update voucher status']
+	                        ];
 			            }
 			            $del = app($this->deals_claim)->checkUserClaimed($user, $deals_user->id_deals, true);
 	                    if(!$update){
