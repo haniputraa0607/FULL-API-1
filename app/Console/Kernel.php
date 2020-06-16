@@ -134,6 +134,22 @@ class Kernel extends ConsoleKernel
         /**
          * To process fraud
          */
+
+        /**
+         * To enter an ovo transaction that needs to be reversed
+         * Run every day 9 minute
+         */
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiOvoReversal@insertReversalDeals')->cron('*/9 * * * *');
+
+        /**
+         * To process the Ovo reversal queue
+         * Run every 10 minute
+         */
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiOvoReversal@processReversalDeals')->cron('*/10 * * * *');
+        /**
+         * To process fraud
+         */
+
         $schedule->call('Modules\SettingFraud\Http\Controllers\ApiFraud@fraudCron')->cron('*/59 * * * *');
         /**
          * Void failed transaction shopeepay
