@@ -87,7 +87,18 @@ class ShopeePayController extends Controller
             }
             if ($post['payment_status'] == '1') {
                 $update = $trx->update(['transaction_payment_status' => 'Completed', 'completed_at' => date('Y-m-d H:i:s')]);
+                if($update){
+                    $userData               = User::where('id', $trx['id_user'])->first();
+                    $config_fraud_use_queue = Configs::where('config_name', 'fraud use queue')->first()->is_active;
+
+                    if ($config_fraud_use_queue == 1) {
+                        FraudJob::dispatch($userData, $trx, 'transaction')->onConnection('fraudqueue');
+                    } else {
+                        $checkFraud = app($this->setting_fraud)->checkFraudTrxOnline($userData, $trx);
+                    }
+                }
             }
+
             if (!$update) {
                 DB::rollBack();
                 $status_code = 500;
@@ -121,14 +132,6 @@ class ShopeePayController extends Controller
             $trx->load('outlet');
             $trx->load('productTransaction');
 
-            $userData               = User::where('id', $trx['id_user'])->first();
-            $config_fraud_use_queue = Configs::where('config_name', 'fraud use queue')->first()->is_active;
-
-            if ($config_fraud_use_queue == 1) {
-                FraudJob::dispatch($userData, $trx, 'transaction')->onConnection('fraudqueue');
-            } else {
-                $checkFraud = app($this->setting_fraud)->checkFraudTrxOnline($userData, $trx);
-            }
             $mid = [
                 'order_id'     => $trx['transaction_receipt_number'],
                 'gross_amount' => ($trx['amount'] / 100),
