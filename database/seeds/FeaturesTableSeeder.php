@@ -1990,7 +1990,7 @@ class FeaturesTableSeeder extends Seeder
             247 =>
                 array (
                     'id_feature' => 248,
-                    'feature_type' => 'Setting',
+                    'feature_type' => 'Update',
                     'feature_module' => 'Setting Inbox User',
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
@@ -2034,6 +2034,14 @@ class FeaturesTableSeeder extends Seeder
                     'feature_module' => 'Setting Timer ShopeePay',
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            253 =>
+                array(
+                    'id_feature' => 254,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Privacy Policy',
+                    'created_at' => '2018-05-10 08:00:00',
+                    'updated_at' => '2018-05-10 08:00:00',
                 ),
         ));
     }

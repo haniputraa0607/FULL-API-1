@@ -67,7 +67,7 @@ Route::group([ 'prefix' => 'api/setting', 'namespace' => 'Modules\Setting\Http\C
     Route::any('/text_menu_list', 'ApiSetting@textMenuList');
 });
 
-Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'prefix' => 'api/setting', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
+Route::group(['middleware' => ['auth_client', 'log_activities', 'scopes:apps'], 'prefix' => 'api/setting', 'namespace' => 'Modules\Setting\Http\Controllers'], function()
 {
     Route::any('detail/{key}', 'ApiSettingWebview@aboutDetail');
 });
