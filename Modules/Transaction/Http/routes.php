@@ -44,6 +44,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
         Route::post('/method/delete', ['middleware' => '68', 'uses' => 'ApiTransaction@manualPaymentMethodDelete']);
     });
     Route::post('/be/new', 'ApiOnlineTransaction@newTransaction');
+    Route::post('be/detail', 'ApiTransaction@transactionDetail');
     Route::get('be/{key}', 'ApiTransaction@transactionList');
     Route::post('be/detail/webview/{mode?}', 'ApiWebviewController@webview');
 
