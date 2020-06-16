@@ -146,7 +146,7 @@ class ApiOvoReversal extends Controller
     //process reversal
     public function processReversalDeals(Request $request){
 
-        $list = OvoReversalDeals::join('deals_payment_ovos', 'ovo_reversal_deals.id_deals_users_payment_ovo', 'deals_payment_ovos.id_deals_payment_ovo')->orderBy('date_push_to_pay')->limit(5)->get();
+        $list = OvoReversalDeals::join('deals_payment_ovos', 'ovo_reversal_deals.id_deals_payment_ovo', 'deals_payment_ovos.id_deals_payment_ovo')->orderBy('date_push_to_pay')->limit(5)->get();
 
         foreach($list as $data){
 
