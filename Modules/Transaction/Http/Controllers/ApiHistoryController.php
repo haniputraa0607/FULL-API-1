@@ -972,6 +972,14 @@ class ApiHistoryController extends Controller
                 // $dataList['online'] = 1;
 
                 $listBalance[$key] = $dataList;
+            } elseif($value['source'] == 'Deals Reversal') {
+                $dataList['type']   = 'profile';
+                $dataList['id']      = $value['id_log_balance'];
+                $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
+                $dataList['outlet'] = 'Reversal';
+                $dataList['amount'] = MyHelper::requestNumber($value['balance'], '_POINT');
+
+                $listBalance[$key] = $dataList;
             } elseif ($value['source'] == 'Reversal Duplicate') {
                 continue;
             } elseif ($value['source'] == 'Point Injection') {

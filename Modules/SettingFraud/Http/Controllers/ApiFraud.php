@@ -128,6 +128,13 @@ class ApiFraud extends Controller
        if($fraudTrxDay){
 
             if($countTrxDay > (int)$fraudTrxDay['parameter_detail']){
+                $updateFraudFlagTrx = Transaction::where('id_transaction', $trx['id_transaction'])
+                    ->update([
+                        'transaction_point_earned' => NULL,
+                        'transaction_cashback_earned' => NULL,
+                        'fraud_flag' => 'transaction day'
+                    ]);
+
                 $getFraudLogDay = FraudDetectionLogTransactionDay::whereRaw("DATE(fraud_detection_date) = '".date('Y-m-d', strtotime($dateTime))."'")->where('id_user', $user['id'])
                     ->where('status', 'Active')->first();
 
@@ -224,6 +231,13 @@ class ApiFraud extends Controller
 
        if($fraudTrxWeek) {
            if ($countTrxWeek > (int)$fraudTrxWeek['parameter_detail']) {
+               $updateFraudFlagTrx = Transaction::where('id_transaction', $trx['id_transaction'])
+                   ->update([
+                       'transaction_point_earned' => NULL,
+                       'transaction_cashback_earned' => NULL,
+                       'fraud_flag' => 'transaction week'
+                   ]);
+
                $WeekNumber = date('W', strtotime($dateTime));
                $year = date('Y', strtotime($dateTime));
                $getFraudLogWeek = FraudDetectionLogTransactionWeek::where('fraud_detection_week', $WeekNumber)

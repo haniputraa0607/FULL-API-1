@@ -1442,9 +1442,13 @@ class ApiTransaction extends Controller
         $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
 
         if ($type == 'trx') {
+            if($request->json('admin')){
+                $list = Transaction::where(['transactions.id_transaction' => $id])->with('user');
+            }else{
+                $list = Transaction::where(['transactions.id_transaction' => $id, 'id_user' => $request->user()->id]);
+            }
             if($use_product_variant){
-                $list = Transaction::where([['id_transaction', $id],
-                ['id_user',$request->user()->id]])->with(
+                $list = $list->with(
                     // 'user.city.province',
                     'productTransaction.product.product_group',
                     'productTransaction.product.product_variants',
@@ -1457,8 +1461,7 @@ class ApiTransaction extends Controller
                     'promo_campaign_promo_code.promo_campaign',
                     'outlet.city')->first();
             }else{
-                $list = Transaction::where([['id_transaction', $id],
-                ['id_user',$request->user()->id]])->with(
+                $list = $list->with(
                     // 'user.city.province',
                     'productTransaction.product.product_category',
                     'productTransaction.modifiers',
