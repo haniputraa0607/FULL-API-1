@@ -12,6 +12,7 @@ use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\DealsUser;
 use App\Http\Models\Deal;
+use App\Http\Models\DealsVoucher;
 use App\Http\Models\User;
 use App\Http\Models\Setting;
 use Modules\IPay88\Entities\LogIpay88;
