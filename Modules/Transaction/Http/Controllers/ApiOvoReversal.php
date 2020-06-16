@@ -77,7 +77,7 @@ class ApiOvoReversal extends Controller
             $req['batch_no'] = $trx['batch_no'];
             $req['order_id'] = $trx['order_id'];
 
-            $ovoReversal = OvoReversalDeals::updateOrCreate(['id_transaction' => $trx['id_transaction'], 'id_transaction_payment_ovo' => $trx['id_transaction_payment_ovo'],
+            $ovoReversal = OvoReversalDeals::updateOrCreate(['id_deals_user' => $trx['id_deals_user'], 'id_deals_payment_ovo' => $trx['id_deals_payment_ovo'],
                 'date_push_to_pay' => $trx['push_to_pay_at'],
                 'request' => json_encode($req)
             ]);
