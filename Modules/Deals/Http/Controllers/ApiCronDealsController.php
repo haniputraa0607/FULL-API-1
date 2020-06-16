@@ -12,6 +12,7 @@ use App\Http\Models\DealsVoucher;
 use App\Http\Models\User;
 use App\Http\Models\LogBalance;
 use Modules\IPay88\Entities\DealsPaymentIpay88;
+use App\Lib\Midtrans;
 
 use DB;
 
