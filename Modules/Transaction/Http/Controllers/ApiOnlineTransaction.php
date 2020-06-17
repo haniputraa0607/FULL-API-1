@@ -120,8 +120,7 @@ class ApiOnlineTransaction extends Controller
             DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
-                // 'messages'  => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
-                'messages'  => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
+                'messages'  => ['Sorry your account has been suspended, please contact '.env('EMAIL_ADDRESS_ADMIN')]
             ]);
         }
 

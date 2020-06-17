@@ -943,8 +943,7 @@ class ApiUser extends Controller
             return response()->json([
                 'status' => 'success',
                 'result' => $data,
-                // 'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
-                'messages' => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
+                'messages' => ['Sorry your account has been suspended, please contact '.env('EMAIL_ADDRESS_ADMIN')]
             ]);
         }
 
@@ -1011,11 +1010,20 @@ class ApiUser extends Controller
                 $device_token = $request->json('device_token');
             }
 
+            //get setting to set expired time for otp, if setting not exist expired default is 30 minutes
+            $getSettingTimeExpired = Setting::where('key', 'setting_expired_otp')->first();
+            if($getSettingTimeExpired){
+                $dateOtpTimeExpired = date("Y-m-d H:i:s", strtotime("+".$getSettingTimeExpired['value']." minutes"));
+            }else{
+                $dateOtpTimeExpired = date("Y-m-d H:i:s", strtotime("+30 minutes"));
+            }
+
             $create = User::create(['phone' => $phone,
                 'provider' 		=> $provider,
                 'password'		=> bcrypt($pin),
                 'android_device' => $is_android,
-                'ios_device' 	=> $is_ios
+                'ios_device' 	=> $is_ios,
+                'otp_valid_time' => $dateOtpTimeExpired
             ]);
 
             if($create){
@@ -1168,6 +1176,11 @@ class ApiUser extends Controller
         $cekFraud = 0;
         if($datauser){
             if(Auth::attempt(['phone' => $phone, 'password' => $request->json('pin')])){
+                /*first if --> check if otp have expired and the current time exceeds the expiration time*/
+                if(!is_null($datauser[0]['otp_valid_time']) && strtotime(date('Y-m-d H:i:s')) > strtotime($datauser[0]['otp_valid_time'])){
+                    return response()->json(['status' => 'fail', 'otp_check'=> 1, 'messages' => ['This OTP is expired, please re-request OTP from apps']]);
+                }
+
                 //untuk verifikasi admin panel
                 if($request->json('admin_panel')){
                     return ['status'=>'success'];
@@ -1258,12 +1271,12 @@ class ApiUser extends Controller
                             if ($data[0]['is_suspended'] == 1) {
                                 return response()->json([
                                     'status' => 'fail',
-                                    'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at hello@maxxcoffee.id']
+                                    'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at '.env('EMAIL_ADDRESS_ADMIN')]
                                 ]);
                             } else {
                                 return response()->json([
                                     'status' => 'fail',
-                                    'messages' => ['Your account cannot log in on this device because it shows suspicious activity. For more information, please contact our customer service at hello@maxxcoffee.id']
+                                    'messages' => ['Your account cannot log in on this device because it shows suspicious activity. For more information, please contact our customer service at '.env('EMAIL_ADDRESS_ADMIN')]
                                 ]);
                             }
                         }
@@ -1364,10 +1377,25 @@ class ApiUser extends Controller
             ->toArray();
 
         if($data){
+            //First check rule for request otp
+            $checkRuleRequest = MyHelper::checkRuleForRequestOTP($data);
+            if(isset($checkRuleRequest['status']) && $checkRuleRequest['status'] == 'fail'){
+                return response()->json($checkRuleRequest);
+            }
+
             $pinnya = rand(100000,999999);
             $pin = bcrypt($pinnya);
             /*if($data[0]['phone_verified'] == 0){*/
-            $update = User::where('phone','=',$phone)->update(['password' => $pin]);
+
+            //get setting to set expired time for otp, if setting not exist expired default is 30 minutes
+            $getSettingTimeExpired = Setting::where('key', 'setting_expired_otp')->first();
+            if($getSettingTimeExpired){
+                $dateOtpTimeExpired = date("Y-m-d H:i:s", strtotime("+".$getSettingTimeExpired['value']." minutes"));
+            }else{
+                $dateOtpTimeExpired = date("Y-m-d H:i:s", strtotime("+30 minutes"));
+            }
+
+            $update = User::where('phone','=',$phone)->update(['password' => $pin, 'otp_valid_time' => $dateOtpTimeExpired]);
 
             $useragent = $_SERVER['HTTP_USER_AGENT'];
             if(stristr($_SERVER['HTTP_USER_AGENT'],'iOS')) $useragent = 'iOS';
@@ -1525,6 +1553,11 @@ class ApiUser extends Controller
             }
             if($data[0]['phone_verified'] == 0){
                 if(Auth::attempt(['phone' => $phone, 'password' => $request->json('pin')])){
+                    /*first if --> check if otp have expired and the current time exceeds the expiration time*/
+                    if(!is_null($data[0]['otp_valid_time']) && strtotime(date('Y-m-d H:i:s')) > strtotime($data[0]['otp_valid_time'])){
+                        return response()->json(['status' => 'fail', 'otp_check'=> 1, 'messages' => ['This OTP is expired, please re-request OTP from apps']]);
+                    }
+
                     if(isset($post['device_id'])) {
                         if(!isset($post['device_type'])){
                             if(!empty($request->header('user-agent-view'))){
@@ -1562,14 +1595,12 @@ class ApiUser extends Controller
                                 if ($data[0]['is_suspended'] == 1) {
                                     return response()->json([
                                         'status' => 'fail',
-                                        // 'messages' => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
-                                        'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at hello@maxxcoffee.id']
+                                        'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at '.env('EMAIL_ADDRESS_ADMIN')]
                                     ]);
                                 } else {
                                     return response()->json([
                                         'status' => 'fail',
-                                        // 'messages' => ['Akun Anda tidak dapat di daftarkan karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee']
-                                        'messages' => ['Your account cannot log in on this device because it shows suspicious activity. For more information, please contact our customer service at hello@maxxcoffee.id']
+                                        'messages' => ['Your account cannot be registered in on this device because it shows suspicious activity. For more information, please contact our customer service at '.env('EMAIL_ADDRESS_ADMIN')]
                                     ]);
                                 }
                             }
@@ -1645,6 +1676,15 @@ class ApiUser extends Controller
             ->toArray();
         if($data){
             if(Auth::attempt(['phone' => $phone, 'password' => $request->json('pin_old')])){
+                /*first if --> check if otp have expired and the current time exceeds the expiration time
+                  second if --> when the current time does not exceed the expired time, then update otp_valid_time to NULL
+                */
+                if(!is_null($data[0]['otp_valid_time']) && strtotime(date('Y-m-d H:i:s')) > strtotime($data[0]['otp_valid_time'])){
+                    return response()->json(['status' => 'fail', 'otp_check'=> 1, 'messages' => ['This OTP is expired, please re-request OTP from apps']]);
+                }elseif(!is_null($data[0]['otp_valid_time'])){
+                    User::where('phone', $phone)->update(['otp_valid_time' => NULL]);
+                }
+
                 $pin 	= bcrypt($request->json('pin_new'));
                 $update = User::where('id','=',$data[0]['id'])->update(['password' => $pin, 'phone_verified' => '1', 'pin_changed' => '1']);
                 if(\Module::collections()->has('Autocrm')) {
@@ -3105,7 +3145,7 @@ class ApiUser extends Controller
                             $data = ['status_verify' => 'expired', 'message' => 'This page is expired, please re-request verify email from apps', 'settings' => $setting];
                             return view('users::verify_email', $data);
                         }else{
-                            $udpate = User::where('phone', $phone)->where('email', $email)->update(['email_verified' => 1]);
+                            $udpate = User::where('phone', $phone)->where('email', $email)->update(['email_verified' => 1, 'email_verified_valid_time' => NULL]);
                             if($udpate){
                                 $data = ['status_verify' => 'success', 'message' => 'Successfully verified your email ', 'settings' => $setting];
                                 return view('users::verify_email', $data);
