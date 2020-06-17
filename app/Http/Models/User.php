@@ -85,7 +85,9 @@ class User extends Authenticatable
 		'celebrate',
 		'job',
 		'address',
-        'email_verified_valid_time'
+        'email_verified_valid_time',
+        'otp_valid_time',
+        'otp_request_status'
 	];
 
 	public function city()
