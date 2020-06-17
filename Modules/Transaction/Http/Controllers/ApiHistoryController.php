@@ -691,7 +691,11 @@ class ApiHistoryController extends Controller
             });
         }
 
-        $voucher = $voucher->whereNotNull('voucher_price_cash')->where('id_user', $id)->whereColumn('balance_nominal', '<', 'voucher_price_cash');
+        $voucher = $voucher->whereNotNull('voucher_price_cash')->where('id_user', $id)
+                    ->where(function ($query) {
+                        $query->whereColumn('balance_nominal', '<', 'voucher_price_cash')
+                            ->orWhereNull('balance_nominal');
+                    });
 
         $voucher = $voucher->get()->toArray();
         $dataVoucher = [];
