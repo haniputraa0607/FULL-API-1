@@ -130,6 +130,10 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::post('maintenance-mode/update', ['middleware' => 'feature_control:235', 'uses' => 'ApiSetting@updateMaintenanceMode']);
     Route::get('maintenance-mode', ['middleware' => 'feature_control:235', 'uses' => 'ApiSetting@maintenanceMode']);
 
+    /* Maintenance Mode */
+    Route::post('time-expired/update', ['uses' => 'ApiSetting@updateTimeExpired']);
+    Route::get('time-expired', ['uses' => 'ApiSetting@timeExpired']);
+
     /* setting some url in email */
     Route::any('url-email', 'ApiSetting@someUrlEmail');
 
