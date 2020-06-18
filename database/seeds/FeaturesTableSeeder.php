@@ -2047,13 +2047,21 @@ class FeaturesTableSeeder extends Seeder
                 array(
                     'id_feature' => 255,
                     'feature_type' => 'Update',
+                    'feature_module' => 'Setting Payment Method',
+                    'created_at' => '2018-05-10 08:00:00',
+                    'updated_at' => '2018-05-10 08:00:00',
+                ),
+           255 =>
+                array(
+                    'id_feature' => 256,
+                    'feature_type' => 'Update',
                     'feature_module' => 'Setting Time Expired OTP',
                     'created_at' => '2018-05-10 08:00:00',
                     'updated_at' => '2018-05-10 08:00:00',
                 ),
-            255 =>
+            256 =>
                 array(
-                    'id_feature' => 256,
+                    'id_feature' => 257,
                     'feature_type' => 'Update',
                     'feature_module' => 'Setting Time Expired Email',
                     'created_at' => '2018-05-10 08:00:00',
