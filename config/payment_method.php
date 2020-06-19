@@ -25,14 +25,14 @@ return [
     'ipay88_ovo'     => [
         'payment_gateway' => 'Ipay88',
         'payment_method'  => 'Ovo',
-        'status'          => 1,
+        'status'          => 0,
         'logo'            => env('STORAGE_URL_API').'default_image/payment_method/ic_ovo_pay.png',
         'text'            => null
     ],
     'ovo'            => [
         'payment_gateway' => 'Ovo',
         'payment_method'  => 'Ovo',
-        'status'          => 0,
+        'status'          => 1,
         'logo'            => env('STORAGE_URL_API').'default_image/payment_method/ic_ovo_pay.png',
         'text'            => null
     ],
