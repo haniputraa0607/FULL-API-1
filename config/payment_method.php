@@ -1,16 +1,16 @@
 <?php
 
 return [
-    'midtrans_gopay' => [
-        'payment_gateway' => 'Midtrans',
-        'payment_method'  => 'Gopay',
-        'status'          => 1,
-    ],
-    'midtrans_cc'    => [
-        'payment_gateway' => 'Midtrans',
-        'payment_method'  => 'Credit Card',
-        'status'          => 1,
-    ],
+    // 'midtrans_gopay' => [
+    //     'payment_gateway' => 'Midtrans',
+    //     'payment_method'  => 'Gopay',
+    //     'status'          => 1,
+    // ],
+    // 'midtrans_cc'    => [
+    //     'payment_gateway' => 'Midtrans',
+    //     'payment_method'  => 'Credit Card',
+    //     'status'          => 1,
+    // ],
     'ipay88_cc'      => [
         'payment_gateway' => 'Ipay88',
         'payment_method'  => 'Credit Card',
