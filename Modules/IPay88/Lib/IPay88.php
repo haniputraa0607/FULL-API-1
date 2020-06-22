@@ -441,7 +441,7 @@ class IPay88
 	                            'messages' => ['Failed update voucher status']
 	                        ];
 			            }
-			            $user = User::where('id',$deals_user->id_deals_user)->first();
+			            $user = User::where('id',$deals_user->id_user)->first();
 			            $del = app($this->deals_claim)->checkUserClaimed($user, $deals_user->id_deals, true);
 	                    if(!$update){
 		                    DB::rollBack();
