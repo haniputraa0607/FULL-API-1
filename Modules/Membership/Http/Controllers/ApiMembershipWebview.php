@@ -151,14 +151,14 @@ class ApiMembershipWebview extends Controller
 				$membershipUser['progress_now'] = (int) $subtotal_transaction;
 				$membershipUser['progress_active'] = ($subtotal_transaction / $nextTrx) * 100;
 				$membershipUser['next_trx']		= $subtotal_transaction - $nextTrx;
-				$membershipUser['next_trx_text']	= MyHelper::requestNumber($subtotal_transaction - $nextTrx,'_CURRENCY');
+				$membershipUser['next_trx_text']	= '<p> Get more transaction! <br> IDR ' . MyHelper::requestNumber($subtotal_transaction - $nextTrx, '_CURRENCY') . ' to go to become <b>' . $nextMembershipName . ' Member</b> </p>';
 			}elseif($nextTrxType == 'balance'){
 				$total_balance = LogBalance::where('id_user', $post['id_user'])->whereNotIn('source', [ 'Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point'])->where('balance', '>', 0)->sum('balance');
 				$membershipUser['progress_now_text'] = MyHelper::requestNumber($total_balance,'_CURRENCY');
 				$membershipUser['progress_now'] = (int) $total_balance;
 				$membershipUser['progress_active'] = ($total_balance / $nextTrx) * 100;
 				$membershipUser['next_trx']		= $nextTrx - $total_balance;
-				$membershipUser['next_trx_text']	= MyHelper::requestNumber($nextTrx - $total_balance,'_CURRENCY');
+				$membershipUser['next_trx_text']	= '<p> Get more transaction! <br> ' . MyHelper::requestNumber($nextTrx - $total_balance,'_CURRENCY') . ' points to go to become <b>' . $nextMembershipName . ' Member</b> </p>';
 			}
 		}
 		$result['all_membership'] = $allMembership;
