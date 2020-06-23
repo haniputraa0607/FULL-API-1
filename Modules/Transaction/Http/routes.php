@@ -1,4 +1,8 @@
 <?php
+Route::group(['middleware' => ['auth:api'],'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
+    Route::any('available-payment', 'ApiOnlineTransaction@availablePayment');
+    Route::any('available-payment/update', 'ApiOnlineTransaction@availablePaymentUpdate')->middleware('scopes:be');
+});
 
 Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scopes:be'], 'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
     Route::post('/outlet', 'ApiNotification@adminOutlet');
@@ -44,6 +48,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
         Route::post('/method/delete', ['middleware' => '68', 'uses' => 'ApiTransaction@manualPaymentMethodDelete']);
     });
     Route::post('/be/new', 'ApiOnlineTransaction@newTransaction');
+    Route::post('be/detail', 'ApiTransaction@transactionDetail');
     Route::get('be/{key}', 'ApiTransaction@transactionList');
     Route::post('be/detail/webview/{mode?}', 'ApiWebviewController@webview');
 

@@ -31,11 +31,13 @@ use App\Http\Models\TransactionPickup;
 use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionPaymentOvo;
 use Modules\IPay88\Entities\TransactionPaymentIpay88;
+use Modules\ShopeePay\Entities\TransactionPaymentShopeePay;
 use App\Http\Models\DealsUser;
 use App\Http\Models\DealsPaymentMidtran;
 use App\Http\Models\DealsPaymentManual;
 use App\Http\Models\DealsPaymentOvo;
 use Modules\IPay88\Entities\DealsPaymentIpay88;
+use Modules\ShopeePay\Entities\DealsPaymentShopeePay;
 use App\Http\Models\UserTrxProduct;
 use Modules\Brand\Entities\Brand;
 
@@ -1291,7 +1293,7 @@ class ApiTransaction extends Controller
     public function transactionList($key){
         $start = date('Y-m-01 00:00:00');
         $end = date('Y-m-d 23:59:59');
-        $list = Transaction::orderBy('id_transaction', 'DESC')->with('user', 'productTransaction.product.product_category')->where('trasaction_type', ucwords($key))->where('created_at', '>=', $start)->where('created_at', '<=', $end)->paginate(10);
+        $list = Transaction::leftJoin('outlets','outlets.id_outlet','=','transactions.id_outlet')->orderBy('id_transaction', 'DESC')->with('user', 'productTransaction.product.product_category')->where('trasaction_type', ucwords($key))->where('transactions.created_at', '>=', $start)->where('transactions.created_at', '<=', $end)->paginate(10);
 
         return response()->json(MyHelper::checkGet($list));
     }
@@ -1309,7 +1311,9 @@ class ApiTransaction extends Controller
                               'transaction_products.*',
                               'users.*',
                               'products.*',
-                              'product_categories.*')
+                              'product_categories.*',
+                              'outlets.outlet_code', 'outlets.outlet_name')
+                    ->leftJoin('outlets','outlets.id_outlet','=','transactions.id_outlet')
                     ->leftJoin('transaction_products','transactions.id_transaction','=','transaction_products.id_transaction')
                     ->leftJoin('users','transactions.id_user','=','users.id')
                     ->leftJoin('products','products.id_product','=','transaction_products.id_product')
@@ -1334,6 +1338,15 @@ class ApiTransaction extends Controller
                         $var = 'products.'.$con['subject'];
                     } elseif ($con['subject'] == 'product_category') {
                         $var = 'product_categories.product_category_name';
+                    }
+
+                    if ($con['subject'] == 'outlet_code' || $con['subject'] == 'outlet_name') {
+                        $var = 'outlets.'.$con['subject'];
+                        if ($post['rule'] == 'and') {
+                            $query = $query->where($var, $con['operator'], $con['parameter']);
+                        } else {
+                            $query = $query->orWhere($var, $con['operator'], $con['parameter']);
+                        }
                     }
 
                     if ($con['subject'] == 'receipt' || $con['subject'] == 'name' || $con['subject'] == 'phone' || $con['subject'] == 'email' || $con['subject'] == 'product_name' || $con['subject'] == 'product_code' || $con['subject'] == 'product_category') {
@@ -1429,9 +1442,13 @@ class ApiTransaction extends Controller
         $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
 
         if ($type == 'trx') {
+            if($request->json('admin')){
+                $list = Transaction::where(['transactions.id_transaction' => $id])->with('user');
+            }else{
+                $list = Transaction::where(['transactions.id_transaction' => $id, 'id_user' => $request->user()->id]);
+            }
             if($use_product_variant){
-                $list = Transaction::where([['id_transaction', $id],
-                ['id_user',$request->user()->id]])->with(
+                $list = $list->with(
                     // 'user.city.province',
                     'productTransaction.product.product_group',
                     'productTransaction.product.product_variants',
@@ -1444,8 +1461,7 @@ class ApiTransaction extends Controller
                     'promo_campaign_promo_code.promo_campaign',
                     'outlet.city')->first();
             }else{
-                $list = Transaction::where([['id_transaction', $id],
-                ['id_user',$request->user()->id]])->with(
+                $list = $list->with(
                     // 'user.city.province',
                     'productTransaction.product.product_category',
                     'productTransaction.modifiers',
@@ -1581,6 +1597,13 @@ class ApiTransaction extends Controller
                                     $payment['reject']  = $PayIpay->err_desc;
                                     $list['payment'][]  = $payment;
                                     break;
+                                case 'Shopeepay':
+                                    $shopeePay = TransactionPaymentShopeePay::find($mp['id_payment']);
+                                    $payment['name']    = 'Shopee Pay';
+                                    $payment['amount']  = $shopeePay->amount / 100;
+                                    $payment['reject']  = ($shopeePay->additional_info == '{}') ? '' : $shopeePay->additional_info; 
+                                    $list['payment'][]  = $payment;
+                                    break;
                                 case 'Offline':
                                     $payment = TransactionPaymentOffline::where('id_transaction', $list['id_transaction'])->get();
                                     foreach ($payment as $key => $value) {
@@ -1668,6 +1691,25 @@ class ApiTransaction extends Controller
                             $payment[$dataKey]['name']      = $PayIpay->payment_method;
                             $payment[$dataKey]['amount']    = $PayIpay->amount / 100;
                             $payment[$dataKey]['reject']    = $PayIpay->err_desc;
+                        }else{
+                            $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
+                            $payment[$dataKey]              = $dataPay;
+                            $list['balance']                = $dataPay['balance_nominal'];
+                            $payment[$dataKey]['name']      = 'Balance';
+                            $payment[$dataKey]['amount']    = $dataPay['balance_nominal'];
+                        }
+                    }
+                    $list['payment'] = $payment;
+                    break;
+                case 'Shopeepay':
+                    $multiPayment = TransactionMultiplePayment::where('id_transaction', $list['id_transaction'])->get();
+                    $payment = [];
+                    foreach($multiPayment as $dataKey => $dataPay){
+                        if($dataPay['type'] == 'Shopeepay'){
+                            $payShopee = TransactionPaymentShopeePay::find($dataPay['id_payment']);
+                            $payment[$dataKey]['name']      = 'Shopee Pay';
+                            $payment[$dataKey]['amount']    = $payShopee->amount / 100;
+                            $payment[$dataKey]['reject']    = ($payShopee->additional_info == '{}') ? '' : $payShopee->additional_info;
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey]              = $dataPay;
@@ -1985,6 +2027,13 @@ class ApiTransaction extends Controller
                     $payment = DealsPaymentIpay88::where('id_deals_user', $id)->first();
                     $result['payment'][] = [
                         'name'      => $payment->payment_method?:'Credit / Debit Card',
+                        'amount'    =>  MyHelper::requestNumber($payment->amount / 100,'_CURRENCY')
+                    ];
+                    break;
+                case 'Shopeepay':
+                    $payment = DealsPaymentShopeePay::where('id_deals_user', $id)->first();
+                    $result['payment'][] = [
+                        'name'      => 'Shopee Pay',
                         'amount'    =>  MyHelper::requestNumber($payment->amount / 100,'_CURRENCY')
                     ];
                     break;

@@ -120,8 +120,7 @@ class ApiOnlineTransaction extends Controller
             DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
-                // 'messages'  => ['Akun Anda telah diblokir karena menunjukkan aktivitas mencurigakan. Untuk informasi lebih lanjut harap hubungi customer service kami di hello@maxxcoffee.id']
-                'messages'  => ['Sorry your account has been suspended, please contact hello@maxxcoffee.id']
+                'messages'  => ['Sorry your account has been suspended, please contact '.env('EMAIL_ADDRESS_ADMIN')]
             ]);
         }
 
@@ -1505,6 +1504,7 @@ class ApiOnlineTransaction extends Controller
         $insertTransaction['cancel_message'] = 'Are you sure you want to cancel this transaction?';
 
         $getSettingTimer = Setting::where('key', 'setting_timer_ovo')->first();
+        $insertTransaction['timer_shopeepay'] = (int) MyHelper::setting('shopeepay_validity_period','value', 300);
         if($getSettingTimer){
             $insertTransaction['timer_ovo'] = (int)$getSettingTimer['value'];
             // $insertTransaction['message_timeout_ovo'] = "You have ".(int)$getSettingTimer['value']." seconds remaning to complete the payment";
@@ -1512,6 +1512,7 @@ class ApiOnlineTransaction extends Controller
             $insertTransaction['timer_ovo'] = NULL;
             // $insertTransaction['message_timeout_ovo'] = "You have 0 seconds remaning to complete the payment";
         }
+        $insertTransaction['message_timeout_shopeepay'] = "Sorry, your payment has expired";
         $insertTransaction['message_timeout_ovo'] = "Sorry, your payment has expired";
         return response()->json([
             'status'   => 'success',
@@ -1615,7 +1616,7 @@ class ApiOnlineTransaction extends Controller
                 $outlet_status = 0;
             }
 
-             if($outlet['today']['close'] && $outlet['today']['close'] != "00:00" && $outlet['today']['open'] && $outlet['today']['open'] != '00:00'){
+             if($outlet['today']['close'] && $outlet['today']['open'] ){
 
                 $settingTime = Setting::where('key', 'processing_time')->first();
                 if($settingTime && $settingTime->value){
@@ -2501,5 +2502,73 @@ class ApiOnlineTransaction extends Controller
             'status'=>'fail',
             'messages' => $errors?:['Something went wrong']
         ];
+    }
+
+    public function availablePayment(Request $request)
+    {
+        $availablePayment = config('payment_method');
+
+        $setting  = json_decode(MyHelper::setting('active_payment_methods', 'value_text', '[]'), true) ?? [];
+        $payments = [];
+
+        foreach ($setting as $value) {
+            $payment = $availablePayment[$value['code'] ?? ''] ?? false;
+            if (!$payment || !($payment['status'] ?? false) || (!$request->show_all && !($value['status'] ?? false))) {
+                unset($availablePayment[$value['code']]);
+                continue;
+            }
+            $payments[] = [
+                'code'            => $value['code'],
+                'payment_gateway' => $payment['payment_gateway'],
+                'payment_method'  => $payment['payment_method'],
+                'logo'            => $payment['logo'],
+                'text'            => $payment['text'],
+                'status'          => (int) $value['status'] ?? 0
+            ];
+            unset($availablePayment[$value['code']]);
+        }
+        if ($request->show_all) {
+            foreach ($availablePayment as $code => $payment) {
+                if (!$payment['status']) {
+                    continue;
+                }
+                $payments[] = [
+                    'code'            => $code,
+                    'payment_gateway' => $payment['payment_gateway'],
+                    'payment_method'  => $payment['payment_method'],
+                    'logo'            => $payment['logo'],
+                    'text'            => $payment['text'],
+                    'status'          => 0
+                ];
+            }
+        }
+        return MyHelper::checkGet($payments);
+    }
+    /**
+     * update available payment
+     * @param
+     * {
+     *     payments: [
+     *         {'code': 'xxx', status: 1}
+     *     ]
+     * }
+     * @return [type]           [description]
+     */
+    public function availablePaymentUpdate(Request $request)
+    {
+        $availablePayment = config('payment_method');
+        foreach ($request->payments as $key => $value) {
+            $payment = $availablePayment[$value['code'] ?? ''] ?? false;
+            if (!$payment || !($payment['status'] ?? false)) {
+                continue;
+            }
+            $payments[] = [
+                'code'     => $value['code'],
+                'status'   => $value['status'] ?? 0,
+                'position' => $key + 1,
+            ];
+        }
+        $update = Setting::updateOrCreate(['key' => 'active_payment_methods'], ['value_text' => json_encode($payments)]);
+        return MyHelper::checkUpdate($update);
     }
 }

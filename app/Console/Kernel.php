@@ -55,10 +55,16 @@ class Kernel extends ConsoleKernel
         $schedule->call('Modules\Transaction\Http\Controllers\ApiCronTrxController@checkSchedule')->dailyAt('02:00');
 
         /**
-         * cancel all pending transaction that have been more than 1 x 24 hours
+         * cancel all pending transaction that have been more than 15 minutes
          * run every hour
          */
         $schedule->call('Modules\Transaction\Http\Controllers\ApiCronTrxController@cron')->cron('*/15 * * * *');
+
+        /**
+         * cancel all pending deals that have been more than 15 minutes
+         * run every hour
+         */
+        $schedule->call('Modules\Deals\Http\Controllers\ApiCronDealsController@cancel')->cron('*/15 * * * *');
 
         /**
          * update all pickup transaction that have been more than 1 x 24 hours
@@ -128,11 +134,31 @@ class Kernel extends ConsoleKernel
         /**
          * To process fraud
          */
+
+        /**
+         * To enter an ovo transaction that needs to be reversed
+         * Run every day 9 minute
+         */
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiOvoReversal@insertReversalDeals')->cron('*/9 * * * *');
+
+        /**
+         * To process the Ovo reversal queue
+         * Run every 10 minute
+         */
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiOvoReversal@processReversalDeals')->cron('*/10 * * * *');
+        /**
+         * To process fraud
+         */
+
         $schedule->call('Modules\SettingFraud\Http\Controllers\ApiFraud@fraudCron')->cron('*/59 * * * *');
         /**
          * Void failed transaction shopeepay
          */
         $schedule->call('Modules\ShopeePay\Http\Controllers\ShopeePayController@cronCancel')->cron('*/5 * * * *');
+        /**
+         * Void failed transaction shopeepay
+         */
+        $schedule->call('Modules\ShopeePay\Http\Controllers\ShopeePayController@cronCancelDeals')->cron('*/5 * * * *');
 
     }
 

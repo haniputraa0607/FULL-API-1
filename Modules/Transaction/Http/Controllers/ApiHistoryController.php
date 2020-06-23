@@ -691,7 +691,11 @@ class ApiHistoryController extends Controller
             });
         }
 
-        $voucher = $voucher->whereNotNull('voucher_price_cash')->where('id_user', $id);
+        $voucher = $voucher->whereNotNull('voucher_price_cash')->where('id_user', $id)
+                    ->where(function ($query) {
+                        $query->whereColumn('balance_nominal', '<', 'voucher_price_cash')
+                            ->orWhereNull('balance_nominal');
+                    });
 
         $voucher = $voucher->get()->toArray();
         $dataVoucher = [];
@@ -874,23 +878,23 @@ class ApiHistoryController extends Controller
             }
         });
 
-        // if (!is_null($post['online_order']) || !is_null($post['offline_order'])) {
-        //     $log->leftJoin('transactions', 'transactions.id_transaction', 'log_balances.id_reference')
-        //         ->where(function ($query) use ($post) {
-        //             if (!is_null($post['online_order'])) {
-        //                 $query->orWhere(function ($queryLog) {
-        //                     $queryLog->whereIn('source', ['Transaction', 'Transaction Failed', 'Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Rejected Order Ovo', 'Reversal'])
-        //                         ->where('trasaction_type', '!=', 'Offline');
-        //                 });
-        //             }
-        //             if (!is_null($post['offline_order'])) {
-        //                 $query->orWhere(function ($queryLog) {
-        //                     $queryLog->where('source', 'Transaction')
-        //                         ->where('trasaction_type', '=', 'Offline');
-        //                 });
-        //             }
-        //         });
-        // }
+         if (!is_null($post['online_order']) || !is_null($post['offline_order'])) {
+             $log->leftJoin('transactions', 'transactions.id_transaction', 'log_balances.id_reference')
+                 ->where(function ($query) use ($post) {
+                     if (!is_null($post['online_order'])) {
+                         $query->orWhere(function ($queryLog) {
+                             $queryLog->whereIn('source', ['Transaction', 'Transaction Failed', 'Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Rejected Order Ovo', 'Reversal'])
+                                 ->where('trasaction_type', '!=', 'Offline');
+                         });
+                     }
+                     if (!is_null($post['offline_order'])) {
+                         $query->orWhere(function ($queryLog) {
+                             $queryLog->where('source', 'Transaction')
+                                 ->where('trasaction_type', '=', 'Offline');
+                         });
+                     }
+                 });
+         }
 
         // if (!is_null($post['voucher'])) {
         //     $query->orWhere(function ($queryLog) {
@@ -970,6 +974,14 @@ class ApiHistoryController extends Controller
                 $dataList['amount'] = '- ' . ltrim(MyHelper::requestNumber($value['balance'], '_POINT'), '-');
                 // $dataList['amount'] = number_format($value['balance'], 0, ',', '.');
                 // $dataList['online'] = 1;
+
+                $listBalance[$key] = $dataList;
+            } elseif($value['source'] == 'Deals Reversal') {
+                $dataList['type']   = 'profile';
+                $dataList['id']      = $value['id_log_balance'];
+                $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
+                $dataList['outlet'] = 'Reversal';
+                $dataList['amount'] = MyHelper::requestNumber($value['balance'], '_POINT');
 
                 $listBalance[$key] = $dataList;
             } elseif ($value['source'] == 'Reversal Duplicate') {

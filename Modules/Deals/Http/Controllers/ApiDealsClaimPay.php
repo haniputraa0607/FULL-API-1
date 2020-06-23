@@ -344,6 +344,8 @@ class ApiDealsClaimPay extends Controller
                     ];
                 }elseif (($pay['payment']??false) == 'shopeepay'){
                     DB::commit();
+                    $pay['message_timeout_shopeepay'] = "Sorry, your payment has expired";
+                    $pay['timer_shopeepay'] = (int) MyHelper::setting('shopeepay_validity_period','value', 300);
                     return [
                         'status'    => 'success',
                         'result'    => $pay
@@ -643,6 +645,7 @@ class ApiDealsClaimPay extends Controller
         return [
             'redirect' => 'true',
             'payment' => 'shopeepay',
+            'id_deals_user' => $voucher->id_deals_user,
             'redirect_url_app'  => $paymentShopeepay->redirect_url_app,
             'redirect_url_http' => $paymentShopeepay->redirect_url_http
         ];

@@ -667,6 +667,33 @@ class SettingsTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
+            87 =>
+                array(
+                    'id_setting' => 88,
+                    'key' => 'privacypolicy',
+                    'value' => NULL,
+                    'value_text' => '<h1>Privacy Policy</h1>',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            88 =>
+                array(
+                    'id_setting' => 89,
+                    'key' => 'setting_expired_otp',
+                    'value' => 30,
+                    'value_text' => null,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            89 =>
+                array(
+                    'id_setting' => 90,
+                    'key' => 'otp_rule_request',
+                    'value' => null,
+                    'value_text' => '{"hold_time": 1, "max_value_request": 10}',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
         ));
     }
 }

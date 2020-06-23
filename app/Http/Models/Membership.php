@@ -67,6 +67,7 @@ class Membership extends Model
 		'retain_min_total_value',
 		'retain_min_total_count',
 		'retain_min_total_balance',
+		'next_level_text',
 		'benefit_point_multiplier',
 		'benefit_cashback_multiplier',
 		'benefit_promo_id',
