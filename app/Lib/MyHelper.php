@@ -2453,7 +2453,7 @@ class MyHelper{
           maximum number then the user cannot make an otp request.
         */
 
-        $holdTime = 1;//set default hold time if setting not exist
+        $holdTime = 30;//set default hold time if setting not exist
         $maxValueRequest = 10;//set default max value for request if setting not exist
         if($setting){
             $setting = json_decode($setting['value_text']);
