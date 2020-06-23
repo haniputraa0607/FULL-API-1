@@ -84,10 +84,10 @@ class SendPromotionJob implements ShouldQueue
     {
     	$now			= date('Y-m-d H:i:s');
     	$dataQueue 		= $this->data;
-		
 		$idref = null;
 		if($dataQueue['content']['id_deals'] != null){
 			$sendDeals = $this->sendDeals($dataQueue['content']['id_promotion_content'],$dataQueue['user']);
+
 			if(isset($sendDeals['status']) && $sendDeals['status'] == 'success'){
 				$idref = $sendDeals['result'][0]['id_deals_voucher'];
 				$dataVoucher = $sendDeals['result'];
@@ -536,7 +536,6 @@ class SendPromotionJob implements ShouldQueue
 			];
 		}
 		$promotionContent = $promotionContent->toArray();
-
 		$dataDeals = Deal::find($promotionContent['id_deals']);
 		if($dataDeals){
 			$dataVoucher = null;
@@ -555,7 +554,7 @@ class SendPromotionJob implements ShouldQueue
 				}
 			}else{
 				for($i = 0; $i< $promotionContent['voucher_given']; $i++){
-					$dataDeals = Deal::find($promotionContent['id_deals']);
+					// $dataDeals = Deal::find($promotionContent['id_deals']);
 					$voucher = app($this->dealsClaim)->getVoucherGenerate($user, $dataDeals);
 					if ($voucher) {
 						$dataVoucher[] = $voucher;

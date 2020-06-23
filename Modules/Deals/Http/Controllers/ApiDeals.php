@@ -234,7 +234,7 @@ class ApiDeals extends Controller
         	}else{
         	    $data['id_outlet'] = $post['id_outlet'];
         	}
-            if (in_array("all", $data['id_outlet'])){
+            if (in_array("all", $post['id_outlet'])){
                 $data['is_all_outlet'] = 1;
                 $data['id_outlet'] = [];
             }else{

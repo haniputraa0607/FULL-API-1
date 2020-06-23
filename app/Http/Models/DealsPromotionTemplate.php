@@ -58,12 +58,13 @@ class DealsPromotionTemplate extends Model
 		'step_complete',
 		'custom_outlet_text',
 		'product_type',
-		'deals_list_outlet'
+		'deals_list_outlet',
+		'id_brand'
 	];
 
 	public function deals_promotion_buyxgety_product_requirement()
 	{
-		return $this->hasMany(\Modules\Promotion\Entities\DealsPromotionBuyxgetyProductRequirement::class, 'id_deals');
+		return $this->hasOne(\Modules\Promotion\Entities\DealsPromotionBuyxgetyProductRequirement::class, 'id_deals');
 	}
 
 	public function deals_promotion_buyxgety_rules()
@@ -78,7 +79,7 @@ class DealsPromotionTemplate extends Model
 
 	public function deals_promotion_product_discount_rules()
 	{
-		return $this->hasMany(\Modules\Promotion\Entities\DealsPromotionProductDiscountRule::class, 'id_deals');
+		return $this->hasOne(\Modules\Promotion\Entities\DealsPromotionProductDiscountRule::class, 'id_deals');
 	}
 
 	public function deals_promotion_product_discount()
@@ -88,7 +89,7 @@ class DealsPromotionTemplate extends Model
 
 	public function deals_promotion_tier_discount_product()
 	{
-		return $this->hasMany(\Modules\Promotion\Entities\DealsPromotionTierDiscountProduct::class, 'id_deals');
+		return $this->hasOne(\Modules\Promotion\Entities\DealsPromotionTierDiscountProduct::class, 'id_deals');
 	}
 
 	public function deals_promotion_tier_discount_rules()
@@ -98,7 +99,7 @@ class DealsPromotionTemplate extends Model
 
 	public function promotion_contents()
 	{
-		return $this->hasMany(\Modules\Promotion\Entities\PromotionContent::class, 'id_deals_promotion_template');
+		return $this->hasMany(\App\Http\Models\PromotionContent::class, 'id_deals_promotion_template');
 	}
 
 	protected $appends  = ['url_deals_image'];
