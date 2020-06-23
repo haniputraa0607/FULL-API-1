@@ -2468,7 +2468,7 @@ class MyHelper{
             return [
                 'status'=>'fail',
                 'otp_check'=> 1,
-                'messages'=> "OTP request has passed the limit, please contact our customer service at ".env('EMAIL_ADDRESS_ADMIN')
+                'messages'=> ["OTP request has passed the limit, please contact our customer service at ".env('EMAIL_ADDRESS_ADMIN')]
             ];
         }
 
