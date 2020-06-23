@@ -537,6 +537,15 @@ class SendPromotionJob implements ShouldQueue
 		}
 		$promotionContent = $promotionContent->toArray();
 		$dataDeals = Deal::find($promotionContent['id_deals']);
+		if (!$promotionContent['send_deals_expired']) {
+			if ( !empty($dataDeals['deals_voucher_expired']) && $dataDeals['deals_voucher_expired'] < date('Y-m-d')) {
+				return [
+					'status'  => 'fail',
+					'message'  => 'Deals Voucher is expired.'
+				];
+			}
+		}
+
 		if($dataDeals){
 			$dataVoucher = null;
 			if ($dataDeals->deals_voucher_type != "Unlimited") {

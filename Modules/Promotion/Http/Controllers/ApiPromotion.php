@@ -317,6 +317,7 @@ class ApiPromotion extends Controller
 				$data 							= [];
 				$data['id_promotion']			= $id_promotion;
 				$data['promotion_series_days']	= $post['promotion_series_days'][$key];
+				$data['send_deals_expired'] 	= $post['send_deals_expired'][0];
 
 				if(isset($post['promotion_channel'][$key]) && in_array('deals', $post['promotion_channel'][$key])){
 					//get deals template
@@ -646,25 +647,26 @@ class ApiPromotion extends Controller
 					return response()->json($result);
 				}
 
+				// DEALS
 				if(isset($post['promotion_channel'][$key]) && in_array('deals', $post['promotion_channel'][$key]))
 				{
 					$createDeals = app($this->promotionDeals)->createDeals($post, $id_promotion_content, $key);
-	// return [$createDeals];
-					if(!$createDeals){
-						DB::rollBack();
-						$result = [
-							'status'	=> 'fail',
-							'messages'	=> ['Update Promotion Content Deals Failed.']
-						];
-						return response()->json($result);
-					}
+	
+					if( ($createDeals['status']??true) != 'success' ){
+					DB::rollBack();
+					$result = [
+						'status'	=> 'fail',
+						'messages'	=> $createDeals['messages']??['Update Promotion Content Deals Failed.']
+					];
+					return response()->json($result);
+				}
 				}
 				else
 				{
 					$promoContent = PromotionContent::where('id_promotion_content','=',$id_promotion_content)->first();
 
 					$delete = app($this->promotionDeals)->deleteDeals($promoContent, $id_promotion_content, $key);
-	// return [$delete];	
+	
 					if($delete){
 						$promoContent->update(['id_deals' => null]);
 						if(!$promoContent){
@@ -682,6 +684,7 @@ class ApiPromotion extends Controller
 			$data 							= [];
 			$data['id_promotion']			= $id_promotion;
 			$data['promotion_series_days']	= 0;
+			$data['send_deals_expired'] 	= $post['send_deals_expired'][0];
 
 			if(isset($post['promotion_channel'][0]) && in_array('deals', $post['promotion_channel'][0])){
 				//get deals template
@@ -1012,15 +1015,16 @@ class ApiPromotion extends Controller
 				return response()->json($result);
 			}
 
+			// DEALS
 			if(isset($post['promotion_channel'][0]) && in_array('deals', $post['promotion_channel'][0]))
 			{
 				$createDeals = app($this->promotionDeals)->createDeals($post, $id_promotion_content);
-// return [$createDeals];
-				if(!$createDeals){
+
+				if( ($createDeals['status']??true) != 'success' ){
 					DB::rollBack();
 					$result = [
 						'status'	=> 'fail',
-						'messages'	=> ['Update Promotion Content Deals Failed.']
+						'messages'	=> $createDeals['messages']??['Update Promotion Content Deals Failed.']
 					];
 					return response()->json($result);
 				}
@@ -1030,7 +1034,7 @@ class ApiPromotion extends Controller
 				$promoContent = PromotionContent::where('id_promotion_content','=',$id_promotion_content)->first();
 
 				$delete = app($this->promotionDeals)->deleteDeals($promoContent, $id_promotion_content);
-// return [$delete];	
+
 				if($delete){
 					$promoContent->update(['id_deals' => null]);
 					if(!$promoContent){
@@ -1098,6 +1102,14 @@ class ApiPromotion extends Controller
 										})
 										->orWhere('schedule_everyday', '=', 'Yes');
 									})
+									->where(function ($query) {
+										$query->whereHas('contents', function($q) {
+											$q->where('send_deals_expired', '1')
+												->orWhereDoesntHave('deals', function($q2) {
+													$q2->whereDate('deals_voucher_expired', '<', date('Y-m-d'));
+												});
+										});
+									})
 									->get();
 									// return $promotions;
 
@@ -1117,8 +1129,16 @@ class ApiPromotion extends Controller
 		if(!isset($post['id_promotion'])){
 			$promotionSeries = Promotion::join('promotion_schedules', 'promotions.id_promotion', 'promotion_schedules.id_promotion')
 										->where('promotion_type', 'Campaign Series')
-										// ->where('promotion_schedules.schedule_time', '<=', $timeNow)
-										// ->where('promotion_schedules.schedule_time', '>=', $timeNow2)
+										->where('promotion_schedules.schedule_time', '<=', $timeNow)
+										->where('promotion_schedules.schedule_time', '>=', $timeNow2)
+										->where(function ($query) {
+											$query->whereHas('contents', function($q) {
+												$q->where('send_deals_expired', '1')
+													->orWhereDoesntHave('deals', function($q2) {
+														$q2->whereDate('deals_voucher_expired', '<', date('Y-m-d'));
+													});
+											});
+										})
 										->get();
 			// return $promotionSeries;
 			$promotion_type = 'series';

@@ -159,10 +159,10 @@ class ApiPromotionDeals extends Controller
     {
 		//kalo ada deals
 		$dataDeals 							= [];
-// return $post;
+
 		//get deals template
 		$dealsTemplate = DealsPromotionTemplate::find($post['id_deals_promotion_template'][$key]);
-// return $dealsTemplate;		
+
 		$dataDeals['deals_type']			= "Promotion";
 		$dataDeals['deals_promo_id_type']	= $dealsTemplate['deals_promo_id_type'];
 
@@ -230,7 +230,11 @@ class ApiPromotionDeals extends Controller
 		} else {
 			$dealsQuery = Deal::create($dataDeals);
 			if(!$dealsQuery){
-				return false;
+				$result = [
+					'status'	=> 'fail',
+					'messages'	=> ['Update Promotion Content Deals Failed.']
+				];
+				return $result;
 			}
 
 			$id_deals = $dealsQuery->id_deals;
@@ -239,6 +243,28 @@ class ApiPromotionDeals extends Controller
 		if($dealsQuery){
 			if($post['voucher_type_listvoucher'][$key] != ""){
 				$ex	= explode(PHP_EOL,$post['voucher_type_listvoucher'][$key]);
+				$ex = array_map(
+					function($value) { return (string) strtoupper($value); },
+					$ex
+				);
+	        	$checkVoucher = DealsVoucher::whereIn('voucher_code', $ex)->get()->toArray();
+
+				if (!empty($checkVoucher)) {
+					$checkVoucher = array_column($checkVoucher, 'voucher_code');
+					$warnings = [];
+					foreach ($checkVoucher as $key => $value) {
+		        		$warnings[] = 'Voucher '.$value.' already exists';
+		        	}
+
+		        	$result = [
+						'status'	=> 'fail',
+						'messages'	=> $warnings
+					];
+
+					return $result;
+				}
+
+
 				if($mark == 'insert'){
 					foreach($ex as $voucher){
 						$dataDealsVoucher = [];
@@ -249,7 +275,11 @@ class ApiPromotionDeals extends Controller
 						$queryDealsVoucher = DealsVoucher::create($dataDealsVoucher);
 
 						if (!$queryDealsVoucher) {
-							return false;
+							$result = [
+								'status'	=> 'fail',
+								'messages'	=> ['Update Promotion Content Deals Failed.']
+							];
+							return $result;
 						}
 					}
 				} else {
@@ -280,7 +310,7 @@ class ApiPromotionDeals extends Controller
 									'status'	=> 'fail',
 									'messages'	=> ['Update Promotion Content Deals Failed.']
 								];
-								return response()->json($result);
+								return $result;
 							}
 						}
 					}
@@ -324,7 +354,7 @@ class ApiPromotionDeals extends Controller
 								'status'	=> 'fail',
 								'messages'	=> ['Update Promotion Content Deals Failed.']
 							];
-							return response()->json($result);
+							return $result;
 						}
 					}
 				}
@@ -355,16 +385,28 @@ class ApiPromotionDeals extends Controller
 			// save content & detail content
  			$saveContent = $this->insertContent($dealsTemplate, $id_deals);
  			if (!$saveContent) {
- 				return false;
+ 				$result = [
+					'status'	=> 'fail',
+					'messages'	=> ['Update Promotion Content Deals Failed.']
+				];
+				return $result;
  			}
 			
 
 			$updatePromotion = PromotionContent::where('id_promotion_content','=',$id_promotion_content)->update(['id_deals' => $id_deals]);
 
-			return true;
+			$result = [
+				'status'	=> 'success',
+				'messages'	=> ['Update Promotion Content Deals Success.']
+			];
+			return $result;
 		}
 
-		return false;
+		$result = [
+			'status'	=> 'fail',
+			'messages'	=> ['Update Promotion Content Deals Failed.']
+		];
+		return $result;
     }
 
     function insertProductDiscount($query, $id_deals)
