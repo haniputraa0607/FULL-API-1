@@ -928,9 +928,19 @@ class ApiUser extends Controller
 
         $checkPhoneFormat = MyHelper::phoneCheckFormat($phone);
 
+        //get setting rule otp
+        $setting = Setting::where('key', 'otp_rule_request')->first();
+
+        $holdTime = 30;//set default hold time if setting not exist. hold time in second
+        if($setting && isset($setting['value_text'])){
+            $setting = json_decode($setting['value_text']);
+            $holdTime = (int)$setting->hold_time;
+        }
+
         if(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'fail'){
             return response()->json([
                 'status' => 'fail',
+                'otp_timer' => $holdTime,
                 'messages' => [$checkPhoneFormat['messages']]
             ]);
         }elseif(isset($checkPhoneFormat['status']) && $checkPhoneFormat['status'] == 'success'){
@@ -943,6 +953,7 @@ class ApiUser extends Controller
             return response()->json([
                 'status' => 'success',
                 'result' => $data,
+                'otp_timer' => $holdTime,
                 'messages' => ['Sorry your account has been suspended, please contact '.env('EMAIL_ADDRESS_ADMIN')]
             ]);
         }
@@ -953,14 +964,19 @@ class ApiUser extends Controller
             }
         }
 
-        if(count($data) > 1){
+        if($data){
             return response()->json([
                 'status' => 'success',
                 'result' => $data,
+                'otp_timer' => $holdTime,
                 'messages' => null
             ]);
         }else{
-            return response()->json(MyHelper::checkGet($data));
+            return response()->json([
+                'status' => 'fail',
+                'otp_timer' => $holdTime,
+                'messages' => ['empty!']
+            ]);
         }
     }
     /**

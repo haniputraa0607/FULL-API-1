@@ -2449,11 +2449,11 @@ class MyHelper{
         //get setting rule for request otp
         $setting = Setting::where('key', 'otp_rule_request')->first();
         /*
-          note : hold time in minutes. Ff the user has requested otp exceeds the
+          note : hold time in seconds. if the user has requested otp exceeds the
           maximum number then the user cannot make an otp request.
         */
 
-        $holdTime = 1;//set default hold time if setting not exist
+        $holdTime = 30;//set default hold time if setting not exist
         $maxValueRequest = 10;//set default max value for request if setting not exist
         if($setting){
             $setting = json_decode($setting['value_text']);
@@ -2468,7 +2468,7 @@ class MyHelper{
             return [
                 'status'=>'fail',
                 'otp_check'=> 1,
-                'messages'=> "OTP request has passed the limit, please contact our customer service at ".env('EMAIL_ADDRESS_ADMIN')
+                'messages'=> ["OTP request has passed the limit, please contact our customer service at ".env('EMAIL_ADDRESS_ADMIN')]
             ];
         }
 
@@ -2489,7 +2489,7 @@ class MyHelper{
                 return [
                     'status'=>'fail',
                     'otp_check'=> 1,
-                    'messages'=> "Can't request OTP, please request again after ".$holdTime." minute"
+                    'messages'=> ["Can't request OTP, please request again after ".$holdTime." seconds"]
                 ];
             } elseif($count > $maxValueRequest){
                 $updateFlag = User::where('id', $data_user[0]['id'])->update(['otp_request_status' => 'Can Not Request']);
@@ -2497,10 +2497,10 @@ class MyHelper{
                 return [
                     'status'=>'fail',
                     'otp_check'=> 1,
-                    'messages'=> "OTP request has passed the limit, please contact our customer service at ".env('EMAIL_ADDRESS_ADMIN')
+                    'messages'=> ["OTP request has passed the limit, please contact our customer service at ".env('EMAIL_ADDRESS_ADMIN')]
                 ];
             } else{
-                $availebleTime = date('Y-m-d H:i:s',strtotime('+'.$holdTime.' minutes',strtotime(date('Y-m-d H:i:s'))));
+                $availebleTime = date('Y-m-d H:i:s',strtotime('+'.$holdTime.' seconds',strtotime(date('Y-m-d H:i:s'))));
                 $contentFile = [
                     'available_request_time' => $availebleTime,
                     'count_request' => 1 + $content->count_request
@@ -2509,7 +2509,7 @@ class MyHelper{
                 return true;
             }
         }else{
-            $availebleTime = date('Y-m-d H:i:s',strtotime('+'.$holdTime.' minutes',strtotime(date('Y-m-d H:i:s'))));
+            $availebleTime = date('Y-m-d H:i:s',strtotime('+'.$holdTime.' seconds',strtotime(date('Y-m-d H:i:s'))));
             $contentFile = [
                 'available_request_time' => $availebleTime,
                 'count_request' => 1
