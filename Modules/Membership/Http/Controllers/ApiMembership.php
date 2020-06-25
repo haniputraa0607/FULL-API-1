@@ -184,6 +184,7 @@ class ApiMembership extends Controller
 					$data['benefit_cashback_multiplier'] = $membership['benefit_cashback_multiplier'];
 					$data['benefit_discount'] = $membership['benefit_discount'];
 					$data['benefit_text'] = $membership['benefit_text']??null;
+					$data['next_level_text'] = $membership['next_level_text']??null;
 					// $data['benefit_promo_id'] = $membership['benefit_promo_id'];
 
 					if(isset($membership['cashback_maximum'])){

@@ -1033,7 +1033,7 @@ class ApiDealsClaimPay extends Controller
                     }elseif($paymentMethod == 'ipay88'){
                         return $this->ipay88($deals, $voucher, -$kurangBayar,$post);
                     }elseif($paymentMethod == 'shopeepay'){
-                        return $this->ipay88($deals, $voucher, -$kurangBayar,$post);
+                        return $this->shopeepay($deals, $voucher, -$kurangBayar,$post);
                     }
                 }
             }

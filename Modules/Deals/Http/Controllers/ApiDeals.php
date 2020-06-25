@@ -344,8 +344,19 @@ class ApiDeals extends Controller
 
     /* LIST */
     function listDeal(ListDeal $request) {
-        if($request->json('forSelect2')){
-            return MyHelper::checkGet(Deal::select('id_deals','deals_title')->where('deals_type','Deals')->whereDoesntHave('featured_deals')->get());
+        if($request->json('forSelect2'))
+        {
+            $deals = Deal::select('id_deals','deals_title')
+            		->where('deals_type','Deals')
+            		->whereDoesntHave('featured_deals');
+
+            if ($request->json('featured')) {
+            	$deals = $deals->where('deals_end', '>', date('Y-m-d H:i:s'))
+            			->where('deals_publish_end', '>', date('Y-m-d H:i:s'))
+            			->where('step_complete', '=', 1);
+            }
+
+            return MyHelper::checkGet($deals->get());
         }
 
         // return $request->json()->all();
@@ -1516,7 +1527,7 @@ class ApiDeals extends Controller
 	    	}
     	}
 
-    	if ( empty($deals['deals_content']) ) {
+    	if ( empty($deals['deals_content']) || empty($deals['deals_description'])) {
     		$step = 3;
 	    	$errors = 'Deals not complete';
     		return false;
