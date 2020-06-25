@@ -40,9 +40,9 @@ class ApiReferralController extends Controller
             $referral = UserReferralCode::with(['promo_code', 'promo_code.promo_campaign_referral'])->where('id_user', $user->id)->get()->first();
         }
         $bnf_referred_percent = $referral->promo_code->promo_campaign_referral->referred_promo_unit == 'Percent';
-        $benefit_reffered = implode('', [MyHelper::requestNumber($referral->promo_code->promo_campaign_referral->referred_promo_value,$bnf_referred_percent?'':'_POINT'), $retVal = ($bnf_referred_percent ? '%' : ' point')]);
+        $benefit_reffered = implode('', [MyHelper::requestNumber($referral->promo_code->promo_campaign_referral->referred_promo_value,$bnf_referred_percent?'':'_POINT'), $retVal = ($bnf_referred_percent ? '%' : ' points')]);
         $bnf_referrer_percent = $referral->promo_code->promo_campaign_referral->referrer_promo_unit == 'Percent';
-        $benefit_refferer = implode('', [MyHelper::requestNumber($referral->promo_code->promo_campaign_referral->referrer_promo_value,$bnf_referrer_percent?'':'_POINT'), $retVal = ($bnf_referrer_percent ? '%' : ' point')]);
+        $benefit_refferer = implode('', [MyHelper::requestNumber($referral->promo_code->promo_campaign_referral->referrer_promo_value,$bnf_referrer_percent?'':'_POINT'), $retVal = ($bnf_referrer_percent ? '%' : ' points')]);
         
         $setting = Setting::where('key', 'referral_messages')->orWhere('key', 'referral_content_title')->orWhere('key', 'referral_content_description')->orWhere('key', 'referral_text_header')->orWhere('key', 'referral_text_button')->get()->toArray();
         foreach ($setting as $key => $value) {
