@@ -60,6 +60,7 @@ class ApiDeals extends Controller
         $this->autocrm = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
         $this->subscription = "Modules\Subscription\Http\Controllers\ApiSubscription";
         $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+        $this->promotion_deals      = "Modules\Promotion\Http\Controllers\ApiPromotionDeals";
     }
 
     public $saveImage = "img/deals/";
@@ -1356,7 +1357,7 @@ class ApiDeals extends Controller
     	$post['step'] = $step;
     	$post['deals_type'] = $deals_type;
 
-    	if ($deals_type == 'Promotion') {
+    	if ($deals_type == 'Promotion' || $deals_type == 'deals_promotion') {
     		$deals = DealsPromotionTemplate::where('id_deals_promotion_template', '=', $post['id_deals']);
     		$table = 'deals_promotion';
     	}else{
@@ -1464,8 +1465,8 @@ class ApiDeals extends Controller
 
 		if ($check)
 		{
-			if ($post['deals_type'] == 'Promotion') {
-				$update = Deal::where('id_deals','=',$post['id_deals'])->update(['step_complete' => 1, 'last_updated_by' => auth()->user()->id]);
+			if ($post['deals_type'] == 'Promotion' || $post['deals_type'] == 'deals_promotion') {
+				$update = DealsPromotionTemplate::where('id_deals_promotion_template','=',$post['id_deals'])->update(['step_complete' => 1, 'last_updated_by' => auth()->user()->id]);
 			}else{
 				$update = Deal::where('id_deals','=',$post['id_deals'])->update(['step_complete' => 1, 'last_updated_by' => auth()->user()->id]);
 			}
@@ -1493,6 +1494,10 @@ class ApiDeals extends Controller
     	if (!$deals) {
     		$errors = 'Deals not found';
     		return false;
+    	}
+
+    	if ($promo_type == 'deals_promotion') {
+    		return app($this->promotion_deals)->checkComplete($deals, $step, $errors);
     	}
 
     	$deals = $deals->toArray();

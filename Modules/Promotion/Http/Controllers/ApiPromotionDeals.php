@@ -554,4 +554,58 @@ class ApiPromotionDeals extends Controller
 			}
 		}
     }
+
+    public function checkComplete($dataDeals, &$step, &$errors)
+    {
+    	$deals = $dataDeals->toArray();
+    	if ( $deals['is_online'] == 1)
+    	{
+	    	if ( empty($deals['deals_promotion_product_discount_rules']) && empty($deals['deals_promotion_tier_discount_rules']) && empty($deals['deals_promotion_buyxgety_rules']) )
+	    	{
+	    		$step = 2;
+	    		$errors = 'Deals Promotion not complete';
+	    		return false;
+	    	}
+    	}
+
+    	if ( $deals['is_offline'] == 1)
+    	{
+    		if ( empty($deals['deals_promo_id_type']) && empty($deals['deals_promo_id']) )
+	    	{
+	    		$step = 2;
+	    		$errors = 'Deals Promotion not complete';
+	    		return false;
+	    	}
+    	}
+
+    	if ( empty($deals['deals_promotion_content']) || empty($deals['deals_description'])) {
+    		$step = 3;
+	    	$errors = 'Deals Promotion not complete';
+    		return false;
+    	}
+
+    	return true;
+    }
+
+    function participant(Request $request)
+    {
+    	$post = $request->json()->all();
+        $deals = PromotionContent::where('id_deals_promotion_template', $request->json('id_deals_promotion_template'));
+        // if ($request->json('id_deals')) {
+        //     $deals->where('deals_vouchers.id_deals', $request->json('id_deals'));
+        // }
+// return $deals;
+
+        if ($request->json('rule')){
+             // $this->filterUserVoucher($deals,$request->json('rule'),$request->json('operator')??'and');
+        }
+
+        $deals = $deals->with([
+        			'promotion',
+        			'deals'
+        		]);
+        $deals = $deals->paginate(10);
+        return response()->json(MyHelper::checkGet($deals));
+
+    }
 }

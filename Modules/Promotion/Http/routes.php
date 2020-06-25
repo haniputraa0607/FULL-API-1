@@ -21,6 +21,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
         Route::any('', ['middleware' => 'feature_control:109', 'uses' => 'ApiPromotionDeals@list']);
         Route::post('detail', ['middleware' => 'feature_control:109', 'uses' => 'ApiPromotionDeals@detail']);
         Route::post('save', ['middleware' => 'feature_control:112', 'uses' => 'ApiPromotionDeals@save']);
+        Route::post('participant', ['middleware' => 'feature_control:110', 'uses' => 'ApiPromotionDeals@participant']);
 
     });
 });
