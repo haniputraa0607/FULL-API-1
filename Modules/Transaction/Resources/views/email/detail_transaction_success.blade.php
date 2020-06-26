@@ -75,9 +75,9 @@
                     }
                 }
 
-                if($topping !== '') $topping = substr($topping, 0, -2).'<br>';
+                if($topping !== '') $topping = '<br>'.substr($topping, 0, -2);
                 if($variant !== '') $variant = substr($variant, 0, -2);
-                echo '<span style="color:#999;;font-size:14px;"><i>'.$topping.$variant.'</i><br>'.$item['transaction_product_note'].'</span>';
+                echo '<span style="color:#999;;font-size:14px;"><i>'.$variant.$topping.'</i><br>'.$item['transaction_product_note'].'</span>';
                 ?>
             </td>
         </tr>
