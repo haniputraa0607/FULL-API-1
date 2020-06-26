@@ -1711,10 +1711,10 @@ class ApiOnlineTransaction extends Controller
 		            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors);
 
 
-		            if (isset($discount_promo['is_free']) && $discount_promo['is_free'] == 1) {
-		            	// unset($discount_promo['item']);
-		            	$discount_promo['discount'] = 0;
-		            }
+		            // if (isset($discount_promo['is_free']) && $discount_promo['is_free'] == 1) {
+		            // 	// unset($discount_promo['item']);
+		            // 	$discount_promo['discount'] = 0;
+		            // }
 		            $promo['description']	= $discount_promo['new_description'];
 		            $promo['detail'] 		= $discount_promo['promo_detail'];
 		            $promo['discount'] 		= $discount_promo['discount'];
@@ -1757,10 +1757,10 @@ class ApiOnlineTransaction extends Controller
 				$pct=new PromoCampaignTools();
 				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals');
 
-				if ($discount_promo['is_free'] == 1) {
-	            	// unset($discount_promo['item']);
-	            	$discount_promo['discount'] = 0;
-	            }
+				// if ($discount_promo['is_free'] == 1) {
+	   //          	// unset($discount_promo['item']);
+	   //          	$discount_promo['discount'] = 0;
+	   //          }
 
 				$promo['description'] = $discount_promo['new_description'];
 	            $promo['detail'] = $discount_promo['promo_detail'];

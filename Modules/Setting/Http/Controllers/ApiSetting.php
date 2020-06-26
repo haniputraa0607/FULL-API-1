@@ -1711,5 +1711,5 @@ class ApiSetting extends Controller
 
         return response()->json(MyHelper::checkUpdate($update));
     }
-    /* ============== End Maintenance Mode Setting ============== */
+    /* ============== End Time Expired Setting ============== */
 }
