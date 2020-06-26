@@ -62,13 +62,17 @@
             <td colspan="3" style="background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 10%" valign="top" align="left">
                 <?php
                 $topping = '';
-                foreach ($item['modifiers'] as $mf){
-                    $topping .= $mf['text']. '('.$mf['qty'].'), ';
+                if(!empty($item['modifiers'])){
+                    foreach ($item['modifiers'] as $mf){
+                        $topping .= $mf['text']. '('.$mf['qty'].'), ';
+                    }
                 }
 
                 $variant = '';
-                foreach ($item['product']['product_variants'] as $vrt){
-                    $variant .= $vrt['product_variant_name'].', ';
+                if(!empty($item['product']['product_variants'])){
+                    foreach ($item['product']['product_variants'] as $vrt){
+                        $variant .= $vrt['product_variant_name'].', ';
+                    }
                 }
 
                 if($topping !== '') $topping = substr($topping, 0, -2).'<br>';
