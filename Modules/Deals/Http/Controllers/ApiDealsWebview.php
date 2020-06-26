@@ -10,6 +10,7 @@ use Illuminate\Routing\Controller;
 use App\Http\Models\Deal;
 use App\Http\Models\DealsUser;
 use App\Http\Models\User;
+use App\Http\Models\Setting;
 use App\Lib\MyHelper;
 use Illuminate\Support\Facades\Auth;
 use Route;
@@ -64,12 +65,27 @@ class ApiDealsWebview extends Controller
         $point = Auth::user()->balance;
 
         $deals['deals_image'] = env('S3_URL_API') . $deals['deals_image'];
-        $response = [
-            'status' => 'success',
-            'result' =>
-                $deals
-        ];
-        $response['button_text'] = 'BELI';
+        //text konfirmasi pembelian
+        if($deals['deals_voucher_price_type']=='free'){
+            //voucher free
+            $deals['button_text'] = 'Get';
+            $payment_message = Setting::where('key', 'payment_messages')->pluck('value_text')->first()??'Are you sure you want to take this voucher?';
+            $payment_message = MyHelper::simpleReplace($payment_message,['deals_title'=>$deals['deals_title']]);
+        }
+        elseif($deals['deals_voucher_price_type']=='point')
+        {
+            $deals['button_text'] = 'Claim';
+            $payment_message = Setting::where('key', 'payment_messages_point')->pluck('value_text')->first()??'Are you going to exchange your %points% for a % deals_title%?';
+            $payment_message = MyHelper::simpleReplace($payment_message,['point'=>$deals['deals_voucher_price_point'],'deals_title'=>$deals['deals_title']]);
+        }
+        else
+        {
+            $deals['button_text'] = 'Buy';
+            $payment_message = Setting::where('key', 'payment_messages_cash')->pluck('value_text')->first()??'Will you buy a %deals_title% at a price of %cash%?';
+            $payment_message = MyHelper::simpleReplace($payment_message,['cash'=>$deals['deals_voucher_price_cash'],'deals_title'=>$deals['deals_title']]);
+        }
+
+        $payment_success_message = Setting::where('key', 'payment_success_messages')->pluck('value_text')->first()??'Do you want to use this voucher now?';
 
         $result = [
             'id_deals'                      => $deals['id_deals'],
@@ -91,9 +107,9 @@ class ApiDealsWebview extends Controller
             'deals_button'                  => 'Claim',
             'time_server'                   => date('Y-m-d H:i:s'),
             'time_to_end'                   => strtotime($deals['deals_end']) - time(),
-            'button_text'                   => 'Get',
-            'payment_message'               => 'Are you sure want to claim Free Voucher Offline x Online Limited voucher ?',
-            'payment_success_message'       => 'Claim Voucher Success ! Do you want to use it now ?'
+            'button_text'                   => $deals['button_text'],
+            'payment_message'               => $payment_message,
+            'payment_success_message'       => $payment_success_message
         ];
         if ($deals['deals_voucher_price_cash'] != "") {
             $result['deals_price'] = MyHelper::requestNumber($deals['deals_voucher_price_cash'], '_CURRENCY');

@@ -690,7 +690,16 @@ class SettingsTableSeeder extends Seeder
                     'id_setting' => 90,
                     'key' => 'otp_rule_request',
                     'value' => null,
-                    'value_text' => '{"hold_time": 1, "max_value_request": 10}',
+                    'value_text' => '{"hold_time": 60, "max_value_request": 20}',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            90 =>
+                array(
+                    'id_setting' => 92,
+                    'key' => 'email_verify_rule_request',
+                    'value' => null,
+                    'value_text' => '{"hold_time": 60, "max_value_request": 20}',
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
