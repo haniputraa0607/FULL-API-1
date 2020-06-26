@@ -1495,9 +1495,24 @@ class ApiUser extends Controller
             ->toArray();
 
         if($data){
+            //First check rule for request otp
+            $checkRuleRequest = MyHelper::checkRuleForRequestOTP($data);
+            if(isset($checkRuleRequest['status']) && $checkRuleRequest['status'] == 'fail'){
+                return response()->json($checkRuleRequest);
+            }
+
             $pin = MyHelper::createRandomPIN(6, 'angka');
             $password = bcrypt($pin);
-            $update = User::where('id','=',$data[0]['id'])->update(['password' => $password, 'phone_verified' => '0']);
+
+            //get setting to set expired time for otp, if setting not exist expired default is 30 minutes
+            $getSettingTimeExpired = Setting::where('key', 'setting_expired_otp')->first();
+            if($getSettingTimeExpired){
+                $dateOtpTimeExpired = date("Y-m-d H:i:s", strtotime("+".$getSettingTimeExpired['value']." minutes"));
+            }else{
+                $dateOtpTimeExpired = date("Y-m-d H:i:s", strtotime("+30 minutes"));
+            }
+
+            $update = User::where('id','=',$data[0]['id'])->update(['password' => $password, 'phone_verified' => '0', 'otp_valid_time' => $dateOtpTimeExpired]);
 
             if(!empty($request->header('user-agent-view'))){
                 $useragent = $request->header('user-agent-view');
@@ -3097,6 +3112,20 @@ class ApiUser extends Controller
                     'status'    => 'fail',
                     'messages'  => ['Email does not match']
                 ]);
+            }
+
+            if($user['email_verified'] == 1){
+                return response()->json([
+                    'status'    => 'fail',
+                    'messages'  => ['Your email already verified']
+                ]);
+            }
+
+            //Check rule for request email verify
+            $data[] = $user;
+            $checkRuleRequest = MyHelper::checkRuleForRequestEmailVerify($data);
+            if(isset($checkRuleRequest['status']) && $checkRuleRequest['status'] == 'fail'){
+                return response()->json($checkRuleRequest);
             }
             $phone = $user['phone'];
 
