@@ -610,7 +610,7 @@ class PromoCampaignTools{
 					'qty'			=> $promo_rule->benefit_qty,
 					'is_promo'		=> 1,
 					'is_free'		=> ($promo_rule->discount_type == "percent" && $promo_rule->discount_value == 100) ? 1 : 0,
-					'variants'		=> [$benefit_product->product_variants[0]->id_product_variant??'', $benefit_product->product_variants[1]->id_product_variant??''],
+					'variants'		=> [$benefit_product->product_variants[1]->id_product_variant??'', $benefit_product->product_variants[0]->id_product_variant??''],
 					'modifiers'		=> [],
 					'bonus'			=> 1
 				];
