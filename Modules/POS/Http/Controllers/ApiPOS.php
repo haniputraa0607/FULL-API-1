@@ -1092,7 +1092,9 @@ class ApiPOS extends Controller
                         'id_outlet'     => $checkOutlet->id_outlet,
                         'price'         => $price['price'],
                         'start_date'    => $price['start_date'],
-                        'end_date'      => $price['end_date']
+                        'end_date'      => $price['end_date'],
+                        'created_at'    => date('Y-m-d H:i:s'),
+                        'updated_at'    => date('Y-m-d H:i:s')
                     ];
 
                     $countInsert     = $countInsert + 1;
@@ -1397,7 +1399,9 @@ class ApiPOS extends Controller
                         'id_outlet'             => $checkOutlet->id_outlet,
                         'price'                 => $price['price'],
                         'start_date'            => $price['start_date'],
-                        'end_date'              => $price['end_date']
+                        'end_date'              => $price['end_date'],
+                        'created_at'            => date('Y-m-d H:i:s'),
+                        'updated_at'            => date('Y-m-d H:i:s')
                     ];
 
                     $countInsert     = $countInsert + 1;
@@ -1431,8 +1435,8 @@ class ApiPOS extends Controller
         for ($i = 0; $i < count($getOutlet); $i++) {
             for ($j = 0; $j < count($getProduct); $j++) {
                 try {
-                    $getPrice = DB::connection('mysql3')
-                        ->table('outlet_' . $getOutlet[$i]['outlet_code'])
+                    $getPrice = DB::connection('mysql')
+                        ->table('outlet_product_price_periodes')
                         ->where('id_product', $getProduct[$j]['id_product'])
                         ->where('id_outlet', $getOutlet[$i]['id_outlet'])
                         ->where('start_date', '<=', date('Y-m-d'))
@@ -1467,8 +1471,8 @@ class ApiPOS extends Controller
         for ($i = 0; $i < count($getOutlet); $i++) {
             for ($j = 0; $j < count($getProduct); $j++) {
                 try {
-                    $getPrice = DB::connection('mysql3')
-                        ->table('outlet_' . $getOutlet[$i]['outlet_code'])
+                    $getPrice = DB::connection('mysql')
+                        ->table('outlet_product_price_periodes')
                         ->where('id_product', $getProduct[$j]['id_product'])
                         ->where('id_outlet', $getOutlet[$i]['id_outlet'])
                         ->where('start_date', '<=', date('Y-m-d'))
@@ -1503,8 +1507,8 @@ class ApiPOS extends Controller
         for ($i = 0; $i < count($getOutlet); $i++) {
             for ($j = 0; $j < count($getAddOn); $j++) {
                 try {
-                    $getPrice = DB::connection('mysql3')
-                        ->table('outlet_' . $getOutlet[$i]['outlet_code'] . '_modifier')
+                    $getPrice = DB::connection('mysql')
+                        ->table('outlet_product_modifier_price_periodes')
                         ->where('id_product_modifier', $getAddOn[$j]['id_product_modifier'])
                         ->where('id_outlet', $getOutlet[$i]['id_outlet'])
                         ->where('start_date', '<=', date('Y-m-d'))
@@ -1519,7 +1523,7 @@ class ApiPOS extends Controller
                 $getProductPrice = ProductModifierPrice::where('id_product_modifier', $getAddOn[$j]['id_product_modifier'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
                 if ($getProductPrice && $price != 0) {
                     try {
-                        ProductModifierPrice::where('id_product_modifier', $getProductPrice->id_product_modifier)->update([
+                        ProductModifierPrice::where('id_product_modifier_price', $getProductPrice->id_product_modifier_price)->update([
                             'product_modifier_price' => $price,
                         ]);
                     } catch (\Exception $e) {
