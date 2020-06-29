@@ -914,7 +914,6 @@ class ApiHistoryController extends Controller
         // }
 
         $log = $log->get();
-        \Log::debug($log);
         $listBalance = [];
 
         foreach ($log as $key => $value) {
