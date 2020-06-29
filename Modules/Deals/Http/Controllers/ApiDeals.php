@@ -1031,6 +1031,10 @@ class ApiDeals extends Controller
         	app($this->promo_campaign)->deleteAllProductRule('deals', $id);
         }
 
+        if ($data['deals_voucher_type'] != 'List Vouchers') {
+        	DealsVoucher::where('id_deals', $id)->delete();
+        }
+
         if ( !empty($deals['deals_total_claimed']) ) {
         	return false;
         }
