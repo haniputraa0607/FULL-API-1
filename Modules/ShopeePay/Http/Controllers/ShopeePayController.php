@@ -36,6 +36,32 @@ class ShopeePayController extends Controller
         $this->voucher             = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
         $this->promo_campaign      = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
         $this->deals_claim         = "Modules\Deals\Http\Controllers\ApiDealsClaim";
+        $this->errcode             = [
+            '-2'  => 'a server dropped the connection',
+            '-1'  => 'a server error occurred',
+            '0'   => 'success',
+            '1'   => 'request parameters error',
+            '2'   => 'permission denied',
+            '4'   => 'merchant/store not found',
+            '6'   => 'the user making the payment has not activated their wallet',
+            '7'   => 'expired',
+            '9'   => 'user’s account is banned',
+            '11'  => 'duplicate request/transaction',
+            '24'  => 'user\'s account is frozen',
+            '42'  => 'insufficient balance',
+            '101' => 'one of the user’s wallet limits has been exceeded',
+            '102' => 'one of the user’s wallet limits has been exceeded',
+            '103' => 'user exceeded daily payment limit. Limit will reset the next day',
+            '104' => 'one of the user’s wallet limits has been exceeded',
+            '105' => 'authorisation code is invalid',
+            '121' => 'client attempts to update completed transaction',
+            '301' => 'invalid payment code or QR content',
+            '303' => 'merchant is trying to make payment to their own user account',
+            '304' => 'refund/void cannot be processed due to payment exceeding validity period',
+            '305' => 'merchant invalid',
+            '601' => 'request to refund/void a payment transaction does not meet rules',
+            '602' => 'request to refund/void a payment transaction is unsuccessful'
+        ];
     }
 
     public function __get($key)
@@ -89,7 +115,7 @@ class ShopeePayController extends Controller
             }
             if ($post['payment_status'] == '1') {
                 $update = $trx->update(['transaction_payment_status' => 'Completed', 'completed_at' => date('Y-m-d H:i:s')]);
-                if($update){
+                if ($update) {
                     $userData               = User::where('id', $trx['id_user'])->first();
                     $config_fraud_use_queue = Configs::where('config_name', 'fraud use queue')->first()->is_active;
 
@@ -315,8 +341,8 @@ class ShopeePayController extends Controller
      */
     public function cronCancelDeals()
     {
-        $now       = date('Y-m-d H:i:s');
-        $expired   = date('Y-m-d H:i:s', time() - $this->validity_period);
+        $now     = date('Y-m-d H:i:s');
+        $expired = date('Y-m-d H:i:s', time() - $this->validity_period);
 
         $getTrx = DealsUser::where('paid_status', 'Pending')
             ->join('deals_payment_shopee_pays', 'deals_users.id_deals_user', '=', 'deals_payment_shopee_pays.id_deals_user')
@@ -364,7 +390,7 @@ class ShopeePayController extends Controller
             }
 
             // revert back deals data
-            $deals = Deal::where('id_deals',$singleTrx->id_deals)->first();
+            $deals = Deal::where('id_deals', $singleTrx->id_deals)->first();
             if ($deals) {
                 $up1 = $deals->update(['deals_total_claimed' => $deals->deals_total_claimed - 1]);
                 if (!$up1) {
@@ -381,7 +407,7 @@ class ShopeePayController extends Controller
 
             //reversal balance
             if ($singleTrx->balance_nominal) {
-                $reversal = app($this->balance)->addLogBalance( $singleTrx->id_user, $singleTrx->balance_nominal, $singleTrx->id_deals_user, 'Claim Deals Failed', $singleTrx->voucher_price_point?:$singleTrx->voucher_price_cash);
+                $reversal = app($this->balance)->addLogBalance($singleTrx->id_user, $singleTrx->balance_nominal, $singleTrx->id_deals_user, 'Claim Deals Failed', $singleTrx->voucher_price_point ?: $singleTrx->voucher_price_cash);
                 if (!$reversal) {
                     DB::rollBack();
                     continue;

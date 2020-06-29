@@ -1601,7 +1601,7 @@ class ApiTransaction extends Controller
                                     $shopeePay = TransactionPaymentShopeePay::find($mp['id_payment']);
                                     $payment['name']    = 'Shopee Pay';
                                     $payment['amount']  = $shopeePay->amount / 100;
-                                    $payment['reject']  = ($shopeePay->additional_info == '{}') ? '' : $shopeePay->additional_info; 
+                                    $payment['reject']  = $shopeePay->err_reason?:'payment expired';
                                     $list['payment'][]  = $payment;
                                     break;
                                 case 'Offline':
@@ -1709,7 +1709,7 @@ class ApiTransaction extends Controller
                             $payShopee = TransactionPaymentShopeePay::find($dataPay['id_payment']);
                             $payment[$dataKey]['name']      = 'Shopee Pay';
                             $payment[$dataKey]['amount']    = $payShopee->amount / 100;
-                            $payment[$dataKey]['reject']    = ($payShopee->additional_info == '{}') ? '' : $payShopee->additional_info;
+                            $payment[$dataKey]['reject']    = $payShopee->err_reason?:'payment expired';
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey]              = $dataPay;
@@ -2129,6 +2129,7 @@ class ApiTransaction extends Controller
         $id     = $request->json('id');
         $select = [];
         $data   = LogBalance::where('id_log_balance', $id)->first();
+        \Log::debug($data);
         // dd($data);
         if ($data['source'] == 'Transaction' || $data['source'] == 'Rejected Order Point' || $data['source'] == 'Rejected Order') {
             $select = Transaction::select(DB::raw('transactions.*,sum(transaction_products.transaction_product_qty) item_total'))->leftJoin('transaction_products','transactions.id_transaction','=','transaction_products.id_transaction')->with('outlet')->where('transactions.id_transaction', $data['id_reference'])->groupBy('transactions.id_transaction')->first();
