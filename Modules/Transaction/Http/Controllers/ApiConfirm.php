@@ -903,7 +903,12 @@ class ApiConfirm extends Controller
                         'url'                        => env('VIEW_URL') . '/transaction/web/view/detail?data=' . $base,
                     ],
                 ];
+
+
                 DB::commit();
+                if($trx['transaction_payment_status'] == 'Completed') {
+                    return response()->json($result);
+                }
             }
         }
 
