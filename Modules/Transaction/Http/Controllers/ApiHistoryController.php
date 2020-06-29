@@ -378,6 +378,7 @@ class ApiHistoryController extends Controller
         $post = $request->json()->all();
         $id = $request->user()->id;
         $order = 'new';
+        $post['order'] = 'newest';
         $page = 0;
 
         if (!isset($post['use_point'])) {
@@ -403,11 +404,13 @@ class ApiHistoryController extends Controller
         }
 
         if (!is_null($post['oldest'])) {
-            $order = 'old';
+            $order = null;
+            $post['order'] = 'oldest';
         }
 
         if (!is_null($post['newest'])) {
-            $order = 'new';
+            $order = null;
+            $post['order'] = 'newest';
         }
 
         if (!is_null($request->get('page'))) {
@@ -864,7 +867,15 @@ class ApiHistoryController extends Controller
                 );
             });
         }
-
+        switch ($post['order']) {
+            case 'newest':
+                $log->orderBy('log_balances.id_log_balance','desc');
+                break;
+            
+            case 'oldest':
+                $log->orderBy('log_balances.id_log_balance','asc');
+                break;
+        }
         $log->where(function ($query) use ($post) {
             if (!is_null($post['use_point'])) {
                 $query->orWhere(function ($queryLog) {
@@ -903,7 +914,6 @@ class ApiHistoryController extends Controller
         // }
 
         $log = $log->get();
-
         $listBalance = [];
 
         foreach ($log as $key => $value) {

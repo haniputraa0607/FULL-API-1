@@ -569,10 +569,10 @@ class ApiNotification extends Controller {
             $updateUserPoint = User::where('id', $data['id_user'])->update(['points' => $totalPoint]);
         }
 
-        // apply cashback to referrer
-        \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback(Transaction::find($data['id_transaction']));
-
         if ($data['trasaction_payment_type'] != 'Balance') {
+            // apply cashback to referrer
+            \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback(Transaction::find($data['id_transaction']));
+
             if ($data['transaction_cashback_earned'] != 0) {
 
 
