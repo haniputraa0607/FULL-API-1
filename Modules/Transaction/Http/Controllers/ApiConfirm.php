@@ -914,40 +914,40 @@ class ApiConfirm extends Controller
         }
 
         $updateVoucher = app($this->voucher)->returnVoucher($trx->id_transaction);
-        if($trx['transaction_payment_status'] == 'Cancelled') {
-            //return balance
-            $payBalance = TransactionMultiplePayment::where('id_transaction', $trx['id_transaction'])->where('type', 'Balance')->first();
-            if (!empty($payBalance)) {
-                $checkBalance = TransactionPaymentBalance::where('id_transaction_payment_balance', $payBalance['id_payment'])->first();
-                if (!empty($checkBalance)) {
-                    $insertDataLogCash = app($this->balance)->addLogBalance($trx['id_user'], $checkBalance['balance_nominal'], $trx['id_transaction'], 'Transaction Failed', $trx['transaction_grandtotal']);
-                    if (!$insertDataLogCash) {
-                        DB::rollBack();
-                        return response()->json([
-                            'status'   => 'fail',
-                            'messages' => ['Insert Cashback Failed'],
-                        ]);
-                    }
-                    $usere = User::where('id', $trx['id_user'])->first();
-                    $send  = app($this->autocrm)->SendAutoCRM('Transaction Failed Point Refund', $usere->phone,
-                        [
-                            "outlet_name"      => $trx['outlet_name']['outlet_name'] ?? '',
-                            "transaction_date" => $trx['transaction_date'],
-                            'id_transaction'   => $trx['id_transaction'],
-                            'receipt_number'   => $trx['transaction_receipt_number'],
-                            'received_point'   => (string) $checkBalance['balance_nominal'],
-                        ]
-                    );
-                    if ($send != true) {
-                        DB::rollBack();
-                        return response()->json([
-                            'status'   => 'fail',
-                            'messages' => ['Failed Send notification to customer'],
-                        ]);
-                    }
+
+        //return balance
+        $payBalance = TransactionMultiplePayment::where('id_transaction', $trx['id_transaction'])->where('type', 'Balance')->first();
+        if (!empty($payBalance)) {
+            $checkBalance = TransactionPaymentBalance::where('id_transaction_payment_balance', $payBalance['id_payment'])->first();
+            if (!empty($checkBalance)) {
+                $insertDataLogCash = app($this->balance)->addLogBalance($trx['id_user'], $checkBalance['balance_nominal'], $trx['id_transaction'], 'Transaction Failed', $trx['transaction_grandtotal']);
+                if (!$insertDataLogCash) {
+                    DB::rollBack();
+                    return response()->json([
+                        'status'   => 'fail',
+                        'messages' => ['Insert Cashback Failed'],
+                    ]);
+                }
+                $usere = User::where('id', $trx['id_user'])->first();
+                $send  = app($this->autocrm)->SendAutoCRM('Transaction Failed Point Refund', $usere->phone,
+                    [
+                        "outlet_name"      => $trx['outlet_name']['outlet_name'] ?? '',
+                        "transaction_date" => $trx['transaction_date'],
+                        'id_transaction'   => $trx['id_transaction'],
+                        'receipt_number'   => $trx['transaction_receipt_number'],
+                        'received_point'   => (string) $checkBalance['balance_nominal'],
+                    ]
+                );
+                if ($send != true) {
+                    DB::rollBack();
+                    return response()->json([
+                        'status'   => 'fail',
+                        'messages' => ['Failed Send notification to customer'],
+                    ]);
                 }
             }
         }
+
         DB::commit();
         return response()->json($result??[
             'status'   => 'fail',
