@@ -891,7 +891,7 @@ class ApiConfirm extends Controller
                 $encode = json_encode($dataEncode);
                 $base   = base64_encode($encode);
 
-                $send = [
+                $result = [
                     'status' => 'success',
                     'result' => [
                         'button'                     => $button,
@@ -904,7 +904,6 @@ class ApiConfirm extends Controller
                     ],
                 ];
                 DB::commit();
-                return response()->json($send);
             }
         }
 
@@ -950,7 +949,7 @@ class ApiConfirm extends Controller
         }
 
         DB::commit();
-        return response()->json([
+        return response()->json($result??[
             'status'   => 'fail',
             'messages' => ['Transaction Payment Failed'],
         ]);
