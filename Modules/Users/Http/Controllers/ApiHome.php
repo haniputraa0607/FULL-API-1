@@ -42,6 +42,7 @@ class ApiHome extends Controller
         $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiFraud";
 		$this->endPoint  = env('S3_URL_API');
         $this->deals = "Modules\Deals\Http\Controllers\ApiDeals";
+        $this->outlet = "Modules\Outlet\Http\Controllers\ApiOutletController";
     }
 
 	public function homeNotLoggedIn(Request $request) {
@@ -856,6 +857,73 @@ class ApiHome extends Controller
                 'status' => 'fail',
                 'messages' => ['Something went wrong']
             ];
+        }
+    }
+
+    function checkLocation(Request $request){
+        $post = $request->json()->all();
+
+        if(isset($post['latitude']) && !empty($post['latitude']) &&
+            isset($post['longitude']) && !empty($post['longitude']) &&
+            isset($post['country_code']) && !empty($post['country_code'])){
+            //check location from ip
+            if(!empty($_SERVER['HTTP_CLIENT_IP'])){
+                $ip = $_SERVER['HTTP_CLIENT_IP'];
+            }elseif(!empty($_SERVER['HTTP_X_FORWARDED_FOR'])){
+                $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+            }else{
+                $ip = $_SERVER['REMOTE_ADDR'];
+            }
+
+            if(strpos($ip,',') !== false) {
+                $ip = substr($ip,0,strpos($ip,','));
+            }
+
+            $getLocation = \Location::get($ip);
+
+            $countryCodeFromIp = '';
+            if($getLocation && isset($getLocation->countryCode)){
+                $countryCodeFromIp = config('countrycode.country_code.'.$getLocation->countryCode.'.code');
+            }
+
+            $countryCode = $post['country_code'];
+            if($countryCode == '62'){
+                $countryCode = 0;
+            }
+
+            if($countryCode != $countryCodeFromIp){
+                return response()->json( [
+                    'status' => 'fail',
+                    'messages' => ['Country Code not same with current location ip']
+                ]);
+            }
+
+            //check location from long lat
+            $radius = config('configs.RADIUS_DISTANCE');
+            $longSingapore = config('configs.POINT_LOCATION_SG.longitude');
+            $latSingapore = config('configs.POINT_LOCATION_SG.latitude');
+            $distance =number_format((float)app($this->outlet)->distance($post['latitude'], $post['longitude'], $latSingapore, $longSingapore, "K"), 2, '.', '').' km';
+            $distance = (float)str_replace (" km", "", $distance);
+
+            if($distance < $radius && $countryCodeFromIp != '65'){
+                return response()->json( [
+                    'status' => 'fail',
+                    'messages' => ['Your location does not match']
+                ]);
+            }elseif ($distance > $radius && $countryCodeFromIp != '62'){
+                return response()->json( [
+                    'status' => 'fail',
+                    'messages' => ['Your location does not match']
+                ]);
+            }
+
+            return response()->json( ['status' => 'success']);
+
+        }else{
+            return response()->json( [
+                'status' => 'fail',
+                'messages' => ['Incompleted Data']
+            ]);
         }
     }
 }
