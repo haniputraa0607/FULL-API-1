@@ -32,33 +32,26 @@ class ApiDealsVoucher extends Controller
 
     /* CREATE VOUCHER */
     function create($post) {
-        DB::beginTransaction();
 
+        DB::beginTransaction();
         if (is_array($post['voucher_code'])) {
             $data = [];
-            $post['voucher_code'] = array_flip($post['voucher_code']);
-            $post['voucher_code'] = array_flip($post['voucher_code']);
-            foreach ($post['voucher_code'] as $value) {
-                array_push($data, [
-                    'id_deals'             => $post['id_deals'],
-                    'voucher_code'         => strtoupper($value),
-                    'deals_voucher_status' => 'Available',
-                    'created_at'           => date('Y-m-d H:i:s'),
-                    'updated_at'           => date('Y-m-d H:i:s')
-                ]);
-            }
+			$check_voucher = $this->checkVoucher($post['voucher_code']);
 
-            if (!empty($data)) {
+            if ($check_voucher['status']) {
 
-            	if (($post['add_type']??false) != 'add')
-            	{
-                	$save = DealsVoucher::where('id_deals',$post['id_deals'])->delete();
-            	    $save = DealsVoucher::insert($data);
-            	}else{
-            		foreach ($data as $key => $value) {
-            	    	$save = DealsVoucher::updateOrCreate(['id_deals' =>$post['id_deals'], 'voucher_code' => $value['voucher_code']],$value);
-            		}
-            	}
+	            foreach ($check_voucher['unique_code'] as $value) {
+	                array_push($data, [
+	                    'id_deals'             => $post['id_deals'],
+	                    'voucher_code'         => strtoupper($value),
+	                    'deals_voucher_status' => 'Available',
+	                    'created_at'           => date('Y-m-d H:i:s'),
+	                    'updated_at'           => date('Y-m-d H:i:s')
+	                ]);
+	            }
+
+            	$save = DealsVoucher::insert($data);
+
                 if ($save) {
                     // UPDATE VOUCHER TOTAL DEALS TABLE
                     $updateDealsTable = $this->updateTotalVoucher($post);
@@ -74,11 +67,24 @@ class ApiDealsVoucher extends Controller
                 }
             }
             else {
-                DB::rollBack();
-                $save = false;
+
+            	if (($post['add_type']??false) != 'add'){
+            	    $save = true;
+            	}
+            	else{
+	                DB::rollBack();
+	                $save = false;
+                }
             }
 
-            return MyHelper::checkUpdate($save);
+            $result = MyHelper::checkUpdate($save);
+
+            foreach ($check_voucher['same_code'] as $value) {
+        		$warnings[] = 'Voucher '.$value.' already exists';
+        		$result['warnings'] = $warnings;
+        	}
+
+            return $result;
         }
         else {
             $save = DealsVoucher::create([
@@ -135,7 +141,7 @@ class ApiDealsVoucher extends Controller
         }
         else {
             $save = $this->create($request->json()->all());
-            return $save;
+
             return response()->json($save);
         }
     }
@@ -745,5 +751,33 @@ class ApiDealsVoucher extends Controller
     	$result['webview_url'] = env('API_URL').'api/webview/mydeals/'.$post['id_deals_user'];
 
 		return response()->json(MyHelper::checkGet($result));
+    }
+
+    public function checkVoucher($list_voucher)
+    {
+    	// array_push($list_voucher, 'aaaaaa');
+    	$list_voucher = array_flip($list_voucher);
+        $list_voucher = array_flip($list_voucher);
+
+    	$result = [
+    		'status' 		=> true,
+    		'unique_code' 	=> $list_voucher,
+    		'same_code' 	=> []
+    	];
+
+		$check_voucher 	= DealsVoucher::whereIn('voucher_code',$list_voucher)->pluck('voucher_code')->toArray();
+
+		if ($check_voucher) {
+			$diff_code 	= array_udiff($list_voucher, $check_voucher, 'strcasecmp');
+			$same_code 	= array_uintersect($list_voucher, $check_voucher, 'strcasecmp');
+			$result['unique_code'] 	= $diff_code;
+			$result['same_code'] 	= $same_code;
+
+			if (empty($diff_code)) {
+				$result['status'] = false;
+			}
+		}
+
+		return $result;    	
     }
 }

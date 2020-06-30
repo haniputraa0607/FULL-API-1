@@ -1601,7 +1601,7 @@ class ApiTransaction extends Controller
                                     $shopeePay = TransactionPaymentShopeePay::find($mp['id_payment']);
                                     $payment['name']    = 'Shopee Pay';
                                     $payment['amount']  = $shopeePay->amount / 100;
-                                    $payment['reject']  = ($shopeePay->additional_info == '{}') ? '' : $shopeePay->additional_info; 
+                                    $payment['reject']  = $shopeePay->err_reason?:'payment expired';
                                     $list['payment'][]  = $payment;
                                     break;
                                 case 'Offline':
@@ -1709,7 +1709,7 @@ class ApiTransaction extends Controller
                             $payShopee = TransactionPaymentShopeePay::find($dataPay['id_payment']);
                             $payment[$dataKey]['name']      = 'Shopee Pay';
                             $payment[$dataKey]['amount']    = $payShopee->amount / 100;
-                            $payment[$dataKey]['reject']    = ($payShopee->additional_info == '{}') ? '' : $payShopee->additional_info;
+                            $payment[$dataKey]['reject']    = $payShopee->err_reason?:'payment expired';
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey]              = $dataPay;
