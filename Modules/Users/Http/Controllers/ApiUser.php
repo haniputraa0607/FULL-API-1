@@ -474,7 +474,7 @@ class ApiUser extends Controller
                         else $query = $query->where($var,'=',$condition['parameter']);
                     }
 
-                    if($condition['subject'] == 'device'){
+                    if(($conditionParameter = $condition['subject']) == 'device'){
 
                         if($conditionParameter == 'None'){
                             $query = $query->whereNull('users.android_device')->whereNull('users.ios_device');
