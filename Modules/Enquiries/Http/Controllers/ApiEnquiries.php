@@ -6,6 +6,7 @@ use App\Http\Models\Enquiry;
 use App\Http\Models\EnquiriesPhoto;
 use App\Http\Models\Setting;
 use App\Http\Models\Outlet;
+use App\Http\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -223,6 +224,14 @@ class ApiEnquiries extends Controller
 		$id_enquiry = $post['id_enquiry'];
 		$check = Enquiry::where('id_enquiry', $id_enquiry)->first();
 
+        $aditionalVariabel = [
+            'enquiry_subject' => $check['enquiry_subject'],
+            'enquiry_message' => $check['enquiry_content'],
+            'enquiry_phone'   => $check['enquiry_phone'],
+            'enquiry_name'    => $check['enquiry_name'],
+            'enquiry_email'   => $check['enquiry_email'],
+            'visiting_time'   => isset($check['visiting_time'])?$check['visiting_time']:""];
+
 		if(isset($post['reply_email_subject']) && $post['reply_email_subject'] != ""){
 			if($check['reply_email_subject'] == null && $check['enquiry_email'] != null){
 				$to = $check['enquiry_email'];
@@ -230,11 +239,8 @@ class ApiEnquiries extends Controller
 					$name = $check['enquiry_name'];
 				else $name = "Customer";
 
-				$subject = $post['reply_email_subject'];
-				$content = $post['reply_email_content'];
-
-				/* $subject = $this->TextReplace($post['reply_email_subject'], $check['enquiry_phone']);
-				$content = $this->TextReplace($post['reply_email_content'], $check['enquiry_phone']); */
+				$subject = app($this->autocrm)->TextReplace($post['reply_email_subject'], $check['enquiry_phone'], $aditionalVariabel);
+				$content = app($this->autocrm)->TextReplace($post['reply_email_content'], $check['enquiry_phone'], $aditionalVariabel);
 
 				// get setting email
 				$setting = array();
@@ -347,6 +353,7 @@ class ApiEnquiries extends Controller
 
 		if(isset($post['reply_sms_content'])){
 			if($check['reply_sms_content'] == null && $check['enquiry_phone'] != null){
+                $content = app($this->autocrm)->TextReplace($post['reply_sms_content'], $check['enquiry_phone'], $aditionalVariabel);
 				$senddata = array(
 						'apikey' => env('SMS_KEY'),
 						'callbackurl' => env('APP_URL'),
@@ -354,7 +361,7 @@ class ApiEnquiries extends Controller
 					);
 				array_push($senddata['datapacket'],array(
 									'number' => trim($check['enquiry_phone']),
-									'message' => urlencode(stripslashes(utf8_encode($post['reply_sms_content']))),
+									'message' => urlencode(stripslashes(utf8_encode($content))),
 									'sendingdatetime' => ""));
 
 				$this->rajasms->setData($senddata);
@@ -404,17 +411,21 @@ class ApiEnquiries extends Controller
 					}
 
 					if (isset($post['reply_push_id_reference']) && $post['reply_push_id_reference'] != null) {
+                        if($dataOptional['type'] !== 'Home'){
+                            $dataOptional['type'] = 'Detail '.$dataOptional['type'];
+                        }
 						$dataOptional['id_reference'] = (int)$post['reply_push_id_reference'];
 					} else{
+                        if($dataOptional['type'] !== 'Home'){
+                            $dataOptional['type'] = 'List '.$dataOptional['type'];
+                        }
 						$dataOptional['id_reference'] = 0;
 					}
 					// return $dataOptional;
 
 					$deviceToken = array($check['enquiry_device_token']);
-
-
-					$subject = $post['reply_push_subject'];
-					$content = $post['reply_push_content'];
+                    $subject = app($this->autocrm)->TextReplace($post['reply_push_subject'], $check['enquiry_phone'], $aditionalVariabel);
+                    $content = app($this->autocrm)->TextReplace($post['reply_push_content'], $check['enquiry_phone'], $aditionalVariabel);
 
 					if (!empty($deviceToken)) {
 							$push = PushNotificationHelper::sendPush($deviceToken, $subject, $content, $image, $dataOptional);
