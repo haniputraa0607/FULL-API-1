@@ -625,13 +625,13 @@ class ApiAutoCrm extends Controller
 		$query = TextReplace::where('status','=','Activated')->get()->toArray();
 		if($wherefield != null){
 			$user = User::leftJoin('cities','cities.id_city','=','users.id_city')
-							->leftJoin('provinces','cities.id_province','=','provinces.id_province')
+							->leftJoin('provinces','users.id_province','=','provinces.id_province')
 							->where($wherefield,'=',$receipient)
 							->get()
 							->first();
 		} else {
 			$user = User::leftJoin('cities','cities.id_city','=','users.id_city')
-							->leftJoin('provinces','cities.id_province','=','provinces.id_province')
+							->leftJoin('provinces','users.id_province','=','provinces.id_province')
 							->where('phone','=',$receipient)
 							->get()
 							->first();

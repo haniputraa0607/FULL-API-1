@@ -1898,6 +1898,7 @@ class ApiTransaction extends Controller
             $result['promo']['discount'] = MyHelper::requestNumber($discount,'_CURRENCY');
 
             if ($list['trasaction_payment_type'] != 'Offline') {
+
                 if ($list['transaction_payment_status'] == 'Cancelled') {
                     foreach ($list['payment'] as $key => $value) {
                         if (isset($value['reject'])) {
@@ -1912,17 +1913,8 @@ class ApiTransaction extends Controller
                             ];
                         }
                     }
-                    $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order awaits confirmation payment',
-                        'date'  => date('d F Y H:i', strtotime($list['created_at']))
-                    ];
-                } else if($list['transaction_payment_status'] == 'Pending'){
-                    $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order awaits confirmation payment',
-                        'date'  => date('d F Y H:i', strtotime($list['created_at']))
-                    ];
-                }
-                else {
+
+                } else {
                     if ($list['detail']['reject_at'] != null) {
                         $result['detail']['detail_status'][] = [
                         'text'  => 'Order rejected',
@@ -1932,7 +1924,7 @@ class ApiTransaction extends Controller
                     }
                     if ($list['detail']['taken_by_system_at'] != null) {
                         $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order has been completed',
+                        'text'  => 'Your order has been completed by system',
                         'date'  => date('d F Y H:i', strtotime($list['detail']['taken_by_system_at']))
                     ];
                     }
@@ -1950,15 +1942,21 @@ class ApiTransaction extends Controller
                     }
                     if ($list['detail']['receive_at'] != null) {
                         $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order has been received',
-                        'date'  => date('d F Y H:i', strtotime($list['detail']['receive_at']))
-                    ];
+                            'text'  => 'Your order has been received',
+                            'date'  => date('d F Y H:i', strtotime($list['detail']['receive_at']))
+                        ];
+                    }else{
+                        $result['detail']['detail_status'][] = [
+                            'text'  => 'Your order awaits confirmation outlet',
+                            'date'  => date('d F Y H:i', strtotime($list['completed_at']))
+                        ];
                     }
-                    $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order awaits confirmation outlet',
-                        'date'  => date('d F Y H:i', strtotime($list['completed_at']))
-                    ];
                 }
+
+                $result['detail']['detail_status'][] = [
+                    'text'  => 'Your order awaits confirmation payment',
+                    'date'  => date('d F Y H:i', strtotime($list['created_at']))
+                ];
             }
 
             foreach ($list['payment'] as $key => $value) {
