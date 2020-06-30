@@ -184,6 +184,7 @@ return [
         SMartins\PassportMultiauth\Providers\MultiauthServiceProvider::class,
         App\Providers\ValidatorServiceProvider::class,
         Stevebauman\Location\LocationServiceProvider::class,
+        Arcanedev\LogViewer\LogViewerServiceProvider::class,
     ],
 
     /*
