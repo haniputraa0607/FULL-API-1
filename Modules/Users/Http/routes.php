@@ -5,6 +5,11 @@ Route::group(['namespace' => 'Modules\Users\Http\Controllers'], function()
     Route::any('email/verify/{slug}', 'ApiUser@verifyEmail');
 });
 
+Route::group(['middleware' => ['auth_client','log_activities', 'scopes:apps'], 'prefix' => 'api', 'namespace' => 'Modules\Users\Http\Controllers'], function()
+{
+    Route::any('check/location', 'ApiHome@checkLocation');
+});
+
 Route::group(['prefix' => 'api', 'middleware' => ['log_activities', 'user_agent']], function(){
 
     Route::group(['middleware' => ['auth_client','log_activities', 'user_agent', 'scopes:apps'], 'namespace' => 'Modules\Users\Http\Controllers'], function()

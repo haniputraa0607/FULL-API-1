@@ -183,6 +183,7 @@ return [
 		Bogardo\Mailgun\MailgunServiceProvider::class,
         SMartins\PassportMultiauth\Providers\MultiauthServiceProvider::class,
         App\Providers\ValidatorServiceProvider::class,
+        Stevebauman\Location\LocationServiceProvider::class,
         Arcanedev\LogViewer\LogViewerServiceProvider::class,
     ],
 
@@ -237,6 +238,7 @@ return [
 		'Image' => Intervention\Image\Facades\Image::class,
 		'Excel' => Maatwebsite\Excel\Facades\Excel::class,
 		'Mailgun' => Bogardo\Mailgun\Facades\Mailgun::class,
+        'Location' => Stevebauman\Location\LocationServiceProvider::class,
     ],
 
 ];
