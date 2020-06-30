@@ -932,6 +932,10 @@ class ApiOutletController extends Controller
                 $processing = $settingTime->value;
             }
 
+            foreach ($outlet as $key => $value) {
+				$outlet[$key]['is_promo'] = 0;
+			}
+			
 			$promo_data = $this->applyPromo($post, $outlet, $promo_error);
 
 	        if ($promo_data) {
