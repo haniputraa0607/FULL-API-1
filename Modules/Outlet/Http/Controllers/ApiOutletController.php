@@ -1959,11 +1959,19 @@ class ApiOutletController extends Controller
             $title = Setting::where('key', 'order_now_title')->first()->value;
             $subTitleSuccess = Setting::where('key', 'order_now_sub_title_success')->first()->value;
             $subTitleFail = Setting::where('key', 'order_now_sub_title_fail')->first()->value;
+            $processingTime = Setting::where('key', 'processing_time')->first();
+
+            if($processingTime){
+                $processingTime = (int)$processingTime['value'] * 100;
+            }else{
+                $processingTime = 15 * 100; //processing time in minutes convert to second - set default
+            }
 
             $data = [
                 'current_date' => date('Y-m-d'),
                 'current_day' => date('l'),
-                'current_hour' => date('H:i:s')
+                'current_hour' => date('H:i:s'),
+                'processing_time' => $processingTime
             ];
 
             $outlet = Outlet::join('cities', 'cities.id_city', 'outlets.id_city')
@@ -1985,7 +1993,7 @@ class ApiOutletController extends Controller
                         ->from('outlet_schedules')
                         ->where('day', $data['current_day'])
                         ->where('is_closed', 0)
-                        ->whereRaw('TIME_TO_SEC("'.$data['current_hour'].'") >= TIME_TO_SEC(open) AND TIME_TO_SEC("'.$data['current_hour'].'") <= TIME_TO_SEC(close)');
+                        ->whereRaw('TIME_TO_SEC("'.$data['current_hour'].'") >= TIME_TO_SEC(open) AND TIME_TO_SEC("'.$data['current_hour'].'") <= TIME_TO_SEC(SUBTIME(close, "'.$data['processing_time'].'")) ');
                 })->whereNotIn('id_outlet',function($query) use ($data){
                     $query->select('id_outlet')
                         ->from('outlet_holidays')
