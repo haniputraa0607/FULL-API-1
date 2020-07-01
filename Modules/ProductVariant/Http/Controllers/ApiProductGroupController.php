@@ -300,7 +300,7 @@ class ApiProductGroupController extends Controller
         if($post['product_group_photo']??false){
             $data['product_group_photo'] = $post['product_group_photo'];
         }
-        if($post['product_group_photo']??false){
+        if($post['product_group_image_detail']??false){
             $data['product_group_image_detail'] = $post['product_group_image_detail'];
         }
         $update = $pg->update($data);
