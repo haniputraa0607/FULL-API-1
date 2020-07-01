@@ -300,7 +300,7 @@ class ApiProductGroupController extends Controller
         if($post['product_group_photo']??false){
             $data['product_group_photo'] = $post['product_group_photo'];
         }
-        if($post['product_group_photo']??false){
+        if($post['product_group_image_detail']??false){
             $data['product_group_image_detail'] = $post['product_group_image_detail'];
         }
         $update = $pg->update($data);
@@ -508,7 +508,7 @@ class ApiProductGroupController extends Controller
                         $query->select('product_group_product_promo_categories.id_product_promo_category');
                     }]);
                     // ->get();
-        if (isset($post['promo_code'])) {
+        if (isset($post['promo_code']) || isset($post['id_deals_user'])) {
         	$data = $data->with('products');
         }
 
@@ -517,6 +517,10 @@ class ApiProductGroupController extends Controller
         if(!$data){
             return MyHelper::checkGet($data);
         }
+
+        foreach ($data as $key => $value) {
+			$data[$key]['is_promo'] = 0;
+		}
 
         $promo_data = $this->applyPromo($post, $data, $promo_error);
 
@@ -793,7 +797,7 @@ class ApiProductGroupController extends Controller
                     // group by product_groups
                     ->groupBy('product_groups.id_product_group');
 
-        if (isset($post['promo_code'])) {
+        if (isset($post['promo_code']) || isset($post['id_deals_user'])) {
         	$data = $data->with('products');
         }
 
@@ -802,6 +806,10 @@ class ApiProductGroupController extends Controller
         if(!$data){
             return MyHelper::checkGet($data);
         }
+
+        foreach ($data as $key => $value) {
+			$data[$key]['is_promo'] = 0;
+		}
 
         $promo_data = $this->applyPromo($post, $data, $promo_error);
 
@@ -857,7 +865,7 @@ class ApiProductGroupController extends Controller
 
 				if (isset($post['id_outlet'])) {
 					$pct = new PromoCampaignTools();
-					if (!$pct->checkOutletRule($post['id_outlet'], $code[$source]['is_all_outlet']??0,$code[$source][$source.'_outlets']??$code['deal_voucher'][$source]['outlets_active'])) {
+					if (!$pct->checkOutletRule($post['id_outlet'], $code[$source]['is_all_outlet']??$code['deal_voucher']['deals']['is_all_outlet']??0,$code[$source][$source.'_outlets']??$code['deal_voucher'][$source]['outlets_active'])) {
 						$promo_error = Setting::where('key','promo_error_product_list')->first()['value']??'Cannot use promo at this outlet.';
 	        			return false;
 					}
