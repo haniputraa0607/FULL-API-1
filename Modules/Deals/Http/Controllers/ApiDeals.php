@@ -420,6 +420,11 @@ class ApiDeals extends Controller
             }
         }
 
+		if ($request->json('deals_type_array')) {
+            // get > 1 deals types
+            $deals->whereIn('deals_type', $request->json('deals_type_array'));
+        }        
+
         if ($request->json('deals_promo_id')) {
             $deals->where('deals_promo_id', $request->json('deals_promo_id'));
         }

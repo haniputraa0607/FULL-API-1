@@ -514,15 +514,17 @@ class ApiOrder extends Controller
 
             	if( app($this->trx)->checkPromoGetPoint($promo_source) || $use_referral)
 				{
-	                $savePoint = app($this->getNotif)->savePoint($newTrx);
-	                // return $savePoint;
-	                if (!$savePoint) {
-	                    // DB::rollBack();
-	                    return response()->json([
-	                        'status'   => 'fail',
-	                        'messages' => ['Transaction failed']
-	                    ]);
-	                }
+                    if(is_null($order['fraud_flag'])){
+                        $savePoint = app($this->getNotif)->savePoint($newTrx);
+                        // return $savePoint;
+                        if (!$savePoint) {
+                            // DB::rollBack();
+                            return response()->json([
+                                'status'   => 'fail',
+                                'messages' => ['Transaction failed']
+                            ]);
+                        }
+                    }
 	            }
             }
 
