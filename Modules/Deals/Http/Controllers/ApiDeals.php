@@ -1840,14 +1840,16 @@ class ApiDeals extends Controller
 			unset($value['title'], $value['visibility']);
 			$i = 1;
 			foreach ($value as $key2 => $value2) {
-				$content_detail[$i] = [
-					'id_deals_content' => $saveContent['id_deals_content'],
-					'content' => $value2,
-					'order' => $i,
-					'created_at' => date('Y-m-d H:i:s'),
-            		'updated_at' => date('Y-m-d H:i:s')
-				];
-				$i++;
+				if (!empty($value2)) {
+					$content_detail[$i] = [
+						'id_deals_content' => $saveContent['id_deals_content'],
+						'content' => $value2,
+						'order' => $i,
+						'created_at' => date('Y-m-d H:i:s'),
+	            		'updated_at' => date('Y-m-d H:i:s')
+					];
+					$i++;
+				}
 			}
 			if (!empty($content_detail)) {
 				$saveContentDetail = DealsContentDetail::insert($content_detail);
