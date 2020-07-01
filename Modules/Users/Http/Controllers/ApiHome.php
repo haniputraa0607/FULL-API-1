@@ -863,6 +863,9 @@ class ApiHome extends Controller
     function checkLocation(Request $request){
         $post = $request->json()->all();
 
+        $codeSG = config('countrycode.country_code.SG.code');
+        $codeID = config('countrycode.country_code.ID.code');
+
         if(isset($post['latitude']) && !empty($post['latitude']) &&
             isset($post['longitude']) && !empty($post['longitude']) &&
             isset($post['country_code']) && !empty($post['country_code'])){
@@ -886,18 +889,6 @@ class ApiHome extends Controller
                 $countryCodeFromIp = config('countrycode.country_code.'.$getLocation->countryCode.'.code');
             }
 
-            $countryCode = $post['country_code'];
-            if($countryCode == '62'){
-                $countryCode = 0;
-            }
-
-            if($countryCode != $countryCodeFromIp){
-                return response()->json( [
-                    'status' => 'fail',
-                    'messages' => ['Country Code not same with current location ip']
-                ]);
-            }
-
             //check location from long lat
             $radius = config('configs.RADIUS_DISTANCE');
             $longSingapore = config('configs.POINT_LOCATION_SG.longitude');
@@ -905,14 +896,16 @@ class ApiHome extends Controller
             $distance =number_format((float)app($this->outlet)->distance($post['latitude'], $post['longitude'], $latSingapore, $longSingapore, "K"), 2, '.', '').' km';
             $distance = (float)str_replace (" km", "", $distance);
 
-            if($distance < $radius && $countryCodeFromIp != '65'){
+            if($distance < $radius && $countryCodeFromIp != $codeSG){
                 return response()->json( [
                     'status' => 'fail',
+                    'country_code' => $codeSG,
                     'messages' => ['Your location does not match']
                 ]);
-            }elseif ($distance > $radius && $countryCodeFromIp != '62'){
+            }elseif ($distance > $radius && $countryCodeFromIp != $codeID){
                 return response()->json( [
                     'status' => 'fail',
+                    'country_code' => $codeID,
                     'messages' => ['Your location does not match']
                 ]);
             }
@@ -922,6 +915,7 @@ class ApiHome extends Controller
         }else{
             return response()->json( [
                 'status' => 'fail',
+                'country_code' => $codeID,
                 'messages' => ['Incompleted Data']
             ]);
         }
