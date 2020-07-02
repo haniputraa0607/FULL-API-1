@@ -422,6 +422,9 @@ class ApiConfirm extends Controller
                 $paymentShopeepay->err_reason = app($this->shopeepay)->errcode[$errcode]??null;
                 $paymentShopeepay->save();
                 $trx = $check;
+
+                MyHelper::updateFlagTransactionOnline($trx, 'cancel');
+
                 $update = $trx->update(['transaction_payment_status' => 'Cancelled', 'void_date' => date('Y-m-d H:i:s')]);
                 if (!$update) {
                     DB::rollBack();
@@ -878,6 +881,7 @@ class ApiConfirm extends Controller
 
                     $update = TransactionPaymentOvo::where('id_transaction', $trx['id_transaction'])->update($dataUpdate);
 
+                    MyHelper::updateFlagTransactionOnline($trx, 'cancel');
                     $updatePaymentStatus = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Cancelled', 'void_date' => date('Y-m-d H:i:s')]);
 
                     if ($trx->id_promo_campaign_promo_code) {
