@@ -48,7 +48,7 @@ class ApiNewsWebview extends Controller
     }
     public function detailNews(Request $request)
     {
-        $news = News::with('newsOutlet','newsOutlet.outlet','newsProduct','newsProduct.product')->find($request->id_news)->toArray();
+        $news = News::with('newsOutlet','newsOutlet.outlet','newsOutlet.outlet.outlet_photos','newsProduct','newsProduct.product_group')->find($request->id_news)->toArray();
         $totalOutlet = 0;
         $outlet = Outlet::get()->toArray();
         if ($outlet) {
@@ -75,7 +75,7 @@ class ApiNewsWebview extends Controller
                 unset($news['news_outlet']);
                 foreach ($newsOutlet as $keyOutlet => $valOutlet) {
                     $news['news_outlet'][$keyOutlet]['outlet_name']     = $valOutlet['outlet']['outlet_name'];
-                    $news['news_outlet'][$keyOutlet]['outlet_image']    = null;
+                    $news['news_outlet'][$keyOutlet]['outlet_image']    = ($valOutlet['outlet']['outlet_photos'][0]['outlet_photo']??null)?(env('STORAGE_URL_API').$valOutlet['outlet']['outlet_photos'][0]['outlet_photo']):env('STORAGE_URL_API').'img/product/item/default.png';
                 }
             }
 
@@ -83,8 +83,8 @@ class ApiNewsWebview extends Controller
                 $newsProduct = $news['news_product'];
                 unset($news['news_product']);
                 foreach ($newsProduct as $keyProduct => $valProduct) {
-                    $news['news_product'][$keyProduct]['product_name']  = $valProduct['product']['product_name'];
-                    $news['news_product'][$keyProduct]['product_image'] = null;
+                    $news['news_product'][$keyProduct]['product_name']  = $valProduct['product_group']['product_group_name'];
+                    $news['news_product'][$keyProduct]['product_image'] = $valProduct['product_group']['product_group_image_detail']??null;
                 }
             }
             
