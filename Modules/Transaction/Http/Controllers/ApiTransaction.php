@@ -1590,7 +1590,7 @@ class ApiTransaction extends Controller
                                     $payment['reject']  = $payOvo->response_description;
                                     $list['payment'][]  = $payment;
                                     break;
-                                case 'Ipay88':
+                                case 'IPay88':
                                     $PayIpay = TransactionPaymentIpay88::find($mp['id_payment']);
                                     $payment['name']    = $PayIpay->payment_method;
                                     $payment['amount']  = $PayIpay->amount / 100;
