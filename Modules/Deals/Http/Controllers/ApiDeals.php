@@ -494,11 +494,17 @@ class ApiDeals extends Controller
             $deals->orderBy('deals_publish_start', 'DESC');
         } else if ($request->json('oldest')) {
             $deals->orderBy('deals_publish_start', 'ASC');
+        } else if ($request->json('updated_at')) {
+            $deals->orderBy('updated_at', 'DESC');
         } else {
             $deals->orderBy('deals_end', 'ASC');
         }
         if ($request->json('id_city')) {
             $deals->with('outlets','outlets.city');
+        }
+
+        if ($request->json('paginate') && $request->json('admin')) {
+        	return $this->dealsPaginate($deals, $request);
         }
 
         $deals = $deals->get()->toArray();
@@ -2296,5 +2302,13 @@ class ApiDeals extends Controller
 
 
 		return $result;
+	}
+
+	function dealsPaginate($query, $request)
+	{
+
+		$query = $query->addSelect('deals.updated_at')->paginate($request->paginate);
+
+		return MyHelper::checkGet($query);
 	}
 }
