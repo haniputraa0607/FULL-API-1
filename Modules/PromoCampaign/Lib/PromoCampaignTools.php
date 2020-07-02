@@ -25,6 +25,7 @@ class PromoCampaignTools{
     {
         $this->user     = "Modules\Users\Http\Controllers\ApiUser";
         $this->promo_campaign     = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+        $this->online_transaction   = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
     }
 	/**
 	 * validate transaction to use promo campaign
@@ -33,7 +34,7 @@ class PromoCampaignTools{
 	 * @param  	array 		$error     	error message
 	 * @return 	array/boolean     modified array of trxs if can, otherwise false
 	 */
-	public function validatePromo($id_promo, $id_outlet, $trxs, &$errors, $source='promo_campaign'){
+	public function validatePromo($id_promo, $id_outlet, $trxs, &$errors, $source='promo_campaign', $payment_type=null){
 		/**
 		 $trxs=[
 			{
@@ -711,13 +712,20 @@ class PromoCampaignTools{
 						$promo_detail_message = 'Discount '.$discount_benefit;
 						/** end add new description & promo detail **/
 					}else{
-						switch ($promo_rules->referred_promo_unit) {
-							case 'Nominal':
-								$new_description = 'You will get cashback of IDR '.number_format($promo_rules->referred_promo_value);
-							break;
-							case 'Percent':
-								$new_description = 'You will get cashback of '.number_format($promo_rules->referred_promo_value).'%';
-							break;
+		            	if (!empty($payment_type) && $payment_type == 'Balance')
+		            	{
+		            		$new_description = "You will not get cashback benefits by using MAXX Points";
+		            	}
+		            	else
+		            	{
+							switch ($promo_rules->referred_promo_unit) {
+								case 'Nominal':
+									$new_description = 'You will get cashback of IDR '.number_format($promo_rules->referred_promo_value);
+								break;
+								case 'Percent':
+									$new_description = 'You will get cashback of '.number_format($promo_rules->referred_promo_value).'%';
+								break;
+							}
 						}
 					return [
 						'item'=>$trxs,

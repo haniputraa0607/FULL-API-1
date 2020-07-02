@@ -3072,6 +3072,8 @@ class ApiPOS extends Controller
                     continue;
                 }
 
+                MyHelper::updateFlagTransactionOnline($checkTrx, 'cancel');
+
                 $checkTrx->transaction_payment_status = 'Cancelled';
                 $checkTrx->void_date = date('Y-m-d H:i:s');
                 $checkTrx->transaction_notes = $trx['reason'];
