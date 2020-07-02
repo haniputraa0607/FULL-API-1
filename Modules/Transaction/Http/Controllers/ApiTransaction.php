@@ -2447,6 +2447,8 @@ class ApiTransaction extends Controller
             ]);
         }
 
+        MyHelper::updateFlagTransactionOnline($transaction, 'cancel');
+
         $transaction->void_date = date('Y-m-d H:i:s');
         $transaction->save();
 

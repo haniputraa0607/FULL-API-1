@@ -791,8 +791,7 @@ class ApiOnlineTransaction extends Controller
         //     ]);
         // }
 
-        $user->transaction_online = 1;
-        $user->save();
+        MyHelper::updateFlagTransactionOnline($insertTransaction, 'pending', $user);
 
         // $insertTransaction['transaction_receipt_number'] = $receipt;
 
@@ -1708,7 +1707,7 @@ class ApiOnlineTransaction extends Controller
 		            $pct=new PromoCampaignTools();
 		            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
 
-		            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors);
+		            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type']);
 
 
 		            // if (isset($discount_promo['is_free']) && $discount_promo['is_free'] == 1) {
@@ -2086,7 +2085,12 @@ class ApiOnlineTransaction extends Controller
         {
             if ($code->promo_campaign_referral->referred_promo_type == 'Cashback') 
             {
-            	$promo['value'] = (int) $post['cashback'];
+            	if ($post['payment_type'] == 'Balance') {
+            		$promo['value'] = 0;
+            	}
+            	else{
+            		$promo['value'] = (int) $post['cashback'];
+            	}
             }
         }
 
