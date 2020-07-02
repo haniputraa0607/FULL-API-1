@@ -41,6 +41,8 @@ class ListDeal extends FormRequest
             'oldest'                    => '',
             'highest_available_voucher' => '',
             'lowest_available_voucher'  => '',
+            'paginate'  				=> 'nullable',
+            'updated_at'  				=> 'nullable'
         ];
     }
 
