@@ -2139,6 +2139,10 @@ class ApiUser extends Controller
 
                 if($checkUser[0]['level'] != 'Super Admin' && $checkUser[0]['level'] != 'Admin')
                     $action = User::where('phone','=',$row)->delete();
+
+                    //delete token for logout in apps
+                    $del = OauthAccessToken::join('oauth_access_token_providers', 'oauth_access_tokens.id', 'oauth_access_token_providers.oauth_access_token_id')
+                    ->where('oauth_access_tokens.user_id', $checkUser[0]['id'])->where('oauth_access_token_providers.provider', 'users')->delete();
                 else
                     continue;
                 if($action){
@@ -2158,6 +2162,10 @@ class ApiUser extends Controller
                     $deleteUser = User::where('phone','=',$post['phone'])->delete();
 
                     if($deleteUser){
+                        //delete token for logout in apps
+                        $del = OauthAccessToken::join('oauth_access_token_providers', 'oauth_access_tokens.id', 'oauth_access_token_providers.oauth_access_token_id')
+                        ->where('oauth_access_tokens.user_id', $checkUser[0]['id'])->where('oauth_access_token_providers.provider', 'users')->delete();
+
                         $result = ['status'	=> 'success',
                             'result'	=> ['User '.$post['phone'].' has been deleted']
                         ];
