@@ -1529,6 +1529,11 @@ class ApiUser extends Controller
                     'useragent' => $useragent,
                     'now' => date('Y-m-d H:i:s')], $useragent);
 
+            //delete token for logout in apps
+            $del = OauthAccessToken::join('oauth_access_token_providers', 'oauth_access_tokens.id', 'oauth_access_token_providers.oauth_access_token_id')
+                    ->where('oauth_access_tokens.user_id', $data[0]['id'])->where('oauth_access_token_providers.provider', 'users')->delete();
+
+
             if(env('APP_ENV') == 'production'){
                 $result = [
                     'status'	=> 'success',
