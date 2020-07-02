@@ -88,7 +88,9 @@ class User extends Authenticatable
         'email_verified_valid_time',
         'otp_valid_time',
         'otp_request_status',
-        'email_verify_request_status'
+        'email_verify_request_status',
+        'transaction_online',
+        'transaction_online_status'
 	];
 
 	public function city()

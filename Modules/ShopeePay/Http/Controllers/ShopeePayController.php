@@ -296,6 +296,8 @@ class ShopeePayController extends Controller
                 // }
             }
 
+            MyHelper::updateFlagTransactionOnline($singleTrx, 'cancel', $user);
+
             $singleTrx->transaction_payment_status = 'Cancelled';
             $singleTrx->void_date                  = $now;
             $singleTrx->save();

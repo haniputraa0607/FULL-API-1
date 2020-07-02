@@ -7,7 +7,7 @@ use DB;
 use App\Http\Models\Notification;
 use App\Http\Models\Store;
 use App\Http\Models\User;
-use App\Http\Models\Transaksi;
+use App\Http\Models\Transaction;
 use App\Http\Models\ProductVariant;
 use App\Http\Models\LogPoint;
 
