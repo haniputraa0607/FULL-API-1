@@ -3,6 +3,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Modules\ProductVariant\Entities\ProductGroup;
 
 class NewsProduct extends Model
 {
@@ -26,6 +27,14 @@ class NewsProduct extends Model
     public function product()
     {
         return $this->belongsTo(Product::class, 'id_product', 'id_product');
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function product_group()
+    {
+        return $this->belongsTo(ProductGroup::class, 'id_product', 'id_product_group');
     }
 
     /**
