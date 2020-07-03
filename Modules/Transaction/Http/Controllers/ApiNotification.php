@@ -1640,7 +1640,7 @@ Detail: ".$link['short'],
                     $getPayment = TransactionPaymentShopeePay::where('id_transaction_payment_shopee_pay', $value->id_payment)->first();
                     if (!empty($getPayment)) {
                         $dataPush = [
-                            'payment_method' => 'Shopee Pay',
+                            'payment_method' => 'ShopeePay',
                             'nominal' => $getPayment['amount'] / 100
                         ];
                         array_push($dataPayment, $dataPush);

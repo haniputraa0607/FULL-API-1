@@ -62,6 +62,7 @@ class ApiUser extends Controller
         $this->membership  = "Modules\Membership\Http\Controllers\ApiMembership";
         $this->inbox  = "Modules\InboxGlobal\Http\Controllers\ApiInbox";
         $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiFraud";
+        $this->deals = "Modules\Deals\Http\Controllers\ApiDeals";
     }
 
     function LogActivityFilter($rule='and', $conditions = null, $order_field='id', $order_method='asc', $skip=0, $take=999999999999){
@@ -1849,6 +1850,14 @@ class ApiUser extends Controller
 
         if($data){
             // $pin_x = MyHelper::decryptkhususpassword($data[0]['pin_k'], md5($data[0]['id_user'], true));
+            if($request->json('email') != "" && $request->json('name') != "" &&
+                empty($data[0]['email']) && empty($data[0]['name'])){
+                $setting = Setting::where('key','welcome_voucher_setting')->first()->value;
+                if($setting == 1){
+                    $injectVoucher = app($this->deals)->injectWelcomeVoucher(['id' => $data[0]['id']], $data[0]['phone']);
+                }
+            }
+
             if($request->json('email') != ""){
                 if(!filter_var($request->json('email'), FILTER_VALIDATE_EMAIL)){
                     $result = [
@@ -2133,18 +2142,19 @@ class ApiUser extends Controller
 
         if(is_array($post['phone'])){
             $messages = "Users ";
-            foreach($post['phone'] as $row){
-                $checkUser = User::where('phone','=',$row)->get()->toArray();
-                if(!$checkUser) continue;
+            foreach($post['phone'] as $row) {
+                $checkUser = User::where('phone', '=', $row)->get()->toArray();
+                if (!$checkUser) continue;
 
-                if($checkUser[0]['level'] != 'Super Admin' && $checkUser[0]['level'] != 'Admin')
-                    $action = User::where('phone','=',$row)->delete();
+                if ($checkUser[0]['level'] != 'Super Admin' && $checkUser[0]['level'] != 'Admin'){
+                    $action = User::where('phone', '=', $row)->delete();
 
-                    //delete token for logout in apps
-                    $del = OauthAccessToken::join('oauth_access_token_providers', 'oauth_access_tokens.id', 'oauth_access_token_providers.oauth_access_token_id')
+                //delete token for logout in apps
+                $del = OauthAccessToken::join('oauth_access_token_providers', 'oauth_access_tokens.id', 'oauth_access_token_providers.oauth_access_token_id')
                     ->where('oauth_access_tokens.user_id', $checkUser[0]['id'])->where('oauth_access_token_providers.provider', 'users')->delete();
-                else
+                }else{
                     continue;
+                }
                 if($action){
                     $messages .= $row.", ";
                 }
