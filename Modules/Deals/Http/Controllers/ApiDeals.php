@@ -689,7 +689,12 @@ class ApiDeals extends Controller
     /* list of deals that haven't ended yet */
     function listActiveDeals(Request $request){
         $post = $request->json()->all();
-        $deals = Deal::where('deals_end', '>=', date('Y-m-d H:i:s'))->where('deals_type', 'Deals');
+
+        $deals = Deal::where('deals_type','Deals')
+        		->where('deals_end', '>', date('Y-m-d H:i:s'))
+        		->where('step_complete', '=', 1)
+        		->orderBy('updated_at', 'DESC');
+
         if(isset($post['select'])){
             $deals = $deals->select($post['select']);
         }
