@@ -68,6 +68,7 @@ use Modules\Transaction\Http\Requests\MethodSave;
 use Modules\Transaction\Http\Requests\MethodDelete;
 use Modules\Transaction\Http\Requests\ManualPaymentConfirm;
 use Modules\Transaction\Http\Requests\ShippingGoSend;
+use Modules\PromoCampaign\Entities\PromoCampaignReferral;
 
 use App\Lib\MyHelper;
 use App\Lib\GoSend;
@@ -1599,7 +1600,7 @@ class ApiTransaction extends Controller
                                     break;
                                 case 'Shopeepay':
                                     $shopeePay = TransactionPaymentShopeePay::find($mp['id_payment']);
-                                    $payment['name']    = 'Shopee Pay';
+                                    $payment['name']    = 'ShopeePay';
                                     $payment['amount']  = $shopeePay->amount / 100;
                                     $payment['reject']  = $shopeePay->err_reason?:'payment expired';
                                     $list['payment'][]  = $payment;
@@ -1707,7 +1708,7 @@ class ApiTransaction extends Controller
                     foreach($multiPayment as $dataKey => $dataPay){
                         if($dataPay['type'] == 'Shopeepay'){
                             $payShopee = TransactionPaymentShopeePay::find($dataPay['id_payment']);
-                            $payment[$dataKey]['name']      = 'Shopee Pay';
+                            $payment[$dataKey]['name']      = 'ShopeePay';
                             $payment[$dataKey]['amount']    = $payShopee->amount / 100;
                             $payment[$dataKey]['reject']    = $payShopee->err_reason?:'payment expired';
                         }else{
@@ -1884,7 +1885,7 @@ class ApiTransaction extends Controller
                 }
             }
 
-            if (!empty($list['promo_campaign_promo_code'])) {
+            if (!empty($list['promo_campaign_promo_code']) && $list['promo_campaign_promo_code']['promo_campaign']['promo_type'] != 'Referral') {
                 $result['promo']['code'][$p++]   = $list['promo_campaign_promo_code']['promo_code'];
                 $result['payment_detail'][] = [
                     'name'          => 'Discount',
@@ -1906,14 +1907,12 @@ class ApiTransaction extends Controller
                                 'text'  => 'Your transaction failed because ' . $value['reject'],
                                 'date'  => date('d F Y H:i', strtotime($list['void_date']))
                             ];
-                        } else {
-                            $result['detail']['detail_status'][] = [
-                                'text'  => 'Your order has been canceled',
-                                'date'  => date('d F Y H:i', strtotime($list['void_date']))
-                            ];
                         }
                     }
-
+                    $result['detail']['detail_status'][] = [
+                        'text'  => 'Your order has been canceled',
+                        'date'  => date('d F Y H:i', strtotime($list['void_date']))
+                    ];
                 } else {
                     if ($list['detail']['reject_at'] != null) {
                         $result['detail']['detail_status'][] = [
@@ -1945,7 +1944,8 @@ class ApiTransaction extends Controller
                             'text'  => 'Your order has been received',
                             'date'  => date('d F Y H:i', strtotime($list['detail']['receive_at']))
                         ];
-                    }else{
+                    }
+                    if ($list['completed_at'] != null) {
                         $result['detail']['detail_status'][] = [
                             'text'  => 'Your order awaits confirmation outlet',
                             'date'  => date('d F Y H:i', strtotime($list['completed_at']))
