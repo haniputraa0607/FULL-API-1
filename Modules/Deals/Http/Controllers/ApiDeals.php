@@ -60,6 +60,7 @@ class ApiDeals extends Controller
         $this->autocrm = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
         $this->subscription = "Modules\Subscription\Http\Controllers\ApiSubscription";
         $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+        $this->deals_claim    = "Modules\Deals\Http\Controllers\ApiDealsClaim";
     }
 
     public $saveImage = "img/deals/";
@@ -689,7 +690,12 @@ class ApiDeals extends Controller
     /* list of deals that haven't ended yet */
     function listActiveDeals(Request $request){
         $post = $request->json()->all();
-        $deals = Deal::where('deals_end', '>=', date('Y-m-d H:i:s'))->where('deals_type', 'Deals');
+
+        $deals = Deal::where('deals_type','Deals')
+        		->where('deals_end', '>', date('Y-m-d H:i:s'))
+        		->where('step_complete', '=', 1)
+        		->orderBy('updated_at', 'DESC');
+
         if(isset($post['select'])){
             $deals = $deals->select($post['select']);
         }
@@ -1338,6 +1344,8 @@ class ApiDeals extends Controller
                 $generateVoucher = app($this->hidden_deals)->autoClaimedAssign($val, $user, $val['deals_total']);
                 $count++;
             }
+            $dataDeals = Deal::where('id_deals', $val['id_deals'])->first();
+            app($this->deals_claim)->updateDeals($dataDeals);
         }
 
         $autocrm = app($this->autocrm)->SendAutoCRM('Receive Welcome Voucher', $phone,
