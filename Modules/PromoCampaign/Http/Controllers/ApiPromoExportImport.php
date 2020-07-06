@@ -679,23 +679,27 @@ class ApiPromoExportImport extends Controller
 				}
 				else
 				{
-					$promo_type 	= '';
-		    		$promo_value 	= '';
-		    		switch ($array_deals['deals_promo_id_type']) {
-		    			case 'promo id':
-		    				$rule['deals_promo_id_type'] 	= "promoid";
-		    				$rule['deals_promo_id'] 		= $array_deals['deals_promo_id'];
-		    				break;
-		    			
-		    			case 'nominal':
-		    				$rule['deals_promo_id_type'] 	= "nominal";
-		    				$rule['deals_promo_id'] 		= $array_deals['deals_promo_id'];
-		    				break;
+					if (!empty($array_deals['deals_promo_id_type'])) 
+					{
+			    		switch ($array_deals['deals_promo_id_type']) {
+			    			case 'promo id':
+			    				$rule['deals_promo_id_type'] 	= "promoid";
+			    				$rule['deals_promo_id'] 		= $array_deals['deals_promo_id'];
+			    				break;
+			    			
+			    			case 'nominal':
+			    				$rule['deals_promo_id_type'] 	= "nominal";
+			    				$rule['deals_promo_id'] 		= $array_deals['deals_promo_id'];
+			    				break;
 
-		    			default:
-		    				$rule = [];
-		    				break;
-		    		}
+			    			default:
+			    				$rule = [];
+			    				break;
+			    		}
+					}
+					else{
+						$rule = [];
+					}
 
 		    		$new_data	= $rule;
 				}
@@ -740,35 +744,41 @@ class ApiPromoExportImport extends Controller
 				}
 				else
 				{
-					switch ($array_deals['promo_type']) {
-		    			case 'Product discount':
-		    				$rule['product_type'] 					= $array_deals['product_type'];
-		    				$rule['promo_type'] 					= $array_deals['promo_type'];
-		    				$rule['product_discount_type'] 			= $array_deals['product_discount_type'];
-		    				$rule['product_discount_value'] 		= $array_deals['product_discount_value'];
-		    				$rule['product_discount_max_qty'] 		= $array_deals['product_discount_max_qty'];
-		    				$rule['product_discount_max_discount'] 	= $array_deals['product_discount_max_discount'];
-		    				$rule['is_all_product'] 				= $array_deals['is_all_product'] == 'yes' ? 1 : 0;
-		    				break;
-		    			
-		    			case 'Tier discount':
-		    				$rule['product_type'] 				= $array_deals['product_type'];
-		    				$rule['promo_type'] 				= $array_deals['promo_type'];
-		    				$rule['tier_discount_product_code'] = $array_deals['tier_discount_product_code'];
-		    				$rule['tier_discount_product_name'] = $array_deals['tier_discount_product_name'];
-		    				break;
-		    			
-		    			case 'Buy X Get Y':
-		    				$rule['product_type'] 						= $array_deals['product_type'];
-		    				$rule['promo_type'] 						= $array_deals['promo_type'];
-		    				$rule['buy_x_get_y_discount_product_code'] 	= $array_deals['buy_x_get_y_discount_product_code'];
-		    				$rule['buy_x_get_y_discount_product_name'] 	= $array_deals['buy_x_get_y_discount_product_name'];
-		    				break;
-		    			
-		    			default:
-		    				$rule = [];
-		    				break;
-		    		}
+					if (!empty($array_deals['promo_type'])) 
+					{
+						switch ($array_deals['promo_type']) {
+			    			case 'Product discount':
+			    				$rule['product_type'] 					= $array_deals['product_type'];
+			    				$rule['promo_type'] 					= $array_deals['promo_type'];
+			    				$rule['product_discount_type'] 			= $array_deals['product_discount_type'];
+			    				$rule['product_discount_value'] 		= $array_deals['product_discount_value'];
+			    				$rule['product_discount_max_qty'] 		= $array_deals['product_discount_max_qty'];
+			    				$rule['product_discount_max_discount'] 	= $array_deals['product_discount_max_discount'];
+			    				$rule['is_all_product'] 				= $array_deals['is_all_product'] == 'yes' ? 1 : 0;
+			    				break;
+			    			
+			    			case 'Tier discount':
+			    				$rule['product_type'] 				= $array_deals['product_type'];
+			    				$rule['promo_type'] 				= $array_deals['promo_type'];
+			    				$rule['tier_discount_product_code'] = $array_deals['tier_discount_product_code'];
+			    				$rule['tier_discount_product_name'] = $array_deals['tier_discount_product_name'];
+			    				break;
+			    			
+			    			case 'Buy X Get Y':
+			    				$rule['product_type'] 						= $array_deals['product_type'];
+			    				$rule['promo_type'] 						= $array_deals['promo_type'];
+			    				$rule['buy_x_get_y_discount_product_code'] 	= $array_deals['buy_x_get_y_discount_product_code'];
+			    				$rule['buy_x_get_y_discount_product_name'] 	= $array_deals['buy_x_get_y_discount_product_name'];
+			    				break;
+			    			
+			    			default:
+			    				$rule = [];
+			    				break;
+			    		}
+					}
+					else{
+						$rule = [];
+					}
 
 		    		$new_data = $rule;
 				}
