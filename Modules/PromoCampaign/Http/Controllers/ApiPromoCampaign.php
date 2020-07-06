@@ -1034,7 +1034,15 @@ class ApiPromoCampaign extends Controller
 				return $result;
 			}
 		}else{
-			$dataPromoCampaign[$warning_image.'_warning_image'] = null;
+			if (!empty($post['use_global'])) {
+				$dataPromoCampaign[$warning_image.'_warning_image'] = null;
+			}
+			elseif(isset($image[$warning_image.'_warning_image']) && file_exists($image[$warning_image.'_warning_image'])){
+				$dataPromoCampaign[$warning_image.'_warning_image'] = $image[$warning_image.'_warning_image'];
+			}
+			else{
+				$dataPromoCampaign[$warning_image.'_warning_image'] = null;
+			}
 		}
 
         $update = $table::where($id_table, $id_post)->update($dataPromoCampaign);
