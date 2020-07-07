@@ -88,6 +88,7 @@ class PromoCampaignTools{
 		}
 
 		$discount=0;
+		$subtotal = 0;
 		// add product discount if exist
 		foreach ($trxs as  $id_trx => &$trx) {
 			$product=Product::with(['product_prices' => function($q) use ($id_outlet){
@@ -670,71 +671,84 @@ class PromoCampaignTools{
 			case 'Referral':
 				$promo->load('promo_campaign_referral');
 				$promo_rules=$promo->promo_campaign_referral;
-				if($promo_rules->referred_promo_type == 'Product Discount'){
-					$rule=(object) [
-						'max_qty'=>false,
-						'discount_type'=>$promo_rules->referred_promo_unit,
-						'discount_value'=>$promo_rules->referred_promo_value,
-						'max_percent_discount'=>$promo_rules->referred_promo_value_max
-					];
-					foreach ($trxs as  $id_trx => &$trx) {
-						// get product data
-						$product=Product::with(['product_prices' => function($q) use ($id_outlet){
-							$q->where('id_outlet', '=', $id_outlet)
-							  ->where('product_status', '=', 'Active')
-							  ->where('product_stock_status', '=', 'Available');
-						} ])->find($trx['id_product']);
-						$cur_mod_price = 0;
-						foreach ($trx['modifiers'] as $modifier) {
-			                $id_product_modifier = is_numeric($modifier)?$modifier:$modifier['id_product_modifier'];
-			                $qty_product_modifier = is_numeric($modifier)?1:$modifier['qty'];
-			                $cur_mod_price += ($mod_price[$id_product_modifier]??0)*$qty_product_modifier;
-						}
-						//is product available
-						if(!$product){
-							// product not available
-							$errors[]='Product with id '.$trx['id_product'].' could not be found';
-							continue;
-						}
-						// add discount
+				$rule=(object) [
+					'max_qty'=>false,
+					'discount_type'=>$promo_rules->referred_promo_unit,
+					'discount_value'=>$promo_rules->referred_promo_value,
+					'max_percent_discount'=>$promo_rules->referred_promo_value_max
+				];
+				$grandtotal = 0;
+				foreach ($trxs as  $id_trx => &$trx) {
+					// get product data
+					$product=Product::with(['product_prices' => function($q) use ($id_outlet){
+						$q->where('id_outlet', '=', $id_outlet)
+						  ->where('product_status', '=', 'Active')
+						  ->where('product_stock_status', '=', 'Available');
+					} ])->find($trx['id_product']);
+					$cur_mod_price = 0;
+					foreach ($trx['modifiers'] as $modifier) {
+		                $id_product_modifier = is_numeric($modifier)?$modifier:$modifier['id_product_modifier'];
+		                $qty_product_modifier = is_numeric($modifier)?1:$modifier['qty'];
+		                $cur_mod_price += ($mod_price[$id_product_modifier]??0)*$qty_product_modifier;
+					}
+					//is product available
+					if(!$product){
+						// product not available
+						$errors[]='Product with id '.$trx['id_product'].' could not be found';
+						continue;
+					}
+					// add discount
+					$product_price = (($product->product_price??$product->product_prices[0]->product_price??null) + $cur_mod_price) * $trx['qty'];
+
+					if(isset($trx['new_price'])&&$trx['new_price']){
+						$product_price=$trx['new_price'];
+					}
+					$grandtotal += $product_price;
+					if($promo_rules->referred_promo_type == 'Product Discount'){ 
 						$discount += $this->discount_product($product,$rule,$trx,$cur_mod_price);
 					}
-
-						/** add new description & promo detail **/
-						if ($promo_rules->discount_type == 'Percent') {
-							$discount_benefit = ($promo_rules['discount_value']??0).'%';
-						}else{
-							$discount_benefit = 'Rp '.number_format($promo_rules['discount_value']??0);
-						}
-
-						$new_description = 'You get discount of IDR '.number_format($discount).' for all Product';
-
-						$promo_detail_message = 'Discount '.$discount_benefit;
-						/** end add new description & promo detail **/
-					}else{
-		            	if (!empty($payment_type) && $payment_type == 'Balance')
-		            	{
-		            		$new_description = "You will not get cashback benefits by using MAXX Points";
-		            	}
-		            	else
-		            	{
-							switch ($promo_rules->referred_promo_unit) {
-								case 'Nominal':
-									$new_description = 'You will get cashback of IDR '.number_format($promo_rules->referred_promo_value);
-								break;
-								case 'Percent':
-									$new_description = 'You will get cashback of '.number_format($promo_rules->referred_promo_value).'%';
-								break;
-							}
-						}
-					return [
-						'item'=>$trxs,
-						'discount'=>0,
-						'new_description' => $new_description??'',
-						'promo_detail'		=> '',
-						'is_free'			=> $is_free
-					];
 				}
+
+				if ($grandtotal < $promo_rules->referred_min_value) {
+					$errors[] = str_replace(['%min_total%'], [MyHelper::requestNumber($promo_rules->referred_min_value,'_CURRENCY')], 'You can use this promo with a minimum transaction subtotal of %min_total%');
+					return false;
+				}
+				if($promo_rules->referred_promo_type == 'Product Discount'){
+					/** add new description & promo detail **/
+					if ($promo_rules->discount_type == 'Percent') {
+						$discount_benefit = ($promo_rules['discount_value']??0).'%';
+					}else{
+						$discount_benefit = 'Rp '.number_format($promo_rules['discount_value']??0);
+					}
+
+					$new_description = 'You get discount of IDR '.number_format($discount).' for all Product';
+
+					$promo_detail_message = 'Discount '.$discount_benefit;
+					/** end add new description & promo detail **/
+				}else{
+	            	if (!empty($payment_type) && $payment_type == 'Balance')
+	            	{
+	            		$new_description = "You will not get cashback benefits by using MAXX Points";
+	            	}
+	            	else
+	            	{
+						switch ($promo_rules->referred_promo_unit) {
+							case 'Nominal':
+								$new_description = 'You will get cashback of IDR '.number_format($promo_rules->referred_promo_value);
+							break;
+							case 'Percent':
+								$new_description = 'You will get cashback of '.number_format($promo_rules->referred_promo_value).'%';
+							break;
+						}
+					}
+				return [
+					'item'=>$trxs,
+					'discount'=>0,
+					'new_description' => $new_description??'',
+					'promo_detail'		=> '',
+					'is_free'			=> $is_free
+				];
+			}
 		}
 		// discount?
 		// if($discount<=0){
@@ -954,14 +968,14 @@ class PromoCampaignTools{
 
 		if($promo->promo_type == 'Referral'){
 			if(User::find($id_user)->transaction_online){
-	        	$errors[]='Voucher code is not found';
+	        	$errors[]='Promo code not valid';
 				return false;
 			}
 			if(UserReferralCode::where([
 				'id_promo_campaign_promo_code'=>$id_code,
 				'id_user'=>$id_user
 			])->exists()){
-	        	$errors[]='Voucher code is not found';
+	        	$errors[]='Promo code not valid';
 	    		return false;
 			}
 	        $referer = UserReferralCode::where('id_promo_campaign_promo_code',$id_code)
@@ -969,7 +983,7 @@ class PromoCampaignTools{
 	            ->where('users.is_suspended','=',0)
 	            ->first();
 	        if(!$referer){
-	        	$errors[] = 'Voucher code is not found';
+	        	$errors[] = 'Promo code not valid';
 	        }
 		}
 

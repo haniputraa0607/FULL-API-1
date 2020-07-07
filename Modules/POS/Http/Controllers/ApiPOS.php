@@ -318,7 +318,8 @@ class ApiPOS extends Controller
                     'tax' => $tax,
                     'type' => $menu['product_variants'][1]['product_variant_code'] == 'general_type' ? null : $menu['product_variants'][1]['product_variant_code'],
                     'size' => $menu['product_variants'][0]['product_variant_code'] == 'general_size' ? null : $menu['product_variants'][0]['product_variant_code'],
-                    'promoNumber' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
+                    // 'promoNumber' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
+                    'promoNumber' => '01198',
                     'promoType' => $check['id_promo_campaign_promo_code'] ? '5' : null,
                     'status' => 'ACTIVE'
                     // 'amount' => (float) $menu['pivot']['transaction_product_subtotal']
@@ -341,7 +342,8 @@ class ApiPOS extends Controller
                     'tax' => $tax,
                     'type' => null,
                     'size' => null,
-                    'promoNumber' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
+                    // 'promoNumber' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
+                    'promoNumber' => '01198',
                     'promoType' => $check['id_promo_campaign_promo_code'] ? '5' : null,
                     'status' => 'ACTIVE'
                     // 'amount' => $modifier['transaction_product_modifier_price']
