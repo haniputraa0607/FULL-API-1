@@ -108,12 +108,13 @@ class ConnectPOS{
 			$promoNumber = "";
 			if($trxData->id_promo_campaign_promo_code || $voucher){
 				$appliedPromo = 'MOBILE APPS PROMO';
-				if($trxData->id_promo_campaign_promo_code){
-					$promoNumber = $trxData->promo_campaign_promo_code->promo_code;
-				}else{
-					$voucher->load('deals_voucher');
-					$promoNumber = $voucher->deals_voucher->voucher_code;
-				}
+				// if($trxData->id_promo_campaign_promo_code){
+				// 	$promoNumber = $trxData->promo_campaign_promo_code->promo_code;
+				// }else{
+				// 	$voucher->load('deals_voucher');
+				// 	$promoNumber = $voucher->deals_voucher->voucher_code;
+				// }
+				$promoNumber = '01198';
 			}
 			$body = [
 				'header' => [
