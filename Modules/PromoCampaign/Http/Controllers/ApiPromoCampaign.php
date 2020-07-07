@@ -1551,7 +1551,7 @@ class ApiPromoCampaign extends Controller
         else
         {
         	$promo_code = (string) $promo_code;
-        	$checkCode = PromoCampaignPromoCode::where('promo_code',$promo_code)->first();
+        	$checkCode = PromoCampaignPromoCode::where('promo_code',$promo_code)->where('id_promo_campaign','!=',$id)->first();
 
         	if ($checkCode) {
         		return ['status' => 'fail', 'messages' => 'promo code already exists'];

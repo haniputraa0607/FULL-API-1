@@ -54,7 +54,7 @@ use Modules\SettingFraud\Entities\LogCheckPromoCode;
 
 class ApiPromoExportImport extends Controller
 {
-	protected $index_key;
+	protected $index_key, $promo_campaign_key;
 
 	function __construct() {
         date_default_timezone_set('Asia/Jakarta');
@@ -99,6 +99,34 @@ class ApiPromoExportImport extends Controller
     		'buy_x_get_y_discount_product_code' => 'online buy x get y discount product code',
     		'buy_x_get_y_discount_product_name' => 'online buy x get y discount product name',
     	];
+        $this->promo_campaign_key 	= [
+    		'campaign_name' 			=> 'promo campaign name',
+    		'promo_title' 				=> 'promo campaign title',
+    		'tags' 						=> 'tags',
+    		'product_type' 				=> 'product type',
+    		'date_start' 				=> 'start date',
+    		'date_end' 					=> 'end date',
+    		'code_type' 				=> 'code type',
+    		'limitation_usage' 			=> 'limit usage',
+    		'total_coupon' 				=> 'total coupon',
+    		'promo_code' 				=> 'single promo code',
+    		'prefix_code' 				=> 'prefix code',
+    		'number_last_code' 			=> 'digit random',
+    		'is_all_outlet' 			=> 'all outlet',
+    		'user_type'					=> 'user type',
+    		'specific_user' 			=> 'specific user',
+    		'url_promo_campaign_warning_image' 	=> 'promo campaign warning image',
+    		'promo_type' 				=> 'promo type',
+    		'product_discount_type' 	=> 'product discount type',
+    		'product_discount_value' 	=> 'product discount value',
+    		'product_discount_max_qty' 	=> 'product discount max qty',
+    		'product_discount_max_discount' => 'product discount max discount',
+    		'is_all_product' 				=> 'product discount all product',
+    		'tier_discount_product_code' 	=> 'tier discount product code',
+    		'tier_discount_product_name' 	=> 'tier discount product name',
+    		'buy_x_get_y_discount_product_code' => 'buy x get y discount product code',
+    		'buy_x_get_y_discount_product_name' => 'buy x get y discount product name',
+    	];    	
     }
 
     public function exportPromoCampaign(ExportRequest $request)
@@ -149,14 +177,14 @@ class ApiPromoExportImport extends Controller
 	        	unset($data['outlet']);
 	        }
 
-	        $data['tags'] = [];
+	        $promo['tags'] = [];
 
 	        foreach ($promo['promo_campaign_have_tags'] as $key => $value) {
-	        	$data['tags'][]['tag'] = $value['promo_campaign_tag']['tag_name'];
+	        	$promo['tags'][] = $value['promo_campaign_tag']['tag_name'];
 	        }
-	        if ($data['tags'] == [] ) {
-    			unset($data['tags']);
-    		}
+	     //    if ($promo['tags'] == [] ) {
+    		// 	unset($promo['tags']);
+    		// }
 
 	        switch ($promo['promo_type'])
 	        {
@@ -191,7 +219,9 @@ class ApiPromoExportImport extends Controller
 	        		foreach ($data['detail_rule_tier_discount'] as $key => $value) {
 	        			unset(
 	        				$data['detail_rule_tier_discount'][$key]['id_promo_campaign_tier_discount_rule'],
-	        				$data['detail_rule_tier_discount'][$key]['id_promo_campaign']
+	        				$data['detail_rule_tier_discount'][$key]['id_promo_campaign'],
+	        				$data['detail_rule_tier_discount'][$key]['created_at'],
+	        				$data['detail_rule_tier_discount'][$key]['updated_at']
 	        			);
 	        		}
 	        		if ($data['detail_rule_tier_discount'] == [] ) {
@@ -249,6 +279,9 @@ class ApiPromoExportImport extends Controller
 	        	$promo['updated_at']
 	        );
 
+	        $promo = $this->checkPromoCampaignInput($promo, 'export');
+	        $promo = $this->convertPromoCampaignInput($promo);
+
 	        $temp_promo = [];
 	        foreach ($promo as $key => $value) {
 	        	$temp_promo[] = [$key, $value];
@@ -280,6 +313,15 @@ class ApiPromoExportImport extends Controller
     	$warnings = [];
     	db::beginTransaction();
 
+    	$promo = $this->convertPromoCampaignInput($promo, 'import');
+    	$promo = $this->checkPromoCampaignInput($promo, 'import');
+    	$post['data']['rule'] 	= $promo;
+
+    	if (!empty($promo['tags'])) {
+    		$post['data']['tags'] = $promo['tags'];
+    		unset($promo['tags']);
+    	}
+
     	// save deals
     	unset(
     		$promo['date_start'], 
@@ -306,7 +348,7 @@ class ApiPromoExportImport extends Controller
 
 		// save tag
 		if (!empty($post['data']['tags'])) {
-			$tags = array_column($post['data']['tags'], 'tag');
+			$tags = $post['data']['tags'];
 			$saveTags = app($this->promo_campaign)->insertTag('create', $create['id_promo_campaign'], $tags);
 			if (!$saveTags) {
 				$errors[] = 'Insert tags failed';
@@ -861,6 +903,246 @@ class ApiPromoExportImport extends Controller
 		// online rule
 		$online_rule = $this->convertDealsInput($array_deals, $check_type, 'online rule');
 		$data = array_merge($data, $online_rule);
+
+    	return $data;
+    }
+
+    public function convertPromoCampaignInput($array_data, $convert_type='export', $input_type=null)
+    {
+    	$index_key = $this->promo_campaign_key;
+
+    	switch ($input_type) {
+
+    		case 'date':
+
+				if ($convert_type == 'export') 
+				{
+					$new_date = [
+						'date_start' 	=> null,
+						'date_end' 		=> null
+					];
+
+					foreach ($new_date as $key => $value) {
+
+						if (!empty($array_data[$key])) {
+							$new_data[$key] = date('d F Y', strtotime($array_data[$key]));
+						}
+						else{
+							$new_data[$key] = null;
+						}
+					}
+
+				}
+
+    			break;
+    		
+    		case 'tags':
+
+				if ($convert_type == 'export') 
+				{
+		    		$new_data['tags'] = implode(',', $array_data['tags']);
+				}
+				else{
+					$type = $array_data['tags'];
+					if (!empty($type)) {
+			    		$type = explode(',', $type);
+			    		$type = array_map('strtolower', $type);
+			    		$new_data['tags']	= $type;
+					}
+					else{
+						$new_data['tags']	= [];	
+					}
+				}
+
+    			break;
+    		
+    		case 'outlet':
+
+				if ($convert_type == 'export') 
+				{
+		    		$new_data['is_all_outlet'] = $array_data['is_all_outlet'] ? 'yes' : 'no';
+				}
+				else
+				{
+					$new_data['is_all_outlet'] = $array_data['is_all_outlet'] == 'yes' ? 1 : 0;
+				}
+
+    			break;
+    		
+    		case 'code type':
+
+				if ($convert_type == 'export') 
+				{
+		    		$code_type = strtolower($array_data['code_type']);
+		    		switch ($code_type) {
+		    			case 'single':
+		    				$rule['promo_code'] 	= $array_data['promo_code'];
+		    				break;
+		    			
+		    			case 'multiple':
+		    				$rule['prefix_code'] 	= $array_data['prefix_code'];
+		    				$rule['number_last_code'] 	= $array_data['number_last_code'];
+		    				break;
+
+		    			default:
+		    				$rule = [];
+		    				break;
+		    		}
+
+		    		$new_data	= $rule;
+				}
+
+    			break;
+    		
+    		case 'promo rule':
+
+				if ($convert_type == 'export') 
+				{
+					switch ($array_data['promo_type']) {
+		    			case 'Product discount':
+		    				$rule['product_type'] 					= $array_data['product_type'];
+		    				$rule['promo_type'] 					= $array_data['promo_type'];
+		    				$rule['product_discount_type'] 			= $array_data['product_discount_type'];
+		    				$rule['product_discount_value'] 		= $array_data['product_discount_value'];
+		    				$rule['product_discount_max_qty'] 		= $array_data['product_discount_max_qty'];
+		    				$rule['product_discount_max_discount'] 	= $array_data['product_discount_max_discount'];
+		    				$rule['is_all_product'] 				= $array_data['is_all_product'] ? 'yes' : 'no';
+		    				break;
+		    			
+		    			case 'Tier discount':
+		    				$rule['product_type'] 				= $array_data['product_type'];
+		    				$rule['promo_type'] 				= $array_data['promo_type'];
+		    				$rule['tier_discount_product_code'] = $array_data['tier_discount_product_code'];
+		    				$rule['tier_discount_product_name'] = $array_data['tier_discount_product_name'];
+		    				break;
+		    			
+		    			case 'Buy X Get Y':
+		    				$rule['product_type'] 						= $array_data['product_type'];
+		    				$rule['promo_type'] 						= $array_data['promo_type'];
+		    				$rule['buy_x_get_y_discount_product_code'] 	= $array_data['buy_x_get_y_discount_product_code'];
+		    				$rule['buy_x_get_y_discount_product_name'] 	= $array_data['buy_x_get_y_discount_product_name'];
+		    				break;
+		    			
+		    			default:
+		    				$rule = [];
+		    				break;
+		    		}
+
+		    		$new_data = $rule;
+				}
+				else
+				{
+					if (!empty($array_data['promo_type'])) 
+					{
+						switch ($array_data['promo_type']) {
+			    			case 'Product discount':
+			    				$rule['product_type'] 					= $array_data['product_type'];
+			    				$rule['promo_type'] 					= $array_data['promo_type'];
+			    				$rule['product_discount_type'] 			= $array_data['product_discount_type'];
+			    				$rule['product_discount_value'] 		= $array_data['product_discount_value'];
+			    				$rule['product_discount_max_qty'] 		= $array_data['product_discount_max_qty'];
+			    				$rule['product_discount_max_discount'] 	= $array_data['product_discount_max_discount'];
+			    				$rule['is_all_product'] 				= $array_data['is_all_product'] == 'yes' ? 1 : 0;
+			    				break;
+			    			
+			    			case 'Tier discount':
+			    				$rule['product_type'] 				= $array_data['product_type'];
+			    				$rule['promo_type'] 				= $array_data['promo_type'];
+			    				$rule['tier_discount_product_code'] = $array_data['tier_discount_product_code'];
+			    				$rule['tier_discount_product_name'] = $array_data['tier_discount_product_name'];
+			    				break;
+			    			
+			    			case 'Buy X Get Y':
+			    				$rule['product_type'] 						= $array_data['product_type'];
+			    				$rule['promo_type'] 						= $array_data['promo_type'];
+			    				$rule['buy_x_get_y_discount_product_code'] 	= $array_data['buy_x_get_y_discount_product_code'];
+			    				$rule['buy_x_get_y_discount_product_name'] 	= $array_data['buy_x_get_y_discount_product_name'];
+			    				break;
+			    			
+			    			default:
+			    				$rule = [];
+			    				break;
+			    		}
+					}
+					else{
+						$rule = [];
+					}
+
+		    		$new_data = $rule;
+				}
+
+    			break;
+    		
+    		default:
+
+		    	if ($convert_type != 'export') {
+		    		$index_key = array_flip($index_key);
+		    	}
+
+		    	$new_data = [];
+				foreach ($array_data as $key => $value) {
+					$new_data[$index_key[$key]??$key]	= $value;
+				}
+
+    			break;
+    	}
+
+		return $new_data;
+    }
+
+    public function checkPromoCampaignInput($array_data, $check_type='export')
+    {
+// return $array_data;
+    	if ($check_type == 'export') 
+    	{
+    		$data = $this->promo_campaign_key;
+    		// return $data;
+    		// unset rule
+    		unset(
+    			$data['promo_code'],
+    			$data['prefix_code'],
+    			$data['promo_type'],
+    			$data['number_last_code'],
+    			$data['product_discount_type'],
+    			$data['product_discount_value'],
+    			$data['product_discount_max_qty'],
+    			$data['product_discount_max_discount'],
+    			$data['is_all_product'],
+    			$data['tier_discount_product_code'],
+    			$data['tier_discount_product_name'],
+    			$data['buy_x_get_y_discount_product_code'],
+    			$data['buy_x_get_y_discount_product_name']
+    		);
+
+			// date
+			$date = $this->convertPromoCampaignInput($array_data, $check_type, 'date');
+			$array_data = array_merge($array_data, $date);
+
+			// prepare default order data
+			foreach ($data as $key => $value) {
+				$data[$key] = $array_data[$key]??'';
+			}
+
+			// code type
+			$code_type = $this->convertPromoCampaignInput($array_data, $check_type, 'code type');
+			$data = array_merge($data, $code_type);
+    	}
+    	else
+    	{
+    		$data 	= $array_data;
+    	}    	
+
+		// tags
+		$tags = $this->convertPromoCampaignInput($array_data, $check_type, 'tags');
+		$data = array_merge($data, $tags);
+
+		// outlet
+		$outlet = $this->convertPromoCampaignInput($array_data, $check_type, 'outlet');
+		$data = array_merge($data, $outlet);
+
+		// promo rule
+		$promo_rule = $this->convertPromoCampaignInput($array_data, $check_type, 'promo rule');
+		$data = array_merge($data, $promo_rule);
 
     	return $data;
     }
