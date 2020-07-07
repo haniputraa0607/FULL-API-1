@@ -2322,6 +2322,11 @@ class MyHelper{
 				return number_format($number,...$custom);
 				break;
 
+			case 'point':
+				$decimals = strtoupper(env('COUNTRY_CODE','ID')) != 'SG'?0:2;
+				return floor($number*(10**$decimals))/(10**$decimals);
+				break;
+
 			case 'short':
 				// rounded down
 				if ($number < 1000) {

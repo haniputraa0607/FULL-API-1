@@ -51,7 +51,7 @@ class Transaction extends Model
 		// 'transaction_tax' => 'int',
 		'transaction_grandtotal' => 'int',
 		'transaction_point_earned' => 'int',
-		'transaction_cashback_earned' => 'int'
+		'transaction_cashback_earned' => 'double'
 	];
 
 	protected $dates = [

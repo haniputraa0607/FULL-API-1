@@ -2056,6 +2056,7 @@ class ApiOnlineTransaction extends Controller
                 $post['cashback'] = $post['cashback'];
             }
         }
+        $post['cashback'] = MyHelper::requestNumber($post['cashback'],'point');
 
         // apply cashback
         if ($use_referral){
@@ -2095,7 +2096,7 @@ class ApiOnlineTransaction extends Controller
         }
 
         $cashback_text = explode('%earned_cashback%',Setting::select('value_text')->where('key', 'earned_cashback_text')->pluck('value_text')->first()?:'You\'ll receive %earned_cashback% for this transaction');
-        $cashback_earned = (int) $post['cashback'];
+        $cashback_earned = (double) $post['cashback'];
 
         $cashback_text_array = [
             $cashback_text[0],
