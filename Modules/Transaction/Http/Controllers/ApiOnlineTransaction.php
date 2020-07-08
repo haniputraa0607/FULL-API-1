@@ -120,7 +120,7 @@ class ApiOnlineTransaction extends Controller
             DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
-                'messages'  => ['Sorry your account has been suspended, please contact '.env('EMAIL_ADDRESS_ADMIN')]
+                'messages'  => ['Sorry your account has been suspended, please contact '.config('configs.EMAIL_ADDRESS_ADMIN')]
             ]);
         }
 
