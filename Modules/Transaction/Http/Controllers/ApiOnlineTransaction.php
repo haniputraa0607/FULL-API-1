@@ -2147,7 +2147,7 @@ class ApiOnlineTransaction extends Controller
             $result['used_point_pretty'] = MyHelper::requestNumber($used_point,'_POINT');
             $result['used_point'] = MyHelper::requestNumber($used_point,$rn);
             $result['points_pretty'] = MyHelper::requestNumber($balance - $used_point,'_POINT');
-            $result['points'] = MyHelper::requestNumber(($balance - $used_point),$rn);
+            $result['points'] = MyHelper::requestNumber(($balance - $used_point),'point');
         }
 
         $result['total_payment_pretty'] = MyHelper::requestNumber(($grandtotal-$used_point),'_CURRENCY');
