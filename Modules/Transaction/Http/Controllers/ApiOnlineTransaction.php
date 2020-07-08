@@ -2012,7 +2012,7 @@ class ApiOnlineTransaction extends Controller
                 $post[$valueTotal] = app($this->setting_trx)->countTransaction($valueTotal, $post);
             }
         }
-        $post['discount'] = $post['discount'] + ($promo_discount??0);
+        // $post['discount'] = $post['discount'] + ($promo_discount??0);
 
         $post['cashback'] = app($this->setting_trx)->countTransaction('cashback', $post);
 
