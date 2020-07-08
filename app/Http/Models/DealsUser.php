@@ -38,7 +38,7 @@ class DealsUser extends Model
 		'id_user' => 'int',
 		'id_outlet' => 'int',
 		'voucher_price_point' => 'double',
-		'voucher_price_cash' => 'int'
+		'voucher_price_cash' => 'double'
 	];
 
 	protected $dates = [

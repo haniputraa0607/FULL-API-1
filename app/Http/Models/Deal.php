@@ -55,7 +55,7 @@ class Deal extends Model
 		'id_product' => 'int',
 		'deals_voucher_duration' => 'int',
 		'deals_voucher_price_point' => 'double',
-		'deals_voucher_price_cash' => 'int',
+		'deals_voucher_price_cash' => 'double',
 		'deals_total_voucher' => 'int',
 		'total_voucher_subscription' => 'int',
 		'deals_total_claimed' => 'int',
