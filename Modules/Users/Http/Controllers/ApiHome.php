@@ -149,7 +149,7 @@ class ApiHome extends Controller
 			$result = [
 					'status' => 'success',
 					'result' => [
-						'total_point' => (int) $balance,
+						'total_point' => (double) $balance,
                         'total_point_pretty' => MyHelper::requestNumber($balance,'_POINT'),
                         'total_point_short' => MyHelper::requestNumber($balance,'short'),
 						'qr_code'        => $qrCode,

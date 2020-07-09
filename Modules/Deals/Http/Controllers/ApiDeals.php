@@ -60,7 +60,9 @@ class ApiDeals extends Controller
         $this->autocrm = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
         $this->subscription = "Modules\Subscription\Http\Controllers\ApiSubscription";
         $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+        $this->promo_export_import  = "Modules\PromoCampaign\Http\Controllers\ApiPromoExportImport";
         $this->deals_claim    = "Modules\Deals\Http\Controllers\ApiDealsClaim";
+
     }
 
     public $saveImage = "img/deals/";
@@ -1628,7 +1630,12 @@ class ApiDeals extends Controller
 
 	        	foreach ($value['deals_content_details'] as $key2 => $value2) {
 	        		// return [$value2['content']];
-	        		$data['content'][$i]['detail_'.($key2+1)] = $value2['content'];
+	        		if ($key == 0) {
+	        			$data['content'][$i][$key2] = $value2['content'];
+	        		}
+	        		else{
+	        			$data['content'][$i][$key2] = $value2['content'];
+	        		}
 	        	}
 	        	$i++;
 	        }
@@ -1666,7 +1673,9 @@ class ApiDeals extends Controller
 	        		foreach ($data['detail_rule_tier_discount'] as $key => $value) {
 	        			unset(
 	        				$data['detail_rule_tier_discount'][$key]['id_deals_tier_discount_rule'],
-	        				$data['detail_rule_tier_discount'][$key]['id_deals']
+	        				$data['detail_rule_tier_discount'][$key]['id_deals'],
+	        				$data['detail_rule_tier_discount'][$key]['created_at'],
+	        				$data['detail_rule_tier_discount'][$key]['updated_at']
 	        			);
 	        		}
 	        		if ($data['detail_rule_tier_discount'] == [] ) {
@@ -1746,6 +1755,10 @@ class ApiDeals extends Controller
 	        );
 
 	        $temp_deals = [];
+
+	        $deals = app($this->promo_export_import)->checkDealsInput($deals, 'export');
+	        $deals = app($this->promo_export_import)->convertDealsInput($deals);
+
 	        foreach ($deals as $key => $value) {
 	        	$temp_deals[] = [$key, $value];
 	        }
@@ -1767,15 +1780,18 @@ class ApiDeals extends Controller
         return response()->json($result);
     }
 
-    public function Import(ImportDealsRequest $request)
+    public function import(ImportDealsRequest $request)
     {
-    	$post = $request->json()->all();
+     	$post = $request->json()->all();
     	$deals = $post['data']['rule'];
     	$image_path = 'img/deals/';
     	$warning_image_path = 'img/deals/warning-image/';
     	$errors = [];
     	$warnings = [];
 
+    	$deals = app($this->promo_export_import)->convertDealsInput($deals, 'import');
+    	$deals = app($this->promo_export_import)->checkDealsInput($deals, 'import');
+    	$post['data']['rule'] = $deals;
     	db::beginTransaction();
 
     	// save deals
@@ -1831,6 +1847,7 @@ class ApiDeals extends Controller
 		}
 
 		$deals['deals_warning_image'] = $this->uploadImageFromURL($deals['url_deals_warning_image'], $warning_image_path, 'warning');
+
 		if (!empty($deals['url_deals_warning_image']) && empty($deals['deals_warning_image'])) {
 			$warnings[] = 'Deals warning Image url\'s invalid';
 		}

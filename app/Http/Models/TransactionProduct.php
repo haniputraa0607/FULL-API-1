@@ -36,7 +36,7 @@ class TransactionProduct extends Model
 		'id_product' => 'int',
 		'transaction_product_qty' => 'int',
 // 		'transaction_product_price' => 'int',
-		'transaction_product_subtotal' => 'int'
+		'transaction_product_subtotal' => 'double'
 	];
 
 	protected $fillable = [

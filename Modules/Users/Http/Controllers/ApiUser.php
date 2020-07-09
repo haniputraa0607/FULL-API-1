@@ -955,7 +955,7 @@ class ApiUser extends Controller
                 'status' => 'success',
                 'result' => $data,
                 'otp_timer' => $holdTime,
-                'messages' => ['Sorry your account has been suspended, please contact '.env('EMAIL_ADDRESS_ADMIN')]
+                'messages' => ['Sorry your account has been suspended, please contact '.config('configs.EMAIL_ADDRESS_ADMIN')]
             ]);
         }
 
@@ -1288,12 +1288,12 @@ class ApiUser extends Controller
                             if ($data[0]['is_suspended'] == 1) {
                                 return response()->json([
                                     'status' => 'fail',
-                                    'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at '.env('EMAIL_ADDRESS_ADMIN')]
+                                    'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at '.config('configs.EMAIL_ADDRESS_ADMIN')]
                                 ]);
                             } else {
                                 return response()->json([
                                     'status' => 'fail',
-                                    'messages' => ['Your account cannot log in on this device because it shows suspicious activity. For more information, please contact our customer service at '.env('EMAIL_ADDRESS_ADMIN')]
+                                    'messages' => ['Your account cannot log in on this device because it shows suspicious activity. For more information, please contact our customer service at '.config('configs.EMAIL_ADDRESS_ADMIN')]
                                 ]);
                             }
                         }
@@ -1632,12 +1632,12 @@ class ApiUser extends Controller
                                 if ($data[0]['is_suspended'] == 1) {
                                     return response()->json([
                                         'status' => 'fail',
-                                        'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at '.env('EMAIL_ADDRESS_ADMIN')]
+                                        'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at '.config('configs.EMAIL_ADDRESS_ADMIN')]
                                     ]);
                                 } else {
                                     return response()->json([
                                         'status' => 'fail',
-                                        'messages' => ['Your account cannot be registered in on this device because it shows suspicious activity. For more information, please contact our customer service at '.env('EMAIL_ADDRESS_ADMIN')]
+                                        'messages' => ['Your account cannot be registered in on this device because it shows suspicious activity. For more information, please contact our customer service at '.config('configs.EMAIL_ADDRESS_ADMIN')]
                                     ]);
                                 }
                             }
