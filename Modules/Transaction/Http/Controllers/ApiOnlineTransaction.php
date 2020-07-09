@@ -1530,6 +1530,7 @@ class ApiOnlineTransaction extends Controller
         $post = $request->json()->all();
         $missing_product = 0;
         $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
+        $post['item'] = $this->mergeProducts($post['item']);
         if($use_product_variant){
             foreach ($post['item'] as $key => &$prod) {
                 $prd = Product::where(function($query) use ($prod){
@@ -2575,5 +2576,42 @@ class ApiOnlineTransaction extends Controller
         }
         $update = Setting::updateOrCreate(['key' => 'active_payment_methods'], ['value_text' => json_encode($payments)]);
         return MyHelper::checkUpdate($update);
+    }
+
+    public function mergeProducts($items)
+    {
+        $new_items = [];
+        $item_qtys = [];
+
+        // create unique array
+        foreach ($items as $item) {
+            $new_item = [
+                'bonus' => $item['bonus'],
+                'id_brand' => $item['id_brand'],
+                'id_product_group' => $item['id_product_group'],
+                'note' => $item['note'],
+                'variants' => $item['variants'],
+                'modifiers' => array_map(function($i){
+                        return [
+                            'id_product_modifier' => $i['id_product_modifier'],
+                            'qty' => $i['qty']
+                        ];
+                    },$item['modifiers']??[]),
+            ];
+            usort($new_item['modifiers'],function($a, $b) { return $a['id_product_modifier'] <=> $b['id_product_modifier']; });
+            $pos = array_search($new_item, $new_items);
+            if($pos === false) {
+                $new_items[] = $new_item;
+                $item_qtys[] = $item['qty'];
+            } else {
+                $item_qtys[$pos] += $item['qty'];
+            }
+        }
+        // update qty
+        foreach ($new_items as $key => &$value) {
+            $value['qty'] = $item_qtys[$key];
+        }
+
+        return $new_items;
     }
 }
