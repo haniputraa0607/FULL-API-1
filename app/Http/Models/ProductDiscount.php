@@ -36,7 +36,7 @@ class ProductDiscount extends Model
 	protected $casts = [
 		'id_product' => 'int',
 		'discount_percentage' => 'int',
-		'discount_nominal' => 'int'
+		'discount_nominal' => 'double'
 	];
 
 	protected $dates = [

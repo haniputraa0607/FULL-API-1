@@ -10,6 +10,7 @@ use App\Http\Models\Setting;
 use App\Http\Models\Product;
 use App\Http\Models\ProductPrice;
 use App\Http\Models\ProductModifier;
+use App\Lib\MyHelper;
 
 use DB;
 
@@ -289,8 +290,7 @@ class ApiSettingTransactionV2 extends Controller
             $value = $this->cashbackValue();
             $max = $this->cashbackValueMax();
 
-            $count = floor(eval('return ' . preg_replace('/([a-zA-Z0-9]+)/', '\$$1', $cashbackFormula) . ';'));
-
+            $count = MyHelper::requestNumber(eval('return ' . preg_replace('/([a-zA-Z0-9]+)/', '\$$1', $cashbackFormula) . ';'),'point');
             return $count;
         }
     }
