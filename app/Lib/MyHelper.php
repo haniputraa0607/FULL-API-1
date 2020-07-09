@@ -2468,7 +2468,7 @@ class MyHelper{
             return [
                 'status'=>'fail',
                 'otp_check'=> 1,
-                'messages'=> ["OTP request has passed the limit, please contact our customer service at ".env('EMAIL_ADDRESS_ADMIN')]
+                'messages'=> ["OTP request has passed the limit, please contact our customer service at ".config('configs.EMAIL_ADDRESS_ADMIN')]
             ];
         }
 
@@ -2497,7 +2497,7 @@ class MyHelper{
                 return [
                     'status'=>'fail',
                     'otp_check'=> 1,
-                    'messages'=> ["OTP request has passed the limit, please contact our customer service at ".env('EMAIL_ADDRESS_ADMIN')]
+                    'messages'=> ["OTP request has passed the limit, please contact our customer service at ".config('configs.EMAIL_ADDRESS_ADMIN')]
                 ];
             } else{
                 $availebleTime = date('Y-m-d H:i:s',strtotime('+'.$holdTime.' seconds',strtotime(date('Y-m-d H:i:s'))));
@@ -2542,7 +2542,7 @@ class MyHelper{
             return [
                 'status'=>'fail',
                 'email_verify_check'=> 1,
-                'messages'=> ["Email Verify request has passed the limit, please contact our customer service at ".env('EMAIL_ADDRESS_ADMIN')]
+                'messages'=> ["Email Verify request has passed the limit, please contact our customer service at ".config('configs.EMAIL_ADDRESS_ADMIN')]
             ];
         }
 
@@ -2571,7 +2571,7 @@ class MyHelper{
                 return [
                     'status'=>'fail',
                     'email_verify_check'=> 1,
-                    'messages'=> ["Email Verify request has passed the limit, please contact our customer service at ".env('EMAIL_ADDRESS_ADMIN')]
+                    'messages'=> ["Email Verify request has passed the limit, please contact our customer service at ".config('configs.EMAIL_ADDRESS_ADMIN')]
                 ];
             } else{
                 $availebleTime = date('Y-m-d H:i:s',strtotime('+'.$holdTime.' seconds',strtotime(date('Y-m-d H:i:s'))));
