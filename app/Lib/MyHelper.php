@@ -9,7 +9,7 @@ use Storage;
 use App\Http\Models\Notification;
 use App\Http\Models\Store;
 use App\Http\Models\User;
-use App\Http\Models\Transaksi;
+use App\Http\Models\Transaction;
 use App\Http\Models\ProductVariant;
 use App\Http\Models\LogPoint;
 use App\Http\Models\TransactionPaymentManual;
@@ -2322,6 +2322,11 @@ class MyHelper{
 				return number_format($number,...$custom);
 				break;
 
+			case 'point':
+				$decimals = strtoupper(env('COUNTRY_CODE','ID')) != 'SG'?0:2;
+				return floor($number*(10**$decimals))/(10**$decimals);
+				break;
+
 			case 'short':
 				// rounded down
 				if ($number < 1000) {
@@ -2453,7 +2458,7 @@ class MyHelper{
           maximum number then the user cannot make an otp request.
         */
 
-        $holdTime = 30;//set default hold time if setting not exist
+        $holdTime = 60;//set default hold time if setting not exist
         $maxValueRequest = 10;//set default max value for request if setting not exist
         if($setting){
             $setting = json_decode($setting['value_text']);
@@ -2468,7 +2473,7 @@ class MyHelper{
             return [
                 'status'=>'fail',
                 'otp_check'=> 1,
-                'messages'=> ["OTP request has passed the limit, please contact our customer service at ".env('EMAIL_ADDRESS_ADMIN')]
+                'messages'=> ["OTP request has passed the limit, please contact our customer service at ".config('configs.EMAIL_ADDRESS_ADMIN')]
             ];
         }
 
@@ -2489,7 +2494,7 @@ class MyHelper{
                 return [
                     'status'=>'fail',
                     'otp_check'=> 1,
-                    'messages'=> ["Can't request OTP, please request again after ".$holdTime." seconds"]
+                    'messages'=> ["Can't request OTP, please request again after ".floor($holdTime/60)." minutes"]
                 ];
             } elseif($count > $maxValueRequest){
                 $updateFlag = User::where('id', $data_user[0]['id'])->update(['otp_request_status' => 'Can Not Request']);
@@ -2497,7 +2502,7 @@ class MyHelper{
                 return [
                     'status'=>'fail',
                     'otp_check'=> 1,
-                    'messages'=> ["OTP request has passed the limit, please contact our customer service at ".env('EMAIL_ADDRESS_ADMIN')]
+                    'messages'=> ["OTP request has passed the limit, please contact our customer service at ".config('configs.EMAIL_ADDRESS_ADMIN')]
                 ];
             } else{
                 $availebleTime = date('Y-m-d H:i:s',strtotime('+'.$holdTime.' seconds',strtotime(date('Y-m-d H:i:s'))));
@@ -2517,5 +2522,119 @@ class MyHelper{
             $createFile = MyHelper::createFile($contentFile, 'json', 'otp/', $data_user[0]['id']);
             return true;
         }
+    }
+
+    public static function checkRuleForRequestEmailVerify($data_user){
+        //get setting rule for request email verify
+        $setting = Setting::where('key', 'email_verify_rule_request')->first();
+        /*
+          note : hold time in seconds. if the user has requested email verify exceeds the
+          maximum number then the user cannot make an email verify request.
+        */
+
+        $holdTime = 60;//set default hold time if setting not exist
+        $maxValueRequest = 10;//set default max value for request if setting not exist
+        if($setting){
+            $setting = json_decode($setting['value_text']);
+            $holdTime = (int)$setting->hold_time;
+            $maxValueRequest = (int)$setting->max_value_request;
+        }
+        $folder1 = 'emailverify';
+        $file = $data_user[0]['id'].'.json';
+
+        //check flag first in database
+        if(isset($data_user[0]['email_verify_request_status']) && $data_user[0]['email_verify_request_status'] == 'Can Not Request'){
+            return [
+                'status'=>'fail',
+                'email_verify_check'=> 1,
+                'messages'=> ["Email Verify request has passed the limit, please contact our customer service at ".config('configs.EMAIL_ADDRESS_ADMIN')]
+            ];
+        }
+
+        //check folder
+        if(env('STORAGE') == 'local'){
+            if(!Storage::disk(env('STORAGE'))->exists($folder1)){
+                Storage::makeDirectory($folder1);
+            }
+        }
+
+        if(Storage::disk(env('STORAGE'))->exists($folder1.'/'.$file)){
+            $readContent = Storage::disk(env('STORAGE'))->get($folder1.'/'.$file);
+            $content = json_decode($readContent);
+            $currentTime = date('Y-m-d H:i:s');
+            $count = $content->count_request + 1;
+
+            if(strtotime($currentTime) < strtotime($content->available_request_time)){
+                return [
+                    'status'=>'fail',
+                    'email_verify_check'=> 1,
+                    'messages'=> ["Can't request email verify, please request again after ".floor($holdTime/60)." minutes"]
+                ];
+            } elseif($count > $maxValueRequest){
+                $updateFlag = User::where('id', $data_user[0]['id'])->update(['email_verify_request_status' => 'Can Not Request']);
+                MyHelper::deleteFile($folder1.'/'.$file);
+                return [
+                    'status'=>'fail',
+                    'email_verify_check'=> 1,
+                    'messages'=> ["Email Verify request has passed the limit, please contact our customer service at ".config('configs.EMAIL_ADDRESS_ADMIN')]
+                ];
+            } else{
+                $availebleTime = date('Y-m-d H:i:s',strtotime('+'.$holdTime.' seconds',strtotime(date('Y-m-d H:i:s'))));
+                $contentFile = [
+                    'available_request_time' => $availebleTime,
+                    'count_request' => 1 + $content->count_request
+                ];
+                $createFile = MyHelper::createFile($contentFile, 'json', 'emailverify/', $data_user[0]['id']);
+                return true;
+            }
+        }else{
+            $availebleTime = date('Y-m-d H:i:s',strtotime('+'.$holdTime.' seconds',strtotime(date('Y-m-d H:i:s'))));
+            $contentFile = [
+                'available_request_time' => $availebleTime,
+                'count_request' => 1
+            ];
+            $createFile = MyHelper::createFile($contentFile, 'json', 'emailverify/', $data_user[0]['id']);
+            return true;
+        }
+    }
+
+    /**
+     * update flag transaction online (flag ini digunakan untuk menandai user pernah transaksi online atau belum (digunakan di referral))
+     * @param  array/model 	$trx 	 	  	Transacction model
+     * @param  string 		$status 		"pending" / "cancel" / "success"
+     * @param  model 		$user   		User model or leave it empty
+     * @return boolean
+     */
+    public static function updateFlagTransactionOnline($trx, $status = 'pending', $user = null)
+    {
+    	if (!$user) {
+	        $user = User::where('id',$trx['id_user'])->first();
+    	}
+    	if ($status == 'success') {
+    		if ($user['transaction_online_status'] == 'success') {
+    			return true;
+    		}
+    		if ($user['transaction_online'] != $trx['id_transaction']) {
+	    		$user->update(['transaction_online' => $trx['id_transaction'], 'transaction_online_status' => 'success']);
+    			return true;
+    		}
+    	} elseif ($status == 'cancel') {
+	        // check flag transaction_online == id_transaction
+	        if($user['transaction_online'] == $trx['id_transaction']) {
+	        	// find other pending transaction
+	        	$id_pending_trx = Transaction::select('id_transaction')->where('id_user',$trx['id_user'])->where('transaction_payment_status','Pending')->where('id_transaction', '<>', $trx['id_transaction'])->pluck('id_transaction')->first();
+	        	if ($id_pending_trx) {
+	        		$user->update(['transaction_online' => $id_pending_trx, 'transaction_online_status' => 'pending']);
+	        	} else {
+	        		$user->update(['transaction_online' => null, 'transaction_online_status' => null]);
+	        	}
+	        };
+	        return true;
+    	} else {
+    		if (!$user['transaction_online']) {
+	    		$user->update(['transaction_online' => $trx['id_transaction'], 'transaction_online_status' => 'pending']);
+    		}
+    	}
+    	return true;
     }
 }

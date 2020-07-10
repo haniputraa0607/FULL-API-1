@@ -81,7 +81,7 @@ class ApiDealsTransaction extends Controller
         if (isset($post['id_deals_user'])) {
             $trx->where('id_deals_user', $post['id_deals_user']);
         }
-
+        $trx = $trx->orderBy('claimed_at', 'DESC');
         // $trx = $trx->get()->toArray();
         $trx = $trx->paginate(10);
 

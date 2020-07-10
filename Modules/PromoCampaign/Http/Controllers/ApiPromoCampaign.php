@@ -1034,7 +1034,15 @@ class ApiPromoCampaign extends Controller
 				return $result;
 			}
 		}else{
-			$dataPromoCampaign[$warning_image.'_warning_image'] = null;
+			if (!empty($post['use_global'])) {
+				$dataPromoCampaign[$warning_image.'_warning_image'] = null;
+			}
+			elseif(isset($image[$warning_image.'_warning_image']) && file_exists($image[$warning_image.'_warning_image'])){
+				$dataPromoCampaign[$warning_image.'_warning_image'] = $image[$warning_image.'_warning_image'];
+			}
+			else{
+				$dataPromoCampaign[$warning_image.'_warning_image'] = null;
+			}
 		}
 
         $update = $table::where($id_table, $id_post)->update($dataPromoCampaign);
@@ -1543,7 +1551,7 @@ class ApiPromoCampaign extends Controller
         else
         {
         	$promo_code = (string) $promo_code;
-        	$checkCode = PromoCampaignPromoCode::where('promo_code',$promo_code)->first();
+        	$checkCode = PromoCampaignPromoCode::where('promo_code',$promo_code)->where('id_promo_campaign','!=',$id)->first();
 
         	if ($checkCode) {
         		return ['status' => 'fail', 'messages' => 'promo code already exists'];
@@ -1700,11 +1708,16 @@ class ApiPromoCampaign extends Controller
         }
         elseif ($post['get'] == 'Product')
         {
-            $data = Product::select('id_product', DB::raw('CONCAT(product_code, " - ", product_name) AS product'))->get()->toArray();
+            $data = Product::select('id_product', DB::raw('CONCAT(product_code, " - ", product_name) AS product'))
+            		->whereHas('product_group', function($q) {
+            			$q->whereNotNull('id_product_category');
+            		})
+            		->get()
+            		->toArray();
         }
         elseif ($post['get'] == 'ProductGroup')
         {
-            $data = ProductGroup::select('id_product_group', DB::raw('CONCAT(product_group_code, " - ", product_group_name) AS product_group'))->get()->toArray();
+            $data = ProductGroup::select('id_product_group', DB::raw('CONCAT(product_group_code, " - ", product_group_name) AS product_group'))->whereNotNull('id_product_category')->get()->toArray();
         }
         else
         {

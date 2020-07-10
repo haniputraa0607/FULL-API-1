@@ -300,7 +300,7 @@ class ApiProductGroupController extends Controller
         if($post['product_group_photo']??false){
             $data['product_group_photo'] = $post['product_group_photo'];
         }
-        if($post['product_group_photo']??false){
+        if($post['product_group_image_detail']??false){
             $data['product_group_image_detail'] = $post['product_group_image_detail'];
         }
         $update = $pg->update($data);
@@ -508,7 +508,7 @@ class ApiProductGroupController extends Controller
                         $query->select('product_group_product_promo_categories.id_product_promo_category');
                     }]);
                     // ->get();
-        if (isset($post['promo_code'])) {
+        if (isset($post['promo_code']) || isset($post['id_deals_user'])) {
         	$data = $data->with('products');
         }
 
@@ -517,6 +517,10 @@ class ApiProductGroupController extends Controller
         if(!$data){
             return MyHelper::checkGet($data);
         }
+
+        foreach ($data as $key => $value) {
+			$data[$key]['is_promo'] = 0;
+		}
 
         $promo_data = $this->applyPromo($post, $data, $promo_error);
 
@@ -527,7 +531,7 @@ class ApiProductGroupController extends Controller
         $result = [];
         foreach ($data as $product) {
             $product['product_stock_status'] = $this->checkAvailable($product['product_stock_status']);
-            $product['product_price'] = MyHelper::requestNumber($product['product_price'],$request->json('request_number'));
+            $product['product_price'] = MyHelper::requestNumber($product['product_price'],'point');
             $product['product_price_pretty'] = MyHelper::requestNumber($product['product_price'],'_CURRENCY');
             $id_product_category = $product['id_product_category'];
             if(!isset($result[$id_product_category]['product_category_name'])){
@@ -667,7 +671,7 @@ class ApiProductGroupController extends Controller
             ->join('product_variants as t2','product_variants.parent','=','t2.id_product_variant')
             ->whereIn('product_product_variants.id_product',$id_products)->orderBy('product_variants.product_variant_position')->groupBy('product_variant_code')->get()->toArray();
         // set price to response
-        $data['product_price'] = MyHelper::requestNumber($default['product_price'],$request->json('request_number'));
+        $data['product_price'] = MyHelper::requestNumber($default['product_price'],'point');
         $data['product_price_pretty'] = MyHelper::requestNumber($default['product_price'],'_CURRENCY');
         $arranged_variant = [];
         foreach ($variants as $key => $variant) {
@@ -680,7 +684,7 @@ class ApiProductGroupController extends Controller
                 'id_product_variant'=>$variant['id_product_variant'],
                 'product_variant_code'=>$variant['product_variant_code'],
                 'product_variant_name'=>$variant['product_variant_name'],
-                'product_variant_price'=>MyHelper::requestNumber($variant['product_variant_price'],$request->json('request_number'))
+                'product_variant_price'=>MyHelper::requestNumber($variant['product_variant_price'],'point')
             ];
             $child['default'] = ($defaults[$variant['parent_id']]??false) == $child['id_product_variant']?1:0;
             $arranged_variant[$variant['parent_id']]['childs'][$variant['product_variant_code']] = $child;
@@ -753,7 +757,7 @@ class ApiProductGroupController extends Controller
             })
             ->get()->toArray();
         $data['modifiers'] = array_values(MyHelper::groupIt($modifiers,'type',function($key,&$val) use ($request){
-            $val['price'] = MyHelper::requestNumber($val['price'],$request->json('request_number'));
+            $val['price'] = MyHelper::requestNumber($val['price'],'point');
             $val['price_pretty'] = MyHelper::requestNumber($val['price'],'_CURRENCY');
             return $key;
         },function($key,&$val){
@@ -793,7 +797,7 @@ class ApiProductGroupController extends Controller
                     // group by product_groups
                     ->groupBy('product_groups.id_product_group');
 
-        if (isset($post['promo_code'])) {
+        if (isset($post['promo_code']) || isset($post['id_deals_user'])) {
         	$data = $data->with('products');
         }
 
@@ -802,6 +806,10 @@ class ApiProductGroupController extends Controller
         if(!$data){
             return MyHelper::checkGet($data);
         }
+
+        foreach ($data as $key => $value) {
+			$data[$key]['is_promo'] = 0;
+		}
 
         $promo_data = $this->applyPromo($post, $data, $promo_error);
 
@@ -813,7 +821,7 @@ class ApiProductGroupController extends Controller
         foreach ($data as $product) {
             $product['product_stock_status'] = $this->checkAvailable($product['product_stock_status']);
             $product['product_price_pretty'] = MyHelper::requestNumber($product['product_price'],'_CURRENCY');
-            $product['product_price'] = MyHelper::requestNumber($product['product_price'],$request->json('request_number'));
+            $product['product_price'] = MyHelper::requestNumber($product['product_price'],'point');
             unset($product['products']);
             $result[] = $product;
         }
@@ -857,7 +865,7 @@ class ApiProductGroupController extends Controller
 
 				if (isset($post['id_outlet'])) {
 					$pct = new PromoCampaignTools();
-					if (!$pct->checkOutletRule($post['id_outlet'], $code[$source]['is_all_outlet']??0,$code[$source][$source.'_outlets']??$code['deal_voucher'][$source]['outlets_active'])) {
+					if (!$pct->checkOutletRule($post['id_outlet'], $code[$source]['is_all_outlet']??$code['deal_voucher']['deals']['is_all_outlet']??0,$code[$source][$source.'_outlets']??$code['deal_voucher'][$source]['outlets_active'])) {
 						$promo_error = Setting::where('key','promo_error_product_list')->first()['value']??'Cannot use promo at this outlet.';
 	        			return false;
 					}

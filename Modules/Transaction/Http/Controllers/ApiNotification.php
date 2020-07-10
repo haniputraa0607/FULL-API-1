@@ -10,6 +10,7 @@ use App\Http\Models\DealsPaymentMidtran;
 use App\Http\Models\SubscriptionPaymentMidtran;
 use App\Http\Models\DealsUser;
 use App\Http\Models\SubscriptionUser;
+use App\Http\Models\TransactionPaymentOffline;
 use App\Http\Models\TransactionPaymentOvo;
 use App\Http\Models\User;
 use App\Http\Models\Outlet;
@@ -43,6 +44,7 @@ use App\Lib\PushNotificationHelper;
 use App\Lib\Midtrans;
 use App\Lib\GoSend;
 use Modules\IPay88\Entities\TransactionPaymentIpay88;
+use Modules\ShopeePay\Entities\TransactionPaymentShopeePay;
 use Validator;
 use Hash;
 use DB;
@@ -567,10 +569,10 @@ class ApiNotification extends Controller {
             $updateUserPoint = User::where('id', $data['id_user'])->update(['points' => $totalPoint]);
         }
 
-        // apply cashback to referrer
-        \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback(Transaction::find($data['id_transaction']));
-
         if ($data['trasaction_payment_type'] != 'Balance') {
+            // apply cashback to referrer
+            \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback(Transaction::find($data['id_transaction']));
+
             if ($data['transaction_cashback_earned'] != 0) {
 
 
@@ -1595,14 +1597,14 @@ Detail: ".$link['short'],
         $dataPayment = [];
 
         $multiPayment = TransactionMultiplePayment::where('id_transaction', $list['id_transaction'])->get();
-        // return $multiPayment;
+
         if (isset($multiPayment)) {
             foreach ($multiPayment as $key => $value) {
                 if ($value->type == 'Midtrans') {
                     $getPayment = TransactionPaymentMidtran::where('id_transaction', $list['id_transaction'])->first();
                     if (!empty($getPayment)) {
                         $dataPush = [
-                            'payment_method' => $getPayment['bank'],
+                            'payment_method' => strtoupper(str_replace('_', ' ', $getPayment['payment_type'])).' '.strtoupper($getPayment['bank']),
                             'nominal' => $getPayment['gross_amount']
                         ];
                         array_push($dataPayment, $dataPush);
@@ -1620,7 +1622,7 @@ Detail: ".$link['short'],
                     $getPayment = TransactionPaymentOvo::where('id_transaction', $list['id_transaction'])->first();
                     if (!empty($getPayment)) {
                         $dataPush = [
-                            'payment_method' => 'Ovo',
+                            'payment_method' => 'OVO',
                             'nominal' => $getPayment['amount']
                         ];
                         array_push($dataPayment, $dataPush);
@@ -1630,23 +1632,27 @@ Detail: ".$link['short'],
                     if (!empty($getPayment)) {
                         $dataPush = [
                             'payment_method' => $getPayment['payment_method'],
-                            'nominal' => $getPayment['amount']
+                            'nominal' => $getPayment['amount'] / 100
+                        ];
+                        array_push($dataPayment, $dataPush);
+                    }
+                }elseif ($value->type == 'Shopeepay') {
+                    $getPayment = TransactionPaymentShopeePay::where('id_transaction_payment_shopee_pay', $value->id_payment)->first();
+                    if (!empty($getPayment)) {
+                        $dataPush = [
+                            'payment_method' => 'ShopeePay',
+                            'nominal' => $getPayment['amount'] / 100
                         ];
                         array_push($dataPayment, $dataPush);
                     }
                 }
             }
         }else{
-            if($list['trasaction_payment_type'] == 'Midtrans') {
-                $getPayment = TransactionPaymentMidtran::where('id_transaction', $list['id_transaction'])->first();
-                if (!empty($getPayment)) {
-                    $dataPush = [
-                        'payment_method' => $getPayment['bank'],
-                        'nominal' => $getPayment['gross_amount']
-                    ];
-                    array_push($dataPayment, $dataPush);
-                }
-            }
+            $dataPush = [
+                'payment_method' => NULL,
+                'nominal' => NULL
+            ];
+            array_push($dataPayment, $dataPush);
 
         }
 

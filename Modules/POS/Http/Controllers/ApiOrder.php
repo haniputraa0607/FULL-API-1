@@ -498,6 +498,7 @@ class ApiOrder extends Controller
 
             $use_referral = optional(optional($newTrx->promo_campaign_promo_code)->promo_campaign)->promo_type == 'Referral';
 
+            MyHelper::updateFlagTransactionOnline($newTrx, 'success', $newTrx->user);
             if (!in_array('Balance', $column) || $use_referral) {
 
             	$promo_source = null;
@@ -514,15 +515,17 @@ class ApiOrder extends Controller
 
             	if( app($this->trx)->checkPromoGetPoint($promo_source) || $use_referral)
 				{
-	                $savePoint = app($this->getNotif)->savePoint($newTrx);
-	                // return $savePoint;
-	                if (!$savePoint) {
-	                    // DB::rollBack();
-	                    return response()->json([
-	                        'status'   => 'fail',
-	                        'messages' => ['Transaction failed']
-	                    ]);
-	                }
+                    if(is_null($order['fraud_flag'])){
+                        $savePoint = app($this->getNotif)->savePoint($newTrx);
+                        // return $savePoint;
+                        if (!$savePoint) {
+                            // DB::rollBack();
+                            return response()->json([
+                                'status'   => 'fail',
+                                'messages' => ['Transaction failed']
+                            ]);
+                        }
+                    }
 	            }
             }
 

@@ -68,6 +68,7 @@ use Modules\Transaction\Http\Requests\MethodSave;
 use Modules\Transaction\Http\Requests\MethodDelete;
 use Modules\Transaction\Http\Requests\ManualPaymentConfirm;
 use Modules\Transaction\Http\Requests\ShippingGoSend;
+use Modules\PromoCampaign\Entities\PromoCampaignReferral;
 
 use App\Lib\MyHelper;
 use App\Lib\GoSend;
@@ -1590,7 +1591,7 @@ class ApiTransaction extends Controller
                                     $payment['reject']  = $payOvo->response_description;
                                     $list['payment'][]  = $payment;
                                     break;
-                                case 'Ipay88':
+                                case 'IPay88':
                                     $PayIpay = TransactionPaymentIpay88::find($mp['id_payment']);
                                     $payment['name']    = $PayIpay->payment_method;
                                     $payment['amount']  = $PayIpay->amount / 100;
@@ -1599,9 +1600,9 @@ class ApiTransaction extends Controller
                                     break;
                                 case 'Shopeepay':
                                     $shopeePay = TransactionPaymentShopeePay::find($mp['id_payment']);
-                                    $payment['name']    = 'Shopee Pay';
+                                    $payment['name']    = 'ShopeePay';
                                     $payment['amount']  = $shopeePay->amount / 100;
-                                    $payment['reject']  = ($shopeePay->additional_info == '{}') ? '' : $shopeePay->additional_info; 
+                                    $payment['reject']  = $shopeePay->err_reason?:'payment expired';
                                     $list['payment'][]  = $payment;
                                     break;
                                 case 'Offline':
@@ -1707,9 +1708,9 @@ class ApiTransaction extends Controller
                     foreach($multiPayment as $dataKey => $dataPay){
                         if($dataPay['type'] == 'Shopeepay'){
                             $payShopee = TransactionPaymentShopeePay::find($dataPay['id_payment']);
-                            $payment[$dataKey]['name']      = 'Shopee Pay';
+                            $payment[$dataKey]['name']      = 'ShopeePay';
                             $payment[$dataKey]['amount']    = $payShopee->amount / 100;
-                            $payment[$dataKey]['reject']    = ($payShopee->additional_info == '{}') ? '' : $payShopee->additional_info;
+                            $payment[$dataKey]['reject']    = $payShopee->err_reason?:'payment expired';
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey]              = $dataPay;
@@ -1884,7 +1885,7 @@ class ApiTransaction extends Controller
                 }
             }
 
-            if (!empty($list['promo_campaign_promo_code'])) {
+            if (!empty($list['promo_campaign_promo_code']) && $list['promo_campaign_promo_code']['promo_campaign']['promo_type'] != 'Referral') {
                 $result['promo']['code'][$p++]   = $list['promo_campaign_promo_code']['promo_code'];
                 $result['payment_detail'][] = [
                     'name'          => 'Discount',
@@ -1898,6 +1899,7 @@ class ApiTransaction extends Controller
             $result['promo']['discount'] = MyHelper::requestNumber($discount,'_CURRENCY');
 
             if ($list['trasaction_payment_type'] != 'Offline') {
+
                 if ($list['transaction_payment_status'] == 'Cancelled') {
                     foreach ($list['payment'] as $key => $value) {
                         if (isset($value['reject'])) {
@@ -1905,24 +1907,13 @@ class ApiTransaction extends Controller
                                 'text'  => 'Your transaction failed because ' . $value['reject'],
                                 'date'  => date('d F Y H:i', strtotime($list['void_date']))
                             ];
-                        } else {
-                            $result['detail']['detail_status'][] = [
-                                'text'  => 'Your order has been canceled',
-                                'date'  => date('d F Y H:i', strtotime($list['void_date']))
-                            ];
                         }
                     }
                     $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order awaits confirmation payment',
-                        'date'  => date('d F Y H:i', strtotime($list['created_at']))
+                        'text'  => 'Your order has been canceled',
+                        'date'  => date('d F Y H:i', strtotime($list['void_date']))
                     ];
-                } else if($list['transaction_payment_status'] == 'Pending'){
-                    $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order awaits confirmation payment',
-                        'date'  => date('d F Y H:i', strtotime($list['created_at']))
-                    ];
-                }
-                else {
+                } else {
                     if ($list['detail']['reject_at'] != null) {
                         $result['detail']['detail_status'][] = [
                         'text'  => 'Order rejected',
@@ -1932,7 +1923,7 @@ class ApiTransaction extends Controller
                     }
                     if ($list['detail']['taken_by_system_at'] != null) {
                         $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order has been completed',
+                        'text'  => 'Your order has been completed by system',
                         'date'  => date('d F Y H:i', strtotime($list['detail']['taken_by_system_at']))
                     ];
                     }
@@ -1950,15 +1941,22 @@ class ApiTransaction extends Controller
                     }
                     if ($list['detail']['receive_at'] != null) {
                         $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order has been received',
-                        'date'  => date('d F Y H:i', strtotime($list['detail']['receive_at']))
-                    ];
+                            'text'  => 'Your order has been received',
+                            'date'  => date('d F Y H:i', strtotime($list['detail']['receive_at']))
+                        ];
                     }
-                    $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order awaits confirmation outlet',
-                        'date'  => date('d F Y H:i', strtotime($list['completed_at']))
-                    ];
+                    if ($list['completed_at'] != null) {
+                        $result['detail']['detail_status'][] = [
+                            'text'  => 'Your order awaits confirmation outlet',
+                            'date'  => date('d F Y H:i', strtotime($list['completed_at']))
+                        ];
+                    }
                 }
+
+                $result['detail']['detail_status'][] = [
+                    'text'  => 'Your order awaits confirmation payment',
+                    'date'  => date('d F Y H:i', strtotime($list['created_at']))
+                ];
             }
 
             foreach ($list['payment'] as $key => $value) {
@@ -2448,6 +2446,8 @@ class ApiTransaction extends Controller
                 'messages'  => ['Transaction not found !!']
             ]);
         }
+
+        MyHelper::updateFlagTransactionOnline($transaction, 'cancel');
 
         $transaction->void_date = date('Y-m-d H:i:s');
         $transaction->save();

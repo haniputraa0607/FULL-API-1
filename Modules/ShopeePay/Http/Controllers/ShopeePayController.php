@@ -36,6 +36,32 @@ class ShopeePayController extends Controller
         $this->voucher             = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
         $this->promo_campaign      = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
         $this->deals_claim         = "Modules\Deals\Http\Controllers\ApiDealsClaim";
+        $this->errcode             = [
+            '-2'  => 'a server dropped the connection',
+            '-1'  => 'a server error occurred',
+            '0'   => 'success',
+            '1'   => 'request parameters error',
+            '2'   => 'permission denied',
+            '4'   => 'merchant/store not found',
+            '6'   => 'the user making the payment has not activated their wallet',
+            '7'   => 'expired',
+            '9'   => 'user’s account is banned',
+            '11'  => 'duplicate request/transaction',
+            '24'  => 'user\'s account is frozen',
+            '42'  => 'insufficient balance',
+            '101' => 'one of the user’s wallet limits has been exceeded',
+            '102' => 'one of the user’s wallet limits has been exceeded',
+            '103' => 'user exceeded daily payment limit. Limit will reset the next day',
+            '104' => 'one of the user’s wallet limits has been exceeded',
+            '105' => 'authorisation code is invalid',
+            '121' => 'client attempts to update completed transaction',
+            '301' => 'invalid payment code or QR content',
+            '303' => 'merchant is trying to make payment to their own user account',
+            '304' => 'refund/void cannot be processed due to payment exceeding validity period',
+            '305' => 'merchant invalid',
+            '601' => 'request to refund/void a payment transaction does not meet rules',
+            '602' => 'request to refund/void a payment transaction is unsuccessful'
+        ];
     }
 
     public function __get($key)
@@ -89,7 +115,7 @@ class ShopeePayController extends Controller
             }
             if ($post['payment_status'] == '1') {
                 $update = $trx->update(['transaction_payment_status' => 'Completed', 'completed_at' => date('Y-m-d H:i:s')]);
-                if($update){
+                if ($update) {
                     $userData               = User::where('id', $trx['id_user'])->first();
                     $config_fraud_use_queue = Configs::where('config_name', 'fraud use queue')->first()->is_active;
 
@@ -242,20 +268,51 @@ class ShopeePayController extends Controller
                 \Log::error('Failed get shopeepay status transaction ' . $singleTrx->transaction_receipt_number . ': ', $errors);
                 continue;
             }
-            DB::begintransaction();
             // is transaction success?
-            if (($status['response']['payment_status'] ?? false) == '1') {
-                // void transaction
-                $void_reference_id = null;
-                $void              = $this->void($singleTrx, 'trx', $errors, $void_reference_id);
-                if (!$void) {
-                    \Log::error('Failed void transaction ' . $singleTrx->transaction_receipt_number . ': ', $errors);
-                    continue;
+            $payment_status = ($status['response']['payment_status'] ?? false);
+            if ($payment_status == '1') {
+                if (($status['response']['transaction_list'][0]['amount'] ?? false) != $singleTrx->amount) {
+                    // void transaction
+                    $void_reference_id = null;
+                    $void              = $this->void($singleTrx, 'trx', $errors, $void_reference_id);
+                    if (!$void) {
+                        \Log::error('Failed void transaction ' . $singleTrx->transaction_receipt_number . ': ', $errors);
+                        continue;
+                    }
+                    DB::begintransaction();
+                    if (($void['response']['errcode'] ?? 123) == 0) {
+                        $up = TransactionPaymentShopeePay::where('id_transaction', $singleTrx->id_transaction)->update(['void_reference_id' => $void_reference_id, 'errcode' => 0, 'err_reason' => 'invalid payment amount']);
+                    }
+                    DB::commit();
+                    goto cancel;
                 }
-                if (($void['response']['errcode'] ?? 123) == 0) {
-                    $up = TransactionPaymentShopeePay::where('id_transaction', $singleTrx->id_transaction)->update(['void_reference_id' => $void_reference_id]);
+                DB::begintransaction();
+                $update = $singleTrx->update(['transaction_payment_status' => 'Completed', 'completed_at' => date('Y-m-d H:i:s')]);
+                if ($update) {
+                    $userData               = User::where('id', $singleTrx['id_user'])->first();
+                    $config_fraud_use_queue = Configs::where('config_name', 'fraud use queue')->first()->is_active;
+
+                    if ($config_fraud_use_queue == 1) {
+                        FraudJob::dispatch($userData, $singleTrx, 'transaction')->onConnection('fraudqueue');
+                    } else {
+                        $checkFraud = app($this->setting_fraud)->checkFraudTrxOnline($userData, $singleTrx);
+                    }
                 }
+                DB::commit();
+                $singleTrx->load('outlet');
+                $singleTrx->load('productTransaction');
+
+                $mid = [
+                    'order_id'     => $singleTrx['transaction_receipt_number'],
+                    'gross_amount' => ($singleTrx['amount'] / 100),
+                ];
+                $send = app($this->notif)->notification($mid, $singleTrx);
+
+                $sendPOS     = \App\Lib\ConnectPOS::create()->sendTransaction([$singleTrx['id_transaction']]);
+                continue;
             }
+            cancel:
+            MyHelper::updateFlagTransactionOnline($singleTrx, 'cancel', $user);
 
             $singleTrx->transaction_payment_status = 'Cancelled';
             $singleTrx->void_date                  = $now;
@@ -315,8 +372,8 @@ class ShopeePayController extends Controller
      */
     public function cronCancelDeals()
     {
-        $now       = date('Y-m-d H:i:s');
-        $expired   = date('Y-m-d H:i:s', time() - $this->validity_period);
+        $now     = date('Y-m-d H:i:s');
+        $expired = date('Y-m-d H:i:s', time() - $this->validity_period);
 
         $getTrx = DealsUser::where('paid_status', 'Pending')
             ->join('deals_payment_shopee_pays', 'deals_users.id_deals_user', '=', 'deals_payment_shopee_pays.id_deals_user')
@@ -343,18 +400,36 @@ class ShopeePayController extends Controller
             DB::begintransaction();
             // is transaction success?
             if (($status['response']['payment_status'] ?? false) == '1') {
+                if (($status['response']['transaction_list'][0]['amount'] ?? false) != $singleTrx->amount) {
+                    // void transaction
+                    $void_reference_id = null;
+                    $void              = $this->void($singleTrx, 'deals', $errors, $void_reference_id);
+                    if (!$void) {
+                        \Log::error('Failed void transaction ' . $singleTrx->id_deals_user . ': ', $errors);
+                        continue;
+                    }
+                    DB::begintransaction();
+                    if (($void['response']['errcode'] ?? 123) == 0) {
+                        $up = DealsPaymentShopeePay::where('id_deals_user', $singleTrx->id_deals_user)->update(['void_reference_id' => $void_reference_id, 'errcode' => 0, 'err_reason' => 'invalid payment amount']);
+                    }
+                    DB::commit();
+                    goto cancel;
+                }
+                $update = DealsUser::where('id_deals_user', $singleTrx->id_deals_user)->update(['paid_status' => 'Completed']);
+                DB::commit();
+                continue;
                 // void transaction
-                $void_reference_id = null;
-                $void              = $this->void($singleTrx->id_deals_user, 'deals', $errors, $void_reference_id);
-                if (!$void) {
-                    \Log::error('Failed void deals ' . $singleTrx->id_deals_user . ': ', $errors);
-                    continue;
-                }
-                if (($void['response']['errcode'] ?? 123) == 0) {
-                    $up = DealsPaymentShopeePay::where('id_deals_user', $singleTrx->id_deals_user)->update(['void_reference_id' => $void_reference_id]);
-                }
+                // $void_reference_id = null;
+                // $void              = $this->void($singleTrx->id_deals_user, 'deals', $errors, $void_reference_id);
+                // if (!$void) {
+                //     \Log::error('Failed void deals ' . $singleTrx->id_deals_user . ': ', $errors);
+                //     continue;
+                // }
+                // if (($void['response']['errcode'] ?? 123) == 0) {
+                //     $up = DealsPaymentShopeePay::where('id_deals_user', $singleTrx->id_deals_user)->update(['void_reference_id' => $void_reference_id]);
+                // }
             }
-
+            cancel:
             $singleTrx->paid_status = 'Cancelled';
             $singleTrx->save();
 
@@ -364,7 +439,7 @@ class ShopeePayController extends Controller
             }
 
             // revert back deals data
-            $deals = Deal::where('id_deals',$singleTrx->id_deals)->first();
+            $deals = Deal::where('id_deals', $singleTrx->id_deals)->first();
             if ($deals) {
                 $up1 = $deals->update(['deals_total_claimed' => $deals->deals_total_claimed - 1]);
                 if (!$up1) {
@@ -381,7 +456,7 @@ class ShopeePayController extends Controller
 
             //reversal balance
             if ($singleTrx->balance_nominal) {
-                $reversal = app($this->balance)->addLogBalance( $singleTrx->id_user, $singleTrx->balance_nominal, $singleTrx->id_deals_user, 'Claim Deals Failed', $singleTrx->voucher_price_point?:$singleTrx->voucher_price_cash);
+                $reversal = app($this->balance)->addLogBalance($singleTrx->id_user, $singleTrx->balance_nominal, $singleTrx->id_deals_user, 'Claim Deals Failed', $singleTrx->voucher_price_point ?: $singleTrx->voucher_price_cash);
                 if (!$reversal) {
                     DB::rollBack();
                     continue;
@@ -590,6 +665,30 @@ class ShopeePayController extends Controller
          *         "errcode": 0,
          *         "debug_msg": "success",
          *         "payment_status": 2
+         *     }
+         * }
+         * {
+         *     "status_code": 200,
+         *     "response": {
+         *         "request_id": "15935727183361",
+         *         "errcode": 0,
+         *         "debug_msg": "success",
+         *         "payment_status": 1,
+         *         "transaction_list": [
+         *             {
+         *                 "reference_id": "TRX-200611USFSQR",
+         *                 "amount": 100,
+         *                 "create_time": 1591868316,
+         *                 "update_time": 1591868316,
+         *                 "transaction_sn": "026341292124407454",
+         *                 "status": 3,
+         *                 "transaction_type": 13,
+         *                 "merchant_ext_id": "1234",
+         *                 "terminal_id": "",
+         *                 "user_id_hash": "6d65274e5cba19a063ae6e8923e04c877aa228df95c77e87fb81c398800727a0",
+         *                 "store_ext_id": "M000"
+         *             }
+         *         ]
          *     }
          * }
          */

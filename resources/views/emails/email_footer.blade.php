@@ -3,19 +3,6 @@
 </tr>
 </tbody>
 </table>
-<table style="border-collapse:collapse;border-spacing:0;margin:0;padding:0" width="100%">
-	<tbody>
-	<tr>
-		<td width="10px;"></td>
-		<td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0">
-			<p style="color:#555;font-family:\'Source Sans Pro\',sans-serif;font-size:14px;line-height:1.5;margin:0;padding:0">
-				Thank you for your attention.
-			</p>
-		</td>
-		<td width="10px;"></td>
-	</tr>
-	</tbody>
-</table>
 </td>
 <td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0" width="15"></td>
 </tr>
@@ -27,6 +14,24 @@
 </tbody>
 </table>
 </td>
+</tr>
+<tr>
+	<td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0">
+		<table style="border-collapse:collapse;border-spacing:0;font-size:12px;margin:0;padding:0" width="100%" bgcolor="#ffffff" align="left">
+			<tbody>
+			<tr>
+				<td width="30px;"></td>
+				<td width="516" style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0">
+					<p style="color:#999999;font-size:12px;line-height:1.5;margin:0;padding:0">
+						Thank you for your attention.
+					</p>
+				</td>
+				<td style="background:#f0f0f0;border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0" width="15"></td>
+				<td width="5px"></td>
+			</tr>
+			</tbody>
+		</table>
+	</td>
 </tr>
 <tr>
 	<td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0">
@@ -81,7 +86,7 @@
 				<td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0" height="30"></td>
 			</tr>
 			<tr>
-				<td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0">
+				<td width="510" style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0">
 					<table style="border-collapse:collapse;border-spacing:0;font-size:11px;line-height:1.7;margin:0;padding:0;text-align:left" width="300" align="left">
 						<tbody>
 						<tr>
@@ -152,17 +157,6 @@
 			</tr>
 			<tr>
 				<td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0" height="15"></td>
-			</tr>
-			</tbody>
-		</table>
-	</td>
-</tr>
-<tr>
-	<td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0">
-		<table style="border-collapse:collapse;border-spacing:0;border-top-color:#ccc;border-top-style:solid;border-top-width:2px;margin:0;padding:0;table-layout:fixed" width="100%">
-			<tbody>
-			<tr>
-				<td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0" height="2"></td>
 			</tr>
 			</tbody>
 		</table>

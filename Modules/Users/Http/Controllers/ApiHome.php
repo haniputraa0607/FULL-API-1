@@ -42,6 +42,7 @@ class ApiHome extends Controller
         $this->setting_fraud = "Modules\SettingFraud\Http\Controllers\ApiFraud";
 		$this->endPoint  = env('S3_URL_API');
         $this->deals = "Modules\Deals\Http\Controllers\ApiDeals";
+        $this->outlet = "Modules\Outlet\Http\Controllers\ApiOutletController";
     }
 
 	public function homeNotLoggedIn(Request $request) {
@@ -148,7 +149,7 @@ class ApiHome extends Controller
 			$result = [
 					'status' => 'success',
 					'result' => [
-						'total_point' => (int) $balance,
+						'total_point' => (double) $balance,
                         'total_point_pretty' => MyHelper::requestNumber($balance,'_POINT'),
                         'total_point_short' => MyHelper::requestNumber($balance,'short'),
 						'qr_code'        => $qrCode,
@@ -572,11 +573,6 @@ class ApiHome extends Controller
                 return response()->json(['status' => 'fail', 'messages' => ['Send notification failed']]);
             }
 
-            $setting = Setting::where('key','welcome_voucher_setting')->first()->value;
-            if($setting == 1){
-                $injectVoucher = app($this->deals)->injectWelcomeVoucher(['id' => $user['id']], $user['phone']);
-            }
-
             $user->first_login=1;
             $user->save();
         }
@@ -856,6 +852,67 @@ class ApiHome extends Controller
                 'status' => 'fail',
                 'messages' => ['Something went wrong']
             ];
+        }
+    }
+
+    function checkLocation(Request $request){
+        $post = $request->json()->all();
+
+        $codeSG = config('countrycode.country_code.SG.code');
+        $codeID = config('countrycode.country_code.ID.code');
+
+        if(isset($post['latitude']) && !empty($post['latitude']) &&
+            isset($post['longitude']) && !empty($post['longitude']) &&
+            isset($post['country_code']) && !empty($post['country_code'])){
+            //check location from ip
+            if(!empty($_SERVER['HTTP_CLIENT_IP'])){
+                $ip = $_SERVER['HTTP_CLIENT_IP'];
+            }elseif(!empty($_SERVER['HTTP_X_FORWARDED_FOR'])){
+                $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+            }else{
+                $ip = $_SERVER['REMOTE_ADDR'];
+            }
+
+            if(strpos($ip,',') !== false) {
+                $ip = substr($ip,0,strpos($ip,','));
+            }
+
+            $getLocation = \Location::get($ip);
+
+            $countryCodeFromIp = '';
+            if($getLocation && isset($getLocation->countryCode)){
+                $countryCodeFromIp = config('countrycode.country_code.'.$getLocation->countryCode.'.code');
+            }
+
+            //check location from long lat
+            $radius = config('configs.RADIUS_DISTANCE');
+            $longSingapore = config('configs.POINT_LOCATION_SG.longitude');
+            $latSingapore = config('configs.POINT_LOCATION_SG.latitude');
+            $distance =number_format((float)app($this->outlet)->distance($post['latitude'], $post['longitude'], $latSingapore, $longSingapore, "K"), 2, '.', '').' km';
+            $distance = (float)str_replace (" km", "", $distance);
+
+            if($distance < $radius && $countryCodeFromIp != $codeSG){
+                return response()->json( [
+                    'status' => 'fail',
+                    'country_code' => $codeSG,
+                    'messages' => ['Your location does not match']
+                ]);
+            }elseif ($distance > $radius && $countryCodeFromIp != $codeID){
+                return response()->json( [
+                    'status' => 'fail',
+                    'country_code' => $codeID,
+                    'messages' => ['Your location does not match']
+                ]);
+            }
+
+            return response()->json( ['status' => 'success']);
+
+        }else{
+            return response()->json( [
+                'status' => 'fail',
+                'country_code' => $codeID,
+                'messages' => ['Incompleted Data']
+            ]);
         }
     }
 }

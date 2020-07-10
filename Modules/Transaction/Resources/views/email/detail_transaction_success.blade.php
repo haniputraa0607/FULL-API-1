@@ -56,24 +56,28 @@
         <tr style="text-align:right">
             <td style="max-width:400px;background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 5%" valign="top" align="left"><span style="font-size: 16px;color:#8fd6bd;">{{$item['transaction_product_qty']}}x </span><span style="font-size: 16px">@if(!isset($item['product']['product_group']['product_group_name'])){{$item['product']['product_name']}} @else{{$item['product']['product_group']['product_group_name']}}@endif</span></td>
             <td style="max-width:600px;background:#f5f5f5;padding-bottom:10px;"><table width="100%" style="max-width: 100%"><td width="500px" style="max-width:100px;border-bottom: 1px dashed #8c8c8c;"></td></table></td>
-            <td style="max-width:50px;background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 5%" valign="top" align="left"><span style="font-size: 16px">{{ \App\Lib\MyHelper::requestNumber(floatval ($item['transaction_product_price']), '_CURRENCY') }}</span></td>
+            <td style="max-width:50px;background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 3%" valign="top" align="left"><span style="font-size: 16px">{{ \App\Lib\MyHelper::requestNumber(floatval ($item['transaction_product_price']), '_CURRENCY') }}</span></td>
         </tr>
         <tr>
             <td colspan="3" style="background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 10%" valign="top" align="left">
                 <?php
                 $topping = '';
-                foreach ($item['modifiers'] as $mf){
-                    $topping .= $mf['text']. '('.$mf['qty'].'), ';
+                if(!empty($item['modifiers'])){
+                    foreach ($item['modifiers'] as $mf){
+                        $topping .= $mf['text']. '('.$mf['qty'].'), ';
+                    }
                 }
 
                 $variant = '';
-                foreach ($item['product']['product_variants'] as $vrt){
-                    $variant .= $vrt['product_variant_name'].', ';
+                if(!empty($item['product']['product_variants'])){
+                    foreach ($item['product']['product_variants'] as $vrt){
+                        $variant .= $vrt['product_variant_name'].', ';
+                    }
                 }
 
-                if($topping !== '') $topping = substr($topping, 0, -2).'<br>';
+                if($topping !== '') $topping = '<br>'.substr($topping, 0, -2);
                 if($variant !== '') $variant = substr($variant, 0, -2);
-                echo '<span style="color:#999;;font-size:14px;"><i>'.$topping.$variant.'</i><br>'.$item['transaction_product_note'].'</span>';
+                echo '<span style="color:#999;;font-size:14px;"><i>'.$variant.$topping.'</i><br>'.$item['transaction_product_note'].'</span>';
                 ?>
             </td>
         </tr>
@@ -110,7 +114,7 @@
         <td  style="background:#f5f5f5;" valign="top"  align="right">
             <span style="color:#8fd6bd;font-size: 18px;"><b>Grand Total:</b></span>
         </td>
-        <td style="background:#f5f5f5;padding:10px 15px" valign="top"  align="right">
+        <td style="background:#f5f5f5;padding-right:15px" valign="top"  align="right">
             <span style="color:#8fd6bd;font-size: 18px;"><b>{{ \App\Lib\MyHelper::requestNumber(floatval ($data['transaction_grandtotal']), '_CURRENCY') }}</b></span>
         </td>
     </tr>

@@ -441,7 +441,7 @@ class ApiOutletController extends Controller
         }elseif(isset($post['admin']) && isset($post['type']) && $post['type'] == 'export'){
             $outlet = Outlet::with(['user_outlets','city','today','product_prices','product_prices.product'])->select('*');
         }elseif(isset($post['admin'])){
-            $outlet = Outlet::with(['user_outlets','city','today', 'outlet_schedules'])->select('*');
+            $outlet = Outlet::with(['user_outlets','city','today', 'outlet_schedules', 'outlet_photos'])->select('*');
             if(isset($post['id_product'])){
                 $outlet = $outlet->with(['product_prices'=> function($q) use ($post){
                     $q->where('id_product', $post['id_product']);
@@ -932,6 +932,10 @@ class ApiOutletController extends Controller
                 $processing = $settingTime->value;
             }
 
+            foreach ($outlet as $key => $value) {
+				$outlet[$key]['is_promo'] = 0;
+			}
+			
 			$promo_data = $this->applyPromo($post, $outlet, $promo_error);
 
 	        if ($promo_data) {
@@ -1959,11 +1963,19 @@ class ApiOutletController extends Controller
             $title = Setting::where('key', 'order_now_title')->first()->value;
             $subTitleSuccess = Setting::where('key', 'order_now_sub_title_success')->first()->value;
             $subTitleFail = Setting::where('key', 'order_now_sub_title_fail')->first()->value;
+            $processingTime = Setting::where('key', 'processing_time')->first();
+
+            if($processingTime){
+                $processingTime = (int)$processingTime['value'] * 100;
+            }else{
+                $processingTime = 15 * 100; //processing time in minutes convert to second - set default
+            }
 
             $data = [
                 'current_date' => date('Y-m-d'),
                 'current_day' => date('l'),
-                'current_hour' => date('H:i:s')
+                'current_hour' => date('H:i:s'),
+                'processing_time' => $processingTime
             ];
 
             $outlet = Outlet::join('cities', 'cities.id_city', 'outlets.id_city')
@@ -1985,7 +1997,7 @@ class ApiOutletController extends Controller
                         ->from('outlet_schedules')
                         ->where('day', $data['current_day'])
                         ->where('is_closed', 0)
-                        ->whereRaw('TIME_TO_SEC("'.$data['current_hour'].'") >= TIME_TO_SEC(open) AND TIME_TO_SEC("'.$data['current_hour'].'") <= TIME_TO_SEC(close)');
+                        ->whereRaw('TIME_TO_SEC("'.$data['current_hour'].'") >= TIME_TO_SEC(open) AND TIME_TO_SEC("'.$data['current_hour'].'") <= TIME_TO_SEC(SUBTIME(close, "'.$data['processing_time'].'")) ');
                 })->whereNotIn('id_outlet',function($query) use ($data){
                     $query->select('id_outlet')
                         ->from('outlet_holidays')

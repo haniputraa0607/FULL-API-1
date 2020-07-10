@@ -19,7 +19,9 @@ class ListDeal extends FormRequest
             // 'deals_type'                => 'required|in:Deals,Hidden,Point,Spin,Subscription',
             
             // deals_type: custom validator from ValidatorServiceProvider
-            'deals_type'                => 'required|in:Deals,Hidden,Point,Spin,Subscription,WelcomeVoucher',
+            'deals_type'                => 'nullable|in:Deals,Hidden,Point,Spin,Subscription,WelcomeVoucher',
+            'deals_type_array'          => 'nullable|array',
+            'deals_type_array.*'        => 'nullable|in:Deals,Hidden,Point,Spin,Subscription,WelcomeVoucher',
             'publish'                   => '',
             'voucher_type'              => 'nullable|in:point,paid,free',
             'price_range_start'         => 'nullable|integer',
@@ -39,6 +41,8 @@ class ListDeal extends FormRequest
             'oldest'                    => '',
             'highest_available_voucher' => '',
             'lowest_available_voucher'  => '',
+            'paginate'  				=> 'nullable',
+            'updated_at'  				=> 'nullable'
         ];
     }
 

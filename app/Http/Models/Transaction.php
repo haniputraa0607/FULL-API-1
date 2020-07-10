@@ -45,13 +45,13 @@ class Transaction extends Model
 	protected $casts = [
 		'id_user' => 'int',
 		// 'transaction_subtotal' => 'int',
-		'transaction_shipment' => 'int',
+		'transaction_shipment' => 'double',
 		// 'transaction_service' => 'int',
-		'transaction_discount' => 'int',
+		'transaction_discount' => 'double',
 		// 'transaction_tax' => 'int',
-		'transaction_grandtotal' => 'int',
+		'transaction_grandtotal' => 'double',
 		'transaction_point_earned' => 'int',
-		'transaction_cashback_earned' => 'int'
+		'transaction_cashback_earned' => 'double'
 	];
 
 	protected $dates = [

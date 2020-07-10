@@ -120,7 +120,7 @@ class ApiOnlineTransaction extends Controller
             DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
-                'messages'  => ['Sorry your account has been suspended, please contact '.env('EMAIL_ADDRESS_ADMIN')]
+                'messages'  => ['Sorry your account has been suspended, please contact '.config('configs.EMAIL_ADDRESS_ADMIN')]
             ]);
         }
 
@@ -581,7 +581,7 @@ class ApiOnlineTransaction extends Controller
         ];
 
         // return $detailPayment;
-        $post['grandTotal'] = (int)$post['subtotal'] + (int)$post['discount'] + (int)$post['service'] + (int)$post['tax'] + (int)$post['shipping'];
+        $post['grandTotal'] = (double)$post['subtotal'] + (double)$post['discount'] + (double)$post['service'] + (double)$post['tax'] + (double)$post['shipping'];
         // return $post;
         if ($post['type'] == 'Delivery') {
             $dataUser = [
@@ -680,7 +680,7 @@ class ApiOnlineTransaction extends Controller
             'transaction_tax'             => $post['tax'],
             'transaction_grandtotal'      => $post['grandTotal'],
             'transaction_point_earned'    => $post['point'],
-            'transaction_cashback_earned' => $post['cashback'],
+            'transaction_cashback_earned' => MyHelper::requestNumber($post['cashback'],'point'),
             'trasaction_payment_type'     => $post['payment_type'],
             'transaction_payment_status'  => $post['transaction_payment_status'],
             'membership_level'            => $post['membership_level'],
@@ -791,8 +791,7 @@ class ApiOnlineTransaction extends Controller
         //     ]);
         // }
 
-        $user->transaction_online = 1;
-        $user->save();
+        MyHelper::updateFlagTransactionOnline($insertTransaction, 'pending', $user);
 
         // $insertTransaction['transaction_receipt_number'] = $receipt;
 
@@ -1708,13 +1707,13 @@ class ApiOnlineTransaction extends Controller
 		            $pct=new PromoCampaignTools();
 		            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
 
-		            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors);
+		            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type']);
 
 
-		            if (isset($discount_promo['is_free']) && $discount_promo['is_free'] == 1) {
-		            	// unset($discount_promo['item']);
-		            	$discount_promo['discount'] = 0;
-		            }
+		            // if (isset($discount_promo['is_free']) && $discount_promo['is_free'] == 1) {
+		            // 	// unset($discount_promo['item']);
+		            // 	$discount_promo['discount'] = 0;
+		            // }
 		            $promo['description']	= $discount_promo['new_description'];
 		            $promo['detail'] 		= $discount_promo['promo_detail'];
 		            $promo['discount'] 		= $discount_promo['discount'];
@@ -1757,10 +1756,10 @@ class ApiOnlineTransaction extends Controller
 				$pct=new PromoCampaignTools();
 				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals');
 
-				if ($discount_promo['is_free'] == 1) {
-	            	// unset($discount_promo['item']);
-	            	$discount_promo['discount'] = 0;
-	            }
+				// if ($discount_promo['is_free'] == 1) {
+	   //          	// unset($discount_promo['item']);
+	   //          	$discount_promo['discount'] = 0;
+	   //          }
 
 				$promo['description'] = $discount_promo['new_description'];
 	            $promo['detail'] = $discount_promo['promo_detail'];
@@ -2013,7 +2012,7 @@ class ApiOnlineTransaction extends Controller
                 $post[$valueTotal] = app($this->setting_trx)->countTransaction($valueTotal, $post);
             }
         }
-        $post['discount'] = $post['discount'] + ($promo_discount??0);
+        // $post['discount'] = $post['discount'] + ($promo_discount??0);
 
         $post['cashback'] = app($this->setting_trx)->countTransaction('cashback', $post);
 
@@ -2057,6 +2056,7 @@ class ApiOnlineTransaction extends Controller
                 $post['cashback'] = $post['cashback'];
             }
         }
+        $post['cashback'] = MyHelper::requestNumber($post['cashback'],'point');
 
         // apply cashback
         if ($use_referral){
@@ -2086,12 +2086,17 @@ class ApiOnlineTransaction extends Controller
         {
             if ($code->promo_campaign_referral->referred_promo_type == 'Cashback') 
             {
-            	$promo['value'] = (int) $post['cashback'];
+            	if ($post['payment_type'] == 'Balance') {
+            		$promo['value'] = 0;
+            	}
+            	else{
+            		$promo['value'] = (double) $post['cashback'];
+            	}
             }
         }
 
         $cashback_text = explode('%earned_cashback%',Setting::select('value_text')->where('key', 'earned_cashback_text')->pluck('value_text')->first()?:'You\'ll receive %earned_cashback% for this transaction');
-        $cashback_earned = (int) $post['cashback'];
+        $cashback_earned = MyHelper::requestNumber($post['cashback'],'point');
 
         $cashback_text_array = [
             $cashback_text[0],
@@ -2127,7 +2132,7 @@ class ApiOnlineTransaction extends Controller
         $result['used_point'] = MyHelper::requestNumber(0,$rn);
         $balance = app($this->balance)->balanceNow($user->id);
         $result['points_pretty'] = MyHelper::requestNumber($balance,'_POINT');
-        $result['points'] = MyHelper::requestNumber($balance,$rn);
+        $result['points'] = MyHelper::requestNumber($balance,'point');
         $result['get_point'] = ($post['payment_type'] != 'Balance') ? $this->checkPromoGetPoint($promo_source) : 0;
         $result['ovo_available'] = $ovo_available?1:0;
         $result['earned_cashback_text'] = $cashback_text_array;
@@ -2142,7 +2147,7 @@ class ApiOnlineTransaction extends Controller
             $result['used_point_pretty'] = MyHelper::requestNumber($used_point,'_POINT');
             $result['used_point'] = MyHelper::requestNumber($used_point,$rn);
             $result['points_pretty'] = MyHelper::requestNumber($balance - $used_point,'_POINT');
-            $result['points'] = MyHelper::requestNumber(($balance - $used_point),$rn);
+            $result['points'] = MyHelper::requestNumber(($balance - $used_point),'point');
         }
 
         $result['total_payment_pretty'] = MyHelper::requestNumber(($grandtotal-$used_point),'_CURRENCY');
