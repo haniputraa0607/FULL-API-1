@@ -663,12 +663,17 @@ class ApiPromoCampaign extends Controller
         $post = $request->json()->all();
 
         if ($post['type_code'] == 'single') {
-            $checkCode = PromoCampaignPromoCode::where('promo_code', '=', $post['search_code'])->get()->toArray();
+            $query = PromoCampaignPromoCode::where('promo_code', '=', $post['search_code']);
         } else {
-            $checkCode = PromoCampaign::where('prefix_code', '=', $post['search_code'])->get()->toArray();
+            $query = PromoCampaign::where('prefix_code', '=', $post['search_code']);
         }
 
-        if (isset($checkCode) && !empty($checkCode)) {
+        if (is_numeric($request->promo_id)) {
+        	$query = $query->where('id_promo_campaign', '!=', $request->promo_id);
+        }
+        $checkCode = $query->first();
+
+        if ($checkCode) {
             $result = [
                 'status'  => 'not available'
             ];
@@ -745,7 +750,7 @@ class ApiPromoCampaign extends Controller
                     'messages'  => ['Cannot update, promo already used']
                 ]);
            	}
-// return [$checkData, $post, $datenow];
+
            	if ($checkData->product_type != $post['product_type']) {
            		return 0;
 				$delete_rule = $this->deleteAllProductRule('promo_campaign', $post['id_promo_campaign']);
