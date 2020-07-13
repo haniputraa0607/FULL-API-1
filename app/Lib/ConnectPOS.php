@@ -98,7 +98,12 @@ class ConnectPOS{
 		foreach ($trxDatas as $trxData) {
 			$user = $trxData['user'];
 			$users[] = $user->phone;
-	        $memberUid = MyHelper::createQRV2($timestamp, $user->id);
+	        // $memberUid = MyHelper::createQRV2($timestamp, $user->id);
+			$memberUid = $user->id;
+			if(strlen((string)$memberUid) < 8){
+                $memberUid = "00000000".$memberUid;
+                $memberUid = substr($memberUid, -8);
+            }
 			$transactions[$user->phone] = $trxData->toArray();
 			$transactions[$user->phone]['outlet_name'] = $trxData->outlet->outlet_name;
 			$outlets[] = env('POS_OUTLET_OVERWRITE')?:$trxData->outlet->outlet_code;
