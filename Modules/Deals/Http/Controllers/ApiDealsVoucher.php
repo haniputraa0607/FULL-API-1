@@ -707,7 +707,12 @@ class ApiDealsVoucher extends Controller
 
     	if ($getVoucher)
     	{
-	    	$update = DealsUser::where('id_deals_voucher', '=', $getVoucher['id_deals_voucher'])->update(['used_at' => null]);
+    		$update = [
+    			'used_at' 		=> null,
+    			'id_outlet' 	=> null,
+    			'redeemed_at' 	=> null
+    		];
+	    	$update = DealsUser::where('id_deals_voucher', '=', $getVoucher['id_deals_voucher'])->update($update);
 
 	    	if ($update)
 	    	{
