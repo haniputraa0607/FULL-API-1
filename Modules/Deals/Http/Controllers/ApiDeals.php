@@ -334,8 +334,8 @@ class ApiDeals extends Controller
             $deals = $save->toArray();
             $send = app($this->autocrm)->SendAutoCRM('Create '.$dt, $request->user()->phone, [
                 'voucher_type' => $deals['deals_voucher_type']?:'',
-                'promo_id_type' => $deals['deals_promo_id_type']?:'',
-                'promo_id' => $deals['deals_promo_id']?:'',
+                'promo_id_type' => $deals['deals_promo_id_type']??'',
+                'promo_id' => $deals['deals_promo_id']??'',
                 'detail' => view('deals::emails.detail',['detail'=>$deals])->render()
             ]+$deals,null,true);
         } else {
@@ -940,21 +940,18 @@ class ApiDeals extends Controller
         $deals = $deals->with([
         			'user',
         			'outlet',
-        			'dealVoucher.transaction_voucher' => function($q) {
-        				$q->where('status','=','success');
-        			},
-        			'dealVoucher.transaction_voucher.transaction' => function($q) {
-        				$q->select(
-        					'id_transaction',
-        					'transaction_receipt_number',
-        					'trasaction_type',
-        					'transaction_grandtotal'
-        				);
-        			}
+        			'dealVoucher'
         		]);
-        $deals = $deals->orderBy('claimed_at', "ASC")->paginate(10);
+        $data = $deals->orderBy('claimed_at', "DESC")->paginate(10)->toArray();
+        $data['data'] = $deals->paginate(10)
+        				->each(function($q){
+						    $q->setAppends([
+						        'get_transaction'
+						    ]);
+						})
+	        			->toArray();
 
-        return response()->json(MyHelper::checkGet($deals));
+        return response()->json(MyHelper::checkGet($data));
     }
 
     /* FILTER LIST USER VOUCHER */
