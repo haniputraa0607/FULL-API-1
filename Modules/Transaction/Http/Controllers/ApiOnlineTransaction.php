@@ -1963,7 +1963,7 @@ class ApiOnlineTransaction extends Controller
                 $post['subtotal'] = $subtotal - $totalDisProduct;
             } elseif ($valueTotal == 'discount') {
                 // $post['dis'] = $this->countTransaction($valueTotal, $post);
-                $post['dis'] = app($this->setting_trx)->countTransaction($valueTotal, $post);
+                $post['dis'] = app($this->setting_trx)->countTransaction($valueTotal, $post, $discount_promo??[]);
                 $mes = ['Data Not Valid'];
 
                 if (isset($post['dis']->original['messages'])) {
