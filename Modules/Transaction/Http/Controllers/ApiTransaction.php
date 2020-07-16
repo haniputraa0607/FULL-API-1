@@ -1843,7 +1843,7 @@ class ApiTransaction extends Controller
                 }
             }
 
-            $discount = 0;
+            $discount = $list['transaction_discount'];
             $quantity = 0;
             foreach ($list['product_transaction'] as $keyTrx => $valueTrx) {
                 $quantity = $quantity + $valueTrx['transaction_product_qty'];
