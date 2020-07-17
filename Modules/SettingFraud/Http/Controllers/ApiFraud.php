@@ -180,6 +180,7 @@ class ApiFraud extends Controller
                         $stringTransactionDay .= '<table id="table-fraud-list">';
                         $stringTransactionDay .= '<tr>';
                         $stringTransactionDay .= '<td>Status Fraud</td>';
+                        $stringTransactionDay .= '<td>Transaction Type</td>';
                         $stringTransactionDay .= '<td>Receipt Number</td>';
                         $stringTransactionDay .= '<td>Outlet</td>';
                         $stringTransactionDay .= '<td>Transaction Date</td>';
@@ -199,6 +200,7 @@ class ApiFraud extends Controller
                             }
                             $stringTransactionDay .= '<tr>';
                             $stringTransactionDay .= '<td>'.$status.'</td>';
+                            $stringTransactionDay .= '<td>' . ($val['trasaction_type'] == 'Offline' ? 'Offline' : 'Online') . '</td>';
                             $stringTransactionDay .= '<td>'.$val['transaction_receipt_number'].'</td>';
                             $stringTransactionDay .= '<td>'.$val['outlet_city']['outlet_name'].'</td>';
                             $stringTransactionDay .= '<td>'.date('d F Y',strtotime($val['transaction_date'])).'</td>';
@@ -296,6 +298,7 @@ class ApiFraud extends Controller
                        $stringTransactionWeek .= '<table id="table-fraud-list">';
                        $stringTransactionWeek .= '<tr>';
                        $stringTransactionWeek .= '<td>Status Fraud</td>';
+                       $stringTransactionWeek .= '<td>Transaction Type</td>';
                        $stringTransactionWeek .= '<td>Receipt Number</td>';
                        $stringTransactionWeek .= '<td>Outlet</td>';
                        $stringTransactionWeek .= '<td>Transaction Date</td>';
@@ -315,6 +318,7 @@ class ApiFraud extends Controller
                            }
                            $stringTransactionWeek .= '<tr>';
                            $stringTransactionWeek .= '<td>' . $status . '</td>';
+                           $stringTransactionWeek .= '<td>' . ($val['trasaction_type'] == 'Offline' ? 'Offline' : 'Online') . '</td>';
                            $stringTransactionWeek .= '<td>' . $val['transaction_receipt_number'] . '</td>';
                            $stringTransactionWeek .= '<td>' . $val['outlet']['outlet_name'] . '</td>';
                            $stringTransactionWeek .= '<td>' . date('d F Y', strtotime($val['transaction_date'])) . '</td>';
@@ -496,6 +500,7 @@ class ApiFraud extends Controller
                         $stringTransactionDay .= '<table id="table-fraud-list">';
                         $stringTransactionDay .= '<tr>';
                         $stringTransactionDay .= '<td>Status Fraud</td>';
+                        $stringTransactionDay .= '<td>Transaction Type</td>';
                         $stringTransactionDay .= '<td>Receipt Number</td>';
                         $stringTransactionDay .= '<td>Outlet</td>';
                         $stringTransactionDay .= '<td>Transaction Date</td>';
@@ -515,6 +520,7 @@ class ApiFraud extends Controller
                             }
                             $stringTransactionDay .= '<tr>';
                             $stringTransactionDay .= '<td>'.$status.'</td>';
+                            $stringTransactionDay .= '<td>' . ($val['trasaction_type'] == 'Offline' ? 'Offline' : 'Online') . '</td>';
                             $stringTransactionDay .= '<td>'.$val['transaction_receipt_number'].'</td>';
                             $stringTransactionDay .= '<td>'.$val['outlet_city']['outlet_name'].'</td>';
                             $stringTransactionDay .= '<td>'.date('d F Y',strtotime($val['transaction_date'])).'</td>';
@@ -600,6 +606,7 @@ class ApiFraud extends Controller
                         $stringTransactionWeek .= '<table id="table-fraud-list">';
                         $stringTransactionWeek .= '<tr>';
                         $stringTransactionWeek .= '<td>Status Fraud</td>';
+                        $stringTransactionWeek .= '<td>Transaction Type</td>';
                         $stringTransactionWeek .= '<td>Receipt Number</td>';
                         $stringTransactionWeek .= '<td>Outlet</td>';
                         $stringTransactionWeek .= '<td>Transaction Date</td>';
@@ -619,6 +626,7 @@ class ApiFraud extends Controller
                             }
                             $stringTransactionWeek .= '<tr>';
                             $stringTransactionWeek .= '<td>'.$status.'</td>';
+                            $stringTransactionWeek .= '<td>' . ($val['trasaction_type'] == 'Offline' ? 'Offline' : 'Online') . '</td>';
                             $stringTransactionWeek .= '<td>'.$val['transaction_receipt_number'].'</td>';
                             $stringTransactionWeek .= '<td>'.$val['outlet']['outlet_name'].'</td>';
                             $stringTransactionWeek .= '<td>'.date('d F Y',strtotime($val['transaction_date'])).'</td>';
