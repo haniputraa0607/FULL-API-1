@@ -59,10 +59,10 @@ class ApiMembershipWebview extends Controller
 					$benefit=json_decode($dataMembership['benefit_text'],true)??[];
 					if (!empty($benefit)) {
 						foreach ($benefit as $key => $value) {
-							$benefit[$key] = $key + 1 . '. ' . $value . '<br>';
+							$benefit[$key] = '<li>' . $value . '</li>';
 						}
 					}
-					$allMembership[$index]['benefit_text']=implode('', $benefit);
+					$allMembership[$index]['benefit_text']="<ol>".implode('', $benefit)."</ol>";
 					switch ($dataMembership['membership_type']) {
 						case 'count':
 							$allMembership[$index]['min_value'] 		= $dataMembership['min_total_count'];
