@@ -283,6 +283,7 @@ class ApiPromotion extends Controller
 		$post = $request->json()->all();
 		$id_promotion = $post['id_promotion'];
 		$id_content = [];
+		$warnings 	= [];
 
 		DB::beginTransaction();
 
@@ -651,12 +652,13 @@ class ApiPromotion extends Controller
 				if(isset($post['promotion_channel'][$key]) && in_array('deals', $post['promotion_channel'][$key]))
 				{
 					$createDeals = app($this->promotionDeals)->createDeals($post, $id_promotion_content, $key);
-	
+					$warnings    = array_merge($warnings, $createDeals['warnings']??[]);
 					if( ($createDeals['status']??true) != 'success' ){
 					DB::rollBack();
 					$result = [
 						'status'	=> 'fail',
-						'messages'	=> $createDeals['messages']??['Update Promotion Content Deals Failed.']
+						'messages'	=> $createDeals['messages']??['Update Promotion Content Deals Failed.'],
+						'warnings'	=> $warnings
 					];
 					return response()->json($result);
 				}
@@ -1014,17 +1016,17 @@ class ApiPromotion extends Controller
 				];
 				return response()->json($result);
 			}
-
 			// DEALS
 			if(isset($post['promotion_channel'][0]) && in_array('deals', $post['promotion_channel'][0]))
 			{
 				$createDeals = app($this->promotionDeals)->createDeals($post, $id_promotion_content);
-
+				$warnings  = $createDeals['warnings'];
 				if( ($createDeals['status']??true) != 'success' ){
 					DB::rollBack();
 					$result = [
 						'status'	=> 'fail',
-						'messages'	=> $createDeals['messages']??['Update Promotion Content Deals Failed.']
+						'messages'	=> $createDeals['messages']??['Update Promotion Content Deals Failed.'],
+						'warnings'	=> $warnings
 					];
 					return response()->json($result);
 				}
@@ -1062,8 +1064,9 @@ class ApiPromotion extends Controller
 
 		DB::commit();
 		$result = [
-				'status'  => 'success',
-				'result'  => $query
+				'status'  	=> 'success',
+				'result'  	=> $query,
+				'warnings' 	=> $warnings??[]
 			];
 		return response()->json($result);
 	}
@@ -1830,5 +1833,51 @@ class ApiPromotion extends Controller
 				return response()->json(MyHelper::checkDelete($delete));
 			}
 		}
+	}
+
+	public function showRecipient(Request $request){
+		$post=$request->json()->all();
+		$limiter=[];
+		$column=['id','name','email','phone','gender','city_name','birthday'];
+		$limiter=[
+			$column[$post['order'][0]['column']??0]??'id',
+			$post['order'][0]['dir']??'asc',
+			$post['start']??0,
+			$post['length']??99999999,
+			null,
+			null,
+			true
+		];
+		$cond = Promotion::with(['promotion_rule_parents', 'promotion_rule_parents.rules'])->where('id_promotion','=',$post['id_promotion'])->first();
+
+		$users = [];
+		if(!$cond){
+			return [
+				'status'  => 'fail',
+				'messages'  => ['Promotion Not Found']
+			];
+		}
+
+		$users = app($this->user)->UserFilter($cond['promotion_rule_parents'],...$limiter);
+		$total = $users->count();
+
+		if ( !empty($post['search']['value']) ) {
+        	$keyword = $post['search']['value'];
+        	$users = $users->where(function($q) use ($keyword){
+        		$q->orWhere('name','like','%'.$keyword.'%')->orWhere('email','like','%'.$keyword.'%')->orWhere('phone','like','%'.$keyword.'%');
+        	});
+
+        	$filtered = $users->count();
+        }
+
+        $cond['users'] = $users->skip($post['start'])->take($post['length'])->get()->toArray();
+		// if($users['status'] == 'success') $cond['users'] = $users['result'];
+		$result = [
+				'status'  => 'success',
+				'result'  => $cond,
+				'recordsFiltered' => $filtered??$total??0,
+				'recordsTotal' => $total??0
+			];
+		return $result;
 	}
 }

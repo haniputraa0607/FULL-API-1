@@ -102,7 +102,7 @@ class DealsPromotionTemplate extends Model
 		return $this->hasMany(\App\Http\Models\PromotionContent::class, 'id_deals_promotion_template');
 	}
 
-	protected $appends  = ['url_deals_image'];
+	protected $appends  = ['url_deals_image', 'url_deals_warning_image'];
 
 	// ATTRIBUTE IMAGE URL
 	public function getUrlDealsImageAttribute() {
@@ -111,6 +111,16 @@ class DealsPromotionTemplate extends Model
         }
         else {
             return env('S3_URL_API').$this->deals_image;
+        }
+	}
+
+	// ATTRIBUTE WARNING IMAGE URL
+	public function getUrlDealsWarningImageAttribute() {
+		if (empty($this->deals_warning_image)) {
+            return null;
+        }
+        else {
+            return env('S3_URL_API').$this->deals_warning_image;
         }
 	}
 

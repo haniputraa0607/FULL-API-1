@@ -142,7 +142,7 @@ class ApiDeals extends Controller
 
             if ($post['deals_type'] == 'Promotion')
             {
-            	$promotionPath = 'img/promotion/deals';
+            	$promotionPath = 'img/promotion/deals/';
             }
             if (!file_exists($promotionPath??$this->saveImage)) {
                 mkdir($promotionPath??$this->saveImage, 0777, true);
@@ -333,7 +333,7 @@ class ApiDeals extends Controller
             }
             $deals = $save->toArray();
             $send = app($this->autocrm)->SendAutoCRM('Create '.$dt, $request->user()->phone, [
-                'voucher_type' => $deals['deals_voucher_type']?:'',
+                'voucher_type' => $deals['deals_voucher_type']??'',
                 'promo_id_type' => $deals['deals_promo_id_type']??'',
                 'promo_id' => $deals['deals_promo_id']??'',
                 'detail' => view('deals::emails.detail',['detail'=>$deals])->render()
@@ -1393,6 +1393,9 @@ class ApiDeals extends Controller
     		$deals = DealsPromotionTemplate::where('id_deals_promotion_template', '=', $post['id_deals']);
     		$table = 'deals_promotion';
     	}else{
+    		if ($deals_type == 'promotion-deals') {
+    			$post['deals_type'] = 'promotion';
+    		}
     		$deals = Deal::where('id_deals', '=', $post['id_deals'])->where('deals_type','=',$post['deals_type']);
     		$table = 'deals';
     	}
