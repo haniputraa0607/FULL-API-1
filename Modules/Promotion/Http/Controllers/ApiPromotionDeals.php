@@ -57,6 +57,10 @@ class ApiPromotionDeals extends Controller
 			$deals = $deals->where('step_complete', 1);
 		}
 
+		if ($request->json('brand')) {
+			$deals = $deals->with('brand');
+		}
+
 		$deals = $deals->get();
 		if(isset($post['id_deals_promotion_template'])){
 			$deals['promotion'] = PromotionContent::join('promotions', 'promotions.id_promotion', 'promotion_contents.id_promotion')
@@ -605,7 +609,6 @@ class ApiPromotionDeals extends Controller
         // if ($request->json('id_deals')) {
         //     $deals->where('deals_vouchers.id_deals', $request->json('id_deals'));
         // }
-// return $deals;
 
         if ($request->json('rule')){
              // $this->filterUserVoucher($deals,$request->json('rule'),$request->json('operator')??'and');
@@ -613,6 +616,7 @@ class ApiPromotionDeals extends Controller
 
         $deals = $deals->with([
         			'promotion',
+        			'promotion.schedules',
         			'deals'
         		]);
         $deals = $deals->paginate(10);

@@ -142,4 +142,8 @@ class DealsPromotionTemplate extends Model
     {
         return $this->belongsTo(\App\Http\Models\User::class, 'created_by');
     }
+
+    public function brand(){
+		return $this->belongsTo(\Modules\Brand\Entities\Brand::class,'id_brand');
+	}
 }
