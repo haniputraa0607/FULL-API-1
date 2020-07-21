@@ -2637,4 +2637,18 @@ class MyHelper{
     	}
     	return true;
     }
+
+	/**
+	* 
+	**/
+	public static function logCron($cronName)
+	{
+		$log = new \App\Http\Models\LogCron;
+		$log->cron = $cronName;
+		$log->status = 'onprocess';
+		$log->start_date = date('Y-m-d H:i:s');
+		$log->save();
+
+		return $log;
+	}
 }
