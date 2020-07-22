@@ -16,10 +16,15 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::post('voucher/trx', ['middleware' => 'feature_control:110', 'uses' => 'ApiPromotion@promotionVoucherTrx']);
     Route::post('linkclicked/list', ['middleware' => 'feature_control:110', 'uses' => 'ApiPromotion@promotionLinkClickedList']);
 
+    Route::post('recipient', ['middleware' => 'feature_control:110', 'uses' =>'ApiPromotion@showRecipient']);
+
     Route::group(['prefix' => 'deals'], function()
     {
         Route::any('', ['middleware' => 'feature_control:109', 'uses' => 'ApiPromotionDeals@list']);
+        Route::post('detail', ['middleware' => 'feature_control:109', 'uses' => 'ApiPromotionDeals@detail']);
         Route::post('save', ['middleware' => 'feature_control:112', 'uses' => 'ApiPromotionDeals@save']);
+        Route::post('participant', ['middleware' => 'feature_control:110', 'uses' => 'ApiPromotionDeals@participant']);
+        Route::post('delete', ['middleware' => 'feature_control:113', 'uses' => 'ApiPromotionDeals@deleteReq']);
 
     });
 });
@@ -27,4 +32,10 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
 Route::group(['prefix' => 'api/promotion', 'namespace' => 'Modules\Promotion\Http\Controllers'], function()
 {
     Route::get('display_logo/{hash}', 'ApiPromotion@displayLogo');
+});
+
+Route::group(['prefix' => 'api/promotion', 'namespace' => 'Modules\Promotion\Http\Controllers'], function()
+{
+    Route::get('generate-recipient', 'ApiPromotion@addPromotionQueue');
+    Route::get('send-promotion', 'ApiPromotion@sendPromotion');
 });

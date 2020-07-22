@@ -16,8 +16,8 @@ class Update extends FormRequest
     public function rules()
     {
         return [
-            'id_deals'                  => 'required|integer',
-            'deals_type'                => 'required|in:Deals,Hidden,Point,Spin,Subscription,WelcomeVoucher',
+            'id_deals'                  => 'required_without:id_deals_promotion_template|integer',
+            'deals_type'                => 'required|in:Deals,Hidden,Point,Spin,Subscription,WelcomeVoucher,Promotion',
             'deals_voucher_type'        => 'sometimes|required|in:Auto generated,List Vouchers,Unlimited',
             'deals_promo_id'            => 'nullable',
             'deals_title'               => 'required',
@@ -40,6 +40,7 @@ class Update extends FormRequest
             'deals_total_redeemed'      => '',
             'deals_total_used'          => '',
             'id_outlet'                 => 'sometimes|array',
+            'id_deals_promotion_template' => 'required_without:id_deals|integer',
         ];
     }
 
