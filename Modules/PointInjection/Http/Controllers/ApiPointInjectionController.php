@@ -631,6 +631,7 @@ class ApiPointInjectionController extends Controller
      */
     public function getPointInjection()
     {
+        $log = MyHelper::logCron('Point Injection');
         try{
             $dateNow = date('Y-m-d H:00:00');
             $arrTmp = [];
@@ -644,6 +645,7 @@ class ApiPointInjectionController extends Controller
                     'status'  => 'fail',
                     'message'  => ['No data']
                 ];
+                $log->success(['No data']);
                 return response()->json($result);
             }
             foreach ($pointInjection as $valueUser) {
@@ -801,12 +803,17 @@ class ApiPointInjectionController extends Controller
                 $send = app($this->autocrm)->sendForwardEmail('Point Injection', $subject, $content);
             }
 
+            $log->success([
+                'success' => $countSuccess,
+                'fail'    => $countFail
+            ]);
             return response()->json([
                 'success' => $countSuccess,
                 'fail'    => $countFail
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            $log->fail($e->getMessage());
             LogBackendError::logExceptionMessage("ApiPointInjection=>" . $e->getMessage(), $e);
         }
     }
