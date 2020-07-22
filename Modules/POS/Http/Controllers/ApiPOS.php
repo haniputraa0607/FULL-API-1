@@ -1431,110 +1431,128 @@ class ApiPOS extends Controller
 
     public function cronProductPricePriority()
     {
-        Log::info('cron price priority start : ' .date('Y-m-d H:i:s'));
-        $getOutlet = Outlet::select('id_outlet', 'outlet_code')->where('is_24h', 1)->get()->toArray();
-        $getProduct = Product::select('id_product')->get()->toArray();
-        for ($i = 0; $i < count($getOutlet); $i++) {
-            for ($j = 0; $j < count($getProduct); $j++) {
-                try {
-                    $getPrice = DB::connection('mysql')
-                        ->table('outlet_product_price_periodes')
-                        ->where('id_product', $getProduct[$j]['id_product'])
-                        ->where('id_outlet', $getOutlet[$i]['id_outlet'])
-                        ->where('start_date', '<=', date('Y-m-d'))
-                        ->where('end_date', '>=', date('Y-m-d'))
-                        ->orderBy('id_product_price_periode', 'DESC')->first();
-
-                    $price = $getPrice->price;
-                } catch (\Exception $e) {
-                    $price = 0;
-                }
-
-                $getProductPrice = ProductPrice::where('id_product', $getProduct[$j]['id_product'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
-                if ($getProductPrice && $price != 0) {
+        $log = MyHelper::logCron('Sync Product Price Priority');
+        try {
+            Log::info('cron price priority start : ' .date('Y-m-d H:i:s'));
+            $getOutlet = Outlet::select('id_outlet', 'outlet_code')->where('is_24h', 1)->get()->toArray();
+            $getProduct = Product::select('id_product')->get()->toArray();
+            for ($i = 0; $i < count($getOutlet); $i++) {
+                for ($j = 0; $j < count($getProduct); $j++) {
                     try {
-                        ProductPrice::where('id_product_price', $getProductPrice->id_product_price)->update([
-                            'product_price' => $price
-                        ]);
+                        $getPrice = DB::connection('mysql')
+                            ->table('outlet_product_price_periodes')
+                            ->where('id_product', $getProduct[$j]['id_product'])
+                            ->where('id_outlet', $getOutlet[$i]['id_outlet'])
+                            ->where('start_date', '<=', date('Y-m-d'))
+                            ->where('end_date', '>=', date('Y-m-d'))
+                            ->orderBy('id_product_price_periode', 'DESC')->first();
+
+                        $price = $getPrice->price;
                     } catch (\Exception $e) {
-                        LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
+                        $price = 0;
+                    }
+
+                    $getProductPrice = ProductPrice::where('id_product', $getProduct[$j]['id_product'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
+                    if ($getProductPrice && $price != 0) {
+                        try {
+                            ProductPrice::where('id_product_price', $getProductPrice->id_product_price)->update([
+                                'product_price' => $price
+                            ]);
+                        } catch (\Exception $e) {
+                            LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
+                        }
                     }
                 }
             }
+            Log::info('cron price priority end : ' .date('Y-m-d H:i:s'));
+            $log->success();
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
         }
-        Log::info('cron price priority end : ' .date('Y-m-d H:i:s'));
     }
 
     public function cronProductPrice()
     {
-        Log::info('cron price start : ' .date('Y-m-d H:i:s'));
-        $getOutlet = Outlet::select('id_outlet', 'outlet_code')->where('is_24h', 0)->get()->toArray();
-        $getProduct = Product::select('id_product')->get()->toArray();
-        for ($i = 0; $i < count($getOutlet); $i++) {
-            for ($j = 0; $j < count($getProduct); $j++) {
-                try {
-                    $getPrice = DB::connection('mysql')
-                        ->table('outlet_product_price_periodes')
-                        ->where('id_product', $getProduct[$j]['id_product'])
-                        ->where('id_outlet', $getOutlet[$i]['id_outlet'])
-                        ->where('start_date', '<=', date('Y-m-d'))
-                        ->where('end_date', '>=', date('Y-m-d'))
-                        ->orderBy('id_product_price_periode', 'DESC')->first();
-
-                    $price = $getPrice->price;
-                } catch (\Exception $e) {
-                    $price = 0;
-                }
-
-                $getProductPrice = ProductPrice::where('id_product', $getProduct[$j]['id_product'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
-                if ($getProductPrice && $price != 0) {
+        $log = MyHelper::logCron('Sync Product Price');
+        try {
+            Log::info('cron price start : ' .date('Y-m-d H:i:s'));
+            $getOutlet = Outlet::select('id_outlet', 'outlet_code')->where('is_24h', 0)->get()->toArray();
+            $getProduct = Product::select('id_product')->get()->toArray();
+            for ($i = 0; $i < count($getOutlet); $i++) {
+                for ($j = 0; $j < count($getProduct); $j++) {
                     try {
-                        ProductPrice::where('id_product_price', $getProductPrice->id_product_price)->update([
-                            'product_price' => $price
-                        ]);
+                        $getPrice = DB::connection('mysql')
+                            ->table('outlet_product_price_periodes')
+                            ->where('id_product', $getProduct[$j]['id_product'])
+                            ->where('id_outlet', $getOutlet[$i]['id_outlet'])
+                            ->where('start_date', '<=', date('Y-m-d'))
+                            ->where('end_date', '>=', date('Y-m-d'))
+                            ->orderBy('id_product_price_periode', 'DESC')->first();
+
+                        $price = $getPrice->price;
                     } catch (\Exception $e) {
-                        LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
+                        $price = 0;
+                    }
+
+                    $getProductPrice = ProductPrice::where('id_product', $getProduct[$j]['id_product'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
+                    if ($getProductPrice && $price != 0) {
+                        try {
+                            ProductPrice::where('id_product_price', $getProductPrice->id_product_price)->update([
+                                'product_price' => $price
+                            ]);
+                        } catch (\Exception $e) {
+                            LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
+                        }
                     }
                 }
             }
+            Log::info('cron price end : ' .date('Y-m-d H:i:s'));
+            $log->success();
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
         }
-        Log::info('cron price end : ' .date('Y-m-d H:i:s'));
     }
 
     public function cronAddOnPrice()
     {
-        Log::info('cron add on price start : ' .date('Y-m-d H:i:s'));
-        $getOutlet = Outlet::select('id_outlet', 'outlet_code')->get()->toArray();
-        $getAddOn = ProductModifier::select('id_product_modifier', 'code')->get()->toArray();
-        for ($i = 0; $i < count($getOutlet); $i++) {
-            for ($j = 0; $j < count($getAddOn); $j++) {
-                try {
-                    $getPrice = DB::connection('mysql')
-                        ->table('outlet_product_modifier_price_periodes')
-                        ->where('id_product_modifier', $getAddOn[$j]['id_product_modifier'])
-                        ->where('id_outlet', $getOutlet[$i]['id_outlet'])
-                        ->where('start_date', '<=', date('Y-m-d'))
-                        ->where('end_date', '>=', date('Y-m-d'))
-                        ->orderBy('id_product_modifier_price_periode', 'DESC')->first();
-
-                    $price = $getPrice->price;
-                } catch (\Exception $e) {
-                    $price = 0;
-                }
-
-                $getProductPrice = ProductModifierPrice::where('id_product_modifier', $getAddOn[$j]['id_product_modifier'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
-                if ($getProductPrice && $price != 0) {
+        $log = MyHelper::logCron('Sync Add On Price');
+        try {
+            Log::info('cron add on price start : ' .date('Y-m-d H:i:s'));
+            $getOutlet = Outlet::select('id_outlet', 'outlet_code')->get()->toArray();
+            $getAddOn = ProductModifier::select('id_product_modifier', 'code')->get()->toArray();
+            for ($i = 0; $i < count($getOutlet); $i++) {
+                for ($j = 0; $j < count($getAddOn); $j++) {
                     try {
-                        ProductModifierPrice::where('id_product_modifier_price', $getProductPrice->id_product_modifier_price)->update([
-                            'product_modifier_price' => $price,
-                        ]);
+                        $getPrice = DB::connection('mysql')
+                            ->table('outlet_product_modifier_price_periodes')
+                            ->where('id_product_modifier', $getAddOn[$j]['id_product_modifier'])
+                            ->where('id_outlet', $getOutlet[$i]['id_outlet'])
+                            ->where('start_date', '<=', date('Y-m-d'))
+                            ->where('end_date', '>=', date('Y-m-d'))
+                            ->orderBy('id_product_modifier_price_periode', 'DESC')->first();
+
+                        $price = $getPrice->price;
                     } catch (\Exception $e) {
-                        LogBackendError::logExceptionMessage("ApiPOS/cronAddOnPrice=>" . $e->getMessage(), $e);
+                        $price = 0;
+                    }
+
+                    $getProductPrice = ProductModifierPrice::where('id_product_modifier', $getAddOn[$j]['id_product_modifier'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
+                    if ($getProductPrice && $price != 0) {
+                        try {
+                            ProductModifierPrice::where('id_product_modifier_price', $getProductPrice->id_product_modifier_price)->update([
+                                'product_modifier_price' => $price,
+                            ]);
+                        } catch (\Exception $e) {
+                            LogBackendError::logExceptionMessage("ApiPOS/cronAddOnPrice=>" . $e->getMessage(), $e);
+                        }
                     }
                 }
             }
+            Log::info('cron add on price end : ' .date('Y-m-d H:i:s'));
+            $log->success();
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
         }
-        Log::info('cron add on price end : ' .date('Y-m-d H:i:s'));
     }
 
     public function syncMenu(Request $request)
@@ -3361,53 +3379,60 @@ class ApiPOS extends Controller
 
     public function syncOutletMenuCron(Request $request)
     {
-        $syncDatetime = date('d F Y h:i');
-        $getRequest = SyncMenuRequest::get()->first();
-        // is $getRequest null
-        if (!$getRequest) {
-            return '';
-        }
-        $getRequest = $getRequest->toArray();
-        $getRequest['request'] = json_decode($getRequest['request'], true);
-        $syncMenu = $this->syncMenuProcess($getRequest['request'], 'bulk');
-        if ($syncMenu['status'] == 'success') {
-            SyncMenuResult::create(['result' => json_encode($syncMenu['result'])]);
-        } else {
-            SyncMenuResult::create(['result' => json_encode($syncMenu['messages'])]);
-        }
-        if ($getRequest['is_end'] == 1) {
-            $getResult = SyncMenuResult::pluck('result');
-            $totalReject    = 0;
-            $totalFailed    = 0;
-            $listFailed     = [];
-            $listRejected     = [];
-            foreach ($getResult as $value) {
-                $data[] = json_decode($value, true);
-                if (isset(json_decode($value, true)[0])) {
-                    $result['fail'][] = json_decode($value, true)[0];
-                }
-                if (isset(json_decode($value, true)['rejected_product'])) {
-                    $totalReject    = $totalReject + count(json_decode($value, true)['rejected_product']['list_product']);
-                    foreach (json_decode($value, true)['rejected_product']['list_product'] as $valueRejected) {
-                        array_push($listRejected, $valueRejected);
-                    }
-                }
-                if (isset(json_decode($value, true)['failed_product'])) {
-                    $totalFailed    = $totalFailed + count(json_decode($value, true)['failed_product']['list_product']);
-                    foreach (json_decode($value, true)['failed_product']['list_product'] as $valueFailed) {
-                        array_push($listFailed, $valueFailed);
-                    }
-                }
+        $log = MyHelper::logCron('Sync Outlet Menu');
+        try {
+            $syncDatetime = date('d F Y h:i');
+            $getRequest = SyncMenuRequest::get()->first();
+            // is $getRequest null
+            if (!$getRequest) {
+                $log->success('empty');
+                return '';
             }
+            $getRequest = $getRequest->toArray();
+            $getRequest['request'] = json_decode($getRequest['request'], true);
+            $syncMenu = $this->syncMenuProcess($getRequest['request'], 'bulk');
+            if ($syncMenu['status'] == 'success') {
+                SyncMenuResult::create(['result' => json_encode($syncMenu['result'])]);
+            } else {
+                SyncMenuResult::create(['result' => json_encode($syncMenu['messages'])]);
+            }
+            if ($getRequest['is_end'] == 1) {
+                $getResult = SyncMenuResult::pluck('result');
+                $totalReject    = 0;
+                $totalFailed    = 0;
+                $listFailed     = [];
+                $listRejected     = [];
+                foreach ($getResult as $value) {
+                    $data[] = json_decode($value, true);
+                    if (isset(json_decode($value, true)[0])) {
+                        $result['fail'][] = json_decode($value, true)[0];
+                    }
+                    if (isset(json_decode($value, true)['rejected_product'])) {
+                        $totalReject    = $totalReject + count(json_decode($value, true)['rejected_product']['list_product']);
+                        foreach (json_decode($value, true)['rejected_product']['list_product'] as $valueRejected) {
+                            array_push($listRejected, $valueRejected);
+                        }
+                    }
+                    if (isset(json_decode($value, true)['failed_product'])) {
+                        $totalFailed    = $totalFailed + count(json_decode($value, true)['failed_product']['list_product']);
+                        foreach (json_decode($value, true)['failed_product']['list_product'] as $valueFailed) {
+                            array_push($listFailed, $valueFailed);
+                        }
+                    }
+                }
 
-            // if (count($listRejected) > 0) {
-            //     $this->syncSendEmail($syncDatetime, $outlet->outlet_code, $outlet->outlet_name, $rejectedProduct, null);
-            // }
-            // if (count($listFailed) > 0) {
-            //     $this->syncSendEmail($syncDatetime, $outlet->outlet_code, $outlet->outlet_name, null, $failedProduct);
-            // }
+                // if (count($listRejected) > 0) {
+                //     $this->syncSendEmail($syncDatetime, $outlet->outlet_code, $outlet->outlet_name, $rejectedProduct, null);
+                // }
+                // if (count($listFailed) > 0) {
+                //     $this->syncSendEmail($syncDatetime, $outlet->outlet_code, $outlet->outlet_name, null, $failedProduct);
+                // }
+            }
+            SyncMenuRequest::where('id', $getRequest['id'])->delete();
+            $log->success();
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
         }
-        SyncMenuRequest::where('id', $getRequest['id'])->delete();
     }
 
     public function setTimezone($data)

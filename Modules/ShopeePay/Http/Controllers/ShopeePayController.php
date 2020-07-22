@@ -239,130 +239,136 @@ class ShopeePayController extends Controller
      */
     public function cronCancel()
     {
-        $now     = date('Y-m-d H:i:s');
-        $expired = date('Y-m-d H:i:s', time() - $this->validity_period);
+        $log = MyHelper::logCron('Cancel Transaction Shopeepay');
+        try {
+            $now     = date('Y-m-d H:i:s');
+            $expired = date('Y-m-d H:i:s', time() - $this->validity_period);
 
-        $getTrx = Transaction::where('transaction_payment_status', 'Pending')
-            ->join('transaction_payment_shopee_pays', 'transactions.id_transaction', '=', 'transaction_payment_shopee_pays.id_transaction')
-            ->where('transaction_date', '<=', $expired)
-            ->whereIn('trasaction_payment_type', ['Shopeepay', 'Balance'])
-            ->get();
+            $getTrx = Transaction::where('transaction_payment_status', 'Pending')
+                ->join('transaction_payment_shopee_pays', 'transactions.id_transaction', '=', 'transaction_payment_shopee_pays.id_transaction')
+                ->where('transaction_date', '<=', $expired)
+                ->whereIn('trasaction_payment_type', ['Shopeepay', 'Balance'])
+                ->get();
 
-        $count = 0;
-        foreach ($getTrx as $key => $singleTrx) {
-            $singleTrx->load('outlet_name');
+            $count = 0;
+            foreach ($getTrx as $key => $singleTrx) {
+                $singleTrx->load('outlet_name');
 
-            $productTrx = TransactionProduct::where('id_transaction', $singleTrx->id_transaction)->get();
-            if (empty($productTrx)) {
-                continue;
-            }
+                $productTrx = TransactionProduct::where('id_transaction', $singleTrx->id_transaction)->get();
+                if (empty($productTrx)) {
+                    continue;
+                }
 
-            $user = User::where('id', $singleTrx->id_user)->first();
-            if (empty($user)) {
-                continue;
-            }
+                $user = User::where('id', $singleTrx->id_user)->first();
+                if (empty($user)) {
+                    continue;
+                }
 
-            // get status from shopeepay
-            $status = $this->checkStatus($singleTrx, 'trx', $errors);
-            if (!$status) {
-                \Log::error('Failed get shopeepay status transaction ' . $singleTrx->transaction_receipt_number . ': ', $errors);
-                continue;
-            }
-            // is transaction success?
-            $payment_status = ($status['response']['payment_status'] ?? false);
-            if ($payment_status == '1') {
-                if (($status['response']['transaction_list'][0]['amount'] ?? false) != $singleTrx->amount) {
-                    // void transaction
-                    $void_reference_id = null;
-                    $void              = $this->void($singleTrx, 'trx', $errors, $void_reference_id);
-                    if (!$void) {
-                        \Log::error('Failed void transaction ' . $singleTrx->transaction_receipt_number . ': ', $errors);
-                        continue;
+                // get status from shopeepay
+                $status = $this->checkStatus($singleTrx, 'trx', $errors);
+                if (!$status) {
+                    \Log::error('Failed get shopeepay status transaction ' . $singleTrx->transaction_receipt_number . ': ', $errors);
+                    continue;
+                }
+                // is transaction success?
+                $payment_status = ($status['response']['payment_status'] ?? false);
+                if ($payment_status == '1') {
+                    if (($status['response']['transaction_list'][0]['amount'] ?? false) != $singleTrx->amount) {
+                        // void transaction
+                        $void_reference_id = null;
+                        $void              = $this->void($singleTrx, 'trx', $errors, $void_reference_id);
+                        if (!$void) {
+                            \Log::error('Failed void transaction ' . $singleTrx->transaction_receipt_number . ': ', $errors);
+                            continue;
+                        }
+                        DB::begintransaction();
+                        if (($void['response']['errcode'] ?? 123) == 0) {
+                            $up = TransactionPaymentShopeePay::where('id_transaction', $singleTrx->id_transaction)->update(['void_reference_id' => $void_reference_id, 'errcode' => 0, 'err_reason' => 'invalid payment amount']);
+                        }
+                        DB::commit();
+                        goto cancel;
                     }
                     DB::begintransaction();
-                    if (($void['response']['errcode'] ?? 123) == 0) {
-                        $up = TransactionPaymentShopeePay::where('id_transaction', $singleTrx->id_transaction)->update(['void_reference_id' => $void_reference_id, 'errcode' => 0, 'err_reason' => 'invalid payment amount']);
+                    $update = $singleTrx->update(['transaction_payment_status' => 'Completed', 'completed_at' => date('Y-m-d H:i:s')]);
+                    if ($update) {
+                        $userData               = User::where('id', $singleTrx['id_user'])->first();
+                        $config_fraud_use_queue = Configs::where('config_name', 'fraud use queue')->first()->is_active;
+
+                        if ($config_fraud_use_queue == 1) {
+                            FraudJob::dispatch($userData, $singleTrx, 'transaction')->onConnection('fraudqueue');
+                        } else {
+                            $checkFraud = app($this->setting_fraud)->checkFraudTrxOnline($userData, $singleTrx);
+                        }
                     }
                     DB::commit();
-                    goto cancel;
-                }
-                DB::begintransaction();
-                $update = $singleTrx->update(['transaction_payment_status' => 'Completed', 'completed_at' => date('Y-m-d H:i:s')]);
-                if ($update) {
-                    $userData               = User::where('id', $singleTrx['id_user'])->first();
-                    $config_fraud_use_queue = Configs::where('config_name', 'fraud use queue')->first()->is_active;
+                    $singleTrx->load('outlet');
+                    $singleTrx->load('productTransaction');
 
-                    if ($config_fraud_use_queue == 1) {
-                        FraudJob::dispatch($userData, $singleTrx, 'transaction')->onConnection('fraudqueue');
-                    } else {
-                        $checkFraud = app($this->setting_fraud)->checkFraudTrxOnline($userData, $singleTrx);
+                    $mid = [
+                        'order_id'     => $singleTrx['transaction_receipt_number'],
+                        'gross_amount' => ($singleTrx['amount'] / 100),
+                    ];
+                    $send = app($this->notif)->notification($mid, $singleTrx);
+
+                    $sendPOS     = \App\Lib\ConnectPOS::create()->sendTransaction([$singleTrx['id_transaction']]);
+                    continue;
+                }
+                cancel:
+                MyHelper::updateFlagTransactionOnline($singleTrx, 'cancel', $user);
+
+                $singleTrx->transaction_payment_status = 'Cancelled';
+                $singleTrx->void_date                  = $now;
+                $singleTrx->save();
+
+                if (!$singleTrx) {
+                    DB::rollBack();
+                    continue;
+                }
+
+                //reversal balance
+                $logBalance = LogBalance::where('id_reference', $singleTrx->id_transaction)->where('source', 'Transaction')->where('balance', '<', 0)->get();
+                foreach ($logBalance as $logB) {
+                    $reversal = app($this->balance)->addLogBalance($singleTrx->id_user, abs($logB['balance']), $singleTrx->id_transaction, 'Reversal', $singleTrx->transaction_grandtotal);
+                    if (!$reversal) {
+                        DB::rollBack();
+                        continue;
+                    }
+                    $usere = User::where('id', $singleTrx->id_user)->first();
+                    $send  = app($this->autocrm)->SendAutoCRM('Transaction Failed Point Refund', $usere->phone,
+                        [
+                            "outlet_name"      => $singleTrx->outlet_name->outlet_name,
+                            "transaction_date" => $singleTrx->transaction_date,
+                            'id_transaction'   => $singleTrx->id_transaction,
+                            'receipt_number'   => $singleTrx->transaction_receipt_number,
+                            'received_point'   => (string) abs($logB['balance']),
+                        ]
+                    );
+                }
+
+                // delete promo campaign report
+                if ($singleTrx->id_promo_campaign_promo_code) {
+                    $update_promo_report = app($this->promo_campaign)->deleteReport($singleTrx->id_transaction, $singleTrx->id_promo_campaign_promo_code);
+                    if (!$update_promo_report) {
+                        DB::rollBack();
+                        continue;
                     }
                 }
+
+                // return voucher
+                $update_voucher = app($this->voucher)->returnVoucher($singleTrx->id_transaction);
+                if (!$update_voucher) {
+                    DB::rollBack();
+                    continue;
+                }
+                $count++;
                 DB::commit();
-                $singleTrx->load('outlet');
-                $singleTrx->load('productTransaction');
 
-                $mid = [
-                    'order_id'     => $singleTrx['transaction_receipt_number'],
-                    'gross_amount' => ($singleTrx['amount'] / 100),
-                ];
-                $send = app($this->notif)->notification($mid, $singleTrx);
-
-                $sendPOS     = \App\Lib\ConnectPOS::create()->sendTransaction([$singleTrx['id_transaction']]);
-                continue;
             }
-            cancel:
-            MyHelper::updateFlagTransactionOnline($singleTrx, 'cancel', $user);
-
-            $singleTrx->transaction_payment_status = 'Cancelled';
-            $singleTrx->void_date                  = $now;
-            $singleTrx->save();
-
-            if (!$singleTrx) {
-                DB::rollBack();
-                continue;
-            }
-
-            //reversal balance
-            $logBalance = LogBalance::where('id_reference', $singleTrx->id_transaction)->where('source', 'Transaction')->where('balance', '<', 0)->get();
-            foreach ($logBalance as $logB) {
-                $reversal = app($this->balance)->addLogBalance($singleTrx->id_user, abs($logB['balance']), $singleTrx->id_transaction, 'Reversal', $singleTrx->transaction_grandtotal);
-                if (!$reversal) {
-                    DB::rollBack();
-                    continue;
-                }
-                $usere = User::where('id', $singleTrx->id_user)->first();
-                $send  = app($this->autocrm)->SendAutoCRM('Transaction Failed Point Refund', $usere->phone,
-                    [
-                        "outlet_name"      => $singleTrx->outlet_name->outlet_name,
-                        "transaction_date" => $singleTrx->transaction_date,
-                        'id_transaction'   => $singleTrx->id_transaction,
-                        'receipt_number'   => $singleTrx->transaction_receipt_number,
-                        'received_point'   => (string) abs($logB['balance']),
-                    ]
-                );
-            }
-
-            // delete promo campaign report
-            if ($singleTrx->id_promo_campaign_promo_code) {
-                $update_promo_report = app($this->promo_campaign)->deleteReport($singleTrx->id_transaction, $singleTrx->id_promo_campaign_promo_code);
-                if (!$update_promo_report) {
-                    DB::rollBack();
-                    continue;
-                }
-            }
-
-            // return voucher
-            $update_voucher = app($this->voucher)->returnVoucher($singleTrx->id_transaction);
-            if (!$update_voucher) {
-                DB::rollBack();
-                continue;
-            }
-            $count++;
-            DB::commit();
-
+            $log->success();
+            return response()->json([$count]);
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
         }
-        return response()->json([$count]);
     }
 
     /**
@@ -372,111 +378,118 @@ class ShopeePayController extends Controller
      */
     public function cronCancelDeals()
     {
-        $now     = date('Y-m-d H:i:s');
-        $expired = date('Y-m-d H:i:s', time() - $this->validity_period);
+        $log = MyHelper::logCron('Cancel Deals Shopeepay');
+        try {
+            $now     = date('Y-m-d H:i:s');
+            $expired = date('Y-m-d H:i:s', time() - $this->validity_period);
 
-        $getTrx = DealsUser::where('paid_status', 'Pending')
-            ->join('deals_payment_shopee_pays', 'deals_users.id_deals_user', '=', 'deals_payment_shopee_pays.id_deals_user')
-            ->where('payment_method', 'Shopeepay')
-            ->where('claimed_at', '<=', $expired)->get();
+            $getTrx = DealsUser::where('paid_status', 'Pending')
+                ->join('deals_payment_shopee_pays', 'deals_users.id_deals_user', '=', 'deals_payment_shopee_pays.id_deals_user')
+                ->where('payment_method', 'Shopeepay')
+                ->where('claimed_at', '<=', $expired)->get();
 
-        if (empty($getTrx)) {
-            return response()->json(['empty']);
-        }
-        $count = 0;
-        foreach ($getTrx as $key => $singleTrx) {
-
-            $user = User::where('id', $singleTrx->id_user)->first();
-            if (empty($user)) {
-                continue;
+            if (empty($getTrx)) {
+                $log->success('empty');
+                return response()->json(['empty']);
             }
+            $count = 0;
+            foreach ($getTrx as $key => $singleTrx) {
 
-            // get status from shopeepay
-            $status = $this->checkStatus($singleTrx->id_deals_user, 'deals', $errors);
-            if (!$status) {
-                \Log::error('Failed get shopeepay status deals user ' . $singleTrx->id_deals_user . ': ', $errors);
-                continue;
-            }
-            DB::begintransaction();
-            // is transaction success?
-            if (($status['response']['payment_status'] ?? false) == '1') {
-                if (($status['response']['transaction_list'][0]['amount'] ?? false) != $singleTrx->amount) {
+                $user = User::where('id', $singleTrx->id_user)->first();
+                if (empty($user)) {
+                    continue;
+                }
+
+                // get status from shopeepay
+                $status = $this->checkStatus($singleTrx->id_deals_user, 'deals', $errors);
+                if (!$status) {
+                    \Log::error('Failed get shopeepay status deals user ' . $singleTrx->id_deals_user . ': ', $errors);
+                    continue;
+                }
+                DB::begintransaction();
+                // is transaction success?
+                if (($status['response']['payment_status'] ?? false) == '1') {
+                    if (($status['response']['transaction_list'][0]['amount'] ?? false) != $singleTrx->amount) {
+                        // void transaction
+                        $void_reference_id = null;
+                        $void              = $this->void($singleTrx, 'deals', $errors, $void_reference_id);
+                        if (!$void) {
+                            \Log::error('Failed void transaction ' . $singleTrx->id_deals_user . ': ', $errors);
+                            continue;
+                        }
+                        DB::begintransaction();
+                        if (($void['response']['errcode'] ?? 123) == 0) {
+                            $up = DealsPaymentShopeePay::where('id_deals_user', $singleTrx->id_deals_user)->update(['void_reference_id' => $void_reference_id, 'errcode' => 0, 'err_reason' => 'invalid payment amount']);
+                        }
+                        DB::commit();
+                        goto cancel;
+                    }
+                    $update = DealsUser::where('id_deals_user', $singleTrx->id_deals_user)->update(['paid_status' => 'Completed']);
+                    DB::commit();
+                    continue;
                     // void transaction
-                    $void_reference_id = null;
-                    $void              = $this->void($singleTrx, 'deals', $errors, $void_reference_id);
-                    if (!$void) {
-                        \Log::error('Failed void transaction ' . $singleTrx->id_deals_user . ': ', $errors);
+                    // $void_reference_id = null;
+                    // $void              = $this->void($singleTrx->id_deals_user, 'deals', $errors, $void_reference_id);
+                    // if (!$void) {
+                    //     \Log::error('Failed void deals ' . $singleTrx->id_deals_user . ': ', $errors);
+                    //     continue;
+                    // }
+                    // if (($void['response']['errcode'] ?? 123) == 0) {
+                    //     $up = DealsPaymentShopeePay::where('id_deals_user', $singleTrx->id_deals_user)->update(['void_reference_id' => $void_reference_id]);
+                    // }
+                }
+                cancel:
+                $singleTrx->paid_status = 'Cancelled';
+                $singleTrx->save();
+
+                if (!$singleTrx) {
+                    DB::rollBack();
+                    continue;
+                }
+
+                // revert back deals data
+                $deals = Deal::where('id_deals', $singleTrx->id_deals)->first();
+                if ($deals) {
+                    $up1 = $deals->update(['deals_total_claimed' => $deals->deals_total_claimed - 1]);
+                    if (!$up1) {
+                        DB::rollBack();
                         continue;
                     }
-                    DB::begintransaction();
-                    if (($void['response']['errcode'] ?? 123) == 0) {
-                        $up = DealsPaymentShopeePay::where('id_deals_user', $singleTrx->id_deals_user)->update(['void_reference_id' => $void_reference_id, 'errcode' => 0, 'err_reason' => 'invalid payment amount']);
+                }
+                $up2 = DealsVoucher::where('id_deals_voucher', $singleTrx->id_deals_voucher)->update(['deals_voucher_status' => 'Available']);
+                if (!$up2) {
+                    DB::rollBack();
+                    continue;
+                }
+                $del = app($this->deals_claim)->checkUserClaimed($user, $singleTrx->id_deals, true);
+
+                //reversal balance
+                if ($singleTrx->balance_nominal) {
+                    $reversal = app($this->balance)->addLogBalance($singleTrx->id_user, $singleTrx->balance_nominal, $singleTrx->id_deals_user, 'Claim Deals Failed', $singleTrx->voucher_price_point ?: $singleTrx->voucher_price_cash);
+                    if (!$reversal) {
+                        DB::rollBack();
+                        continue;
                     }
-                    DB::commit();
-                    goto cancel;
+                    // $usere= User::where('id',$singleTrx->id_user)->first();
+                    // $send = app($this->autocrm)->SendAutoCRM('Transaction Failed Point Refund', $usere->phone,
+                    //     [
+                    //         "outlet_name"       => $singleTrx->outlet_name->outlet_name,
+                    //         "transaction_date"  => $singleTrx->transaction_date,
+                    //         'id_transaction'    => $singleTrx->id_transaction,
+                    //         'receipt_number'    => $singleTrx->transaction_receipt_number,
+                    //         'received_point'    => (string) abs($logB['balance'])
+                    //     ]
+                    // );
                 }
-                $update = DealsUser::where('id_deals_user', $singleTrx->id_deals_user)->update(['paid_status' => 'Completed']);
+
+                $count++;
                 DB::commit();
-                continue;
-                // void transaction
-                // $void_reference_id = null;
-                // $void              = $this->void($singleTrx->id_deals_user, 'deals', $errors, $void_reference_id);
-                // if (!$void) {
-                //     \Log::error('Failed void deals ' . $singleTrx->id_deals_user . ': ', $errors);
-                //     continue;
-                // }
-                // if (($void['response']['errcode'] ?? 123) == 0) {
-                //     $up = DealsPaymentShopeePay::where('id_deals_user', $singleTrx->id_deals_user)->update(['void_reference_id' => $void_reference_id]);
-                // }
             }
-            cancel:
-            $singleTrx->paid_status = 'Cancelled';
-            $singleTrx->save();
-
-            if (!$singleTrx) {
-                DB::rollBack();
-                continue;
-            }
-
-            // revert back deals data
-            $deals = Deal::where('id_deals', $singleTrx->id_deals)->first();
-            if ($deals) {
-                $up1 = $deals->update(['deals_total_claimed' => $deals->deals_total_claimed - 1]);
-                if (!$up1) {
-                    DB::rollBack();
-                    continue;
-                }
-            }
-            $up2 = DealsVoucher::where('id_deals_voucher', $singleTrx->id_deals_voucher)->update(['deals_voucher_status' => 'Available']);
-            if (!$up2) {
-                DB::rollBack();
-                continue;
-            }
-            $del = app($this->deals_claim)->checkUserClaimed($user, $singleTrx->id_deals, true);
-
-            //reversal balance
-            if ($singleTrx->balance_nominal) {
-                $reversal = app($this->balance)->addLogBalance($singleTrx->id_user, $singleTrx->balance_nominal, $singleTrx->id_deals_user, 'Claim Deals Failed', $singleTrx->voucher_price_point ?: $singleTrx->voucher_price_cash);
-                if (!$reversal) {
-                    DB::rollBack();
-                    continue;
-                }
-                // $usere= User::where('id',$singleTrx->id_user)->first();
-                // $send = app($this->autocrm)->SendAutoCRM('Transaction Failed Point Refund', $usere->phone,
-                //     [
-                //         "outlet_name"       => $singleTrx->outlet_name->outlet_name,
-                //         "transaction_date"  => $singleTrx->transaction_date,
-                //         'id_transaction'    => $singleTrx->id_transaction,
-                //         'receipt_number'    => $singleTrx->transaction_receipt_number,
-                //         'received_point'    => (string) abs($logB['balance'])
-                //     ]
-                // );
-            }
-
-            $count++;
-            DB::commit();
+            $log->success();
+            return response()->json([$count]);
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
         }
-        return response()->json([$count]);
     }
 
     /**
