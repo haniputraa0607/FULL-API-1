@@ -29,12 +29,24 @@ class ApiDealsWebview extends Controller
         $post['deals_type'] = "Deals";
         $post['web'] = 1;
 
-        $deals = Deal::with('outlets.city', 'deals_content.deals_content_details')->where('id_deals', $request->id_deals)->get()->toArray()[0];
+        $deals = Deal::with([
+		        	'outlets' => function($q) { 
+		        		$q->where('outlet_status', 'Active'); 
+		        	}, 
+		        	'outlets.city',
+		        	'deals_content' => function($q){
+        				$q->where('is_active',1);
+        			}, 
+		        	'deals_content.deals_content_details'
+		        ])
+		        ->where('id_deals', $request->id_deals)
+		        ->get()
+		        ->toArray()[0];
 
         $deals['outlet_by_city'] = [];
 
         if($deals['is_all_outlet'] == 1){
-            $outlets = Outlet::with('city')->get()->toArray();
+            $outlets = Outlet::with('city')->where('outlet_status','Active')->get()->toArray();
             $deals['outlets'] = $outlets;
         }
 

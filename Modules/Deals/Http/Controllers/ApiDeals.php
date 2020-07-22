@@ -60,9 +60,9 @@ class ApiDeals extends Controller
         $this->autocrm = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
         $this->subscription = "Modules\Subscription\Http\Controllers\ApiSubscription";
         $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+        $this->promotion_deals      = "Modules\Promotion\Http\Controllers\ApiPromotionDeals";
         $this->promo_export_import  = "Modules\PromoCampaign\Http\Controllers\ApiPromoExportImport";
         $this->deals_claim    = "Modules\Deals\Http\Controllers\ApiDealsClaim";
-
     }
 
     public $saveImage = "img/deals/";
@@ -142,7 +142,7 @@ class ApiDeals extends Controller
 
             if ($post['deals_type'] == 'Promotion')
             {
-            	$promotionPath = 'img/promotion/deals';
+            	$promotionPath = 'img/promotion/deals/';
             }
             if (!file_exists($promotionPath??$this->saveImage)) {
                 mkdir($promotionPath??$this->saveImage, 0777, true);
@@ -237,7 +237,7 @@ class ApiDeals extends Controller
         	}else{
         	    $data['id_outlet'] = $post['id_outlet'];
         	}
-            if (in_array("all", $data['id_outlet'])){
+            if (in_array("all", $post['id_outlet'])){
                 $data['is_all_outlet'] = 1;
                 $data['id_outlet'] = [];
             }else{
@@ -333,7 +333,7 @@ class ApiDeals extends Controller
             }
             $deals = $save->toArray();
             $send = app($this->autocrm)->SendAutoCRM('Create '.$dt, $request->user()->phone, [
-                'voucher_type' => $deals['deals_voucher_type']?:'',
+                'voucher_type' => $deals['deals_voucher_type']??'',
                 'promo_id_type' => $deals['deals_promo_id_type']??'',
                 'promo_id' => $deals['deals_promo_id']??'',
                 'detail' => view('deals::emails.detail',['detail'=>$deals])->render()
@@ -362,7 +362,6 @@ class ApiDeals extends Controller
             return MyHelper::checkGet($deals->get());
         }
 
-        // return $request->json()->all();
         $deals = (new Deal)->newQuery();
         $user = $request->user();
         $curBalance = (int) $user->balance??0;
@@ -400,7 +399,6 @@ class ApiDeals extends Controller
             if(strpos($request->user()->level,'Admin')>=0){
                 $deals->addSelect('deals_promo_id','deals_publish_start','deals_publish_end','created_at');
             }
-            // return($deals->toSql());
         }
         if ($request->json('rule')){
              $this->filterList($deals,$request->json('rule'),$request->json('operator')??'and');
@@ -544,7 +542,6 @@ class ApiDeals extends Controller
 
                 $tempTempDeals = $this->highestAvailableVoucher($tempTempDeals);
 
-                // return $tempTempDeals;
                 $tempDeals =  array_merge($tempDeals, $tempTempDeals);
             }
 
@@ -1039,11 +1036,16 @@ class ApiDeals extends Controller
     function update($id, $data)
     {
         $data = $this->checkInputan($data);
+
         $deals = Deal::find($id);
         $data['step_complete'] = 0;
         $data['last_updated_by'] = auth()->user()->id;
 
-        if ($deals['product_type'] != $data['product_type'] || $data['is_online'] == 0 || $deals['id_brand'] != $data['id_brand']) {
+        if ($deals['product_type'] != $data['product_type'] || $data['is_online'] == 0) {
+        	app($this->promo_campaign)->deleteAllProductRule('deals', $id);
+        }
+
+        if ( isset($deals['id_brand']) && isset($data['id_brand']) && ($deals['id_brand'] != $data['id_brand']) ) {
         	app($this->promo_campaign)->deleteAllProductRule('deals', $id);
         }
 
@@ -1100,34 +1102,48 @@ class ApiDeals extends Controller
     {
 
         DB::beginTransaction();
-        $save = $this->update($request->json('id_deals'), $request->json()->all());
+        if ($request->json('id_deals')) {
+        	$save = $this->update($request->json('id_deals'), $request->json()->all());
 
-        if ($save) {
-            DB::commit();
-            $dt = '';
-            switch (strtolower($request->json('deals_type'))){
-                case 'deals':
-                    $dt = 'Deals';
-                    break;
-                case 'hidden':
-                    $dt = 'Inject Voucher';
-                    break;
-                case 'welcomevoucher':
-                    $dt = 'Welcome Voucher';
-                    break;
-            }
-            $deals = Deal::where('id_deals',$request->json('id_deals'))->first()->toArray();
-            $send = app($this->autocrm)->SendAutoCRM('Update '.$dt, $request->user()->phone, [
-                'voucher_type' => $deals['deals_voucher_type']?:'',
-                'promo_id_type' => $deals['deals_promo_id_type']?:'',
-                'promo_id' => $deals['deals_promo_id']?:'',
-                'detail' => view('deals::emails.detail',['detail'=>$deals])->render()
-            ]+$deals,null,true);
-	        return response()->json(MyHelper::checkUpdate($save));
-        } else {
-            DB::rollBack();
-        	return response()->json(['status' => 'fail','messages' => ['Cannot update deals because someone has already claimed a voucher']]);
+	        if ($save) {
+	            DB::commit();
+	            $dt = '';
+	            switch (strtolower($request->json('deals_type'))){
+	                case 'deals':
+	                    $dt = 'Deals';
+	                    break;
+	                case 'hidden':
+	                    $dt = 'Inject Voucher';
+	                    break;
+	                case 'welcomevoucher':
+	                    $dt = 'Welcome Voucher';
+	                    break;
+	            }
+	            $deals = Deal::where('id_deals',$request->json('id_deals'))->first()->toArray();
+	            $send = app($this->autocrm)->SendAutoCRM('Update '.$dt, $request->user()->phone, [
+	                'voucher_type' => $deals['deals_voucher_type']?:'',
+	                'promo_id_type' => $deals['deals_promo_id_type']?:'',
+	                'promo_id' => $deals['deals_promo_id']?:'',
+	                'detail' => view('deals::emails.detail',['detail'=>$deals])->render()
+	            ]+$deals,null,true);
+		        return response()->json(MyHelper::checkUpdate($save));
+	        } else {
+	            DB::rollBack();
+	        	return response()->json(['status' => 'fail','messages' => ['Cannot update deals because someone has already claimed a voucher']]);
+	        }
         }
+        else{
+        	$save = $this->updatePromotionDeals($request->json('id_deals_promotion_template'), $request->json()->all());
+
+        	if ($save) {
+	            DB::commit();
+		        return response()->json(MyHelper::checkUpdate($save));
+	        } else {
+	            DB::rollBack();
+	        	return response()->json(['status' => 'fail','messages' => ['Update Promotion Deals Failed']]);
+	        }
+        }
+
 
     }
 
@@ -1389,15 +1405,18 @@ class ApiDeals extends Controller
     	$post['step'] = $step;
     	$post['deals_type'] = $deals_type;
 
-    	if ($deals_type == 'Promotion') {
+    	if ($deals_type == 'Promotion' || $deals_type == 'deals_promotion') {
     		$deals = DealsPromotionTemplate::where('id_deals_promotion_template', '=', $post['id_deals']);
     		$table = 'deals_promotion';
     	}else{
+    		if ($deals_type == 'promotion-deals') {
+    			$post['deals_type'] = 'promotion';
+    		}
     		$deals = Deal::where('id_deals', '=', $post['id_deals'])->where('deals_type','=',$post['deals_type']);
     		$table = 'deals';
     	}
 
-        if ($post['step'] == 1 || $post['step'] == 'all') {
+        if ( ($post['step'] == 1 || $post['step'] == 'all') && ($deals_type != 'Promotion') ){
 			$deals = $deals->with(['outlets']);
         }
 
@@ -1497,8 +1516,8 @@ class ApiDeals extends Controller
 
 		if ($check)
 		{
-			if ($post['deals_type'] == 'Promotion') {
-				$update = Deal::where('id_deals','=',$post['id_deals'])->update(['step_complete' => 1, 'last_updated_by' => auth()->user()->id]);
+			if ($post['deals_type'] == 'Promotion' || $post['deals_type'] == 'deals_promotion') {
+				$update = DealsPromotionTemplate::where('id_deals_promotion_template','=',$post['id_deals'])->update(['step_complete' => 1, 'last_updated_by' => auth()->user()->id]);
 			}else{
 				$update = Deal::where('id_deals','=',$post['id_deals'])->update(['step_complete' => 1, 'last_updated_by' => auth()->user()->id]);
 			}
@@ -1526,6 +1545,10 @@ class ApiDeals extends Controller
     	if (!$deals) {
     		$errors = 'Deals not found';
     		return false;
+    	}
+
+    	if ($promo_type == 'deals_promotion') {
+    		return app($this->promotion_deals)->checkComplete($deals, $step, $errors);
     	}
 
     	$deals = $deals->toArray();
@@ -1626,7 +1649,6 @@ class ApiDeals extends Controller
 	        	];
 
 	        	foreach ($value['deals_content_details'] as $key2 => $value2) {
-	        		// return [$value2['content']];
 	        		if ($key == 0) {
 	        			$data['content'][$i][$key2] = $value2['content'];
 	        		}
@@ -2333,4 +2355,39 @@ class ApiDeals extends Controller
 
 		return MyHelper::checkGet($query);
 	}
+
+	/* UPDATE */
+    function updatePromotionDeals($id, $data)
+    {
+        $data = $this->checkInputan($data);
+        $deals = DealsPromotionTemplate::find($id);
+        unset(
+        	$data['deals_type'],
+        	$data['deals_voucher_price_point'],
+        	$data['deals_voucher_price_cash'],
+        	$data['is_all_outlet'],
+        	$data['id_outlet']
+        );
+        $data['step_complete'] = 0;
+        $data['last_updated_by'] = auth()->user()->id;
+
+        if ($deals['product_type'] != $data['product_type'] || $data['is_online'] == 0 || $deals['id_brand'] != $data['id_brand']) {
+        	app($this->promo_campaign)->deleteAllProductRule('deals_promotion', $id);
+        }
+
+        // error
+        if (isset($data['error'])) {
+            unset($data['error']);
+            return ($data);
+        }
+
+        // delete old images
+        if (isset($data['deals_image'])) {
+            app($this->promotion_deals)->deleteImage($id);
+        }
+
+        $save = DealsPromotionTemplate::where('id_deals_promotion_template', $id)->update($data);
+
+        return $save;
+    }
 }

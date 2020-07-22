@@ -44,6 +44,8 @@ class ApiOrder extends Controller
         $this->membership    = "Modules\Membership\Http\Controllers\ApiMembership";
         $this->pos    = "Modules\POS\Http\Controllers\ApiPOS";
         $this->trx    = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
+        $this->promo_campaign   = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+        $this->voucher          = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
     }
 
     public function listOrder(listOrder $request){
@@ -1005,7 +1007,13 @@ class ApiOrder extends Controller
             //send notif to customer
             $user = User::where('id', $order['id_user'])->first()->toArray();
             $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Reject');
-
+            // delete promo campaign report
+            if ($order->id_promo_campaign_promo_code)
+            {
+                $update_promo_report = app($this->promo_campaign)->deleteReport($order->id_transaction, $order->id_promo_campaign_promo_code);
+            }
+            // return voucher
+            $update_voucher = app($this->voucher)->returnVoucher($order->id_transaction);
             $send = app($this->autocrm)->SendAutoCRM('Order Reject', $user['phone'], [
                 "outlet_name" => $outlet['outlet_name'],
                 "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,

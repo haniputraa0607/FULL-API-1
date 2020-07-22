@@ -91,6 +91,10 @@ class PromoCampaignTools{
 		$discount=0;
 		$subtotal = 0;
 		// add product discount if exist
+		/*
+		*
+		* dikomen karena sekarang belum digunakan
+		*
 		foreach ($trxs as  $id_trx => &$trx) {
 			$product=Product::with(['product_prices' => function($q) use ($id_outlet){
 							$q->where('id_outlet', '=', $id_outlet)
@@ -111,6 +115,7 @@ class PromoCampaignTools{
 				$trx['new_price']=($product_price*$trx['qty'])-$product_discount;
 			}
 		}
+		*/
 
 		//get all modifier in array
 		$mod = [];
@@ -706,7 +711,7 @@ class PromoCampaignTools{
 					//is product available
 					if(!$product){
 						// product not available
-						$errors[]='Product with id '.$trx['id_product'].' could not be found';
+						$errors[]='Product could not be found';
 						continue;
 					}
 					// add discount
