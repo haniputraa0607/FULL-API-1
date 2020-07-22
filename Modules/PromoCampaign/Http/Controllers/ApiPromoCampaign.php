@@ -1709,7 +1709,7 @@ class ApiPromoCampaign extends Controller
         }
         elseif ($post['get'] == 'Product' && $post['type'] == 'group')
         {
-            $data = ProductGroup::select('id_product_group as id_product', DB::raw('CONCAT(product_group_code, " - ", product_group_name) AS product'))->get()->toArray();
+            $data = ProductGroup::select('id_product_group as id_product', DB::raw('CONCAT(product_group_code, " - ", product_group_name) AS product'))->whereNotNull('id_product_category')->get()->toArray();
         }
         elseif ($post['get'] == 'Product')
         {
