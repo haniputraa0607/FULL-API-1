@@ -64,7 +64,12 @@ class SyncProductPrice implements ShouldQueue
                         ->selectRaw('id_product_price_periode')
                         ->where('start_date', '>=', $price['start_date'])->where('end_date', '<=', $price['end_date']);
                 })
-                ->orWhere('end_date', '<=', date('Y-m-d'))
+                ->whereIn('id_product_price_periode', function ($q) use ($price, $outlet) {
+                    $q->from('outlet_product_price_periodes')
+                        ->selectRaw('id_product_price_periode')
+                        ->where('start_date', '<=', date('Y-m-d'))->where('end_date', '<=', $price['end_date']);
+                })
+                ->orWhere('end_date', '<', date('Y-m-d'))
                 ->orderBy('start_date')->get()->toArray();
 
             if (!empty($inBetween)) {
