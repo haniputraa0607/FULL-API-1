@@ -1041,7 +1041,11 @@ class ApiDeals extends Controller
         $data['step_complete'] = 0;
         $data['last_updated_by'] = auth()->user()->id;
 
-        if ($deals['product_type'] != $data['product_type'] || $data['is_online'] == 0 || $deals['id_brand'] != $data['id_brand']) {
+        if ($deals['product_type'] != $data['product_type'] || $data['is_online'] == 0) {
+        	app($this->promo_campaign)->deleteAllProductRule('deals', $id);
+        }
+
+        if ( isset($deals['id_brand']) && isset($data['id_brand']) && ($deals['id_brand'] != $data['id_brand']) ) {
         	app($this->promo_campaign)->deleteAllProductRule('deals', $id);
         }
 
