@@ -205,7 +205,7 @@ class ApiFraud extends Controller
                             $stringTransactionDay .= '<td>'.$val['outlet_city']['outlet_name'].'</td>';
                             $stringTransactionDay .= '<td>'.date('d F Y',strtotime($val['transaction_date'])).'</td>';
                             $stringTransactionDay .= '<td>'.date('H:i',strtotime($val['transaction_date'])).'</td>';
-                            $stringTransactionDay .= '<td>'.($val['balance'] != NULL ? $val['balance'] : '0').'</td>';
+                            $stringTransactionDay .= '<td>'.($val['balance'] != NULL ? $val['balance'] : '').'</td>';
                             $stringTransactionDay .= '<td>'.number_format($val['transaction_grandtotal']).'</td>';
                             $stringTransactionDay .= '<tr>';
                         }
@@ -323,7 +323,7 @@ class ApiFraud extends Controller
                            $stringTransactionWeek .= '<td>' . $val['outlet']['outlet_name'] . '</td>';
                            $stringTransactionWeek .= '<td>' . date('d F Y', strtotime($val['transaction_date'])) . '</td>';
                            $stringTransactionWeek .= '<td>' . date('H:i', strtotime($val['transaction_date'])) . '</td>';
-                           $stringTransactionWeek .= '<td>' . ($val['balance'] != NULL ? $val['balance'] : '0') . '</td>';
+                           $stringTransactionWeek .= '<td>' . ($val['balance'] != NULL ? $val['balance'] : '') . '</td>';
                            $stringTransactionWeek .= '<td>' . number_format($val['transaction_grandtotal']) . '</td>';
                            $stringTransactionWeek .= '<tr>';
                        }
@@ -525,7 +525,7 @@ class ApiFraud extends Controller
                             $stringTransactionDay .= '<td>'.$val['outlet_city']['outlet_name'].'</td>';
                             $stringTransactionDay .= '<td>'.date('d F Y',strtotime($val['transaction_date'])).'</td>';
                             $stringTransactionDay .= '<td>'.date('H:i',strtotime($val['transaction_date'])).'</td>';
-                            $stringTransactionDay .= '<td>'.($val['balance'] != NULL ? $val['balance'] : '0').'</td>';
+                            $stringTransactionDay .= '<td>'.($val['balance'] != NULL ? $val['balance'] : '').'</td>';
                             $stringTransactionDay .= '<td>'.number_format($val['transaction_grandtotal']).'</td>';
                             $stringTransactionDay .= '<tr>';
                         }
@@ -631,7 +631,7 @@ class ApiFraud extends Controller
                             $stringTransactionWeek .= '<td>'.$val['outlet']['outlet_name'].'</td>';
                             $stringTransactionWeek .= '<td>'.date('d F Y',strtotime($val['transaction_date'])).'</td>';
                             $stringTransactionWeek .= '<td>'.date('H:i',strtotime($val['transaction_date'])).'</td>';
-                            $stringTransactionWeek .= '<td>'.($val['balance'] != NULL ? $val['balance'] : '0').'</td>';
+                            $stringTransactionWeek .= '<td>'.($val['balance'] != NULL ? $val['balance'] : '').'</td>';
                             $stringTransactionWeek .= '<td>'.number_format($val['transaction_grandtotal']).'</td>';
                             $stringTransactionWeek .= '<tr>';
                         }

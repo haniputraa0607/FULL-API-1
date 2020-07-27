@@ -2031,7 +2031,7 @@ class ApiTransaction extends Controller
                 case 'Shopeepay':
                     $payment = DealsPaymentShopeePay::where('id_deals_user', $id)->first();
                     $result['payment'][] = [
-                        'name'      => 'Shopee Pay',
+                        'name'      => 'ShopeePay',
                         'amount'    =>  MyHelper::requestNumber($payment->amount / 100,'_CURRENCY')
                     ];
                     break;

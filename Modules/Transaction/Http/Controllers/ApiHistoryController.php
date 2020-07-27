@@ -714,7 +714,7 @@ class ApiHistoryController extends Controller
             $dataVoucher[$key]['type'] = 'voucher';
             $dataVoucher[$key]['id'] = $value['id_deals_user'];
             $dataVoucher[$key]['date'] = date('d M Y H:i', strtotime($value['claimed_at']));
-            $dataVoucher[$key]['outlet'] = 'Buy a Voucher';
+            $dataVoucher[$key]['outlet'] = 'Buy Voucher';
             $dataVoucher[$key]['amount'] = MyHelper::requestNumber($value['voucher_price_cash'] - $value['balance_nominal'], '_CURRENCY');
         }
 
@@ -990,7 +990,7 @@ class ApiHistoryController extends Controller
                 $dataList['type']   = 'voucher';
                 $dataList['id']      = $value['id_log_balance'];
                 $dataList['date']   = date('d M Y H:i', strtotime($value['created_at']));
-                $dataList['outlet'] = 'Buy a Voucher';
+                $dataList['outlet'] = 'Buy Voucher';
                 $dataList['amount'] = '- ' . ltrim(MyHelper::requestNumber($value['balance'], '_POINT'), '-');
                 // $dataList['amount'] = number_format($value['balance'], 0, ',', '.');
                 // $dataList['online'] = 1;
