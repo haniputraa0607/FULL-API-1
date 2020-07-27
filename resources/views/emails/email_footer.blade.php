@@ -57,7 +57,7 @@
 					<p style="color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;color: black">
 						Please do not inform your
 						<b>
-							contact number, e-mail address or password
+							Phone Number, Email or PIN
 						</b>
 						to anyone.
 					</p>
