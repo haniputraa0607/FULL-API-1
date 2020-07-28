@@ -1714,6 +1714,45 @@ class ApiOnlineTransaction extends Controller
             $post['shipping'] = 0;
         }
 
+        $shippingGoSend = 0;
+
+        $error_msg=[];
+
+        if($post['type'] != 'Pickup' && !$outlet->delivery_order) {
+            $error_msg[] = 'Maaf, Outlet ini tidak support untuk delivery order';
+        }
+
+        if(($post['type']??null) == 'GO-SEND'){
+            if(!($outlet['outlet_latitude']&&$outlet['outlet_longitude']&&$outlet['outlet_phone']&&$outlet['outlet_address'])){
+                app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
+                $outlet->notify_admin = 1;
+                $outlet->save();
+                return [
+                    'status' => 'fail',
+                    'messages' => ['Tidak dapat melakukan pengiriman dari outlet ini']
+                ];
+            }
+            $coor_origin = [
+                'latitude' => number_format($outlet['outlet_latitude'],8),
+                'longitude' => number_format($outlet['outlet_longitude'],8)
+            ];
+            $coor_destination = [
+                'latitude' => number_format($post['destination']['latitude'],8),
+                'longitude' => number_format($post['destination']['longitude'],8)
+            ];
+            $type = 'Pickup Order';
+            $shippingGoSendx = GoSend::getPrice($coor_origin,$coor_destination);
+            $shippingGoSend = $shippingGoSendx[GoSend::getShipmentMethod()]['price']['total_price']??null;
+            if($shippingGoSend === null){
+                $error_msg += array_column($shippingGoSendx[GoSend::getShipmentMethod()]['errors']??[],'message')?:['Gagal menghitung ongkos kirim'];
+            }
+            //cek free delivery
+            // if($post['is_free'] == 'yes'){
+            //     $isFree = '1';
+            // }
+            $isFree = 0;
+        }
+
         if (!isset($post['subtotal'])) {
             $post['subtotal'] = 0;
         }
