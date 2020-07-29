@@ -84,7 +84,7 @@
     @endforeach
 
     <tr style="text-align:right;padding-top: 15px">
-        <td rowspan="3" style="background:#f5f5f5;" align="center">
+        <td rowspan="2" style="background:#f5f5f5;" align="center">
             <img class="img-responsive"  width="80" style="width:100%;max-width:80px;" src="{{env('S3_URL_API').('img/icon_email_1.png')}}">
         </td>
         <td style="background:#f5f5f5;" valign="top" align="right">
@@ -161,7 +161,7 @@
             @foreach($data['data_payment'] as $dp)
                 @if($i==1)
                     <td style="background:#fcfcfc;border-spacing:0;color:#555;margin:0;padding-top:3px" valign="top"  align="center">
-                        <span style="color:#555;font-size:14px;margin:0;padding-left:3%">{{strtoupper($dp['payment_method'])}}</span>
+                        <span style="color:#555;font-size:14px;margin:0;padding-left:3%">{{$dp['payment_method']}}</span>
                     </td>
                     <td width="5%" style="background:#fcfcfc;border-spacing:0;color:#555;margin:0;padding-top:3px" valign="top"  align="right">
                         <span style="color:#555;font-size:14px;margin:0;padding-right:2px">{{ \App\Lib\MyHelper::requestNumber(floatval ($dp['nominal']), '_CURRENCY') }}</span>
@@ -170,7 +170,7 @@
     @else
         <tr>
             <td style="background:#fcfcfc;border-spacing:0;color:#555;margin:0;@if($i==count($data['data_payment']))padding-bottom: 10%;@endif" valign="top"  align="center">
-                <span style="color:#555;font-size:14px;margin:0;padding-left:3%">{{strtoupper($dp['payment_method'])}}</span>
+                <span style="color:#555;font-size:14px;margin:0;padding-left:3%">{{$dp['payment_method']}}</span>
             </td>
             <td width="5%" style="background:#fcfcfc;border-spacing:0;color:#555;margin:0;@if($i==count($data['data_payment']))padding-bottom: 10%;@endif" valign="top"  align="right">
                 <span style="color:#555;font-size:14px;margin:0;padding-right:2px">{{ \App\Lib\MyHelper::requestNumber(floatval ($dp['nominal']), '_CURRENCY') }}</span>
