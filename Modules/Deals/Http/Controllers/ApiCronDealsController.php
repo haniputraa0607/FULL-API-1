@@ -107,7 +107,7 @@ class ApiCronDealsController extends Controller
                 DB::commit();
 
             }
-            $this->success([$count]);
+            $log->success([$count]);
             return [$count];
         } catch (\Exception $e) {
             $log->fail($e->getMessage());
