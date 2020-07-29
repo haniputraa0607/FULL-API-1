@@ -50,204 +50,218 @@ class ApiCronTrxController extends Controller
 
     public function cron(Request $request)
     {
-        $crossLine = date('Y-m-d H:i:s', strtotime('- 3days'));
-        $dateLine  = date('Y-m-d H:i:s', strtotime('- 1days'));
-        $now       = date('Y-m-d H:i:s');
-        $expired   = date('Y-m-d H:i:s',strtotime('- 15minutes'));
+        $log = MyHelper::logCron('Cancel Transaction');
+        try {
+            $crossLine = date('Y-m-d H:i:s', strtotime('- 3days'));
+            $dateLine  = date('Y-m-d H:i:s', strtotime('- 1days'));
+            $now       = date('Y-m-d H:i:s');
+            $expired   = date('Y-m-d H:i:s',strtotime('- 15minutes'));
 
-        $getTrx = Transaction::where('transaction_payment_status', 'Pending')->where('transaction_date', '<=', $expired)->get();
+            $getTrx = Transaction::where('transaction_payment_status', 'Pending')->where('transaction_date', '<=', $expired)->get();
 
-        if (empty($getTrx)) {
-            return response()->json(['empty']);
+            if (empty($getTrx)) {
+                $log->success('empty');
+                return response()->json(['empty']);
+            }
+            $count = 0;
+            foreach ($getTrx as $key => $singleTrx) {
+                $singleTrx->load('outlet_name');
+
+                $productTrx = TransactionProduct::where('id_transaction', $singleTrx->id_transaction)->get();
+                if (empty($productTrx)) {
+                    continue;
+                }
+
+                $user = User::where('id', $singleTrx->id_user)->first();
+                if (empty($user)) {
+                    continue;
+                }
+                if($singleTrx->trasaction_payment_type == 'Midtrans') {
+                    $connectMidtrans = Midtrans::expire($singleTrx->transaction_receipt_number);
+                }elseif($singleTrx->trasaction_payment_type == 'Ipay88') {
+                    $trx_ipay = TransactionPaymentIpay88::where('id_transaction',$singleTrx->id_transaction)->first();
+                    $update = \Modules\IPay88\Lib\IPay88::create()->update($trx_ipay?:$singleTrx->id_transaction,[
+                        'type' =>'trx',
+                        'Status' => '0',
+                        'requery_response' => 'Cancelled by cron'
+                    ],false,false);
+                    continue;                
+                }
+                // $detail = $this->getHtml($singleTrx, $productTrx, $user->name, $user->phone, $singleTrx->created_at, $singleTrx->transaction_receipt_number);
+
+                // $autoCrm = app($this->autocrm)->SendAutoCRM('Transaction Online Cancel', $user->phone, ['date' => $singleTrx->created_at, 'status' => $singleTrx->transaction_payment_status, 'name'  => $user->name, 'id' => $singleTrx->transaction_receipt_number, 'receipt' => $detail, 'id_reference' => $singleTrx->transaction_receipt_number]);
+                // if (!$autoCrm) {
+                //     continue;
+                // }
+
+                DB::begintransaction();
+
+                MyHelper::updateFlagTransactionOnline($singleTrx, 'cancel', $user);
+
+                $singleTrx->transaction_payment_status = 'Cancelled';
+                $singleTrx->void_date = $now;
+                $singleTrx->save();
+
+                if (!$singleTrx) {
+                    DB::rollBack();
+                    continue;
+                }
+
+                //reversal balance
+                $logBalance = LogBalance::where('id_reference', $singleTrx->id_transaction)->where('source', 'Transaction')->where('balance', '<', 0)->get();
+                foreach($logBalance as $logB){
+                    $reversal = app($this->balance)->addLogBalance( $singleTrx->id_user, abs($logB['balance']), $singleTrx->id_transaction, 'Reversal', $singleTrx->transaction_grandtotal);
+    	            if (!$reversal) {
+    	            	DB::rollBack();
+    	            	continue;
+    	            }
+                    $usere= User::where('id',$singleTrx->id_user)->first();
+                    $send = app($this->autocrm)->SendAutoCRM('Transaction Failed Point Refund', $usere->phone,
+                        [
+                            "outlet_name"       => $singleTrx->outlet_name->outlet_name,
+                            "transaction_date"  => $singleTrx->transaction_date,
+                            'id_transaction'    => $singleTrx->id_transaction,
+                            'receipt_number'    => $singleTrx->transaction_receipt_number,
+                            'received_point'    => (string) abs($logB['balance'])
+                        ]
+                    );
+                }
+
+                // delete promo campaign report
+                if ($singleTrx->id_promo_campaign_promo_code) {
+                	$update_promo_report = app($this->promo_campaign)->deleteReport($singleTrx->id_transaction, $singleTrx->id_promo_campaign_promo_code);
+                	if (!$update_promo_report) {
+    	            	DB::rollBack();
+    	            	continue;
+    	            }
+                }
+
+                // return voucher
+                $update_voucher = app($this->voucher)->returnVoucher($singleTrx->id_transaction);
+                if (!$update_voucher) {
+                	DB::rollBack();
+                	continue;
+                }
+                $count++;
+                DB::commit();
+
+            }
+
+            $log->success([$count]);
+            return response()->json([$count]);
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
         }
-        $count = 0;
-        foreach ($getTrx as $key => $singleTrx) {
-            $singleTrx->load('outlet_name');
-
-            $productTrx = TransactionProduct::where('id_transaction', $singleTrx->id_transaction)->get();
-            if (empty($productTrx)) {
-                continue;
-            }
-
-            $user = User::where('id', $singleTrx->id_user)->first();
-            if (empty($user)) {
-                continue;
-            }
-            if($singleTrx->trasaction_payment_type == 'Midtrans') {
-                $connectMidtrans = Midtrans::expire($singleTrx->transaction_receipt_number);
-            }elseif($singleTrx->trasaction_payment_type == 'Ipay88') {
-                $trx_ipay = TransactionPaymentIpay88::where('id_transaction',$singleTrx->id_transaction)->first();
-                $update = \Modules\IPay88\Lib\IPay88::create()->update($trx_ipay?:$singleTrx->id_transaction,[
-                    'type' =>'trx',
-                    'Status' => '0',
-                    'requery_response' => 'Cancelled by cron'
-                ],false,false);
-                continue;                
-            }
-            // $detail = $this->getHtml($singleTrx, $productTrx, $user->name, $user->phone, $singleTrx->created_at, $singleTrx->transaction_receipt_number);
-
-            // $autoCrm = app($this->autocrm)->SendAutoCRM('Transaction Online Cancel', $user->phone, ['date' => $singleTrx->created_at, 'status' => $singleTrx->transaction_payment_status, 'name'  => $user->name, 'id' => $singleTrx->transaction_receipt_number, 'receipt' => $detail, 'id_reference' => $singleTrx->transaction_receipt_number]);
-            // if (!$autoCrm) {
-            //     continue;
-            // }
-
-            DB::begintransaction();
-
-            MyHelper::updateFlagTransactionOnline($singleTrx, 'cancel', $user);
-
-            $singleTrx->transaction_payment_status = 'Cancelled';
-            $singleTrx->void_date = $now;
-            $singleTrx->save();
-
-            if (!$singleTrx) {
-                DB::rollBack();
-                continue;
-            }
-
-            //reversal balance
-            $logBalance = LogBalance::where('id_reference', $singleTrx->id_transaction)->where('source', 'Transaction')->where('balance', '<', 0)->get();
-            foreach($logBalance as $logB){
-                $reversal = app($this->balance)->addLogBalance( $singleTrx->id_user, abs($logB['balance']), $singleTrx->id_transaction, 'Reversal', $singleTrx->transaction_grandtotal);
-	            if (!$reversal) {
-	            	DB::rollBack();
-	            	continue;
-	            }
-                $usere= User::where('id',$singleTrx->id_user)->first();
-                $send = app($this->autocrm)->SendAutoCRM('Transaction Failed Point Refund', $usere->phone,
-                    [
-                        "outlet_name"       => $singleTrx->outlet_name->outlet_name,
-                        "transaction_date"  => $singleTrx->transaction_date,
-                        'id_transaction'    => $singleTrx->id_transaction,
-                        'receipt_number'    => $singleTrx->transaction_receipt_number,
-                        'received_point'    => (string) abs($logB['balance'])
-                    ]
-                );
-            }
-
-            // delete promo campaign report
-            if ($singleTrx->id_promo_campaign_promo_code) {
-            	$update_promo_report = app($this->promo_campaign)->deleteReport($singleTrx->id_transaction, $singleTrx->id_promo_campaign_promo_code);
-            	if (!$update_promo_report) {
-	            	DB::rollBack();
-	            	continue;
-	            }
-            }
-
-            // return voucher
-            $update_voucher = app($this->voucher)->returnVoucher($singleTrx->id_transaction);
-            if (!$update_voucher) {
-            	DB::rollBack();
-            	continue;
-            }
-            $count++;
-            DB::commit();
-
-        }
-
-        return response()->json([$count]);
     }
 
     public function checkSchedule()
     {
-        $result = [];
+        $log = MyHelper::logCron('Check Schedule');
+        try {
+            $result = [];
 
-        $data = LogBalance::orderBy('id_log_balance', 'DESC')->whereNotNull('enc')->get()->toArray();
+            $data = LogBalance::orderBy('id_log_balance', 'DESC')->whereNotNull('enc')->get()->toArray();
 
-        foreach ($data as $key => $val) {
-            $dataHash = [
-                'id_log_balance'                 => $val['id_log_balance'],
-                'id_user'                        => $val['id_user'],
-                'balance'                        => $val['balance'],
-                'balance_before'                 => $val['balance_before'],
-                'balance_after'                  => $val['balance_after'],
-                'id_reference'                   => $val['id_reference'],
-                'source'                         => $val['source'],
-                'grand_total'                    => $val['grand_total'],
-                'ccashback_conversion'           => $val['ccashback_conversion'],
-                'membership_level'               => $val['membership_level'],
-                'membership_cashback_percentage' => $val['membership_cashback_percentage']
-            ];
+            foreach ($data as $key => $val) {
+                $dataHash = [
+                    'id_log_balance'                 => $val['id_log_balance'],
+                    'id_user'                        => $val['id_user'],
+                    'balance'                        => $val['balance'],
+                    'balance_before'                 => $val['balance_before'],
+                    'balance_after'                  => $val['balance_after'],
+                    'id_reference'                   => $val['id_reference'],
+                    'source'                         => $val['source'],
+                    'grand_total'                    => $val['grand_total'],
+                    'ccashback_conversion'           => $val['ccashback_conversion'],
+                    'membership_level'               => $val['membership_level'],
+                    'membership_cashback_percentage' => $val['membership_cashback_percentage']
+                ];
 
 
-            $encodeCheck = json_encode($dataHash);
+                $encodeCheck = json_encode($dataHash);
 
-            if (MyHelper::decrypt2019($val['enc']) != $encodeCheck) {
-                $result[] = $val;
+                if (MyHelper::decrypt2019($val['enc']) != $encodeCheck) {
+                    $result[] = $val;
+                }
             }
-        }
 
-        if (!empty($result)) {
-            $crm = Autocrm::where('autocrm_title','=','Cron Transaction')->with('whatsapp_content')->first();
-            if (!empty($crm)) {
-                if(!empty($crm['autocrm_forward_email'])){
-                    $exparr = explode(';',str_replace(',',';',$crm['autocrm_forward_email']));
-                    foreach($exparr as $email){
-                        $n   = explode('@',$email);
-                        $name = $n[0];
+            if (!empty($result)) {
+                $crm = Autocrm::where('autocrm_title','=','Cron Transaction')->with('whatsapp_content')->first();
+                if (!empty($crm)) {
+                    if(!empty($crm['autocrm_forward_email'])){
+                        $exparr = explode(';',str_replace(',',';',$crm['autocrm_forward_email']));
+                        foreach($exparr as $email){
+                            $n   = explode('@',$email);
+                            $name = $n[0];
 
-                        $to      = $email;
+                            $to      = $email;
 
-                        $content = str_replace('%table_trx%', '', $crm['autocrm_forward_email_content']);
+                            $content = str_replace('%table_trx%', '', $crm['autocrm_forward_email_content']);
 
-                        $content .= $this->html($result);
-                        // return response()->json($this->html($result));
-                        // get setting email
-                        $getSetting = Setting::where('key', 'LIKE', 'email%')->get()->toArray();
-                        $setting = array();
-                        foreach ($getSetting as $key => $value) {
-                            $setting[$value['key']] = $value['value'];
+                            $content .= $this->html($result);
+                            // return response()->json($this->html($result));
+                            // get setting email
+                            $getSetting = Setting::where('key', 'LIKE', 'email%')->get()->toArray();
+                            $setting = array();
+                            foreach ($getSetting as $key => $value) {
+                                $setting[$value['key']] = $value['value'];
+                            }
+
+                            $subject = $crm['autocrm_forward_email_subject'];
+
+                            $data = array(
+                                'customer'     => $name,
+                                'html_message' => $content,
+                                'setting'      => $setting
+                            );
+
+                            Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting)
+                            {
+                                $message->to($to, $name)->subject($subject);
+    							if(env('MAIL_DRIVER') == 'mailgun'){
+    								$message->trackClicks(true)
+    										->trackOpens(true);
+    							}
+                                if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
+                                    $message->from($setting['email_sender'], $setting['email_from']);
+                                }else if(!empty($setting['email_sender'])){
+                                    $message->from($setting['email_sender']);
+                                }
+
+                                if(!empty($setting['email_reply_to'])){
+                                    $message->replyTo($setting['email_reply_to'], $setting['email_reply_to_name']);
+                                }
+
+                                if(!empty($setting['email_cc']) && !empty($setting['email_cc_name'])){
+                                    $message->cc($setting['email_cc'], $setting['email_cc_name']);
+                                }
+
+                                if(!empty($setting['email_bcc']) && !empty($setting['email_bcc_name'])){
+                                    $message->bcc($setting['email_bcc'], $setting['email_bcc_name']);
+                                }
+                            });
+
+                            // $logData = [];
+                            // $logData['id_user'] = 999999999;
+                            // $logData['email_log_to'] = $email;
+                            // $logData['email_log_subject'] = $subject;
+                            // $logData['email_log_message'] = $content;
+
+                            // $logs = AutocrmEmailLog::create($logData);
                         }
-
-                        $subject = $crm['autocrm_forward_email_subject'];
-
-                        $data = array(
-                            'customer'     => $name,
-                            'html_message' => $content,
-                            'setting'      => $setting
-                        );
-
-                        Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting)
-                        {
-                            $message->to($to, $name)->subject($subject);
-							if(env('MAIL_DRIVER') == 'mailgun'){
-								$message->trackClicks(true)
-										->trackOpens(true);
-							}
-                            if(!empty($setting['email_from']) && !empty($setting['email_sender'])){
-                                $message->from($setting['email_sender'], $setting['email_from']);
-                            }else if(!empty($setting['email_sender'])){
-                                $message->from($setting['email_sender']);
-                            }
-
-                            if(!empty($setting['email_reply_to'])){
-                                $message->replyTo($setting['email_reply_to'], $setting['email_reply_to_name']);
-                            }
-
-                            if(!empty($setting['email_cc']) && !empty($setting['email_cc_name'])){
-                                $message->cc($setting['email_cc'], $setting['email_cc_name']);
-                            }
-
-                            if(!empty($setting['email_bcc']) && !empty($setting['email_bcc_name'])){
-                                $message->bcc($setting['email_bcc'], $setting['email_bcc_name']);
-                            }
-                        });
-
-                        // $logData = [];
-                        // $logData['id_user'] = 999999999;
-                        // $logData['email_log_to'] = $email;
-                        // $logData['email_log_subject'] = $subject;
-                        // $logData['email_log_message'] = $content;
-
-                        // $logs = AutocrmEmailLog::create($logData);
                     }
                 }
             }
-        }
 
-        if (!empty($result)) {
-            return ['status' => 'success', 'data_error' => count($result), 'message' => 'Check your email'];
-        } else {
-            return ['status' => 'success', 'data_error' => count($result)];
+            if (!empty($result)) {
+                $log->fail(['data_error' => count($result), 'message' => 'Check your email']);
+                return ['status' => 'success', 'data_error' => count($result), 'message' => 'Check your email'];
+            } else {
+                $log->success(['data_error' => count($result)]);
+                return ['status' => 'success', 'data_error' => count($result)];
+            }
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
         }
     }
 
@@ -343,52 +357,58 @@ class ApiCronTrxController extends Controller
     }
 
     public function completeTransactionPickup(){
-        $trxs = Transaction::whereDate('transaction_date', '<', date('Y-m-d'))
-            ->where('trasaction_type', 'Pickup Order')
-            ->join('transaction_pickups','transaction_pickups.id_transaction','=','transactions.id_transaction')
-            ->whereNull('taken_at')
-            ->whereNull('reject_at')
-            ->whereNull('taken_by_system_at')
-            ->get();
-        $idTrx = [];
-        // apply point if ready_at null
-        foreach ($trxs as $newTrx) {
-            $idTrx[] = $newTrx->id_transaction;
-            if(!empty($newTrx->ready_at) || $newTrx->transaction_payment_status != 'Completed'){
-                continue;
-            }
-            $newTrx->load('user.memberships', 'outlet', 'productTransaction', 'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign');
+        $log = MyHelper::logCron('Complete Transaction Pickup');
+        try {
+            $trxs = Transaction::whereDate('transaction_date', '<', date('Y-m-d'))
+                ->where('trasaction_type', 'Pickup Order')
+                ->join('transaction_pickups','transaction_pickups.id_transaction','=','transactions.id_transaction')
+                ->whereNull('taken_at')
+                ->whereNull('reject_at')
+                ->whereNull('taken_by_system_at')
+                ->get();
+            $idTrx = [];
+            // apply point if ready_at null
+            foreach ($trxs as $newTrx) {
+                $idTrx[] = $newTrx->id_transaction;
+                if(!empty($newTrx->ready_at) || $newTrx->transaction_payment_status != 'Completed'){
+                    continue;
+                }
+                $newTrx->load('user.memberships', 'outlet', 'productTransaction', 'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign');
 
-            $checkType = TransactionMultiplePayment::where('id_transaction', $newTrx->id_transaction)->get()->toArray();
-            $column = array_column($checkType, 'type');
+                $checkType = TransactionMultiplePayment::where('id_transaction', $newTrx->id_transaction)->get()->toArray();
+                $column = array_column($checkType, 'type');
 
-            $use_referral = optional(optional($newTrx->promo_campaign_promo_code)->promo_campaign)->promo_type == 'Referral';
+                $use_referral = optional(optional($newTrx->promo_campaign_promo_code)->promo_campaign)->promo_type == 'Referral';
 
-            MyHelper::updateFlagTransactionOnline($newTrx, 'success', $newTrx->user);
-            if ((!in_array('Balance', $column) || $use_referral) && $newTrx->user) {
+                MyHelper::updateFlagTransactionOnline($newTrx, 'success', $newTrx->user);
+                if ((!in_array('Balance', $column) || $use_referral) && $newTrx->user) {
 
-                $promo_source = null;
-                if ( $newTrx->id_promo_campaign_promo_code || $newTrx->transaction_vouchers || $use_referral) 
-                {
-                    if ( $newTrx->id_promo_campaign_promo_code ) {
-                        $promo_source = 'promo_code';
-                    }
-                    elseif ( ($newTrx->transaction_vouchers[0]->status??false) == 'success' )
+                    $promo_source = null;
+                    if ( $newTrx->id_promo_campaign_promo_code || $newTrx->transaction_vouchers || $use_referral) 
                     {
-                        $promo_source = 'voucher_online';
+                        if ( $newTrx->id_promo_campaign_promo_code ) {
+                            $promo_source = 'promo_code';
+                        }
+                        elseif ( ($newTrx->transaction_vouchers[0]->status??false) == 'success' )
+                        {
+                            $promo_source = 'voucher_online';
+                        }
+                    }
+
+                    if( app($this->trx)->checkPromoGetPoint($promo_source) || $use_referral)
+                    {
+                        $savePoint = app($this->getNotif)->savePoint($newTrx);
                     }
                 }
-
-                if( app($this->trx)->checkPromoGetPoint($promo_source) || $use_referral)
-                {
-                    $savePoint = app($this->getNotif)->savePoint($newTrx);
-                }
             }
+            //update taken_by_sistem_at
+            $dataTrx = TransactionPickup::whereIn('id_transaction', $idTrx)
+                                        ->update(['taken_by_system_at' => date('Y-m-d 00:00:00')]);
+            $log->success();
+            return response()->json(['status' => 'success']);
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
         }
-        //update taken_by_sistem_at
-        $dataTrx = TransactionPickup::whereIn('id_transaction', $idTrx)
-                                    ->update(['taken_by_system_at' => date('Y-m-d 00:00:00')]);
-        return response()->json(['status' => 'success']);
     }
 
     public function cancelTransactionIPay()

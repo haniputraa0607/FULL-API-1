@@ -404,7 +404,15 @@ class ApiDeals extends Controller
              $this->filterList($deals,$request->json('rule'),$request->json('operator')??'and');
         }
         if ($request->json('publish')) {
-            $deals->where('deals_publish_end', '>=', date('Y-m-d H:i:s'));
+            $deals->where( function($q) {
+            	$q->where('deals_publish_start', '<=', date('Y-m-d H:i:s'))
+            		->where('deals_publish_end', '>=', date('Y-m-d H:i:s'));
+            });
+
+            $deals->where( function($q) {
+	        	$q->where('deals_voucher_type','Unlimited')
+	        		->orWhereRaw('(deals.deals_total_voucher - deals.deals_total_claimed) > 0 ');
+	        });
             $deals->where('step_complete', '=', 1);
 
             $deals->whereDoesntHave('deals_user_limits', function($q) use ($user){

@@ -195,11 +195,19 @@ class ApiHistoryController extends Controller
             $post['buy_voucher'] = null;
         }
 
+        if (!isset($post['voucher'])) {
+            $post['voucher'] = null;
+        }
+
         $transaction = [];
         $voucher = [];
 
-        $transaction = $this->transaction($post, $id);
-        $voucher = $this->voucher($post, $id);
+        if($post['online_order'] == 1 || $post['offline_order'] == 1 || ($post['online_order'] == null && $post['offline_order'] == null && $post['voucher'] == null)) {
+            $transaction = $this->transaction($post, $id);
+        }
+        if($post['voucher'] == 1 || ($post['online_order'] == null && $post['offline_order'] == null && $post['voucher'] == null)){
+            $voucher = $this->voucher($post, $id);
+        }
 
         if (!is_null($post['oldest'])) {
             $order = 'old';
@@ -706,7 +714,7 @@ class ApiHistoryController extends Controller
             $dataVoucher[$key]['type'] = 'voucher';
             $dataVoucher[$key]['id'] = $value['id_deals_user'];
             $dataVoucher[$key]['date'] = date('d M Y H:i', strtotime($value['claimed_at']));
-            $dataVoucher[$key]['outlet'] = 'Buy a Voucher';
+            $dataVoucher[$key]['outlet'] = 'Buy Voucher';
             $dataVoucher[$key]['amount'] = MyHelper::requestNumber($value['voucher_price_cash'] - $value['balance_nominal'], '_CURRENCY');
         }
 
@@ -871,7 +879,7 @@ class ApiHistoryController extends Controller
             case 'newest':
                 $log->orderBy('log_balances.id_log_balance','desc');
                 break;
-            
+
             case 'oldest':
                 $log->orderBy('log_balances.id_log_balance','asc');
                 break;
@@ -907,11 +915,13 @@ class ApiHistoryController extends Controller
                  });
          }
 
-        // if (!is_null($post['voucher'])) {
-        //     $query->orWhere(function ($queryLog) {
-        //         $queryLog->where('source', 'Deals Balance');
-        //     });
-        // }
+        if($post['voucher'] == 1 && $post['online_order'] == null && $post['offline_order'] == null){
+            $log->where('source', 'Deals Balance');
+        }elseif(!is_null($post['voucher'])){
+            $log->orWhere(function ($queryLog) {
+                $queryLog->where('source', 'Deals Balance');
+            });
+        }
 
         $log = $log->get();
         $listBalance = [];
@@ -980,7 +990,7 @@ class ApiHistoryController extends Controller
                 $dataList['type']   = 'voucher';
                 $dataList['id']      = $value['id_log_balance'];
                 $dataList['date']   = date('d M Y H:i', strtotime($value['created_at']));
-                $dataList['outlet'] = 'Buy a Voucher';
+                $dataList['outlet'] = 'Buy Voucher';
                 $dataList['amount'] = '- ' . ltrim(MyHelper::requestNumber($value['balance'], '_POINT'), '-');
                 // $dataList['amount'] = number_format($value['balance'], 0, ',', '.');
                 // $dataList['online'] = 1;
@@ -991,7 +1001,11 @@ class ApiHistoryController extends Controller
                 $dataList['id']      = $value['id_log_balance'];
                 $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
                 $dataList['outlet'] = 'Reversal';
-                $dataList['amount'] = MyHelper::requestNumber($value['balance'], '_POINT');
+                if ($value['balance'] < 0) {
+                    $dataList['amount'] = '- ' . ltrim(MyHelper::requestNumber($value['balance'], '_POINT'), '-');
+                } else {
+                    $dataList['amount'] = '+ ' . MyHelper::requestNumber($value['balance'], '_POINT');
+                }
 
                 $listBalance[$key] = $dataList;
             } elseif ($value['source'] == 'Reversal Duplicate') {

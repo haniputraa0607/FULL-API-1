@@ -2637,4 +2637,20 @@ class MyHelper{
     	}
     	return true;
     }
+
+	/**
+	 * Create cron's log
+	 * @param  string Cron Name cron name
+	 * @return Model           LogCron Eloquent Model
+	 */
+	public static function logCron($cronName)
+	{
+		$log = new \App\Http\Models\LogCron;
+		$log->cron = $cronName;
+		$log->status = 'onprocess';
+		$log->start_date = date('Y-m-d H:i:s');
+		$log->save();
+
+		return $log;
+	}
 }

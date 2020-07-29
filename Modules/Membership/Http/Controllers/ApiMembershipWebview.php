@@ -59,7 +59,7 @@ class ApiMembershipWebview extends Controller
 					$benefit=json_decode($dataMembership['benefit_text'],true)??[];
 					if (!empty($benefit)) {
 						foreach ($benefit as $key => $value) {
-							$benefit[$key] = '<li>' . $value . '</li>';
+							$benefit[$key] = '<li>' . $value . '</li><br/>';
 						}
 					}
 					$allMembership[$index]['benefit_text']="<ol>".implode('', $benefit)."</ol>";
@@ -151,14 +151,22 @@ class ApiMembershipWebview extends Controller
 				$membershipUser['progress_now'] = (int) $subtotal_transaction;
 				$membershipUser['progress_active'] = ($subtotal_transaction / $nextTrx) * 100;
 				$membershipUser['next_trx']		= $subtotal_transaction - $nextTrx;
-				$membershipUser['next_trx_text']	= str_replace(['%value%', '%membership%'], [MyHelper::requestNumber($subtotal_transaction - $nextTrx, '_CURRENCY'), $nextMembershipName], $result['user_membership']['membership']['next_level_text']);
+				if ($result['user_membership']['membership']['next_level_text'] == "" && is_null($result['user_membership']['membership']['next_level_text'])) {
+					$membershipUser['next_trx_text']	= str_replace(['%value%', '%membership%'], [MyHelper::requestNumber($subtotal_transaction - $nextTrx, '_CURRENCY'), $nextMembershipName], $result['user_membership']['membership']['next_level_text']);
+				} else {
+					$membershipUser['next_trx_text']	= "";
+				}
 			}elseif($nextTrxType == 'balance'){
 				$total_balance = LogBalance::where('id_user', $post['id_user'])->whereNotIn('source', [ 'Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point'])->where('balance', '>', 0)->sum('balance');
 				$membershipUser['progress_now_text'] = MyHelper::requestNumber($total_balance,'_CURRENCY');
 				$membershipUser['progress_now'] = (int) $total_balance;
 				$membershipUser['progress_active'] = ($total_balance / $nextTrx) * 100;
 				$membershipUser['next_trx']		= $nextTrx - $total_balance;
-				$membershipUser['next_trx_text']	= str_replace(['%value%', '%membership%'], [MyHelper::requestNumber($nextTrx - $total_balance,'_CURRENCY'), $nextMembershipName], $result['user_membership']['membership']['next_level_text']);
+				if ($result['user_membership']['membership']['next_level_text'] == "" && is_null($result['user_membership']['membership']['next_level_text'])) {
+					$membershipUser['next_trx_text']	= str_replace(['%value%', '%membership%'], [MyHelper::requestNumber($nextTrx - $total_balance,'_CURRENCY'), $nextMembershipName], $result['user_membership']['membership']['next_level_text']);
+				} else {
+					$membershipUser['next_trx_text']	= "";
+				}
 			}
 		}
 		$result['all_membership'] = $allMembership;

@@ -226,126 +226,136 @@ class ApiSetting extends Controller
     }
 
     public function cronPointReset(){
-        $user = User::select('id','name','phone')->orderBy('name');
+        $log = MyHelper::logCron('Point Reset');
+        try {
+            $user = User::select('id','name','phone')->orderBy('name');
 
-        //point reset
-        $setting = Setting::where('key', 'point_reset')->get();
-        $attachments = [];
-        DB::beginTransaction();
-        if($setting){
-            $userData = [];
-            foreach($setting as $date){
-                if($date['value'] == date('d F')){
-                    foreach($user->cursor() as $datauser){
-                        $totalPoint = LogPoint::where('id_user', $datauser['id'])->sum('point');
-                        if($totalPoint){
-                            $dataLog = [
-                                'id_user'                     => $datauser['id'],
-                                'point'                       => -$totalPoint,
-                                'source'                      => 'Point Reset',
-                            ];
-                            $userData[] = [
-                                'User' => "{$datauser['name']} ({$datauser['phone']})",
-                                'Previous Point' => MyHelper::requestNumber($totalBalance,'_CURRENCY')
-                            ];
+            //point reset
+            $setting = Setting::where('key', 'point_reset')->get();
+            $attachments = [];
+            DB::beginTransaction();
+            if($setting){
+                $userData = [];
+                foreach($setting as $date){
+                    if($date['value'] == date('d F')){
+                        foreach($user->cursor() as $datauser){
+                            $totalPoint = LogPoint::where('id_user', $datauser['id'])->sum('point');
+                            if($totalPoint){
+                                $dataLog = [
+                                    'id_user'                     => $datauser['id'],
+                                    'point'                       => -$totalPoint,
+                                    'source'                      => 'Point Reset',
+                                ];
+                                $userData[] = [
+                                    'User' => "{$datauser['name']} ({$datauser['phone']})",
+                                    'Previous Point' => MyHelper::requestNumber($totalBalance,'_CURRENCY')
+                                ];
 
-                            $insertDataLog = LogPoint::create($dataLog);
-                            if (!$insertDataLog) {
-                                DB::rollBack();
-                                return response()->json([
-                                    'status'    => 'fail',
-                                    'messages'  => ['Insert Point Failed']
-                                ]);
-                            }
+                                $insertDataLog = LogPoint::create($dataLog);
+                                if (!$insertDataLog) {
+                                    DB::rollBack();
+                                    $log->fail('Insert Point Failed #1');
+                                    return response()->json([
+                                        'status'    => 'fail',
+                                        'messages'  => ['Insert Point Failed']
+                                    ]);
+                                }
 
-                            //update point user
-                            $totalPoint = LogPoint::where('id_user',$datauser['id'])->sum('point');
-                            $updateUserPoint = User::where('id', $datauser['id'])->update(['points' => $totalPoint]);
-                            if (!$updateUserPoint) {
-                                DB::rollBack();
-                                return response()->json([
-                                    'status'    => 'fail',
-                                    'messages'  => ['Update User Point Failed']
-                                ]);
-                            }
-                        }
-                    }
-                }
-            }
-            if($userData){
-                $attachments[] = [
-                    Excel::download(new DefaultExport($userData), 'point.xlsx')->getFile(),
-                    [
-                        'as' => 'point-reset-report0-'.date('Y-m-d-H-i').'.xlsx',
-                        'mime' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                    ]
-                ];
-            }
-
-        }
-
-        //point reset
-        $setting = Setting::where('key', 'balance_reset')->get();
-
-        if($setting){
-            $userData1 = [];
-            foreach($setting as $date){
-                if($date['value'] == date('d F')){
-                    foreach($user->cursor() as $datauser){
-                        $totalBalance = LogBalance::where('id_user', $datauser['id'])->sum('balance');
-                        if($totalBalance){
-                            $dataLog = [
-                                'id_user'                     => $datauser['id'],
-                                'balance'                       => -$totalBalance,
-                                'source'                      => 'Balance Reset',
-                            ];
-                            $userData1[] = [
-                                'User' => "{$datauser['name']} ({$datauser['phone']})",
-                                'Previous Point' => MyHelper::requestNumber($totalBalance,'_POINT')
-                            ];
-                            $insertDataLog = LogBalance::create($dataLog);
-                            if (!$insertDataLog) {
-                                DB::rollBack();
-                                return response()->json([
-                                    'status'    => 'fail',
-                                    'messages'  => ['Insert Balance Failed']
-                                ]);
-                            }
-
-                            //update balance user
-                            $totalBalance = LogBalance::where('id_user',$datauser['id'])->sum('balance');
-                            $updateUserBalance = User::where('id', $datauser['id'])->update(['balance' => $totalBalance]);
-                            if (!$updateUserBalance) {
-                                DB::rollBack();
-                                return response()->json([
-                                    'status'    => 'fail',
-                                    'messages'  => ['Update User Balance Failed']
-                                ]);
+                                //update point user
+                                $totalPoint = LogPoint::where('id_user',$datauser['id'])->sum('point');
+                                $updateUserPoint = User::where('id', $datauser['id'])->update(['points' => $totalPoint]);
+                                if (!$updateUserPoint) {
+                                    DB::rollBack();
+                                    $log->fail('Update Point Reset Failed #1');
+                                    return response()->json([
+                                        'status'    => 'fail',
+                                        'messages'  => ['Update User Point Failed']
+                                    ]);
+                                }
                             }
                         }
                     }
                 }
+                if($userData){
+                    $attachments[] = [
+                        Excel::download(new DefaultExport($userData), 'point.xlsx')->getFile(),
+                        [
+                            'as' => 'point-reset-report0-'.date('Y-m-d-H-i').'.xlsx',
+                            'mime' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                        ]
+                    ];
+                }
+
             }
 
-            if($userData1){
-                $attachments[] = [
-                    Excel::download(new DefaultExport($userData1), 'point.xlsx')->getFile(),
-                    [
-                        'as' => 'point-reset-report1-'.date('Y-m-d-H-i').'.xlsx',
-                        'mime' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                    ]
-                ];
-            }
-            
+            //point reset
+            $setting = Setting::where('key', 'balance_reset')->get();
 
+            if($setting){
+                $userData1 = [];
+                foreach($setting as $date){
+                    if($date['value'] == date('d F')){
+                        foreach($user->cursor() as $datauser){
+                            $totalBalance = LogBalance::where('id_user', $datauser['id'])->sum('balance');
+                            if($totalBalance){
+                                $dataLog = [
+                                    'id_user'                     => $datauser['id'],
+                                    'balance'                       => -$totalBalance,
+                                    'source'                      => 'Balance Reset',
+                                ];
+                                $userData1[] = [
+                                    'User' => "{$datauser['name']} ({$datauser['phone']})",
+                                    'Previous Point' => MyHelper::requestNumber($totalBalance,'_POINT')
+                                ];
+                                $insertDataLog = LogBalance::create($dataLog);
+                                if (!$insertDataLog) {
+                                    DB::rollBack();
+                                    $log->fail('Insert Cashback Failed #2');
+                                    return response()->json([
+                                        'status'    => 'fail',
+                                        'messages'  => ['Insert Balance Failed']
+                                    ]);
+                                }
+
+                                //update balance user
+                                $totalBalance = LogBalance::where('id_user',$datauser['id'])->sum('balance');
+                                $updateUserBalance = User::where('id', $datauser['id'])->update(['balance' => $totalBalance]);
+                                if (!$updateUserBalance) {
+                                    DB::rollBack();
+                                    $log->fail('Update user balance failed #2');
+                                    return response()->json([
+                                        'status'    => 'fail',
+                                        'messages'  => ['Update User Balance Failed']
+                                    ]);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if($userData1){
+                    $attachments[] = [
+                        Excel::download(new DefaultExport($userData1), 'point.xlsx')->getFile(),
+                        [
+                            'as' => 'point-reset-report1-'.date('Y-m-d-H-i').'.xlsx',
+                            'mime' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                        ]
+                    ];
+                }
+                
+
+            }
+
+            $send = app($this->autocrm)->SendAutoCRM('Report Point Reset', $user->first()->phone, ['datetime_reset' => date('d F Y H:i'), 'attachment' => $attachments],null,true);
+
+            DB::commit();
+            $log->success('success');
+            return response()->json([
+                'status' => 'success'
+            ]);
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
         }
-
-        $send = app($this->autocrm)->SendAutoCRM('Report Point Reset', $user->first()->phone, ['datetime_reset' => date('d F Y H:i'), 'attachment' => $attachments],null,true);
-
-        DB::commit();
-        return response()->json([
-            'status' => 'success'
-        ]);
 
     }
 

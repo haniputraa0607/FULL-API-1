@@ -127,6 +127,11 @@ class ApiPromotion extends Controller
 				if($post['recurring_rule'] == 'everyday'){
 					$data['schedule_everyday'] = 'Yes';
 				}
+
+				if (isset($post['use_periode'])) {
+					$data['date_start'] = date('Y-m-d H:i:s', strtotime($post['date_start']));
+					$data['date_end'] 	= date('Y-m-d H:i:s', strtotime($post['date_end']));
+				}
 			}
 
 			$data['schedule_time'] = $post['schedule_time'];
@@ -318,7 +323,7 @@ class ApiPromotion extends Controller
 				$data 							= [];
 				$data['id_promotion']			= $id_promotion;
 				$data['promotion_series_days']	= $post['promotion_series_days'][$key];
-				$data['send_deals_expired'] 	= $post['send_deals_expired'][0];
+				$data['send_deals_expired'] 	= $post['send_deals_expired'][0]??0;
 
 				if(isset($post['promotion_channel'][$key]) && in_array('deals', $post['promotion_channel'][$key])){
 					//get deals template
@@ -686,7 +691,7 @@ class ApiPromotion extends Controller
 			$data 							= [];
 			$data['id_promotion']			= $id_promotion;
 			$data['promotion_series_days']	= 0;
-			$data['send_deals_expired'] 	= $post['send_deals_expired'][0];
+			$data['send_deals_expired'] 	= $post['send_deals_expired'][0]??0;
 
 			if(isset($post['promotion_channel'][0]) && in_array('deals', $post['promotion_channel'][0])){
 				//get deals template
@@ -1073,67 +1078,51 @@ class ApiPromotion extends Controller
 
 	public function addPromotionQueue(Request $request)
     {
-		$timeNow = date('H:i:00');
-		$timeNow2 = date('H:i:00', strtotime('-5 minutes', strtotime(date('Y-m-d H:i:00'))));
+        $log = MyHelper::logCron('Add Promotion Queue');
+        try {
+			$timeNow = date('H:i:00');
+			$timeNow2 = date('H:i:00', strtotime('-5 minutes', strtotime(date('Y-m-d H:i:00'))));
 
-		$post = $request->json()->all();
-		$countUser = 0;
-		if(isset($post['id_promotion'])){
-			$promotions = Promotion::where('id_promotion', $post['id_promotion'])->get();
-			if(!$promotions){
-				return response()->json([
-					'status'  => 'fail',
-					'messages'  => ['Promotion Not Found']
-				]);
-			}
-		}else{
-			$promotions = Promotion::join('promotion_schedules', 'promotions.id_promotion', 'promotion_schedules.id_promotion')
-									->where('promotion_type', '!=', 'Instant Campaign')
-									->where('schedule_time', '<=', $timeNow)
-									->where('schedule_time', '>', $timeNow2)
-									->where(function ($query) {
-										$query->where('schedule_exact_date', '=', date('Y-m-d'))
-										->orWhere('schedule_date_every_month', '=', date('d'))
-										->orWhere('schedule_date_month', '=', date('d-m'))
-										->orWhere(function ($q) {
-											$q->where('schedule_day_every_week', '=', date('l'))
-												->where('schedule_week_in_month', '=', 0);
+			$post = $request->json()->all();
+			$countUser = 0;
+			if(isset($post['id_promotion'])){
+				$promotions = Promotion::where('id_promotion', $post['id_promotion'])->get();
+				if(!$promotions){
+					$log->fail('Promotion not found');
+					return response()->json([
+						'status'  => 'fail',
+						'messages'  => ['Promotion Not Found']
+					]);
+				}
+			}else{
+				$promotions = Promotion::join('promotion_schedules', 'promotions.id_promotion', 'promotion_schedules.id_promotion')
+										->where('promotion_type', '!=', 'Instant Campaign')
+										->where('schedule_time', '<=', $timeNow)
+										->where('schedule_time', '>', $timeNow2)
+										->where(function ($query) {
+											$query->where('schedule_exact_date', '=', date('Y-m-d'))
+											->orWhere('schedule_date_every_month', '=', date('d'))
+											->orWhere('schedule_date_month', '=', date('d-m'))
+											->orWhere(function ($q) {
+												$q->where('schedule_day_every_week', '=', date('l'))
+													->where('schedule_week_in_month', '=', 0);
+											})
+											->orWhere(function ($q) {
+												$q->where('schedule_day_every_week', '=', date('l'))
+													->where('schedule_week_in_month', '=', $this->getWeek());
+											})
+											->orWhere('schedule_everyday', '=', 'Yes');
 										})
-										->orWhere(function ($q) {
-											$q->where('schedule_day_every_week', '=', date('l'))
-												->where('schedule_week_in_month', '=', $this->getWeek());
+										->where(function ($query) {
+											$query->where(function ($q) {
+												$q->whereNull('date_start')
+													->whereNull('date_end');
+											})
+											->orWhere(function ($q) {
+												$q->where('date_start', '<', date('Y-m-d H:i:s'))
+													->where('date_end', '>', date('Y-m-d H:i:s'));
+											});
 										})
-										->orWhere('schedule_everyday', '=', 'Yes');
-									})
-									->where(function ($query) {
-										$query->whereHas('contents', function($q) {
-											$q->where('send_deals_expired', '1')
-												->orWhereDoesntHave('deals', function($q2) {
-													$q2->whereDate('deals_voucher_expired', '<', date('Y-m-d'));
-												});
-										});
-									})
-									->get();
-									// return $promotions;
-
-		}
-
-		foreach ($promotions as $key => $promotion) {
-			// check promotion content if exist
-			if(count($promotion->contents) > 0){
-				// get all users when there are no filters
-				$promotion_type = 'other';
-				GeneratePromotionRecipient::dispatch($promotion, $promotion_type)->allOnConnection('database');
-			}
-
-		}
-
-		// send promotion series
-		if(!isset($post['id_promotion'])){
-			$promotionSeries = Promotion::join('promotion_schedules', 'promotions.id_promotion', 'promotion_schedules.id_promotion')
-										->where('promotion_type', 'Campaign Series')
-										->where('promotion_schedules.schedule_time', '<=', $timeNow)
-										->where('promotion_schedules.schedule_time', '>=', $timeNow2)
 										->where(function ($query) {
 											$query->whereHas('contents', function($q) {
 												$q->where('send_deals_expired', '1')
@@ -1143,38 +1132,84 @@ class ApiPromotion extends Controller
 											});
 										})
 										->get();
-			// return $promotionSeries;
-			$promotion_type = 'series';
-			foreach ($promotionSeries as $promotion) {
-				GeneratePromotionRecipient::dispatch($promotion, $promotion_type)->allOnConnection('database');
 			}
-		}
 
-		return ([
-			'status'  => 'success',
-			'result'  => 'Promotion queue has been added.'
-			// 'count_user' => $countUser
-		]);
+			foreach ($promotions as $key => $promotion) {
+				// check promotion content if exist
+				if(count($promotion->contents) > 0){
+					// get all users when there are no filters
+					$promotion_type = 'other';
+					GeneratePromotionRecipient::dispatch($promotion, $promotion_type)->allOnConnection('database');
+				}
+
+			}
+
+			// send promotion series
+			if(!isset($post['id_promotion'])){
+				$promotionSeries = Promotion::join('promotion_schedules', 'promotions.id_promotion', 'promotion_schedules.id_promotion')
+											->where('promotion_type', 'Campaign Series')
+											->where('promotion_schedules.schedule_time', '<=', $timeNow)
+											->where('promotion_schedules.schedule_time', '>=', $timeNow2)
+											->where(function ($query) {
+												$query->where(function ($q) {
+													$q->whereNull('date_start')
+														->whereNull('date_end');
+												})
+												->orWhere(function ($q) {
+													$q->where('date_start', '<', date('Y-m-d H:i:s'))
+														->where('date_end', '>', date('Y-m-d H:i:s'));
+												});
+											})
+											->where(function ($query) {
+												$query->whereHas('contents', function($q) {
+													$q->where('send_deals_expired', '1')
+														->orWhereDoesntHave('deals', function($q2) {
+															$q2->whereDate('deals_voucher_expired', '<', date('Y-m-d'));
+														});
+												});
+											})
+											->get();
+
+				$promotion_type = 'series';
+				foreach ($promotionSeries as $promotion) {
+					GeneratePromotionRecipient::dispatch($promotion, $promotion_type)->allOnConnection('database');
+				}
+			}
+
+			$log->success();
+			return ([
+				'status'  => 'success',
+				'result'  => 'Promotion queue has been added.'
+				// 'count_user' => $countUser
+			]);
+		} catch (\Exception $e) {
+			$log->fail($e->getMessage());
+		}
 	}
 
 	public function sendPromotion(Request $request)
     {
-		$now = date('Y-m-d H:i:s');
-		$post = $request->json()->all();
-		$countUser = 0;
+        $log = MyHelper::logCron('Send Promotion');
+        try {
+			$now = date('Y-m-d H:i:s');
+			$post = $request->json()->all();
+			$countUser = 0;
 
-		$queue = PromotionQueue::with(['content', 'content.promotion','user'])->where('send_at', '<=', $now)->orderBy('send_at', 'ASC')->limit(100)->get();
-		$dataPromotionSent = array();
-		foreach($queue as $key => $dataQueue){
-			SendPromotionJob::dispatch($dataQueue)->allOnConnection('database');
-			$countUser++;
+			$queue = PromotionQueue::with(['content', 'content.promotion','user'])->where('send_at', '<=', $now)->orderBy('send_at', 'ASC')->limit(100)->get();
+			$dataPromotionSent = array();
+			foreach($queue as $key => $dataQueue){
+				SendPromotionJob::dispatch($dataQueue)->allOnConnection('database');
+				$countUser++;
+			}
+			$log->success(['count_user' => $countUser]);
+			return ([
+				'status'  => 'success',
+				'result'  => 'Promotion has been sent.',
+				'count_user' => $countUser
+			]);
+		} catch (\Exception $e) {
+			$log->fail($e->getMessage());
 		}
-
-		return ([
-			'status'  => 'success',
-			'result'  => 'Promotion has been sent.',
-			'count_user' => $countUser
-		]);
 	}
 
 	public function sendEmail($id_promotion_content, $user, $time){

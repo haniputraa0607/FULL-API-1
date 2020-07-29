@@ -74,31 +74,42 @@ class ApiTransactionSync extends Controller
     }
 
     public function transaction(Request $request){
-        $x = 1;
-        $getDataQueue = SyncTransactionQueues::where('type', 'Transaction')
-            ->orWhereNull('type')
-            ->Orderby('created_at', 'asc')->limit($x)->get()->toArray();
+        $log = MyHelper::logCron('Sync Transaction');
+        try {
+            $x = 1;
+            $getDataQueue = SyncTransactionQueues::where('type', 'Transaction')
+                ->orWhereNull('type')
+                ->Orderby('created_at', 'asc')->limit($x)->get()->toArray();
 
-        foreach($getDataQueue as $key => $trans){
-            $data['store_code'] = $trans['outlet_code'];
-            $data['transactions'] = json_decode($trans['request_transaction'], true);
-            $process = app($this->pos)->transaction($request, $data, 0);
-            if(isset($process->getData()->status) && $process->getData()->status == 'success'){
-                SyncTransactionQueues::where('id_sync_transaction_queues', $trans['id_sync_transaction_queues'])->delete();
+            foreach($getDataQueue as $key => $trans){
+                $data['store_code'] = $trans['outlet_code'];
+                $data['transactions'] = json_decode($trans['request_transaction'], true);
+                $process = app($this->pos)->transaction($request, $data, 0);
+                if(isset($process->getData()->status) && $process->getData()->status == 'success'){
+                    SyncTransactionQueues::where('id_sync_transaction_queues', $trans['id_sync_transaction_queues'])->delete();
+                }
             }
+            $log->success();
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
         }
-
     }
 
     public function transactionRefund(Request $request){
-        $x = 1;
-        $getDataQueue = SyncTransactionQueues::where('type', 'Transaction Refund')->Orderby('created_at', 'asc')->limit($x)->get()->toArray();
-        foreach($getDataQueue as $key => $trans){
-            $data = json_decode($trans['request_transaction'], true);
-            $process = app($this->pos)->transactionRefund($request, $data, 0);
-            if(isset($process->getData()->status) && $process->getData()->status == 'success'){
-                SyncTransactionQueues::where('id_sync_transaction_queues', $trans['id_sync_transaction_queues'])->delete();
+        $log = MyHelper::logCron('Transaction Refund POS');
+        try {
+            $x = 1;
+            $getDataQueue = SyncTransactionQueues::where('type', 'Transaction Refund')->Orderby('created_at', 'asc')->limit($x)->get()->toArray();
+            foreach($getDataQueue as $key => $trans){
+                $data = json_decode($trans['request_transaction'], true);
+                $process = app($this->pos)->transactionRefund($request, $data, 0);
+                if(isset($process->getData()->status) && $process->getData()->status == 'success'){
+                    SyncTransactionQueues::where('id_sync_transaction_queues', $trans['id_sync_transaction_queues'])->delete();
+                }
             }
+            $log->success();
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
         }
     }
 
