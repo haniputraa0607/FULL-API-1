@@ -75,6 +75,7 @@ use Illuminate\Support\Facades\Schema;
 use Modules\Outlet\Entities\OutletOvo;
 use Modules\POS\Jobs\SyncAddOnPrice;
 use Modules\POS\Jobs\SyncProductPrice;
+use App\Jobs\SyncProductPrice2;
 use Modules\Product\Entities\ProductPricePeriode;
 use Modules\ProductVariant\Entities\ProductGroup;
 use Modules\ProductVariant\Entities\ProductProductVariant;
@@ -1120,6 +1121,128 @@ class ApiPOS extends Controller
             'status'    => 'success',
             'result'    => $hasil,
         ];
+    }
+
+    /**
+     * Save product price to temporary table and create queue
+     * @param  Request $request [description]
+     * {
+     *     "api_key": "xxxxxxx",
+     *     "api_secret": "xxxxxxx",
+     *     "menu": [
+     *         {
+     *             "sap_matnr": "50000064",
+     *             "price_detail": [
+     *                 {
+     *                     "store_code": "M001",
+     *                     "price": 20000,
+     *                     "start_date": "2020-04-01",
+     *                     "end_date": "2020-04-30"
+     *                 }
+     *             ]
+     *         }
+     *     ]
+     * }
+     * @return [type]           [description]
+     */
+    public function syncProductPrice2(Request $request)
+    {
+        $post = $request->json()->all();
+        $api = $this->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
+
+        $countInsert    = 0;
+        $insertProduct  = [];
+        $countfailed    = 0;
+        $failedProduct  = [];
+        $dataJob        = [];
+        $dataOutlet     = [];
+        $outlets        = [];
+
+        // meminimalisir query ke tabel produk
+        $products = [];
+        $all_products = Product::select('id_product','product_code')->get();
+        foreach ($all_products as $product) {
+            $products[$product->product_code] = $product;
+        }
+
+        foreach ($post['menu'] as $keyMenu => $menu) {
+            $checkProduct = $products[$menu['sap_matnr']]??null;
+            if ($checkProduct) {
+                foreach ($menu['price_detail'] as $keyPrice => $price) {
+                    if ($price['start_date'] < date('Y-m-d')) {
+                        $price['start_date'] = date('Y-m-d');
+                    }
+                    if ($price['end_date'] < $price['start_date']) {
+                        $countfailed     = $countfailed + 1;
+                        $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', recheck this date';
+                        continue;
+                    }
+
+                    // meminimalisir query ke tabel outlet
+                    if(!($outlets[$price['store_code']]??false)) {
+                        $outlets[$price['store_code']] = Outlet::select('id_outlet')->where('outlet_code', $price['store_code'])->first();
+                    }
+
+                    $checkOutlet = $outlets[$price['store_code']];
+
+                    if (!$checkOutlet) {
+                        $countfailed     = $countfailed + 1;
+                        $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', no outlet';
+                        continue;
+                    }
+                    $dataOutlet[$checkOutlet->id_outlet] = null;
+                    $dataJob[] = [
+                        'id_product'    => $checkProduct->id_product,
+                        'id_outlet'     => $checkOutlet->id_outlet,
+                        'price'         => $price['price'],
+                        'start_date'    => $price['start_date'],
+                        'end_date'      => $price['end_date'],
+                        'created_at'    => date('Y-m-d H:i:s')
+                    ];
+
+                    $countInsert     = $countInsert + 1;
+                    $insertProduct[] = 'Success to sync price, product ' . $menu['sap_matnr'] . ' outlet ' . $price['store_code'];
+                }
+            } else {
+                $countfailed     = $countfailed + 1;
+                $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', product not found';
+                continue;
+            }
+        }
+
+        $insert = DB::connection('mysql')->table('outlet_product_price_periode_temps')->insert($dataJob);   
+        
+        if ($dataJob && $insert) {
+            SyncProductPrice2::dispatch(array_keys($dataOutlet))->allOnConnection('database');
+        } else {
+            return [
+                'status' => 'fail',
+                'result' => ['Failed insert to database']
+            ];
+        }
+
+        $hasil['success_menu']['total']         = $countInsert;
+        $hasil['success_menu']['list_menu']     = $insertProduct;
+        $hasil['failed_product']['total']       = $countfailed;
+        $hasil['failed_product']['list_menu']   = $failedProduct;
+        return [
+            'status'    => 'success',
+            'result'    => $hasil,
+        ];
+    }
+
+    public function cronResetProductPriceTemp()
+    {
+        $log = MyHelper::logCron('Reset Temporary Product Price Period');
+        try{
+            DB::connection('mysql')->table('outlet_product_price_periode_temps')->whereDate('created_at', '<', date('Y-m-d', time()))->delete();
+            $log->success();
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
+        }
     }
 
     public function syncProductDeactive(Request $request)
@@ -3132,6 +3255,8 @@ class ApiPOS extends Controller
                         }
 
                         $balance = LogBalance::where('id_reference', $checkTrx->id_transaction)->where('source', 'Transaction')->first();
+                        $balanceVoid = $balance['balance'];//get balance before delete
+                        $receivedBalance = $balance['created_at'];//get date balance received before delete
                         if (!empty($balance)) {
                             $balance->delete();
                             if (!$balance) {
@@ -3150,6 +3275,14 @@ class ApiPOS extends Controller
                                 $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update point';
                                 continue;
                             }
+
+                            //send notification to customer
+                            $sendCRM = app($this->autocrm)->SendAutoCRM('Void Point', $user['phone'], [
+                                'point' => number_format($balanceVoid),
+                                'received_date' =>  date('d M Y H:i', strtotime($receivedBalance)),
+                                'void_date' => date('d M Y H:i'),
+                                'receipt_number' => $checkTrx['transaction_receipt_number']
+                            ]);
                         }
                         $checkMembership = app($this->membership)->calculateMembership($user['phone']);
                         $countSuccess += 1;
