@@ -3132,6 +3132,8 @@ class ApiPOS extends Controller
                         }
 
                         $balance = LogBalance::where('id_reference', $checkTrx->id_transaction)->where('source', 'Transaction')->first();
+                        $balanceVoid = $balance['balance'];//get balance before delete
+                        $receivedBalance = $balance['created_at'];//get date balance received before delete
                         if (!empty($balance)) {
                             $balance->delete();
                             if (!$balance) {
@@ -3150,6 +3152,14 @@ class ApiPOS extends Controller
                                 $failedRefund[] = 'fail to refund trx_id ' . $trx['trx_id'] . ', Failed update point';
                                 continue;
                             }
+
+                            //send notification to customer
+                            $sendCRM = app($this->autocrm)->SendAutoCRM('Void Point', $user['phone'], [
+                                'point' => number_format($balanceVoid),
+                                'received_date' =>  date('d M Y H:i', strtotime($receivedBalance)),
+                                'void_date' => date('d M Y H:i'),
+                                'receipt_number' => $checkTrx['transaction_receipt_number']
+                            ]);
                         }
                         $checkMembership = app($this->membership)->calculateMembership($user['phone']);
                         $countSuccess += 1;
