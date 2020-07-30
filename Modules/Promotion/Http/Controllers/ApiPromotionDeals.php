@@ -148,7 +148,6 @@ class ApiPromotionDeals extends Controller
 		$deals = DealsPromotionTemplate::orderBy('deals_promotion_templates.updated_at', 'desc')
 				->where('deals_promotion_templates.id_deals_promotion_template', $post['id_deals_promotion_template'])
 				->with([
-					'outlets',
 	                'deals_promotion_product_discount',
 	                'deals_promotion_product_discount_rules',
 	                'deals_promotion_tier_discount_product',
@@ -161,7 +160,8 @@ class ApiPromotionDeals extends Controller
 	                'promotion_contents.deals'
 	            ])
 	            ->first();
-            
+        $outlet = explode(',',$deals->deals_list_outlet);
+        $deals->outlets = Outlet::whereIn('id_outlet',$outlet??[])->get();
 		return response()->json(MyHelper::checkGet($deals));
     }
 
