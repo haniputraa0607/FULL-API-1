@@ -110,9 +110,9 @@ class Kernel extends ConsoleKernel
 
         /**
          * To delete temporary product price data
-         * Run every day at 00:20
+         * Run every day at 01:30
          */
-        $schedule->call('Modules\POS\Http\Controllers\ApiPOS@cronResetProductPriceTemp')->dailyAt('00:20');
+        $schedule->call('Modules\POS\Http\Controllers\ApiPOS@cronResetProductPriceTemp')->dailyAt('01:30');
 
         /**
          * To process sync add on price from the POS
