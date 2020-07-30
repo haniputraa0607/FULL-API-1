@@ -715,6 +715,13 @@ class ApiHistoryController extends Controller
             $dataVoucher[$key]['id'] = $value['id_deals_user'];
             $dataVoucher[$key]['date'] = date('d M Y H:i', strtotime($value['claimed_at']));
             $dataVoucher[$key]['outlet'] = 'Buy Voucher';
+
+            if($value['paid_status'] == 'Free'){
+                $value['paid_status'] = 'Completed';
+            }elseif($value['paid_status'] == 'Cancelled'){
+                $value['paid_status'] = 'Canceled';
+            }
+            $dataVoucher[$key]['payment_status'] = strtoupper( $value['paid_status']);
             $dataVoucher[$key]['amount'] = MyHelper::requestNumber($value['voucher_price_cash'] - $value['balance_nominal'], '_CURRENCY');
         }
 
