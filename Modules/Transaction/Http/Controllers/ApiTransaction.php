@@ -1945,12 +1945,6 @@ class ApiTransaction extends Controller
                             'date'  => date('d F Y H:i', strtotime($list['detail']['receive_at']))
                         ];
                     }
-                    if ($list['completed_at'] != null) {
-                        $result['detail']['detail_status'][] = [
-                            'text'  => 'Your order awaits confirmation outlet',
-                            'date'  => date('d F Y H:i', strtotime($list['completed_at']))
-                        ];
-                    }
                 }
 
                 $result['detail']['detail_status'][] = [
