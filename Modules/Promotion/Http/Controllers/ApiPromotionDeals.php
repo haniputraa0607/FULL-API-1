@@ -402,6 +402,7 @@ class ApiPromotionDeals extends Controller
 			
 
 			$updatePromotion = PromotionContent::where('id_promotion_content','=',$id_promotion_content)->update(['id_deals' => $id_deals]);
+			$updateDeals 	 = Deal::where('id_deals','=',$id_deals)->update(['step_complete' => 1]);
 
 			$result = [
 				'status'	=> 'success',
