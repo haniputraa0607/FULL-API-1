@@ -145,11 +145,19 @@ class ApiDealsVoucherWebviewController extends Controller
 
         //add status used
         $voucher['status'] = 'available';
+        $voucher['offline_description'] = '';
         if(!empty($voucher['redeemed_at'])){
-            if(!empty($voucher['used_at'])){
+            if( !empty($voucher['used_at']) ){
                 $voucher['status'] = 'offline used';
-            }else{
+        		$voucher['offline_description'] = 'Your QR code has been scanned';
+            }
+            elseif( $voucher['voucher_expired_at'] < date("Y-m-d H:i:s") ){
+                $voucher['status'] = 'offline used';
+        		$voucher['offline_description'] = 'Your QR code has been expired';
+            }
+            else{
                 $voucher['status'] = 'offline redeem';
+        		$voucher['offline_description'] = 'QR Code below /n must be scanned by our Cashier';
             }
         }else{
             if($voucher['is_used'] == '1'){
@@ -197,6 +205,7 @@ class ApiDealsVoucherWebviewController extends Controller
             'button_text'           => 'Redeem',
             'text_before_scan'      => 'QR Code below<br>must be scanned by our Cashier',
             'custom_outlet_text'	=> $data['deals_voucher']['deal']['custom_outlet_text'],
+            'offline_description'	=> $data['offline_description'],
             'popup_message'         => [
                 $data['deals_voucher']['deal']['deals_title'],
                 'will be used on the next transaction'
