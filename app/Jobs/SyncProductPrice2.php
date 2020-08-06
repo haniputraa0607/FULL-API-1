@@ -74,7 +74,7 @@ class SyncProductPrice2 implements ShouldQueue
                 \DB::connection('mysql')->table('outlet_product_price_periodes')->insert(array_values($toCreate));
             }
         } catch (\Exception $e) {
-            dd( $e->getMessage());
+            \Log::error( $e->getMessage());
         }
     }
 }
