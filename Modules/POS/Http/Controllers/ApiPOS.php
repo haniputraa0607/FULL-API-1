@@ -1558,7 +1558,11 @@ class ApiPOS extends Controller
         try {
             $update = ProductPrice::join('outlet_product_price_periodes', function($join) {
                 $join->on('product_prices.id_product', '=', 'outlet_product_price_periodes.id_product')
-                    ->whereColumn('product_prices.id_outlet', '=', 'outlet_product_price_periodes.id_outlet');
+                    ->whereColumn('product_prices.id_outlet', '=', 'outlet_product_price_periodes.id_outlet')
+                    ->where(function($query) {
+                        $query->whereColumn('outlet_product_price_periodes.price', '<>', 'product_prices.product_price')
+                            ->orWhereNull('product_prices.product_price');
+                    });
             })->join('outlets', function($join) {
                 $join->on('product_prices.id_outlet', '=', 'outlets.id_outlet')
                     ->where('is_24h', 1);
@@ -1570,7 +1574,46 @@ class ApiPOS extends Controller
                 'updated_at' => \DB::raw('CURRENT_TIMESTAMP()'),
             ]);
 
-            $log->success([$update]);
+            // create not existing product
+            $toCreate = [];
+            $products = \DB::connection('mysql')
+                ->table('outlet_product_price_periodes')->join('outlets', function($join) {
+                    $join->on('outlet_product_price_periodes.id_outlet', '=', 'outlets.id_outlet')
+                        ->where('is_24h', 1);
+                })
+                ->join('products', 'outlet_product_price_periodes.id_product', '=', 'products.id_product')
+                ->leftJoin('product_prices', function ($join) {
+                    $join->on('outlet_product_price_periodes.id_outlet', '=', 'product_prices.id_outlet')
+                        ->whereColumn('outlet_product_price_periodes.id_product', '=', 'product_prices.id_product');
+                })
+                ->whereNull('product_prices.id_product_price')
+                ->where([
+                    ['start_date', '<=', date('Y-m-d')],
+                    ['end_date', '>=', date('Y-m-d')],
+                ])
+                ->select(
+                    'outlet_product_price_periodes.id_product',
+                    'outlet_product_price_periodes.id_outlet',
+                    'outlet_product_price_periodes.price',
+                    'outlet_product_price_periodes.start_date','outlet_product_price_periodes.end_date'
+                )
+                ->get();
+
+            foreach ($products as $product) {
+                $kwd = $product->id_product.'.'.$product->id_outlet;
+                $toCreate[$kwd] = [
+                    'id_product' => $product->id_product,
+                    'id_outlet' => $product->id_outlet,
+                    'product_price' => $product->price,
+                    'created_at' => \DB::raw('CURRENT_TIMESTAMP()'),
+                    'updated_at' => \DB::raw('CURRENT_TIMESTAMP()'),
+                ];
+            }
+            if ($toCreate) {
+                \DB::connection('mysql')->table('product_prices')->insert(array_values($toCreate));
+            }
+
+            $log->success(['update'=>$update,'create'=>count($toCreate)]);
         } catch (\Exception $e) {
             $log->fail($e->getMessage());
         }
@@ -1582,7 +1625,11 @@ class ApiPOS extends Controller
         try {
             $update = ProductPrice::join('outlet_product_price_periodes', function($join) {
                 $join->on('product_prices.id_product', '=', 'outlet_product_price_periodes.id_product')
-                    ->whereColumn('product_prices.id_outlet', '=', 'outlet_product_price_periodes.id_outlet');
+                    ->whereColumn('product_prices.id_outlet', '=', 'outlet_product_price_periodes.id_outlet')
+                    ->where(function($query) {
+                        $query->whereColumn('outlet_product_price_periodes.price', '<>', 'product_prices.product_price')
+                            ->orWhereNull('product_prices.product_price');
+                    });
             })->join('outlets', function($join) {
                 $join->on('product_prices.id_outlet', '=', 'outlets.id_outlet')
                     ->where('is_24h', 0);
@@ -1594,7 +1641,46 @@ class ApiPOS extends Controller
                 'updated_at' => \DB::raw('CURRENT_TIMESTAMP()'),
             ]);
 
-            $log->success([$update]);
+            // create not existing product
+            $toCreate = [];
+            $products = \DB::connection('mysql')
+                ->table('outlet_product_price_periodes')->join('outlets', function($join) {
+                    $join->on('outlet_product_price_periodes.id_outlet', '=', 'outlets.id_outlet')
+                        ->where('is_24h', 0);
+                })
+                ->join('products', 'outlet_product_price_periodes.id_product', '=', 'products.id_product')
+                ->leftJoin('product_prices', function ($join) {
+                    $join->on('outlet_product_price_periodes.id_outlet', '=', 'product_prices.id_outlet')
+                        ->whereColumn('outlet_product_price_periodes.id_product', '=', 'product_prices.id_product');
+                })
+                ->whereNull('product_prices.id_product_price')
+                ->where([
+                    ['start_date', '<=', date('Y-m-d')],
+                    ['end_date', '>=', date('Y-m-d')],
+                ])
+                ->select(
+                    'outlet_product_price_periodes.id_product',
+                    'outlet_product_price_periodes.id_outlet',
+                    'outlet_product_price_periodes.price',
+                    'outlet_product_price_periodes.start_date','outlet_product_price_periodes.end_date'
+                )
+                ->get();
+
+            foreach ($products as $product) {
+                $kwd = $product->id_product.'.'.$product->id_outlet;
+                $toCreate[$kwd] = [
+                    'id_product' => $product->id_product,
+                    'id_outlet' => $product->id_outlet,
+                    'product_price' => $product->price,
+                    'created_at' => \DB::raw('CURRENT_TIMESTAMP()'),
+                    'updated_at' => \DB::raw('CURRENT_TIMESTAMP()'),
+                ];
+            }
+            if ($toCreate) {
+                \DB::connection('mysql')->table('product_prices')->insert(array_values($toCreate));
+            }
+
+            $log->success(['update'=>$update,'create'=>count($toCreate)]);
         } catch (\Exception $e) {
             $log->fail($e->getMessage());
         }
@@ -1606,7 +1692,11 @@ class ApiPOS extends Controller
         try {
             $update = ProductModifierPrice::join('outlet_product_modifier_price_periodes', function($join) {
                 $join->on('product_modifier_prices.id_product_modifier', '=', 'outlet_product_modifier_price_periodes.id_product_modifier')
-                    ->whereColumn('product_modifier_prices.id_outlet', '=', 'outlet_product_modifier_price_periodes.id_outlet');
+                    ->whereColumn('product_modifier_prices.id_outlet', '=', 'outlet_product_modifier_price_periodes.id_outlet')
+                    ->where(function($query) {
+                        $query->whereColumn('outlet_product_modifier_price_periodes.price', '<>', 'product_modifier_prices.product_modifier_price')
+                            ->orWhereNull('product_modifier_prices.product_modifier_price');
+                    });
             })->where([
                 ['start_date', '<=', date('Y-m-d')],
                 ['end_date', '>=', date('Y-m-d')],
@@ -1615,7 +1705,42 @@ class ApiPOS extends Controller
                 'updated_at' => \DB::raw('CURRENT_TIMESTAMP()'),
             ]);
 
-            $log->success([$update]);
+            // create not existing product
+            $toCreate = [];
+            $products = \DB::connection('mysql')
+                ->table('outlet_product_modifier_price_periodes')->join('outlets', 'outlets.id_outlet', '=', 'outlet_product_modifier_price_periodes.id_outlet')
+                ->join('product_modifiers', 'outlet_product_modifier_price_periodes.id_product_modifier', '=', 'product_modifiers.id_product_modifier')
+                ->leftJoin('product_modifier_prices', function ($join) {
+                    $join->on('outlet_product_modifier_price_periodes.id_outlet', '=', 'product_modifier_prices.id_outlet')
+                        ->whereColumn('outlet_product_modifier_price_periodes.id_product_modifier', '=', 'product_modifier_prices.id_product_modifier');
+                })
+                ->whereNull('product_modifier_prices.id_product_modifier_price')
+                ->where([
+                    ['start_date', '<=', date('Y-m-d')],
+                    ['end_date', '>=', date('Y-m-d')],
+                ])
+                ->select(
+                    'outlet_product_modifier_price_periodes.id_product_modifier',
+                    'outlet_product_modifier_price_periodes.id_outlet',
+                    'outlet_product_modifier_price_periodes.price',
+                )
+                ->get();
+
+            foreach ($products as $product) {
+                $kwd = $product->id_product_modifier.'.'.$product->id_outlet;
+                $toCreate[$kwd] = [
+                    'id_product_modifier' => $product->id_product_modifier,
+                    'id_outlet' => $product->id_outlet,
+                    'product_modifier_price' => $product->price,
+                    'created_at' => \DB::raw('CURRENT_TIMESTAMP()'),
+                    'updated_at' => \DB::raw('CURRENT_TIMESTAMP()'),
+                ];
+            }
+            if ($toCreate) {
+                \DB::connection('mysql')->table('product_modifier_prices')->insert(array_values($toCreate));
+            }
+
+            $log->success(['update'=>$update,'create'=>count($toCreate)]);
         } catch (\Exception $e) {
             $log->fail($e->getMessage());
         }
