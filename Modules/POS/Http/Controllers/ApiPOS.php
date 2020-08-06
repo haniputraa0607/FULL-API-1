@@ -1556,39 +1556,21 @@ class ApiPOS extends Controller
     {
         $log = MyHelper::logCron('Sync Product Price Priority');
         try {
-            Log::info('cron price priority start : ' .date('Y-m-d H:i:s'));
-            $getOutlet = Outlet::select('id_outlet', 'outlet_code')->where('is_24h', 1)->get()->toArray();
-            $getProduct = Product::select('id_product')->get()->toArray();
-            for ($i = 0; $i < count($getOutlet); $i++) {
-                for ($j = 0; $j < count($getProduct); $j++) {
-                    try {
-                        $getPrice = DB::connection('mysql')
-                            ->table('outlet_product_price_periodes')
-                            ->where('id_product', $getProduct[$j]['id_product'])
-                            ->where('id_outlet', $getOutlet[$i]['id_outlet'])
-                            ->where('start_date', '<=', date('Y-m-d'))
-                            ->where('end_date', '>=', date('Y-m-d'))
-                            ->orderBy('id_product_price_periode', 'DESC')->first();
+            $update = ProductPrice::join('outlet_product_price_periodes', function($join) {
+                $join->on('product_prices.id_product', '=', 'outlet_product_price_periodes.id_product')
+                    ->whereColumn('product_prices.id_outlet', '=', 'outlet_product_price_periodes.id_outlet');
+            })->join('outlets', function($join) {
+                $join->on('product_prices.id_outlet', '=', 'outlets.id_outlet')
+                    ->where('is_24h', 1);
+            })->where([
+                ['start_date', '<=', date('Y-m-d')],
+                ['end_date', '>=', date('Y-m-d')],
+            ])->update([
+                'product_price' => \DB::raw('outlet_product_price_periodes.price'),
+                'updated_at' => \DB::raw('CURRENT_TIMESTAMP()'),
+            ]);
 
-                        $price = $getPrice->price;
-                    } catch (\Exception $e) {
-                        $price = 0;
-                    }
-
-                    $getProductPrice = ProductPrice::where('id_product', $getProduct[$j]['id_product'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
-                    if ($getProductPrice && $price != 0) {
-                        try {
-                            ProductPrice::where('id_product_price', $getProductPrice->id_product_price)->update([
-                                'product_price' => $price
-                            ]);
-                        } catch (\Exception $e) {
-                            LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
-                        }
-                    }
-                }
-            }
-            Log::info('cron price priority end : ' .date('Y-m-d H:i:s'));
-            $log->success();
+            $log->success([$update]);
         } catch (\Exception $e) {
             $log->fail($e->getMessage());
         }
@@ -1598,39 +1580,21 @@ class ApiPOS extends Controller
     {
         $log = MyHelper::logCron('Sync Product Price');
         try {
-            Log::info('cron price start : ' .date('Y-m-d H:i:s'));
-            $getOutlet = Outlet::select('id_outlet', 'outlet_code')->where('is_24h', 0)->get()->toArray();
-            $getProduct = Product::select('id_product')->get()->toArray();
-            for ($i = 0; $i < count($getOutlet); $i++) {
-                for ($j = 0; $j < count($getProduct); $j++) {
-                    try {
-                        $getPrice = DB::connection('mysql')
-                            ->table('outlet_product_price_periodes')
-                            ->where('id_product', $getProduct[$j]['id_product'])
-                            ->where('id_outlet', $getOutlet[$i]['id_outlet'])
-                            ->where('start_date', '<=', date('Y-m-d'))
-                            ->where('end_date', '>=', date('Y-m-d'))
-                            ->orderBy('id_product_price_periode', 'DESC')->first();
+            $update = ProductPrice::join('outlet_product_price_periodes', function($join) {
+                $join->on('product_prices.id_product', '=', 'outlet_product_price_periodes.id_product')
+                    ->whereColumn('product_prices.id_outlet', '=', 'outlet_product_price_periodes.id_outlet');
+            })->join('outlets', function($join) {
+                $join->on('product_prices.id_outlet', '=', 'outlets.id_outlet')
+                    ->where('is_24h', 0);
+            })->where([
+                ['start_date', '<=', date('Y-m-d')],
+                ['end_date', '>=', date('Y-m-d')],
+            ])->update([
+                'product_price' => \DB::raw('outlet_product_price_periodes.price'),
+                'updated_at' => \DB::raw('CURRENT_TIMESTAMP()'),
+            ]);
 
-                        $price = $getPrice->price;
-                    } catch (\Exception $e) {
-                        $price = 0;
-                    }
-
-                    $getProductPrice = ProductPrice::where('id_product', $getProduct[$j]['id_product'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
-                    if ($getProductPrice && $price != 0) {
-                        try {
-                            ProductPrice::where('id_product_price', $getProductPrice->id_product_price)->update([
-                                'product_price' => $price
-                            ]);
-                        } catch (\Exception $e) {
-                            LogBackendError::logExceptionMessage("ApiPOS/cronProductPrice=>" . $e->getMessage(), $e);
-                        }
-                    }
-                }
-            }
-            Log::info('cron price end : ' .date('Y-m-d H:i:s'));
-            $log->success();
+            $log->success([$update]);
         } catch (\Exception $e) {
             $log->fail($e->getMessage());
         }
@@ -1640,39 +1604,18 @@ class ApiPOS extends Controller
     {
         $log = MyHelper::logCron('Sync Add On Price');
         try {
-            Log::info('cron add on price start : ' .date('Y-m-d H:i:s'));
-            $getOutlet = Outlet::select('id_outlet', 'outlet_code')->get()->toArray();
-            $getAddOn = ProductModifier::select('id_product_modifier', 'code')->get()->toArray();
-            for ($i = 0; $i < count($getOutlet); $i++) {
-                for ($j = 0; $j < count($getAddOn); $j++) {
-                    try {
-                        $getPrice = DB::connection('mysql')
-                            ->table('outlet_product_modifier_price_periodes')
-                            ->where('id_product_modifier', $getAddOn[$j]['id_product_modifier'])
-                            ->where('id_outlet', $getOutlet[$i]['id_outlet'])
-                            ->where('start_date', '<=', date('Y-m-d'))
-                            ->where('end_date', '>=', date('Y-m-d'))
-                            ->orderBy('id_product_modifier_price_periode', 'DESC')->first();
+            $update = ProductModifierPrice::join('outlet_product_modifier_price_periodes', function($join) {
+                $join->on('product_modifier_prices.id_product_modifier', '=', 'outlet_product_modifier_price_periodes.id_product_modifier')
+                    ->whereColumn('product_modifier_prices.id_outlet', '=', 'outlet_product_modifier_price_periodes.id_outlet');
+            })->where([
+                ['start_date', '<=', date('Y-m-d')],
+                ['end_date', '>=', date('Y-m-d')],
+            ])->update([
+                'product_modifier_price' => \DB::raw('outlet_product_modifier_price_periodes.price'),
+                'updated_at' => \DB::raw('CURRENT_TIMESTAMP()'),
+            ]);
 
-                        $price = $getPrice->price;
-                    } catch (\Exception $e) {
-                        $price = 0;
-                    }
-
-                    $getProductPrice = ProductModifierPrice::where('id_product_modifier', $getAddOn[$j]['id_product_modifier'])->where('id_outlet', $getOutlet[$i]['id_outlet'])->first();
-                    if ($getProductPrice && $price != 0) {
-                        try {
-                            ProductModifierPrice::where('id_product_modifier_price', $getProductPrice->id_product_modifier_price)->update([
-                                'product_modifier_price' => $price,
-                            ]);
-                        } catch (\Exception $e) {
-                            LogBackendError::logExceptionMessage("ApiPOS/cronAddOnPrice=>" . $e->getMessage(), $e);
-                        }
-                    }
-                }
-            }
-            Log::info('cron add on price end : ' .date('Y-m-d H:i:s'));
-            $log->success();
+            $log->success([$update]);
         } catch (\Exception $e) {
             $log->fail($e->getMessage());
         }
