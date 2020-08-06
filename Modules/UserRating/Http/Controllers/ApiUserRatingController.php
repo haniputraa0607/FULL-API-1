@@ -275,7 +275,21 @@ class ApiUserRatingController extends Controller
                 ];
             }
         }
+
+        $params = ['id_transaction' => $transaction->id_transaction, 'type' => 'trx'];
+
         $result['options'] = $options;
+
+        // mocking request object and create fake request
+        $fake_request = new \Modules\Transaction\Http\Requests\TransactionDetail();
+        $fake_request->setJson(new \Symfony\Component\HttpFoundation\ParameterBag($params));
+        $fake_request->merge(['user' => $request->user()]);
+        $fake_request->setUserResolver(function () use ($request) {
+            return $request->user();
+        });
+        // get detail transaction
+        $result['detail_trx'] = app('Modules\Transaction\Http\Controllers\ApiTransaction')->transactionDetail($fake_request)->getData(true)['result']??[];
+
         $result['webview_url'] = env('APP_API_URL').'api/transaction/web/view/trx/'.$result['id'];
         return MyHelper::checkGet($result);
     }
