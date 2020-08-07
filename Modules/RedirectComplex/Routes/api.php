@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::middleware('auth:api')->get('/redirectcomplex', function (Request $request) {
-    return $request->user();
+Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:be'], 'prefix' => 'redirect-complex'], function () {
+    Route::get('be/list', 'ApiRedirectComplex@index');
+    Route::post('create', 'ApiRedirectComplex@create');
 });

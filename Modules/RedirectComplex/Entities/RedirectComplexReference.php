@@ -31,6 +31,7 @@ class RedirectComplexReference extends Eloquent
 
 	protected $fillable = [
 		'type',
+		'name',
 		'outlet_type',
 		'promo_type',
 		'promo_reference'

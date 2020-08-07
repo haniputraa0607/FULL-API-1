@@ -1702,31 +1702,59 @@ class ApiPromoCampaign extends Controller
     public function getData(Request $request)
     {
         $post = $request->json()->all();
+        $data = [];
+        switch ($post['get']) {
+        	case 'Outlet':
+            	$data = Outlet::select('id_outlet', DB::raw('CONCAT(outlet_code, " - ", outlet_name) AS outlet'))->get()->toArray();
+        		break;
+        	
+        	case 'Product':
+        		if ($post['type'] == 'group')
+		        {
+		            $data = ProductGroup::select('id_product_group as id_product', DB::raw('CONCAT(product_group_code, " - ", product_group_name) AS product'))->whereNotNull('id_product_category')->get()->toArray();
+		        }
+		        else
+		        {
+		            $data = Product::select('id_product', DB::raw('CONCAT(product_code, " - ", product_name) AS product'))
+		            		->whereHas('product_group', function($q) {
+		            			$q->whereNotNull('id_product_category');
+		            		})
+		            		->get()
+		            		->toArray();
+		        }
+        		break;
 
-        if ($post['get'] == 'Outlet')
-        {
-            $data = Outlet::select('id_outlet', DB::raw('CONCAT(outlet_code, " - ", outlet_name) AS outlet'))->get()->toArray();
-        }
-        elseif ($post['get'] == 'Product' && $post['type'] == 'group')
-        {
-            $data = ProductGroup::select('id_product_group as id_product', DB::raw('CONCAT(product_group_code, " - ", product_group_name) AS product'))->whereNotNull('id_product_category')->get()->toArray();
-        }
-        elseif ($post['get'] == 'Product')
-        {
-            $data = Product::select('id_product', DB::raw('CONCAT(product_code, " - ", product_name) AS product'))
-            		->whereHas('product_group', function($q) {
-            			$q->whereNotNull('id_product_category');
-            		})
-            		->get()
-            		->toArray();
-        }
-        elseif ($post['get'] == 'ProductGroup')
-        {
-            $data = ProductGroup::select('id_product_group', DB::raw('CONCAT(product_group_code, " - ", product_group_name) AS product_group'))->whereNotNull('id_product_category')->get()->toArray();
-        }
-        else
-        {
-            $data = 'null';
+        	case 'ProductGroup':
+        		$data = ProductGroup::select('id_product_group', DB::raw('CONCAT(product_group_code, " - ", product_group_name) AS product_group'))->whereNotNull('id_product_category')->get()->toArray();
+        		break;
+
+        	case 'promo':
+        		$now = date('Y-m-d H:i:s');
+        		switch ($post['type']) {
+        			case 'promo_campaign':
+        				$data = PromoCampaign::select('promo_campaigns.id_promo_campaign as id_promo', DB::raw('CONCAT(promo_code, " - ", campaign_name) AS promo'))
+        						->where('code_type','Single')
+        						->join('promo_campaign_promo_codes', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
+        						->where('date_start', '<', $now)
+        						->where('date_end', '>', $now)
+        						->where('step_complete','=',1)
+					            ->where( function($q){
+					            	$q->whereColumn('usage','<','limitation_usage')
+					            		->orWhere('code_type','Single')
+					            		->orWhere('limitation_usage',0);
+					            })
+					            ->get()->toArray();
+        				break;
+        			
+        			default:
+        				# code...
+        				break;
+        		}
+        		break;
+
+        	default:
+        		# code...
+        		break;
         }
 
         return response()->json($data);
