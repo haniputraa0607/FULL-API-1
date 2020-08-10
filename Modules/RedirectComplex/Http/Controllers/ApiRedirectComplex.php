@@ -10,6 +10,9 @@ use Modules\RedirectComplex\Entities\RedirectComplexProduct;
 use Modules\RedirectComplex\Entities\RedirectComplexOutlet;
 
 use Modules\RedirectComplex\Http\Requests\CreateRequest;
+use Modules\RedirectComplex\Http\Requests\DetailRequest;
+use Modules\RedirectComplex\Http\Requests\UpdateRequest;
+use Modules\RedirectComplex\Http\Requests\DeleteRequest;
 
 use App\Lib\MyHelper;
 use DB;
@@ -22,7 +25,7 @@ class ApiRedirectComplex extends Controller
      */
     public function index()
     {
-    	$data = RedirectComplexReference::paginate(10);
+    	$data = RedirectComplexReference::orderBy('updated_at','Desc')->paginate(10);
 
     	return MyHelper::checkGet($data);
         
@@ -51,7 +54,7 @@ class ApiRedirectComplex extends Controller
 	    	$save_reference = RedirectComplexReference::create($reference);
 	    	if(!$save_reference) break;
 
-	    	if ($request->outlet) {
+	    	if ($request->outlet  && $request->outlet_type == 'specific') {
 				$save_outlet 	= $this->saveOutlet($request->outlet, $save_reference->id_redirect_complex_reference);
 	    		if(!$save_outlet) break;
 
@@ -105,54 +108,84 @@ class ApiRedirectComplex extends Controller
     	return $save;
     }
 
-    /**
-     * Store a newly created resource in storage.
-     * @param Request $request
-     * @return Response
-     */
-    public function store(Request $request)
+    public function detail(DetailRequest $request)
     {
-        //
+    	$data = RedirectComplexReference::where('id_redirect_complex_reference', $request->id_redirect_complex_reference)
+    			->with([
+    				'outlets' => function($q) {
+    					$q->select('outlets.id_outlet', 'outlet_code', 'outlet_name');
+    				},
+    				'products' => function($q) {
+    					$q->select('products.id_product', 'product_code', 'product_name');
+    				}
+    			])
+    			->first();
+		$data = $data->append('get_promo');
+
+    	return MyHelper::checkGet($data);
     }
 
-    /**
-     * Show the specified resource.
-     * @param int $id
-     * @return Response
-     */
-    public function show($id)
+    public function update(UpdateRequest $request)
     {
-        return view('redirectcomplex::show');
+    	$post 		= $request->json()->all();
+    	$status		= true;
+    	$reference 	= [
+			'name'				=> $request->name,
+			'outlet_type'		=> $request->outlet_type,
+			'promo_type'		=> !empty($request->promo) ? 'promo_campaign' : null,
+			'promo_reference'	=> !empty($request->promo) ? $request->promo : null
+    	];
+
+    	DB::beginTransaction();
+
+    	try {
+    		do {
+	    		$delete = $this->deleteRule($request->id_redirect_complex_reference);
+	    		if (!$delete) {
+	    			return $delete;
+	    			$status = false; 
+	    			break;
+	    		}
+
+	    		$save_reference = RedirectComplexReference::where('id_redirect_complex_reference', $request->id_redirect_complex_reference)->update($reference);
+
+		    	if ($request->outlet && $request->outlet_type == 'specific') {
+					$save_outlet 	= $this->saveOutlet($request->outlet, $request->id_redirect_complex_reference);
+
+		    	}
+		    	if ($request->product) {
+					$save_product 	= $this->saveProduct($request->product, $request->id_redirect_complex_reference);
+		    	}
+
+	    		DB::commit();
+    		} while (0);
+    	} 
+    	catch (Exception $e) {
+    		DB::rollback();
+    		$status = false;
+    	}
+
+        return MyHelper::checkUpdate($status);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     * @param int $id
-     * @return Response
-     */
-    public function edit($id)
+    function deleteRule($id)
     {
-        return view('redirectcomplex::edit');
+    	try {
+	    	$del = RedirectComplexProduct::where('id_redirect_complex_reference', $id)->delete();
+	    	$del = RedirectComplexOutlet::where('id_redirect_complex_reference', $id)->delete();
+    		
+    		return true;
+    	} 
+    	catch (Exception $e) {
+    		return false;
+    	}
     }
 
-    /**
-     * Update the specified resource in storage.
-     * @param Request $request
-     * @param int $id
-     * @return Response
-     */
-    public function update(Request $request, $id)
+    public function delete(DeleteRequest $request)
     {
-        //
-    }
+        $post=$request->json()->all();
+        $delete=RedirectComplexReference::where('id_redirect_complex_reference',$post['id_redirect_complex_reference'])->delete();
 
-    /**
-     * Remove the specified resource from storage.
-     * @param int $id
-     * @return Response
-     */
-    public function destroy($id)
-    {
-        //
+        return MyHelper::checkDelete($delete);
     }
 }

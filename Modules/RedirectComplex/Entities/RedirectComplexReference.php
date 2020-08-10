@@ -29,6 +29,10 @@ class RedirectComplexReference extends Eloquent
 {
 	protected $primaryKey = 'id_redirect_complex_reference';
 
+	protected $appends  = [
+		// 'get_promo'
+	];
+
 	protected $fillable = [
 		'type',
 		'name',
@@ -46,4 +50,35 @@ class RedirectComplexReference extends Eloquent
 	{
 		return $this->hasMany(\Modules\RedirectComplex\Entities\RedirectComplexProduct::class, 'id_redirect_complex_reference');
 	}
+
+	public function outlets()
+	{
+		return $this->belongsToMany(\App\Http\Models\Outlet::class, 'redirect_complex_outlets', 'id_redirect_complex_reference', 'id_outlet')
+					->withPivot('id_outlet')
+					->withTimestamps()->orderBy('id_outlet', 'DESC');
+	}
+
+	public function products()
+	{
+		return $this->belongsToMany(\App\Http\Models\Product::class, 'redirect_complex_products', 'id_redirect_complex_reference', 'id_product')
+					->select('product_categories.*','products.*')
+					->leftJoin('product_categories', 'product_categories.id_product_category', '=', 'products.id_product_category')
+					->withPivot('id_redirect_complex_product', 'qty')
+					->withTimestamps();
+	}
+
+	public function promo_campaign()
+	{
+		return $this->belongsTo(\Modules\PromoCampaign\Entities\PromoCampaign::class, 'promo_reference', 'id_promo_campaign');
+	}
+
+	public function getGetPromoAttribute() {
+
+        if( $this->promo_type == 'promo_campaign')
+        {	
+			$this->load(['promo_campaign.promo_campaign_promo_codes' => function($q) {
+							$q->first();
+						}]);
+        }
+    }
 }

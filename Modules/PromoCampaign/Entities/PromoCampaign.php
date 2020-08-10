@@ -172,4 +172,9 @@ class PromoCampaign extends Eloquent
     {
         return $this->hasOne(\Modules\PromoCampaign\Entities\PromoCampaignReferral::class, 'id_promo_campaign', 'id_promo_campaign');
     }
+
+    public function redirect_complex_reference()
+    {
+    	return $this->belongsTo(\Modules\RedirectComplex\Entities\RedirectComplexReference::class, 'id_redirect_complex_reference');
+    }
 }

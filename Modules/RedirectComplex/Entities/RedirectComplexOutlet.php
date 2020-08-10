@@ -39,7 +39,7 @@ class RedirectComplexOutlet extends Eloquent
 
 	public function outlet()
 	{
-		return $this->belongsTo(\App\Models\Outlet::class, 'id_outlet');
+		return $this->belongsTo(\App\Http\Models\Outlet::class, 'id_outlet');
 	}
 
 	public function redirect_complex_reference()

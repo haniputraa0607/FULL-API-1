@@ -15,5 +15,8 @@ use Illuminate\Http\Request;
 
 Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:be'], 'prefix' => 'redirect-complex'], function () {
     Route::get('be/list', 'ApiRedirectComplex@index');
+    Route::post('be/detail', 'ApiRedirectComplex@detail');
     Route::post('create', 'ApiRedirectComplex@create');
+    Route::post('update', 'ApiRedirectComplex@update');
+    Route::post('delete', 'ApiRedirectComplex@delete');
 });

@@ -42,7 +42,7 @@ class RedirectComplexProduct extends Eloquent
 
 	public function product()
 	{
-		return $this->belongsTo(\App\Models\Product::class, 'id_product');
+		return $this->belongsTo(\App\Http\Models\Product::class, 'id_product');
 	}
 
 	public function redirect_complex_reference()
