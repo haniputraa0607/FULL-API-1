@@ -6,7 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class DetailRequest extends FormRequest
+class EditRequest extends FormRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -16,9 +16,7 @@ class DetailRequest extends FormRequest
     public function rules()
     {
         return [
-            'id_reference'	=>'required',
-            'latitude'		=>'required',
-            'longitude'		=>'required'
+            'id_redirect_complex_reference'		=>'required'
         ];
     }
 
