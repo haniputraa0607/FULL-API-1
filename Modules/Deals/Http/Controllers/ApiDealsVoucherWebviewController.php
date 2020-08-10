@@ -157,7 +157,7 @@ class ApiDealsVoucherWebviewController extends Controller
             }
             else{
                 $voucher['status'] = 'offline redeem';
-        		$voucher['offline_description'] = 'QR Code below /n must be scanned by our Cashier';
+        		$voucher['offline_description'] = 'QR Code below \n must be scanned by our Cashier';
             }
         }else{
             if($voucher['is_used'] == '1'){
