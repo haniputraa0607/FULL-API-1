@@ -171,6 +171,7 @@ class ConnectPOS{
 					"tax"=> $tax, //10%
 					"type"=> $product->product_variants[1]->product_variant_code == 'general_type'?null:$product->product_variants[1]->product_variant_code, //code variant /null
 					"size"=> $product->product_variants[0]->product_variant_code == 'general_size'?null:$product->product_variants[0]->product_variant_code, // code variant /null
+					'note' => $product->pivot->transaction_product_note,
 					"promoNumber"=> $promoNumber, //kode voucher //null
 					"promoType"=> $appliedPromo?"5":"", //hardcode //null
 					"status"=> "ACTIVE" // hardcode
@@ -193,6 +194,7 @@ class ConnectPOS{
 					"tax"=> $tax, //10%
 					"type"=> null, //code variant /null
 					"size"=> null, // code variant /null
+					'note' => '',
 					"promoNumber"=> $promoNumber, //kode voucher //null
 					"promoType"=> $appliedPromo?"5":null, //hardcode //null
 					"status"=> "ACTIVE" // hardcode
