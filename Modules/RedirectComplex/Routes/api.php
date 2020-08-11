@@ -25,4 +25,5 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:be'], 'pref
     Route::post('create', 'ApiRedirectComplex@create');
     Route::post('update', 'ApiRedirectComplex@update');
     Route::post('delete', 'ApiRedirectComplex@delete');
+    Route::post('getData', 'ApiRedirectComplex@getData');
 });

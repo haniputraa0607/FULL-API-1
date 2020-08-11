@@ -36,6 +36,7 @@ class RedirectComplexProduct extends Eloquent
 
 	protected $fillable = [
 		'id_redirect_complex_reference',
+		'id_brand',
 		'id_product',
 		'qty'
 	];
@@ -49,7 +50,7 @@ class RedirectComplexProduct extends Eloquent
 	{
 		return $this->belongsTo(\Modules\RedirectComplex\Entities\RedirectComplexReference::class, 'id_redirect_complex_reference');
 	}
-	
+
 	public function brand()
 	{
 		return $this->belongsTo(\Modules\Brand\Entities\Brand::class,'id_brand');
