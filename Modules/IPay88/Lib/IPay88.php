@@ -259,6 +259,9 @@ class IPay88
                 ];
             	switch ($data['Status']) {
             		case '1':
+            			if ($trx->transaction_payment_status == 'Completed') {
+            				break;
+            			}
 	                    $update = $trx->update(['transaction_payment_status'=>'Completed','completed_at'=>date('Y-m-d H:i:s')]);
 	                    if(!$update){
 		                    DB::rollBack();
@@ -308,6 +311,9 @@ class IPay88
             			break;
 
             		case '0':
+            			if ($trx->transaction_payment_status == 'Cancelled') {
+            				break;
+            			}
 			            MyHelper::updateFlagTransactionOnline($trx, 'cancel', $trx->user);
 	                    $update = $trx->update(['transaction_payment_status'=>'Cancelled','void_date'=>date('Y-m-d H:i:s')]);
 		                $trx->load('outlet_name');
@@ -382,6 +388,9 @@ class IPay88
     			$deals = Deal::where('id_deals',$deals_user->id_deals)->first();
             	switch ($data['Status']) {
             		case '1':
+            			if ($deals_user->paid_status == 'Completed') {
+            				break;
+            			}
 	                    $update = $deals_user->update(['paid_status'=>'Completed']);
 	                    if(!$update){
 		                    DB::rollBack();
@@ -412,6 +421,9 @@ class IPay88
             			break;
 
             		case '0':
+            			if ($deals_user->paid_status == 'Cancelled') {
+            				break;
+            			}
 			            if($deals_user->balance_nominal){
 			                $insertDataLogCash = app("Modules\Balance\Http\Controllers\BalanceController")->addLogBalance($deals_user->id_user, $deals_user->balance_nominal, $deals_user->id_deals_user, 'Claim Deals Failed');
 			                if (!$insertDataLogCash) {
