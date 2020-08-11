@@ -2,7 +2,7 @@
 
 /**
  * Created by Reliese Model.
- * Date: Thu, 06 Aug 2020 15:39:51 +0700.
+ * Date: Tue, 11 Aug 2020 15:54:38 +0700.
  */
 
 namespace Modules\RedirectComplex\Entities;
@@ -10,48 +10,40 @@ namespace Modules\RedirectComplex\Entities;
 use Reliese\Database\Eloquent\Model as Eloquent;
 
 /**
- * Class RedirectComplexProduct
+ * Class RedirectComplexBrand
  * 
- * @property int $id_redirect_complex_product
+ * @property int $id_redirect_complex_brand
  * @property int $id_redirect_complex_reference
- * @property int $id_product
- * @property int $qty
+ * @property int $id_brand
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  * 
- * @property \App\Models\Product $product
+ * @property \App\Models\Brand $brand
  * @property \App\Models\RedirectComplexReference $redirect_complex_reference
  *
  * @package App\Models
  */
-class RedirectComplexProduct extends Eloquent
+class RedirectComplexBrand extends Eloquent
 {
-	protected $primaryKey = 'id_redirect_complex_product';
+	protected $primaryKey = 'id_redirect_complex_brand';
 
 	protected $casts = [
 		'id_redirect_complex_reference' => 'int',
-		'id_product' => 'int',
-		'qty' => 'int'
+		'id_brand' => 'int'
 	];
 
 	protected $fillable = [
 		'id_redirect_complex_reference',
-		'id_product',
-		'qty'
+		'id_brand'
 	];
 
-	public function product()
+	public function brand()
 	{
-		return $this->belongsTo(\App\Http\Models\Product::class, 'id_product');
+		return $this->belongsTo(\Modules\Brand\Entities\Brand::class,'id_brand');
 	}
 
 	public function redirect_complex_reference()
 	{
 		return $this->belongsTo(\Modules\RedirectComplex\Entities\RedirectComplexReference::class, 'id_redirect_complex_reference');
-	}
-	
-	public function brand()
-	{
-		return $this->belongsTo(\Modules\Brand\Entities\Brand::class,'id_brand');
 	}
 }
