@@ -16,7 +16,7 @@ use Modules\RedirectComplex\Http\Requests\EditRequest;
 use Modules\RedirectComplex\Http\Requests\UpdateRequest;
 use Modules\RedirectComplex\Http\Requests\DeleteRequest;
 use Modules\RedirectComplex\Http\Requests\DetailRequest;
-
+use Modules\PromoCampaign\Entities\PromoCampaign;
 use Modules\ProductVariant\Entities\ProductGroup;
 use Modules\ProductVariant\Entities\ProductVariant;
 use App\Http\Models\Outlet;
@@ -375,13 +375,13 @@ class ApiRedirectComplex extends Controller
             	$data = Outlet::select('id_outlet', DB::raw('CONCAT(outlet_code, " - ", outlet_name) AS outlet'));
 
             	if (!empty($post['brand'])) {
-	            	$data = $data->whereHas('brands',function($query) use ($post){
-	                    foreach ($post['brand']??[] as $value) {
-	                    	$query->where('brands.id_brand',$value);
-		            	}
-	                });
+	                foreach ($post['brand'] as $value) {
+		                $data = $data->whereHas('brands',function($query) use ($value){
+				                    $query->where('brands.id_brand',$value);
+				                });
+		            }
 	            }
-            	
+
             	$data = $data->get()->toArray();
         		break;
         	
@@ -399,10 +399,17 @@ class ApiRedirectComplex extends Controller
 		            		->leftJoin('brand_product', 'products.id_product', '=', 'brand_product.id_product')
 		            		->leftJoin('brands', 'brands.id_brand', '=', 'brand_product.id_brand')
 		            		->groupBy('brand_product.id_brand_product')
-		            		->orderBy('brands.id_brand')
-		            		->get()
-		            		->toArray();
+		            		->orderBy('brands.id_brand');
+
+			        if (!empty($post['brand'])) {
+		            	$data = $data->whereHas('brands',function($query) use ($post){
+		                    $query->whereIn('brands.id_brand',$post['brand']);
+		                });
+		            }
+
+		            $data = $data->get()->toArray();
 		        }
+
         		break;
 
         	case 'ProductGroup':
@@ -411,6 +418,7 @@ class ApiRedirectComplex extends Controller
 
         	case 'promo':
         		$now = date('Y-m-d H:i:s');
+        		// return $post;
         		switch ($post['type']) {
         			case 'promo_campaign':
         				$data = PromoCampaign::select('promo_campaigns.id_promo_campaign as id_promo', DB::raw('CONCAT(promo_code, " - ", campaign_name) AS promo'))
@@ -423,18 +431,37 @@ class ApiRedirectComplex extends Controller
 					            	$q->whereColumn('usage','<','limitation_usage')
 					            		->orWhere('code_type','Single')
 					            		->orWhere('limitation_usage',0);
-					            })
-					            ->get()->toArray();
+					            });
+					    // check outlet
+					    if (isset($post['outlet'])) {
+					    	$data = $data->where(function($q) use ($post) {
+			            	$q->where('is_all_outlet',1);
+			            		$q->orWhere(function($q2) use ($post) {
+			            			foreach ($post['outlet'] as $value) {
+			            				$q2->whereHas('outlets',function($q3) use ($value){
+						                    $q3->where('outlets.id_outlet',$value);
+						                });
+			            			}
+			            		});
+			            	});
+					    }
+					   	// check brand
+					   	/* commented because promo campaign doesnt have brand column
+					   	if (isset($post['brand'])) {
+						    $data = $data->whereIn('id_brand', $post['brand']);
+					   	}
+					   	*/
+					   	$data = $data->get()->toArray();
         				break;
         			
         			default:
-        				# code...
+        				$data = [];
         				break;
         		}
         		break;
 
         	default:
-        		# code...
+        		$data = [];
         		break;
         }
 
