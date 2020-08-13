@@ -23,6 +23,7 @@ class ApiBanner extends Controller
         $banners = DB::table('banners')
             ->leftJoin('news', 'news.id_news', '=', 'banners.id_news')
             ->select('banners.*', 'news.news_title')
+            ->where('banner_end' > date('Y-m-d H:i:s', strtotime('- 2days')))
             ->orderBy('banners.position')
             ->get();
 
