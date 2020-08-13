@@ -8,7 +8,7 @@
 namespace Modules\Promotion\Entities;
 
 use Reliese\Database\Eloquent\Model as Eloquent;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class DealsPromotionTierDiscountProduct
  * 
@@ -27,6 +27,7 @@ use Reliese\Database\Eloquent\Model as Eloquent;
  */
 class DealsPromotionTierDiscountProduct extends Eloquent
 {
+	use Userstamps;
 	protected $primaryKey = 'id_deals_tier_discount_products';
 
 	protected $appends  = [

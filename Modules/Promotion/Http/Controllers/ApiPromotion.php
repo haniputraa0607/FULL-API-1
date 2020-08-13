@@ -5,6 +5,7 @@ namespace Modules\Promotion\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 
 use App\Http\Models\User;
 use App\Http\Models\UserInbox;
@@ -31,6 +32,7 @@ use App\Http\Models\News;
 
 use App\Jobs\SendPromotionJob;
 use App\Jobs\GeneratePromotionRecipient;
+
 
 use App\Lib\MyHelper;
 use App\Lib\PushNotificationHelper;
@@ -96,7 +98,7 @@ class ApiPromotion extends Controller
 		$data['promotion_series'] 	= $post['promotion_series'];
 
 		if(isset($post['id_promotion'])) {
-			$queryPromotion = Promotion::where('id_promotion','=',$post['id_promotion'])->update($data);
+			$queryPromotion = Promotion::where('id_promotion','=',$post['id_promotion'])->updateWithUserstamps($data);
 			$id_promotion = $post['id_promotion'];
 		} else {
 			$queryPromotion = Promotion::create($data);
@@ -218,7 +220,7 @@ class ApiPromotion extends Controller
 					if(!empty($content['id_deals'])){
 						$sumTransaction = Transaction::join('deals_vouchers', 'transactions.id_deals_voucher', 'deals_vouchers.id_deals_voucher')
 													->where('deals_vouchers.id_deals', $content['id_deals'])->sum('transaction_grandtotal');
-						$updateContent = PromotionContent::where('id_promotion_content', $content['id_promotion_content'])->update(['promotion_sum_transaction' => $sumTransaction]);
+						$updateContent = PromotionContent::where('id_promotion_content', $content['id_promotion_content'])->updateWithUserstamps(['promotion_sum_transaction' => $sumTransaction]);
 					}
 				}
 				$promotion = Promotion::where('id_promotion','=',$post['id_promotion'])->with(['user', 'promotion_rule_parents', 'promotion_rule_parents.rules', 'schedules', 'contents', 'contents.deals','contents.deals.outlets','contents.deals.deals_vouchers', 'contents.whatsapp_content'])->first();
@@ -596,7 +598,7 @@ class ApiPromotion extends Controller
 					if(isset($post['promotion_push_image'][$key]) && $query['promotion_push_image'][$key] != null){
 						unlink($query['promotion_push_image']);
 					}
-					$query = $query->update($data);
+					$query = $query->updateWithUserstamps($data);
 
 					$id_promotion_content = $post['id_promotion_content'][$key];
 					array_push($id_content, $id_promotion_content);
@@ -614,6 +616,8 @@ class ApiPromotion extends Controller
 					if(count($arrayShorten) > 0){
 						foreach ($arrayShorten as $j => $value) {
 							$arrayShorten[$j]['id_promotion_content'] = $id_promotion_content;
+							$arrayShorten[$j]['created_by'] = Auth::id();
+							$arrayShorten[$j]['updated_by'] = Auth::id();
 						}
 						$insertShorten = PromotionContentShortenLink::insert($arrayShorten);
 					}
@@ -675,7 +679,7 @@ class ApiPromotion extends Controller
 					$delete = app($this->promotionDeals)->deleteDeals($promoContent, $id_promotion_content, $key);
 	
 					if($delete){
-						$promoContent->update(['id_deals' => null]);
+						$promoContent->updateWithUserstamps(['id_deals' => null]);
 						if(!$promoContent){
 							DB::rollBack();
 							$result = [
@@ -966,7 +970,7 @@ class ApiPromotion extends Controller
 					unlink($query['promotion_push_image']);
 				}
 
-				$query = $query->update($data);
+				$query = $query->updateWithUserstamps($data);
 
 				$id_promotion_content = $post['id_promotion_content'];
 				array_push($id_content, $id_promotion_content);
@@ -984,6 +988,8 @@ class ApiPromotion extends Controller
 				if(count($arrayShorten) > 0){
 					foreach ($arrayShorten as $key => $value) {
 						$arrayShorten[$key]['id_promotion_content'] = $id_promotion_content;
+						$arrayShorten[$key]['created_by'] = Auth::id();
+						$arrayShorten[$key]['updated_by'] = Auth::id();
 					}
 
 					$insertShorten = PromotionContentShortenLink::insert($arrayShorten);
@@ -1043,7 +1049,7 @@ class ApiPromotion extends Controller
 				$delete = app($this->promotionDeals)->deleteDeals($promoContent, $id_promotion_content);
 
 				if($delete){
-					$promoContent->update(['id_deals' => null]);
+					$promoContent->updateWithUserstamps(['id_deals' => null]);
 					if(!$promoContent){
 						DB::rollBack();
 						$result = [
@@ -1286,7 +1292,7 @@ class ApiPromotion extends Controller
 					$message->bcc($setting['email_bcc']);
 				}
 			});
-			$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->update(['promotion_count_email_sent' => $promotionContent['promotion_count_email_sent']+1]);
+			$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->updateWithUserstamps(['promotion_count_email_sent' => $promotionContent['promotion_count_email_sent']+1]);
 			return ([
 				'status'  => 'success',
 				'result'  => 'Promotion Content Email Has Been Sent.'
@@ -1377,7 +1383,7 @@ class ApiPromotion extends Controller
 					break;
 			}
 
-			$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->update(['promotion_count_sms_sent' => $promotionContent['promotion_count_sms_sent']+1]);
+			$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->updateWithUserstamps(['promotion_count_sms_sent' => $promotionContent['promotion_count_sms_sent']+1]);
 
 		}
 	}
@@ -1454,7 +1460,7 @@ class ApiPromotion extends Controller
 				if (!empty($deviceToken)) {
 					if (isset($deviceToken['token']) && !empty($deviceToken['token'])) {
 						$push = PushNotificationHelper::sendPush($deviceToken['token'], $subject, $content, $image, $dataOptional);
-						$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->update(['promotion_count_push' => $promotionContent['promotion_count_push']+1]);
+						$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->updateWithUserstamps(['promotion_count_push' => $promotionContent['promotion_count_push']+1]);
 					}
 				}
 				return true;
@@ -1510,10 +1516,12 @@ class ApiPromotion extends Controller
 		$inbox['inboxes_send_at'] = date("Y-m-d H:i:s");
 		$inbox['created_at'] = date("Y-m-d H:i:s");
 		$inbox['updated_at'] = date("Y-m-d H:i:s");
+		$inbox['created_by'] = Auth::id();
+		$inbox['updated_by'] = Auth::id();
 
 		$inboxQuery = UserInbox::insert($inbox);
 
-		$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->update(['promotion_count_inbox' => $promotionContent['promotion_count_inbox']+1]);
+		$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->updateWithUserstamps(['promotion_count_inbox' => $promotionContent['promotion_count_inbox']+1]);
 	}
 
 	public function sendWhatsapp($id_promotion_content, $user){
@@ -1564,7 +1572,7 @@ class ApiPromotion extends Controller
 							}
 
 						}
-						$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->update(['promotion_count_sms_sent' => $promotionContent['promotion_count_sms_sent']+1]);
+						$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->updateWithUserstamps(['promotion_count_sms_sent' => $promotionContent['promotion_count_sms_sent']+1]);
 					}
 				}
 
@@ -1598,7 +1606,7 @@ class ApiPromotion extends Controller
 						if ($voucher) {
 							$dataVoucher[] = $voucher;
 							$promotionContent = PromotionContent::find($id_promotion_content);
-							$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->update(['promotion_count_voucher_give' => $promotionContent['promotion_count_voucher_give']+1]);
+							$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->updateWithUserstamps(['promotion_count_voucher_give' => $promotionContent['promotion_count_voucher_give']+1]);
 						}
 					}
 				}
@@ -1609,7 +1617,7 @@ class ApiPromotion extends Controller
 					if ($voucher) {
 						$dataVoucher[] = $voucher;
 						$promotionContent = PromotionContent::find($id_promotion_content);
-						$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->update(['promotion_count_voucher_give' => $promotionContent['promotion_count_voucher_give']+1]);
+						$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->updateWithUserstamps(['promotion_count_voucher_give' => $promotionContent['promotion_count_voucher_give']+1]);
 					}
 				}
 			}
@@ -1639,7 +1647,7 @@ class ApiPromotion extends Controller
 								->first();
 		if($promotionSent && $promotionSent->email_read == '0'){
 			$content = PromotionContent::find($hashdecode[1]);
-			$updateCountPromotion = PromotionContent::where('id_promotion_content', $hashdecode[1])->update(['promotion_count_email_read' => $content['promotion_count_email_read']+1]);
+			$updateCountPromotion = PromotionContent::where('id_promotion_content', $hashdecode[1])->updateWithUserstamps(['promotion_count_email_read' => $content['promotion_count_email_read']+1]);
 			PromotionSent::where('id_user','=',$hashdecode[0])
 						->where('id_promotion_content','=',$hashdecode[1])
 						->where('send_at','=',$hashdecode[2])
@@ -1698,10 +1706,10 @@ class ApiPromotion extends Controller
 			$getSsl = MyHelper::curl($value['short_link'].'+');
 			$dataUpdate['link_clicked'] = (int)MyHelper::cut_str($getSsl, '<div class="col-sm-4 url-stats">', '<span>Clicks</span>');
 			$dataUpdate['link_unique_clicked']  = (int)MyHelper::cut_str($getSsl, '<div class="col-sm-4 url-stats">', '<span>Unique Clicks</span>');
-			$update = PromotionContentShortenLink::where('id_promotion_content_shorten_link', $value['id_promotion_content_shorten_link'])->update($dataUpdate);
+			$update = PromotionContentShortenLink::where('id_promotion_content_shorten_link', $value['id_promotion_content_shorten_link'])->updateWithUserstamps($dataUpdate);
 			$total = $total + $dataUpdate['link_clicked'];
 		}
-		$updateClick = PromotionContent::where('id_promotion_content', $id_promotion_content)->update(['promotion_count_'.$type.'_link_clicked' => $total]);
+		$updateClick = PromotionContent::where('id_promotion_content', $id_promotion_content)->updateWithUserstamps(['promotion_count_'.$type.'_link_clicked' => $total]);
 	}
 
 	public function promotionVoucherList(Request $request)
