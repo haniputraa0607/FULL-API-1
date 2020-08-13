@@ -2180,7 +2180,7 @@ class ApiTransaction extends Controller
                 'id_deals_user'                 => $data['detail']['id_deals_user'],
                 'status'                        => $status,
                 'used_at'                       => $usedAt,
-                'transaction_receipt_number'    => implode('', [strtotime($data['date']), $data['detail']['id_deals_user']]),
+                'transaction_receipt_number'    => (!is_null($data['detail']['deals_receipt_number'])) ? $data['detail']['deals_receipt_number'] : implode('', [strtotime($data['date']), $data['detail']['id_deals_user']]),
                 'transaction_date'              => date('d M Y H:i', strtotime($data['date'])),
                 'balance'                       => MyHelper::requestNumber($data['balance'], '_POINT'),
                 'transaction_grandtotal'        => $price,
