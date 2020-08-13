@@ -248,7 +248,7 @@ class ApiDealsWebview extends Controller
             'deals_image'               => $dealsUser['deal_voucher']['deals']['url_deals_image'],
             'voucher_expired_at'        => 'Valid until ' . date('d F Y', strtotime($dealsUser['voucher_expired_at'])),
             'claimed_at'                => date('d M Y H:i', strtotime($dealsUser['claimed_at'])),
-            'transaction_id'            => strtotime($dealsUser['claimed_at']).$dealsUser['id_deals_user'],
+            'transaction_id'            => (!is_null($dealsUser['deals_receipt_number'])) ? $dealsUser['deals_receipt_number'] : strtotime($dealsUser['claimed_at']).$dealsUser['id_deals_user'],
             'balance'                   => number_format($dealsUser['balance_nominal'],0,",",".").' points',
             'use_point'                 => (!is_null($dealsUser['balance_nominal'])) ? 1 : 0
         ];

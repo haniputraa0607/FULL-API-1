@@ -367,8 +367,8 @@ class ApiDealsClaim extends Controller
             'claimed_at'          => date('Y-m-d H:i:s'),
             'voucher_price_point' => $deals_voucher_price_point,
             'voucher_price_cash'  => $deals_voucher_price_cash,
+            'deals_receipt_number' => 'TRXD-'.date('ymd').MyHelper::createrandom(6,'Besar')
         ];
-
         // if ($dataDeals->deals_promo_id_type == "nominal") {
         //     $data['voucher_price_cash'] = $dataDeals->deals_promo_id;
         // }
@@ -396,7 +396,6 @@ class ApiDealsClaim extends Controller
             else {
                 $data['voucher_expired_at'] = $dataDeals->deals_voucher_expired;
             }
-            $data['voucher_receipt_number'] = 'TRXD-'.date('ymd').MyHelper::createrandom(6,'Besar');
         }
 
         // CHECK PAYMENT = FREE / NOT
