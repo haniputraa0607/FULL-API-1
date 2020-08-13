@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b856c4471f032625f06d28bf8523833e",
+    "content-hash": "b94e7a954221119a925c344a34719613",
     "packages": [
         {
             "name": "arcanedev/log-viewer",
@@ -4579,17 +4579,17 @@
             ],
             "authors": [
                 {
-                    "name": "Ben Ramsey",
-                    "email": "ben@benramsey.com",
-                    "homepage": "https://benramsey.com"
-                },
-                {
                     "name": "Marijn Huizendveld",
                     "email": "marijn.huizendveld@gmail.com"
                 },
                 {
                     "name": "Thibaud Fabre",
                     "email": "thibaud@aztech.io"
+                },
+                {
+                    "name": "Ben Ramsey",
+                    "email": "ben@benramsey.com",
+                    "homepage": "https://benramsey.com"
                 }
             ],
             "description": "Formerly rhumsaa/uuid. A PHP 5.4+ library for generating RFC 4122 version 1, 3, 4, and 5 universally unique identifiers (UUID).",
@@ -6599,6 +6599,57 @@
             "time": "2019-08-24T08:43:50+00:00"
         },
         {
+            "name": "wildside/userstamps",
+            "version": "2.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/WildsideUK/Laravel-Userstamps.git",
+                "reference": "4176b799bc31ca961a85a485cbd922163dcc4a7f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/WildsideUK/Laravel-Userstamps/zipball/4176b799bc31ca961a85a485cbd922163dcc4a7f",
+                "reference": "4176b799bc31ca961a85a485cbd922163dcc4a7f",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/support": "^5.2|^6.0|^7.0",
+                "php": ">=5.5.9"
+            },
+            "require-dev": {
+                "illuminate/database": "^5.2|^6.0|^7.0",
+                "orchestra/testbench": "^3.1|^4.0|^5.0",
+                "phpunit/phpunit": "^5.0|^6.0|^7.0|^8.4|^9.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Wildside\\Userstamps\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "WILDSIDE",
+                    "email": "hello@wildside.uk",
+                    "homepage": "https://wildside.uk"
+                }
+            ],
+            "description": "Laravel Userstamps provides an Eloquent trait which automatically maintains `created_by` and `updated_by` columns on your model, populated by the currently authenticated user in your application.",
+            "keywords": [
+                "created_by",
+                "deleted_by",
+                "eloquent",
+                "laravel",
+                "updated_by",
+                "userstamps"
+            ],
+            "time": "2020-03-09T16:54:22+00:00"
+        },
+        {
             "name": "windwalker/renderer",
             "version": "3.5.14",
             "source": {
@@ -6707,6 +6758,65 @@
                 "windwalker"
             ],
             "time": "2019-10-27T07:38:41+00:00"
+        },
+        {
+            "name": "yajra/laravel-auditable",
+            "version": "v3.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/yajra/laravel-auditable.git",
+                "reference": "c9ff7958b452105278dce81ab390947615ace3a9"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/yajra/laravel-auditable/zipball/c9ff7958b452105278dce81ab390947615ace3a9",
+                "reference": "c9ff7958b452105278dce81ab390947615ace3a9",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/database": "^5.8|^6.0",
+                "illuminate/support": "^5.8|^6.0",
+                "php": ">=7.1"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^7.5"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "3.0-dev"
+                },
+                "laravel": {
+                    "providers": [
+                        "Yajra\\Auditable\\AuditableServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Yajra\\Auditable\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Arjay Angeles",
+                    "email": "aqangeles@gmail.com",
+                    "homepage": "http://yajrabox.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A simple Laravel user auditing package for Eloquent Model.",
+            "homepage": "https://github.com/yajra/laravel-auditable",
+            "keywords": [
+                "Auditable",
+                "laravel",
+                "yajra"
+            ],
+            "time": "2019-09-04T13:49:43+00:00"
         },
         {
             "name": "zendframework/zend-diactoros",
