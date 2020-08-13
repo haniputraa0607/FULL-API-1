@@ -46,7 +46,7 @@ use Modules\Deals\Http\Requests\Deals\ImportDealsRequest;
 use Modules\Deals\Http\Requests\Deals\UpdateComplete;
 
 use Illuminate\Support\Facades\Schema;
-
+use Illuminate\Support\Facades\Auth;
 use Image;
 
 class ApiDeals extends Controller
@@ -1243,7 +1243,7 @@ class ApiDeals extends Controller
         foreach ($id_outlet as $value) {
             array_push($dataOutlet, [
                 'id_outlet' => $value,
-                'id_deals'  => $id_deals,,
+                'id_deals'  => $id_deals,
                 'created_by'=> Auth::id(),
             	'updated_by'=> Auth::id()
             ]);
