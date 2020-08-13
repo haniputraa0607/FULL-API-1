@@ -8,7 +8,7 @@
 namespace Modules\Deals\Entities;
 
 use Reliese\Database\Eloquent\Model as Eloquent;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class DealsBuyxgetyRule
  * 
@@ -31,6 +31,7 @@ use Reliese\Database\Eloquent\Model as Eloquent;
  */
 class DealsBuyxgetyRule extends Eloquent
 {
+	use Userstamps;
 	protected $primaryKey = 'id_deals_buyxgety_rule';
 
 	protected $casts = [

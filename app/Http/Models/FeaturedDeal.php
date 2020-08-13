@@ -3,9 +3,11 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class FeaturedDeal extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_featured_deals';
 
 	protected $fillable = [
