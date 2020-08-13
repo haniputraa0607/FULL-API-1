@@ -1309,12 +1309,14 @@ class ApiTransaction extends Controller
         $start = date('Y-m-d', strtotime($post['date_start']));
         $end = date('Y-m-d', strtotime($post['date_end']));
         $query = Transaction::select('transactions.*',
+                              'transaction_pickups.*',
                               'transaction_products.*',
                               'users.*',
                               'products.*',
                               'product_categories.*',
                               'outlets.outlet_code', 'outlets.outlet_name')
                     ->leftJoin('outlets','outlets.id_outlet','=','transactions.id_outlet')
+                    ->leftJoin('transaction_pickups','transactions.id_transaction','=','transaction_pickups.id_transaction')
                     ->leftJoin('transaction_products','transactions.id_transaction','=','transaction_products.id_transaction')
                     ->leftJoin('users','transactions.id_user','=','users.id')
                     ->leftJoin('products','products.id_product','=','transaction_products.id_product')
@@ -1339,6 +1341,8 @@ class ApiTransaction extends Controller
                         $var = 'products.'.$con['subject'];
                     } elseif ($con['subject'] == 'product_category') {
                         $var = 'product_categories.product_category_name';
+                    } elseif ($con['subject'] == 'order_id') {
+                        $var = 'transaction_pickups.order_id';
                     }
 
                     if ($con['subject'] == 'outlet_code' || $con['subject'] == 'outlet_name') {
@@ -1350,7 +1354,7 @@ class ApiTransaction extends Controller
                         }
                     }
 
-                    if ($con['subject'] == 'receipt' || $con['subject'] == 'name' || $con['subject'] == 'phone' || $con['subject'] == 'email' || $con['subject'] == 'product_name' || $con['subject'] == 'product_code' || $con['subject'] == 'product_category') {
+                    if ($con['subject'] == 'receipt' || $con['subject'] == 'name' || $con['subject'] == 'phone' || $con['subject'] == 'email' || $con['subject'] == 'product_name' || $con['subject'] == 'product_code' || $con['subject'] == 'product_category' || $con['subject'] == 'order_id') {
                         if ($post['rule'] == 'and') {
                             if ($con['operator'] == 'like') {
                                 $query = $query->where($var, 'like', '%'.$con['parameter'].'%');
@@ -1979,7 +1983,7 @@ class ApiTransaction extends Controller
             $result = [
                 'trasaction_type'               => 'voucher',
                 'id_deals_user'                 => $list['id_deals_user'],
-                'deals_receipt_number'          => implode('', [strtotime($list['claimed_at']), $list['id_deals_user']]),
+                'deals_receipt_number'          => (!is_null($list['deals_receipt_number'])) ? $list['deals_receipt_number'] : implode('', [strtotime($list['claimed_at']), $list['id_deals_user']]),
                 'date'                          => date('d M Y H:i', strtotime($list['claimed_at'])),
                 'voucher_price_cash'            => MyHelper::requestNumber($list['voucher_price_cash'],'_CURRENCY'),
                 'deals_voucher'                 => $list['dealVoucher']['deal']['deals_title'],
