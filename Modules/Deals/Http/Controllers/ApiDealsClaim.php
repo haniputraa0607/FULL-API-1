@@ -396,6 +396,7 @@ class ApiDealsClaim extends Controller
             else {
                 $data['voucher_expired_at'] = $dataDeals->deals_voucher_expired;
             }
+            $data['voucher_receipt_number'] = 'TRXD-'.date('ymd').MyHelper::createrandom(6,'Besar');
         }
 
         // CHECK PAYMENT = FREE / NOT
