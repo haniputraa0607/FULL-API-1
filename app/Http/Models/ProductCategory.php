@@ -8,7 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class ProductCategory
  * 
@@ -29,6 +29,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ProductCategory extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_product_category';
 
 	protected $casts = [
