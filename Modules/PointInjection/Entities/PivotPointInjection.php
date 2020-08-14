@@ -3,9 +3,11 @@
 namespace Modules\PointInjection\Entities;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class PivotPointInjection extends Model
 {
+	use Userstamps;
     protected $table = 'pivot_point_injections';
 
     protected $fillable = [
