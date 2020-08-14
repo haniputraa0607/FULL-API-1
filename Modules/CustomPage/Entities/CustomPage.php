@@ -3,9 +3,11 @@
 namespace Modules\CustomPage\Entities;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class CustomPage extends Model
 {
+	use Userstamps;
     protected $table = 'custom_pages';
 
     protected $primaryKey = 'id_custom_page';
