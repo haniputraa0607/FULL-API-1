@@ -3,9 +3,11 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class NewsOutlet extends Model
 {
+	use Userstamps;
 	protected $connection = 'mysql';
 	public $incrementing = false;
     /**
