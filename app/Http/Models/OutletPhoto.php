@@ -8,7 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class OutletPhoto
  * 
@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class OutletPhoto extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_outlet_photo';
 	protected $appends    = ['url_outlet_photo'];
 	protected $casts = [
