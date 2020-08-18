@@ -2069,7 +2069,7 @@ class ApiUser extends Controller
             if($check){
                 $query = UserOutlet::where('phone',$data['phone'])
                     ->where('id_outlet',$data['id_outlet'])
-                    ->update($data);
+                    ->updateWithUserstamps($data);
             } else {
                 $query = UserOutlet::create($data);
             }
@@ -2564,7 +2564,7 @@ class ApiUser extends Controller
             }
         }
 
-        $update = User::where('phone',$post['phone'])->update($post['update']);
+        $update = User::where('phone',$post['phone'])->updateWithUserstamps($post['update']);
 
         return MyHelper::checkUpdate($update);
     }
@@ -2577,7 +2577,7 @@ class ApiUser extends Controller
 
             if ($upload['status'] == "success") {
                 $updatenya['photo'] = $upload['path'];
-                $update = User::where('phone',$post['phone'])->update($updatenya);
+                $update = User::where('phone',$post['phone'])->updateWithUserstamps($updatenya);
                 return MyHelper::checkUpdate($update);
             } else{
                 $result = [
@@ -2600,7 +2600,7 @@ class ApiUser extends Controller
         $post = $request->json()->all();
         if (isset($post['password_new'])) {
             $password = bcrypt($post['password_new']);
-            $update = User::where('phone',$post['phone'])->update(['password' => $password]);
+            $update = User::where('phone',$post['phone'])->updateWithUserstamps(['password' => $password]);
 
             $user = User::where('phone',$post['phone'])->first();
 
@@ -2699,7 +2699,7 @@ class ApiUser extends Controller
                         }
                     }
                 }
-                $update = User::where('phone',$post['phone'])->update(['level' => $post['level']]);
+                $update = User::where('phone',$post['phone'])->updateWithUserstamps(['level' => $post['level']]);
 
                 return MyHelper::checkUpdate($update);
             } else {
@@ -2788,7 +2788,7 @@ class ApiUser extends Controller
             return response()->json($result);
         }
 
-        $update = User::where('phone',$post['phone'])->update(['is_suspended' => $post['is_suspended']]);
+        $update = User::where('phone',$post['phone'])->updateWithUserstamps(['is_suspended' => $post['is_suspended']]);
 
         $data = User::where('phone',$post['phone'])->get();
 
