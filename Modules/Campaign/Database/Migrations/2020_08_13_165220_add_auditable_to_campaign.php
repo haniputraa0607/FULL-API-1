@@ -14,15 +14,18 @@ class AddAuditableToCampaign extends Migration
     public function up()
     {
         Schema::table('campaigns', function (Blueprint $table) {
-			$table->auditable();
+			$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('campaign_rules', function (Blueprint $table) {
-			$table->auditable();
+			$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('campaign_rule_parents', function (Blueprint $table) {
-			$table->auditable();
+			$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     }
 
@@ -34,15 +37,18 @@ class AddAuditableToCampaign extends Migration
     public function down()
     {
         Schema::table('campaigns', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('campaign_rules', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('campaign_rule_parents', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     }
 }

@@ -15,51 +15,63 @@ class AddAuditableToPromoCampaignsTable extends Migration
     {
         Schema::table('promo_campaigns', function (Blueprint $table) {
         	// $table->unsignedBigInteger('updated_by')->nullable()->index();
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
 
         Schema::table('promo_campaign_product_discounts', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
 
         Schema::table('promo_campaign_product_discount_rules', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
 
         Schema::table('promo_campaign_buyxgety_product_requirements', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
 
         Schema::table('promo_campaign_buyxgety_rules', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
 
         Schema::table('promo_campaign_have_tags', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
 
         Schema::table('promo_campaign_outlets', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
 
         Schema::table('promo_campaign_promo_codes', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
 
         Schema::table('promo_campaign_referrals', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
 
         Schema::table('promo_campaign_tags', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
 
         Schema::table('promo_campaign_tier_discount_products', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('promo_campaign_tier_discount_rules', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     }
 
@@ -71,52 +83,64 @@ class AddAuditableToPromoCampaignsTable extends Migration
     public function down()
     {
         Schema::table('promo_campaigns', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         	// $table->dropColumn('updated_by');
         });
 
         Schema::table('promo_campaign_product_discounts', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
 
         Schema::table('promo_campaign_product_discount_rules', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('promo_campaign_buyxgety_product_requirements', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('promo_campaign_buyxgety_rules', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('promo_campaign_have_tags', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('promo_campaign_outlets', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('promo_campaign_promo_codes', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('promo_campaign_referrals', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('promo_campaign_tags', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('promo_campaign_tier_discount_products', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
         
         Schema::table('promo_campaign_tier_discount_rules', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     }
 }

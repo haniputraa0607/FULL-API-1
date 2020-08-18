@@ -14,7 +14,8 @@ class AddAuditableToPointInjection extends Migration
     public function up()
     {
         Schema::table('pivot_point_injections', function (Blueprint $table) {
-			$table->auditable();
+			$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
 
         Schema::table('point_injections', function (Blueprint $table) {
@@ -22,15 +23,18 @@ class AddAuditableToPointInjection extends Migration
         });
     
         Schema::table('point_injection_rules', function (Blueprint $table) {
-			$table->auditable();
+			$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('point_injection_rule_parents', function (Blueprint $table) {
-			$table->auditable();
+			$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
 
         Schema::table('point_injection_users', function (Blueprint $table) {
-			$table->auditable();
+			$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     }
 
@@ -42,7 +46,8 @@ class AddAuditableToPointInjection extends Migration
     public function down()
     {
         Schema::table('pivot_point_injections', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
 
         Schema::table('point_injections', function (Blueprint $table) {
@@ -50,15 +55,18 @@ class AddAuditableToPointInjection extends Migration
         });
     
         Schema::table('point_injection_rules', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('point_injection_rule_parents', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
         
         Schema::table('point_injection_users', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     }
 }

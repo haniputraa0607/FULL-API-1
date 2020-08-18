@@ -14,7 +14,8 @@ class AddAuditableToAutocrm extends Migration
     public function up()
     {
         Schema::table('autocrms', function (Blueprint $table) {
-			$table->auditable();
+			$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     }
 
@@ -26,7 +27,8 @@ class AddAuditableToAutocrm extends Migration
     public function down()
     {
         Schema::table('autocrms', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     }
 }

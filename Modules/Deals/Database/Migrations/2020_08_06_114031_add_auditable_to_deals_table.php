@@ -14,59 +14,73 @@ class AddAuditableToDealsTable extends Migration
     public function up()
     {
         Schema::table('deals', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
 
         Schema::table('deals_contents', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('deals_buyxgety_product_requirements', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('deals_buyxgety_rules', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('deals_content_details', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('deals_outlets', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('deals_product_discounts', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
         
         Schema::table('deals_product_discount_rules', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('deals_subscriptions', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('deals_tier_discount_products', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('deals_tier_discount_rules', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('deals_total', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('featured_deals', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('deals_vouchers', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     }
 
@@ -78,59 +92,73 @@ class AddAuditableToDealsTable extends Migration
     public function down()
     {
         Schema::table('deals', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
 
         Schema::table('deals_contents', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('deals_buyxgety_product_requirements', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('deals_buyxgety_rules', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('deals_content_details', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('deals_outlets', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('deals_product_discounts', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('deals_product_discount_rules', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('deals_subscriptions', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('deals_tier_discount_products', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
         
         Schema::table('deals_tier_discount_rules', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
         
         Schema::table('deals_total', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
         
         Schema::table('featured_deals', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
         
         Schema::table('deals_vouchers', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     }
 }

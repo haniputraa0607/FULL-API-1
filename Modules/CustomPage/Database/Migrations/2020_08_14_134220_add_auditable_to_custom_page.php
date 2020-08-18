@@ -14,19 +14,23 @@ class AddAuditableToCustomPage extends Migration
     public function up()
     {
         Schema::table('custom_pages', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('custom_page_images', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('custom_page_outlets', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('custom_page_products', function (Blueprint $table) {
-        	$table->auditable();
+        	$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     }
 
@@ -38,19 +42,23 @@ class AddAuditableToCustomPage extends Migration
     public function down()
     {
         Schema::table('custom_pages', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('custom_page_images', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('custom_page_outlets', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('custom_page_products', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     }
 }

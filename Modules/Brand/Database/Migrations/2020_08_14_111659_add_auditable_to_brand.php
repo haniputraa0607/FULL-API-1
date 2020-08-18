@@ -14,15 +14,18 @@ class AddAuditableToBrand extends Migration
     public function up()
     {
         Schema::table('brands', function (Blueprint $table) {
-			$table->auditable();
+			$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('brand_outlet', function (Blueprint $table) {
-			$table->auditable();
+			$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     
         Schema::table('brand_product', function (Blueprint $table) {
-			$table->auditable();
+			$table->unsignedInteger('created_by')->nullable();
+            $table->unsignedInteger('updated_by')->nullable();
         });
     }
 
@@ -34,15 +37,18 @@ class AddAuditableToBrand extends Migration
     public function down()
     {
         Schema::table('brands', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('brand_outlet', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     
         Schema::table('brand_product', function (Blueprint $table) {
-        	$table->dropAuditable();
+        	$table->dropColumn('created_by');
+        	$table->dropColumn('updated_by');
         });
     }
 }
