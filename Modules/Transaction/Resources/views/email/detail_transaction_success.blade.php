@@ -84,7 +84,7 @@
     @endforeach
 
     <tr style="text-align:right;padding-top: 15px">
-        <td rowspan="2" style="background:#f5f5f5;" align="center">
+        <td  @if($data['transaction_discount'] != 0) rowspan="3" @else rowspan="2" @endif style="background:#f5f5f5;" align="center">
             <img class="img-responsive"  width="80" style="width:100%;max-width:80px;" src="{{env('S3_URL_API').('img/icon_email_1.png')}}">
         </td>
         <td style="background:#f5f5f5;" valign="top" align="right">
@@ -141,9 +141,11 @@
             <td width="50%" style="background:#fcfcfc;border-collapse:collapse;border-spacing:0;color:#555;;line-height:1.5;margin:0;padding:0px 10px" valign="top"  align="center">
                 <span style="color:#555;;font-size:20px;line-height:1.5;margin:0;padding:0"><b>Outlet Detail</b></span>
             </td>
+            @if(!empty($data['data_payment']))
             <td colspan="2" width="50%" style="background:#fcfcfc;border-collapse:collapse;border-spacing:0;color:#555;;line-height:1.5;margin:0;padding:0px 10px" valign="top"  align="center">
                 <span style="color:#555;;font-size:20px;line-height:1.5;margin:0;padding:0"><b>Payment Detail</b></span>
             </td>
+            @endif
         </tr>
         <tr>
             <td  @if(!empty($data['data_payment']))rowspan="{{count($data['data_payment'])}}"@endif style="background:#fcfcfc;border-collapse:collapse;border-spacing:0;color:#555;;line-height:1.5;margin:0;padding:3px 10px" valign="top"  align="center">

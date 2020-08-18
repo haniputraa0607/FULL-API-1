@@ -690,6 +690,10 @@ class ApiOnlineTransaction extends Controller
             'void_date'                   => null,
         ];
 
+        if($transaction['transaction_grandtotal'] == 0){
+            $transaction['transaction_payment_status'] = 'Completed';
+        }
+
         $newTopupController = new NewTopupController();
         $checkHashBefore = $newTopupController->checkHash('log_balances', $id);
         if (!$checkHashBefore) {
@@ -1271,18 +1275,25 @@ class ApiOnlineTransaction extends Controller
 
         if (isset($post['payment_type'])) {
 
-            if ($post['payment_type'] == 'Balance') {
-                $save = app($this->balance)->topUp($insertTransaction['id_user'], $insertTransaction['transaction_grandtotal'], $insertTransaction['id_transaction']);
+            if ($post['payment_type'] == 'Balance'  || $insertTransaction['transaction_grandtotal'] == 0) {
 
-                if (!isset($save['status'])) {
-                    DB::rollBack();
-                    return response()->json(['status' => 'fail', 'messages' => ['Transaction failed']]);
-                }
+                if($insertTransaction['transaction_grandtotal'] > 0){
+                    $save = app($this->balance)->topUp($insertTransaction['id_user'], $insertTransaction['transaction_grandtotal'], $insertTransaction['id_transaction']);
 
-                if ($save['status'] == 'fail') {
-                    DB::rollBack();
-                    return response()->json($save);
+                    if (!isset($save['status'])) {
+                        DB::rollBack();
+                        return response()->json(['status' => 'fail', 'messages' => ['Transaction failed']]);
+                    }
+
+                    if ($save['status'] == 'fail') {
+                        DB::rollBack();
+                        return response()->json($save);
+                    }
+                }else{
+                    $save['status'] = 'success'; 
+                    $save['type'] = 'no_topup';
                 }
+                
                 if($save['status'] == 'success'){
                     $checkFraudPoint = app($this->setting_fraud)->fraudTrxPoint($sumBalance, $user, ['id_outlet' => $insertTransaction['id_outlet']]);
                     if(isset($checkFraudPoint['status'])){
