@@ -23,7 +23,7 @@ class ApiFeaturedDeal extends Controller
     public function index()
     {
         // get featured_deal with news title
-        $featured_deals = FeaturedDeal::with('deals')->orderBy('order','asc')->get();
+        $featured_deals = FeaturedDeal::with('deals')->where('end_date', '>=', date('Y-m-d H:i:s', strtotime('- 2days')))->orderBy('order','asc')->get();
 
         return response()->json(MyHelper::checkGet($featured_deals));
     }
