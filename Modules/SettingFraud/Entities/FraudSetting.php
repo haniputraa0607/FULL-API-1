@@ -3,9 +3,11 @@
 namespace Modules\SettingFraud\Entities;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class FraudSetting extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_fraud_setting';
 	protected $table = 'fraud_settings';
 
