@@ -110,8 +110,8 @@ class ApiOnlineTransaction extends Controller
             DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
-                'message_verfiy_email'=> 'Sorry your email not verified. Please verify your email.',
-                'messages'  => ['Sorry your email not verified. Please verify your email.']
+                'message_verfiy_email'=> 'Sorry your email has not yet been verified. Please verify your email.',
+                'messages'  => ['Sorry your email has not yet been verified. Please verify your email.']
             ]);
         }
 
