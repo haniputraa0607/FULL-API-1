@@ -371,7 +371,7 @@ class ApiNews extends Controller
                     $data['news_expired_date']=null;
                 }
                 $save = News::where('id_news', $request->json('id_news'))->first();
-                $save->update($data);
+                $save->updateWithUserstamps($data);
 
                 // jika ada upload file
                 if (isset($data['news_image_luar'])) {
@@ -478,6 +478,8 @@ class ApiNews extends Controller
     function createRelation(CreateRelation $request) {
 
         $data['id_news'] = $request->json('id_news');
+        $data['created_by'] = Auth::id();
+        $data['updated_by'] = Auth::id();
 
         switch ($request->json('type')) {
             case 'outlet' :
