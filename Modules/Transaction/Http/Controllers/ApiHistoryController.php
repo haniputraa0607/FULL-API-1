@@ -930,6 +930,14 @@ class ApiHistoryController extends Controller
             });
         }
 
+        if (isset($post['date_start']) && !is_null($post['date_start'])){
+            $log->whereDate('created_at', '>=', date('Y-m-d', strtotime($post['date_start'])));
+        }
+
+        if (isset($post['date_end']) && !is_null($post['date_end'])){
+            $log->whereDate('created_at', '<=', date('Y-m-d', strtotime($post['date_end'])));
+        }
+
         $log = $log->get();
         $listBalance = [];
 
@@ -1058,15 +1066,15 @@ class ApiHistoryController extends Controller
                 $listBalance[$key] = $dataList;
             }
 
-            if (isset($post['date_start']) && !is_null($post['date_start']) && isset($post['date_end']) && !is_null($post['date_end'])) {
-                $date_start = date('Y-m-d', strtotime($post['date_start'])) . " 00.00.00";
-                $date_end = date('Y-m-d', strtotime($post['date_end'])) . " 23.59.59";
-
-                if ($listBalance[$key]['date'] < $date_start || $listBalance[$key]['date'] > $date_end) {
-                    unset($listBalance[$key]);
-                    continue;
-                }
-            }
+//            if (isset($post['date_start']) && !is_null($post['date_start']) && isset($post['date_end']) && !is_null($post['date_end'])) {
+//                $date_start = date('Y-m-d', strtotime($post['date_start'])) . " 00.00.00";
+//                $date_end = date('Y-m-d', strtotime($post['date_end'])) . " 23.59.59";
+//
+//                if ($listBalance[$key]['date'] < $date_start || $listBalance[$key]['date'] > $date_end) {
+//                    unset($listBalance[$key]);
+//                    continue;
+//                }
+//            }
 
             // if (!is_null($post['online_order']) && !is_null($post['offline_order']) && !is_null($post['voucher'])) {
 
