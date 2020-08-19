@@ -70,7 +70,7 @@ class ApiNewsCategoryController extends Controller
      */
     public function update(UpdateRequest $request){
         $post=$request->json()->all();
-        $update=NewsCategory::where('id_news_category',$post['id_news_category'])->update($post);
+        $update=NewsCategory::where('id_news_category',$post['id_news_category'])->updateWithUserstamps($post);
         return MyHelper::checkUpdate($update);
     }
 

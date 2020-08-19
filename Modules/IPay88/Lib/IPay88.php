@@ -259,6 +259,9 @@ class IPay88
                 ];
             	switch ($data['Status']) {
             		case '1':
+            			if ($trx->transaction_payment_status == 'Completed') {
+            				break;
+            			}
 	                    $update = $trx->update(['transaction_payment_status'=>'Completed','completed_at'=>date('Y-m-d H:i:s')]);
 	                    if(!$update){
 		                    DB::rollBack();
@@ -308,6 +311,9 @@ class IPay88
             			break;
 
             		case '0':
+            			if ($trx->transaction_payment_status == 'Cancelled') {
+            				break;
+            			}
 			            MyHelper::updateFlagTransactionOnline($trx, 'cancel', $trx->user);
 	                    $update = $trx->update(['transaction_payment_status'=>'Cancelled','void_date'=>date('Y-m-d H:i:s')]);
 		                $trx->load('outlet_name');
@@ -382,6 +388,9 @@ class IPay88
     			$deals = Deal::where('id_deals',$deals_user->id_deals)->first();
             	switch ($data['Status']) {
             		case '1':
+            			if ($deals_user->paid_status == 'Completed') {
+            				break;
+            			}
 	                    $update = $deals_user->update(['paid_status'=>'Completed']);
 	                    if(!$update){
 		                    DB::rollBack();
@@ -412,6 +421,9 @@ class IPay88
             			break;
 
             		case '0':
+            			if ($deals_user->paid_status == 'Cancelled') {
+            				break;
+            			}
 			            if($deals_user->balance_nominal){
 			                $insertDataLogCash = app("Modules\Balance\Http\Controllers\BalanceController")->addLogBalance($deals_user->id_user, $deals_user->balance_nominal, $deals_user->id_deals_user, 'Claim Deals Failed');
 			                if (!$insertDataLogCash) {
@@ -562,6 +574,50 @@ class IPay88
     	}
     	return $payment_method;
     }
+
+    /**
+     * Check if current cancel action is allowed
+     * @param  string $last_url current webview url
+     * @return boolean          allowed (true) / not allowed (false)
+     */
+    public function checkCancellable($last_url)
+    {
+    	if(!$last_url) {
+    		return true;
+    	}
+    	// last_url = https://sandbox.ipay88.co.id:8462/PG/PaymentResponse/BacktoMerchant?
+    	$last_url = str_replace(['http://', 'https://'], '', $last_url); // sandbox.ipay88.co.id:8462/PG/PaymentResponse/BacktoMerchant?
+    	$to_check = explode('/', $last_url); // ['sandbox.ipay88.co.id:8462', 'PG', 'PaymentResponse', 'BacktoMerchant?']
+    	$to_check2 = $to_check; 
+    	array_shift($to_check2); // ['PG', 'PaymentResponse', 'BacktoMerchant?']
+    	$to_match = implode('/', $to_check2); // PG/PaymentResponse/BacktoMerchant?
+    	/**
+    	 * Allowed: 
+    	 * https://sapi.jiwa.app/api/ipay88/pay?type=trx&id_reference=623&payment_id=CREDIT_CARD
+		 * https://sandbox.ipay88.co.id/epayment/entry.asp
+		 * https://sandbox.ipay88.co.id/PG/F46D26EF401F85BB8DFD8481BFA1350D569BBD591EF4C22634AC1130FFAF9E48
+    	 */
+
+    	/**
+    	 * Not Allowed: 
+		 * https://sandbox.ipay88.co.id/PG/CreditCardRoute/Processing
+		 * https://sandbox.ipay88.co.id/ePayment/sandprocess/ccV2.asp
+		 * https://sandbox.ipay88.co.id/ePayment/sandprocess/ccV2.asp
+		 * https://sandbox.ipay88.co.id:8462/PG/PaymentResponse/BacktoMerchant?EID=f46d26ef401f85bb8dfd8481bfa1350d569bbd591ef4c22634ac1130ffaf9e48
+		 * https://sapi.jiwa.app/api/ipay88/detail/trx#trxPaid*623*success*
+    	 */
+
+    	if (
+    		(preg_match('/^api\/ipay88\/pay/', $to_match)) // https://sapi.jiwa.app/api/ipay88/pay?type=trx&id_reference=623&payment_id=CREDIT_CARD
+    		|| (($to_check2[0]??false) == 'epayment' && ($to_check2[1]??false) == 'entry.asp') // https://sandbox.ipay88.co.id/epayment/entry.asp
+    		|| (($to_check2[0]??false) == 'PG' && count($to_check2) == 2) // https://sandbox.ipay88.co.id/PG/F46D26EF401F85BB8DFD8481BFA1350D569BBD591EF4C22634AC1130FFAF9E48
+    		|| (preg_match('/^api[\/]+webview\/default/', $to_match)) // https://project/api//webview/default
+    	) {
+    		return true;
+    	}
+
+    	return false;
+    }
     /**
      * Cancel trx or deals
      * @param  String $type  'trx'/'deals'
@@ -569,8 +625,12 @@ class IPay88
      * @param  Array $errors Error message, if any
      * @return [type]        [description]
      */
-    public function cancel($type,$model,&$errors=null){
+    public function cancel($type,$model,&$errors=null,$last_url=null){
 		$errors = ['Payment in progress'];
+		if (!$this->checkCancellable($last_url??'')) {
+			return false;
+		}
+
     	switch($type){
     		case 'trx':
     			$model->load('transaction_payment_ipay88');
@@ -585,19 +645,19 @@ class IPay88
 					'triggers' => 'user'
 				];
 			
-    			$requery = $this->reQuery($submitted,'0');
-    			if(in_array($requery['response'],['Record not found','Payment fail'])){
-	    			$update = $this->update($model->transaction_payment_ipay88,[
-	    				'type' =>'trx',
-	    				'Status' => '0',
-	    				'requery_response' => $requery['response']
-	    			],false,false);
-	    			if(!$update){
-	    				$errors = ['Failed update transaction'];
-	    				return false;
-	    			}
-	    			return true;
+    			// $requery = $this->reQuery($submitted,'0');
+    			// if(in_array($requery['response'],['Record not found','Payment fail'])){
+    			$update = $this->update($model->transaction_payment_ipay88,[
+    				'type' =>'trx',
+    				'Status' => '0',
+    				'requery_response' => $requery['response']??''
+    			],false,false);
+    			if(!$update){
+    				$errors = ['Failed update transaction'];
+    				return false;
     			}
+    			return true;
+    			// }
     			break;
     		case 'deals':
     			$model->load('deals_payment_ipay88');
@@ -612,19 +672,19 @@ class IPay88
 					'triggers' => 'user'
 				];
 			
-    			$requery = $this->reQuery($submitted,'0');
-    			if(in_array($requery['response'],['Record not found','Payment fail'])){
-	    			$update = $this->update($model->deals_payment_ipay88,[
-	    				'type' =>'deals',
-	    				'Status' => '0',
-	    				'requery_response' => $requery['response']
-	    			],false,false);
-	    			if(!$update){
-	    				$errors = ['Failed update voucher'];
-	    				return false;
-	    			}
-	    			return true;
+    			// $requery = $this->reQuery($submitted,'0');
+    			// if(in_array($requery['response'],['Record not found','Payment fail'])){
+    			$update = $this->update($model->deals_payment_ipay88,[
+    				'type' =>'deals',
+    				'Status' => '0',
+    				'requery_response' => $requery['response']??''
+    			],false,false);
+    			if(!$update){
+    				$errors = ['Failed update voucher'];
+    				return false;
     			}
+    			return true;
+    			// }
     			break;
     	}
     	return false;

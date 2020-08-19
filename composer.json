@@ -24,7 +24,9 @@
         "php-http/guzzle6-adapter": "^1.1",
         "smartins/passport-multiauth": "^4.1",
         "spatie/laravel-backup": "^6.7",
-        "stevebauman/location": "^5.1"
+        "stevebauman/location": "^5.1",
+        "wildside/userstamps": "^2.0",
+        "yajra/laravel-auditable": "3.2.0"
     },
     "require-dev": {
         "beyondcode/laravel-dump-server": "^1.0",

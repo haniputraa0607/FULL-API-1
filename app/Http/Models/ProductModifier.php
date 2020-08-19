@@ -3,9 +3,11 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class ProductModifier extends Model
 {
+	use Userstamps;
     protected $hidden = ['pivot'];
     
 	protected $primaryKey = 'id_product_modifier';

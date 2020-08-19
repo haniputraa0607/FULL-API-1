@@ -8,7 +8,7 @@
 namespace Modules\PromoCampaign\Entities;
 
 use Reliese\Database\Eloquent\Model as Eloquent;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class PromoCampaignTag
  * 
@@ -23,6 +23,7 @@ use Reliese\Database\Eloquent\Model as Eloquent;
  */
 class PromoCampaignTag extends Eloquent
 {
+	use Userstamps;
 	protected $primaryKey = 'id_promo_campaign_tag';
 
 	protected $fillable = [

@@ -54,6 +54,7 @@ class DealsUser extends Model
 		'id_deals',
 		'id_user',
 		'id_outlet',
+		'deals_receipt_number',
 		'voucher_hash',
 		'voucher_hash_code',
 		'claimed_at',

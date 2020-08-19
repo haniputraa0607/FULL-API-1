@@ -3,9 +3,11 @@
 namespace Modules\PromoCampaign\Entities;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class PromoCampaignReferral extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_promo_campaign_referrals';
     protected $fillable = [
             'referred_promo_type',

@@ -8,7 +8,7 @@
 namespace Modules\PromoCampaign\Entities;
 
 use Reliese\Database\Eloquent\Model as Eloquent;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class PromoCampaign
  * 
@@ -44,6 +44,7 @@ use Reliese\Database\Eloquent\Model as Eloquent;
  */
 class PromoCampaign extends Eloquent
 {
+	use Userstamps;
 	protected $primaryKey = 'id_promo_campaign';
 
 	protected $casts = [

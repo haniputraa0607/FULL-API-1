@@ -8,7 +8,7 @@
 namespace Modules\Deals\Entities;
 
 use Reliese\Database\Eloquent\Model as Eloquent;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class DealsContent
  * 
@@ -27,6 +27,7 @@ use Reliese\Database\Eloquent\Model as Eloquent;
  */
 class DealsContent extends Eloquent
 {
+	use Userstamps;
 	protected $primaryKey = 'id_deals_content';
 
 	protected $casts = [
