@@ -8,6 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 // use Carbon;
 
 /**
@@ -31,6 +32,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ProductDiscount extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_product_discount';
 
 	protected $casts = [

@@ -67,7 +67,7 @@ class ApiSettingFraud extends Controller
             $post['forward_admin_status'] = 0;
         }
 
-        $update = FraudSetting::where('id_fraud_setting', $post['id_fraud_setting'])->update($post);
+        $update = FraudSetting::where('id_fraud_setting', $post['id_fraud_setting'])->updateWithUserstamps($post);
 
         return response()->json(MyHelper::checkUpdate($update));
     }
@@ -75,7 +75,7 @@ class ApiSettingFraud extends Controller
     function updateStatus(Request $request) {
         $post = $request->json()->all();
         if(isset($post['id_fraud_setting']) && isset($post['fraud_settings_status'])){
-            $save = FraudSetting::where('id_fraud_setting', $post['id_fraud_setting'])->update($post);
+            $save = FraudSetting::where('id_fraud_setting', $post['id_fraud_setting'])->updateWithUserstamps($post);
 
             return response()->json(MyHelper::checkUpdate($save));
         }else{

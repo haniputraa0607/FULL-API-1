@@ -957,7 +957,7 @@ class ApiAutoCrm extends Controller
 		}
 
 		DB::beginTransaction();
-		$query = Autocrm::where('id_autocrm','=',$id_autocrm)->update($post);
+		$query = Autocrm::where('id_autocrm','=',$id_autocrm)->updateWithUserstamps($post);
 		if(!$query){
 			DB::rollBack();
 			$result = [

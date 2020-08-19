@@ -3,9 +3,11 @@
 namespace Modules\PointInjection\Entities;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class PointInjection extends Model
 {
+	use Userstamps;
     protected $table = 'point_injections';
 
     protected $primaryKey = 'id_point_injection';

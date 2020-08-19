@@ -3,9 +3,11 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class PromotionRuleParent extends Model
 {
+	use Userstamps;
     protected $primaryKey = 'id_promotion_rule_parent';
 
 	protected $casts = [

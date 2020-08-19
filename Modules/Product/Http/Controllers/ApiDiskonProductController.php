@@ -76,7 +76,7 @@ class ApiDiskonProductController extends Controller
 
         $data = $this->checkInputDiscount($post);
 
-        $save = ProductDiscount::where('id_product_discount', $post['id_product_discount'])->update($data);
+        $save = ProductDiscount::where('id_product_discount', $post['id_product_discount'])->updateWithUserstamps($data);
 
         return response()->json(MyHelper::checkUpdate($save));
     }

@@ -144,7 +144,7 @@ class ApiProductController extends Controller
 												]);
 			}
 			else{
-				$update = ProductPrice::where('id_product_price','=',$id_product_price)->update(['product_price' => $post['product_price'][$key], 'product_price_base' => $post['product_price_base'][$key], 'product_price_tax' => $post['product_price_tax'][$key],'product_stock_status' => $post['product_stock_status'][$key],'product_visibility' => $post['product_visibility'][$key]]);
+				$update = ProductPrice::where('id_product_price','=',$id_product_price)->updateWithUserstamps(['product_price' => $post['product_price'][$key], 'product_price_base' => $post['product_price_base'][$key], 'product_price_tax' => $post['product_price_tax'][$key],'product_stock_status' => $post['product_stock_status'][$key],'product_visibility' => $post['product_visibility'][$key]]);
 			}
 		}
 		return response()->json(MyHelper::checkUpdate($update));
@@ -155,16 +155,16 @@ class ApiProductController extends Controller
 		foreach ($post['id_product'] as $key => $idprod) {
             $count = BrandProduct::where('id_product',$idprod)->count();
 			if($post['id_product_category'][$key] == 0){
-				$update = Product::where('id_product','=',$idprod)->update(['id_product_category' => null, 'product_name' => $post['product_name'][$key]]);
+				$update = Product::where('id_product','=',$idprod)->updateWithUserstamps(['id_product_category' => null, 'product_name' => $post['product_name'][$key]]);
                 if($count){
-                    BrandProduct::where(['id_product'=>$idprod])->update(['id_product_category' => null]);
+                    BrandProduct::where(['id_product'=>$idprod])->updateWithUserstamps(['id_product_category' => null]);
                 }else{
                     BrandProduct::create(['id_product'=>$idprod,'id_product_category' => null]);
                 }
 			}else{
-				$update = Product::where('id_product','=',$idprod)->update(['id_product_category' => $post['id_product_category'][$key], 'product_name' => $post['product_name'][$key]]);
+				$update = Product::where('id_product','=',$idprod)->updateWithUserstamps(['id_product_category' => $post['id_product_category'][$key], 'product_name' => $post['product_name'][$key]]);
                 if($count){
-                    BrandProduct::where(['id_product'=>$idprod])->update(['id_product_category' => $post['id_product_category'][$key]]);
+                    BrandProduct::where(['id_product'=>$idprod])->updateWithUserstamps(['id_product_category' => $post['id_product_category'][$key]]);
                 }else{
                     BrandProduct::create(['id_product'=>$idprod,'id_product_category' => $post['id_product_category'][$key]]);
                 }
@@ -398,7 +398,7 @@ class ApiProductController extends Controller
             }
         }
 
-    	$save = Product::where('id_product', $post['id_product'])->update($data);
+    	$save = Product::where('id_product', $post['id_product'])->updateWithUserstamps($data);
 
     	if($save){
             if(isset($post['photo'])){
@@ -642,7 +642,7 @@ class ApiProductController extends Controller
      * update photo
      */
     function updatePhotoProduct(UpdatePhoto $request) {
-        $update = ProductPhoto::where('id_product_photo', $request->json('id_product_photo'))->update([
+        $update = ProductPhoto::where('id_product_photo', $request->json('id_product_photo'))->updateWithUserstamps([
             'product_photo_order' => $request->json('product_photo_order')
         ]);
 
@@ -713,7 +713,7 @@ class ApiProductController extends Controller
         }else{
             $allow = '0';
         }
-    	$update = Product::where('id_product', $post['id_product'])->update(['product_allow_sync' => $allow]);
+    	$update = Product::where('id_product', $post['id_product'])->updateWithUserstamps(['product_allow_sync' => $allow]);
 
     	return response()->json(MyHelper::checkUpdate($update));
     }
@@ -748,7 +748,7 @@ class ApiProductController extends Controller
         }
         // update position
         foreach ($post['product_ids'] as $key => $product_id) {
-            $update = Product::find($product_id)->update(['position'=>$key+1]);
+            $update = Product::find($product_id)->updateWithUserstamps(['position'=>$key+1]);
         }
 
         return ['status' => 'success'];
@@ -795,7 +795,7 @@ class ApiProductController extends Controller
             ];
         }
         // update visibility
-        $update = Product::find($post['id_product'])->update(['product_visibility'=>$post['product_visibility']]);
+        $update = Product::find($post['id_product'])->updateWithUserstamps(['product_visibility'=>$post['product_visibility']]);
 
         return response()->json(MyHelper::checkUpdate($update));
     }

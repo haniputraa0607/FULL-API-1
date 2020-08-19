@@ -15,6 +15,7 @@ use Modules\Brand\Entities\BrandOutlet;
 use Modules\Brand\Entities\BrandProduct;
 use App\Lib\MyHelper;
 use DB;
+use Illuminate\Support\Facades\Auth;
 
 class ApiBrandController extends Controller
 {
@@ -84,7 +85,7 @@ class ApiBrandController extends Controller
             }
 
             try {
-                Brand::where('id_brand', $post['id_brand'])->update($post);
+                Brand::where('id_brand', $post['id_brand'])->updateWithUserstamps($post);
             } catch (\Exception $e) {
                 $result = [
                     'status'  => 'fail',
@@ -243,6 +244,11 @@ class ApiBrandController extends Controller
     {
         $post = $request->json()->all();
 
+        foreach ($post as $key => $value) {
+        	$post[$key]['updated_by'] = Auth::id();
+        	$post[$key]['created_by'] = Auth::id();
+        }
+
         try {
             $create = BrandOutlet::insert($post);
             return response()->json(MyHelper::checkDelete($create));
@@ -260,6 +266,8 @@ class ApiBrandController extends Controller
         $post = array_map(function($var){
             $id_product_category = BrandProduct::select('id_product_category')->where('id_product',$var['id_product'])->orderBy('id_product_category')->pluck('id_product_category')->first();
             $var['id_product_category'] = $id_product_category;
+            $var['updated_by'] = Auth::id();
+        	$var['created_by'] = Auth::id();
             return $var;
         },$post);
         try {
@@ -280,7 +288,7 @@ class ApiBrandController extends Controller
             foreach ($order as $id) {
                 $start++;
                 $update=['order_brand'=>$start];
-                $save=Brand::find($id)->update($update);
+                $save=Brand::find($id)->updateWithUserstamps($update);
                 if(!$save){
                     \DB::rollBack();
                     return [
@@ -332,12 +340,12 @@ class ApiBrandController extends Controller
     }
 
     public function switchStatus(Request $request){
-        $save=Brand::where('id_brand',$request->json('id_brand'))->update(['brand_active'=>$request->json('brand_active')=="true"?1:0]);
+        $save=Brand::where('id_brand',$request->json('id_brand'))->updateWithUserstamps(['brand_active'=>$request->json('brand_active')=="true"?1:0]);
         return MyHelper::checkUpdate($save);
     }
 
     public function switchVisibility(Request $request){
-        $save=Brand::where('id_brand',$request->json('id_brand'))->update(['brand_visibility'=>$request->json('brand_visibility')=="true"?1:0]);
+        $save=Brand::where('id_brand',$request->json('id_brand'))->updateWithUserstamps(['brand_visibility'=>$request->json('brand_visibility')=="true"?1:0]);
         return MyHelper::checkUpdate($save);
     }
 }

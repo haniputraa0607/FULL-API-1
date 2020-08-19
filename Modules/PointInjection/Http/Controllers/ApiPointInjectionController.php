@@ -5,6 +5,7 @@ namespace Modules\PointInjection\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 
 use App\Http\Models\User;
 use Modules\PointInjection\Entities\PointInjection;
@@ -345,7 +346,7 @@ class ApiPointInjectionController extends Controller
                 $postMedia['point_injection_push_image'] = $getMasterData['point_injection_push_image'];
             }
             try {
-                PointInjection::where('id_point_injection', $post['id_point_injection'])->update($postPointInjection);
+                PointInjection::where('id_point_injection', $post['id_point_injection'])->updateWithUserstamps($postPointInjection);
 
                 $subject = 'Update Point Injection';
                 $content = '<table id="table-content">';
@@ -501,14 +502,28 @@ class ApiPointInjectionController extends Controller
                     if (count($value) < 1) {
                         unset($userData[$key]);
                     } else {
-                        $userData[$key] = ['id_point_injection' => $postPointInjection['id_point_injection'], 'id_user' => $value[0]['id'], 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')];
+                        $userData[$key] = [
+                        	'id_point_injection' => $postPointInjection['id_point_injection'], 
+                        	'id_user' => $value[0]['id'], 
+                        	'created_at' => date('Y-m-d H:i:s'), 
+                        	'updated_at' => date('Y-m-d H:i:s'),
+				            'created_by' => Auth::id(),
+				            'updated_by' => Auth::id()
+                        ];
                     }
                 }
             } elseif ($post['list_user'] == 'Filter User') {
                 $users = app($this->user)->UserFilter($post['conditions']);
                 if ($users['status'] == 'success') {
                     foreach ($users['result'] as $key => $value) {
-                        $userData[$key] = ['id_point_injection' => $postPointInjection['id_point_injection'], 'id_user' => $value['id'], 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')];
+                        $userData[$key] = [
+                        	'id_point_injection' => $postPointInjection['id_point_injection'], 
+                        	'id_user' => $value['id'], 
+                        	'created_at' => date('Y-m-d H:i:s'), 
+                        	'updated_at' => date('Y-m-d H:i:s'),
+				            'created_by' => Auth::id(),
+				            'updated_by' => Auth::id()
+                        ];
                     }
                 }
                 $postRules = MyHelper::insertCondition('point_injection', $postPointInjection['id_point_injection'], $post['conditions']);

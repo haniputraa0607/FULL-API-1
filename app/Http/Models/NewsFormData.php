@@ -3,9 +3,11 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class NewsFormData extends Model
 {
+	use Userstamps;
 	protected $connection = 'mysql';
     protected $table = 'news_form_datas';
     protected $primaryKey = 'id_news_form_data';

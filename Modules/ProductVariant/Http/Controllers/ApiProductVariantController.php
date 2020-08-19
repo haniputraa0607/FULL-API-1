@@ -110,7 +110,7 @@ class ApiProductVariantController extends Controller
             'product_variant_name' => $request->json('product_variant_name',''),
             'parent' => $request->json('parent')
         ];
-        $update = ProductVariant::where(['product_variant_code'=>$product_variant_code_ori])->update($data);
+        $update = ProductVariant::where(['product_variant_code'=>$product_variant_code_ori])->updateWithUserstamps($data);
         return MyHelper::checkUpdate($update);
     }
 
@@ -153,7 +153,7 @@ class ApiProductVariantController extends Controller
         // reorder parent
         foreach ($parent as $key => $value) {
             $dataId[] = $value;
-            $update = ProductVariant::where('id_product_variant' , $value)->update(['product_variant_position' => ($key+1)]);
+            $update = ProductVariant::where('id_product_variant' , $value)->updateWithUserstamps(['product_variant_position' => ($key+1)]);
             if(!$update){
                 \DB::rollBack();
                 return MyHelper::checkUpdate($update);
@@ -163,7 +163,7 @@ class ApiProductVariantController extends Controller
         foreach ($child as $par => $child2) {
             foreach ($child2 as $key => $value) {
                 $dataId[] = $value;
-                $update = ProductVariant::where('id_product_variant' , $value)->update(['product_variant_position' => ($key+1),'parent'=>$par]);
+                $update = ProductVariant::where('id_product_variant' , $value)->updateWithUserstamps(['product_variant_position' => ($key+1),'parent'=>$par]);
                 if(!$update){
                     \DB::rollBack();
                     return MyHelper::checkUpdate($update);

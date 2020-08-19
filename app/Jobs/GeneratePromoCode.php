@@ -17,20 +17,21 @@ use App\Lib\MyHelper;
 class GeneratePromoCode implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-    protected $status,$id, $prefix_code, $number_last_code, $total_coupon;
+    protected $status,$id, $prefix_code, $number_last_code, $total_coupon, $id_user;
 
     /**
      * Create a new job instance.
      *
      * @return void
      */
-    public function __construct($status, $id, $prefix_code, $number_last_code, $total_coupon)
+    public function __construct($status, $id, $prefix_code, $number_last_code, $total_coupon, $id_user)
     {
         $this->status           = $status;
         $this->id               = $id;
         $this->prefix_code      = $prefix_code;
         $this->number_last_code = $number_last_code;
         $this->total_coupon     = $total_coupon;
+        $this->id_user     		= $id_user;
     }
 
     /**
@@ -45,6 +46,8 @@ class GeneratePromoCode implements ShouldQueue
             $generateCode[$i]['promo_code']         = implode('', [$this->prefix_code, MyHelper::createrandom($this->number_last_code, 'PromoCode')]);
             $generateCode[$i]['created_at']         = date('Y-m-d H:i:s');
             $generateCode[$i]['updated_at']         = date('Y-m-d H:i:s');
+            $generateCode[$i]['created_by']         = $this->id_user;
+            $generateCode[$i]['updated_by']         = $this->id_user;
         }
 
         $data = collect($generateCode);

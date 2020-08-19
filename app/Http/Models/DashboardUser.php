@@ -3,9 +3,11 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class DashboardUser extends Model
 {
+	use Userstamps;
     protected $primaryKey = 'id_dashboard_user';
 
 	protected $fillable = [

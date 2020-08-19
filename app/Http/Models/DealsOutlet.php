@@ -8,7 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class DealsOutlet
  * 
@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class DealsOutlet extends Model
 {
+	use Userstamps;
 	public $incrementing = false;
 	public $timestamps = false;
 

@@ -3,9 +3,11 @@
 namespace Modules\Product\Entities;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class ProductPromoCategory extends Model
 {
+	use Userstamps;
 	public $primaryKey = 'id_product_promo_category';
     protected $fillable = [
     	'product_promo_category_order',

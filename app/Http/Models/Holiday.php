@@ -8,7 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class Holiday
  * 
@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Holiday extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_holiday';
 
 	protected $fillable = [

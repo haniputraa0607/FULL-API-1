@@ -11,6 +11,7 @@ use App\Http\Models\LogBalance;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 
 use App\Http\Models\Level;
 use App\Http\Models\Outlet;
@@ -175,7 +176,7 @@ class ApiSetting extends Controller
         $post = $request->json()->all();
         $id = $request->json('id_setting');
 
-        $update = Setting::where('id_setting', $id)->update($post);
+        $update = Setting::where('id_setting', $id)->updateWithUserstamps($post);
 
         return response()->json(MyHelper::checkUpdate($update));
     }
@@ -190,7 +191,7 @@ class ApiSetting extends Controller
             foreach($post['setting'] as $key => $value){
                 if($value['value']){
                     if($value['id_setting']){
-                        $save = Setting::where('id_setting', $value['id_setting'])->update(['value' => $value['value']]);
+                        $save = Setting::where('id_setting', $value['id_setting'])->updateWithUserstamps(['value' => $value['value']]);
                         if(!$save){
                             DB::rollBack();
                             return response()->json(MyHelper::checkUpdate($save));
@@ -440,7 +441,9 @@ class ApiSetting extends Controller
                     'id_holiday'    => $insertHoliday['id'],
                     'day'           => $value['day'],
                     'created_at'    => date('Y-m-d H:i:s'),
-                    'updated_at'    => date('Y-m-d H:i:s')
+                    'updated_at'    => date('Y-m-d H:i:s'),
+                    'created_by'    => Auth::id(),
+            		'updated_by'    => Auth::id()
                 ];
 
                 array_push($dateHoliday, $dataDay);
@@ -457,7 +460,9 @@ class ApiSetting extends Controller
                         'id_holiday'    => $insertHoliday['id'],
                         'id_outlet'     => $ou,
                         'created_at'    => date('Y-m-d H:i:s'),
-                        'updated_at'    => date('Y-m-d H:i:s')
+                        'updated_at'    => date('Y-m-d H:i:s'),
+                        'created_by'    => Auth::id(),
+                		'updated_by'    => Auth::id()
                     ];
 
                     array_push($outletHoliday, $dataOutlet);
@@ -544,7 +549,7 @@ class ApiSetting extends Controller
         ];
 
         DB::beginTransaction();
-        $updateHoliday = Holiday::where('id_holiday', $post['id_holiday'])->update($holiday);
+        $updateHoliday = Holiday::where('id_holiday', $post['id_holiday'])->updateWithUserstamps($holiday);
 
         if ($updateHoliday) {
             $delete = DateHoliday::where('id_holiday', $post['id_holiday'])->delete();
@@ -558,7 +563,9 @@ class ApiSetting extends Controller
                         'id_holiday'    => $post['id_holiday'],
                         'day'           => $value['day'],
                         'created_at'    => date('Y-m-d H:i:s'),
-                        'updated_at'    => date('Y-m-d H:i:s')
+                        'updated_at'    => date('Y-m-d H:i:s'),
+	                    'created_by'    => Auth::id(),
+	            		'updated_by'    => Auth::id()
                     ];
 
                     array_push($dateHoliday, $dataDay);
@@ -578,7 +585,9 @@ class ApiSetting extends Controller
                                 'id_holiday'    => $post['id_holiday'],
                                 'id_outlet'     => $ou,
                                 'created_at'    => date('Y-m-d H:i:s'),
-                                'updated_at'    => date('Y-m-d H:i:s')
+                                'updated_at'    => date('Y-m-d H:i:s'),
+			                    'created_by'    => Auth::id(),
+			            		'updated_by'    => Auth::id()
                             ];
 
                             array_push($outletHoliday, $dataOutlet);
@@ -694,7 +703,7 @@ class ApiSetting extends Controller
     public function faqUpdate(FaqUpdate $request) {
         $post = $request->json()->all();
 
-        $update = Faq::where('id_faq', $post['id_faq'])->update($post);
+        $update = Faq::where('id_faq', $post['id_faq'])->updateWithUserstamps($post);
 
         return response()->json(MyHelper::checkUpdate($update));
     }
@@ -712,7 +721,7 @@ class ApiSetting extends Controller
         $number_list = 0;
 
         foreach ($id_faq as $dt){
-            $status = Faq::where('id_faq', $dt)->update(['faq_number_list' => $number_list + 1]);
+            $status = Faq::where('id_faq', $dt)->updateWithUserstamps(['faq_number_list' => $number_list + 1]);
             if(!$status){
                 $result = [
                     'status' => 'fail'
@@ -911,7 +920,7 @@ class ApiSetting extends Controller
             return response()->json(MyHelper::checkGet($defaultHome));
         } else {
 			foreach($post as $key => $value){
-				$setting = Setting::where('key','=',$key)->update(['value' => $value]);
+				$setting = Setting::where('key','=',$key)->updateWithUserstamps(['value' => $value]);
 			}
 			return response()->json(MyHelper::checkUpdate($setting));
 		}
@@ -927,7 +936,7 @@ class ApiSetting extends Controller
             return response()->json(MyHelper::checkGet($defaultHome));
        } else {
 			foreach($post as $key => $value){
-				$setting = Setting::where('key','=',$key)->update(['value' => $value]);
+				$setting = Setting::where('key','=',$key)->updateWithUserstamps(['value' => $value]);
 			}
 			return response()->json(MyHelper::checkUpdate($setting));
 	   }
@@ -1189,7 +1198,7 @@ class ApiSetting extends Controller
         if($post['jobs_list']??false){
             $postedJobs=json_encode($post['jobs_list']);
             if($setting){
-                $save=Setting::where('key','jobs_list')->update(['value_text'=>$postedJobs]);
+                $save=Setting::where('key','jobs_list')->updateWithUserstamps(['value_text'=>$postedJobs]);
             }else{
                 $save=Setting::create(['key'=>'jobs_list','value_text'=>$postedJobs]);
             }
@@ -1217,7 +1226,7 @@ class ApiSetting extends Controller
         if($post['celebrate_list']??false){
             $postedCelebrate=json_encode($post['celebrate_list']);
             if($setting){
-                $save=Setting::where('key','celebrate_list')->update(['value_text'=>$postedCelebrate]);
+                $save=Setting::where('key','celebrate_list')->updateWithUserstamps(['value_text'=>$postedCelebrate]);
             }else{
                 $save=Setting::create(['key'=>'celebrate_list','value_text'=>$postedCelebrate]);
             }
@@ -1385,7 +1394,7 @@ class ApiSetting extends Controller
                         }
                     }
 
-                    $update = Setting::where('key','text_menu_main')->update(['value_text' => json_encode($mainMenu), 'updated_at' => date('Y-m-d H:i:s')]);
+                    $update = Setting::where('key','text_menu_main')->updateWithUserstamps(['value_text' => json_encode($mainMenu), 'updated_at' => date('Y-m-d H:i:s')]);
 
                     if(!$update){
                         return response()->json(['status' => 'fail', 'messages' => ['There is an error']]);
@@ -1427,7 +1436,7 @@ class ApiSetting extends Controller
                         }
                     }
 
-                    $update = Setting::where('key','text_menu_other')->update(['value_text' => json_encode($otherMenu), 'updated_at' => date('Y-m-d H:i:s')]);
+                    $update = Setting::where('key','text_menu_other')->updateWithUserstamps(['value_text' => json_encode($otherMenu), 'updated_at' => date('Y-m-d H:i:s')]);
 
                     if(!$update){
                         return response()->json(['status' => 'fail', 'messages' => ['There is an error']]);
@@ -1521,7 +1530,7 @@ class ApiSetting extends Controller
         if($data['min_length_number'] > $data['max_length_number']){
             return response()->json(['status'=>'fail','message' => "Please input minimum below the maximum"]);
         }
-        $updatePhoneSetting = Setting::where('key', 'phone_setting')->update(['value_text' => json_encode($data)]);
+        $updatePhoneSetting = Setting::where('key', 'phone_setting')->updateWithUserstamps(['value_text' => json_encode($data)]);
 
         if($updatePhoneSetting){
             return response()->json(['status'=>'success']);
@@ -1614,7 +1623,7 @@ class ApiSetting extends Controller
             'value' => $status,
             'value_text' => json_encode($valueText)
         ];
-        $update = Setting::where('key', 'maintenance_mode')->update($dataToUpdate);
+        $update = Setting::where('key', 'maintenance_mode')->updateWithUserstamps($dataToUpdate);
 
         return response()->json(MyHelper::checkUpdate($update));
     }
@@ -1670,7 +1679,7 @@ class ApiSetting extends Controller
                 }
             }
 
-            $update = Setting::where('key','email_setting_url')->update(['value_text' => json_encode($data), 'updated_at' => date('Y-m-d H:i:s')]);
+            $update = Setting::where('key','email_setting_url')->updateWithUserstamps(['value_text' => json_encode($data), 'updated_at' => date('Y-m-d H:i:s')]);
 
             if(!$update){
                 return response()->json(['status' => 'fail', 'messages' => ['There is an error']]);
@@ -1712,11 +1721,11 @@ class ApiSetting extends Controller
         $post = $request->json()->all();
 
         if(isset($post['expired_otp'])){
-            $update = Setting::where('key', 'setting_expired_otp')->update(['value' => $post['expired_otp']]);
+            $update = Setting::where('key', 'setting_expired_otp')->updateWithUserstamps(['value' => $post['expired_otp']]);
         }
 
         if(isset($post['expired_time_email'])){
-            $update = Setting::where('key', 'setting_expired_time_email_verify')->update(['value' => $post['expired_time_email']]);
+            $update = Setting::where('key', 'setting_expired_time_email_verify')->updateWithUserstamps(['value' => $post['expired_time_email']]);
         }
 
         return response()->json(MyHelper::checkUpdate($update));
