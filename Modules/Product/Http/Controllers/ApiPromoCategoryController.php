@@ -86,7 +86,7 @@ class ApiPromoCategoryController extends Controller
         if(!$ppc){
             return MyHelper::checkGet([]);
         }
-        $update = $ppc->update($post);
+        $update = $ppc->updateWithUserstamps($post);
         return MyHelper::checkUpdate($update);
     }
 
@@ -110,7 +110,7 @@ class ApiPromoCategoryController extends Controller
     {
         $id_product_promo_category = $request->id_product_promo_category?:[];
         foreach ($id_product_promo_category as $key => $id){
-            ProductPromoCategory::where('id_product_promo_category',$id)->update(['product_promo_category_order' => $key]);
+            ProductPromoCategory::where('id_product_promo_category',$id)->updateWithUserstamps(['product_promo_category_order' => $key]);
         }
         return [
             'status' => 'success'
