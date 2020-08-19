@@ -748,7 +748,7 @@ class ApiProductController extends Controller
         }
         // update position
         foreach ($post['product_ids'] as $key => $product_id) {
-            $update = Product::find($product_id)->updateWithUserstamps(['position'=>$key+1]);
+            $update = Product::find($product_id)->update(['position'=>$key+1]);
         }
 
         return ['status' => 'success'];
@@ -795,7 +795,7 @@ class ApiProductController extends Controller
             ];
         }
         // update visibility
-        $update = Product::find($post['id_product'])->updateWithUserstamps(['product_visibility'=>$post['product_visibility']]);
+        $update = Product::find($post['id_product'])->update(['product_visibility'=>$post['product_visibility']]);
 
         return response()->json(MyHelper::checkUpdate($update));
     }

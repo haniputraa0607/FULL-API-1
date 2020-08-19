@@ -288,7 +288,7 @@ class ApiBrandController extends Controller
             foreach ($order as $id) {
                 $start++;
                 $update=['order_brand'=>$start];
-                $save=Brand::find($id)->updateWithUserstamps($update);
+                $save=Brand::find($id)->update($update);
                 if(!$save){
                     \DB::rollBack();
                     return [

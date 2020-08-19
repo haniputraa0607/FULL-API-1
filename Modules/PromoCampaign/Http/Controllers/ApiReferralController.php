@@ -248,7 +248,7 @@ class ApiReferralController extends Controller
             'referrer_promo_value_max'=>$post['referrer_promo_value_max']??null
         ];
         \DB::beginTransaction();
-        $update = $referral->updateWithUserstamps($dataPromoCampaignReferral);
+        $update = $referral->update($dataPromoCampaignReferral);
         $update2 = PromoCampaign::where('id_promo_campaign',$referral->id_promo_campaign)->updateWithUserstamps($dataPromoCampaign);
         if(!$update || !$update2){
             \DB::rollback();

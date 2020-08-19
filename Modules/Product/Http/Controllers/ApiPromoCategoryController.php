@@ -86,7 +86,7 @@ class ApiPromoCategoryController extends Controller
         if(!$ppc){
             return MyHelper::checkGet([]);
         }
-        $update = $ppc->updateWithUserstamps($post);
+        $update = $ppc->update($post);
         return MyHelper::checkUpdate($update);
     }
 

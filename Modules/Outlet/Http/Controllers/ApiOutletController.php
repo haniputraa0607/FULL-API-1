@@ -1827,7 +1827,7 @@ class ApiOutletController extends Controller
                     'messages'      => $msg
                 ]);
             }
-            $save = $userOutlet->updateWithUserstamps($post);
+            $save = $userOutlet->update($post);
             return response()->json(MyHelper::checkUpdate($save));
     }
 

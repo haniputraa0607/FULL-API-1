@@ -598,7 +598,7 @@ class ApiPromotion extends Controller
 					if(isset($post['promotion_push_image'][$key]) && $query['promotion_push_image'][$key] != null){
 						unlink($query['promotion_push_image']);
 					}
-					$query = $query->updateWithUserstamps($data);
+					$query = $query->update($data);
 
 					$id_promotion_content = $post['id_promotion_content'][$key];
 					array_push($id_content, $id_promotion_content);
@@ -679,7 +679,7 @@ class ApiPromotion extends Controller
 					$delete = app($this->promotionDeals)->deleteDeals($promoContent, $id_promotion_content, $key);
 	
 					if($delete){
-						$promoContent->updateWithUserstamps(['id_deals' => null]);
+						$promoContent->update(['id_deals' => null]);
 						if(!$promoContent){
 							DB::rollBack();
 							$result = [
@@ -970,7 +970,7 @@ class ApiPromotion extends Controller
 					unlink($query['promotion_push_image']);
 				}
 
-				$query = $query->updateWithUserstamps($data);
+				$query = $query->update($data);
 
 				$id_promotion_content = $post['id_promotion_content'];
 				array_push($id_content, $id_promotion_content);
@@ -1049,7 +1049,7 @@ class ApiPromotion extends Controller
 				$delete = app($this->promotionDeals)->deleteDeals($promoContent, $id_promotion_content);
 
 				if($delete){
-					$promoContent->updateWithUserstamps(['id_deals' => null]);
+					$promoContent->update(['id_deals' => null]);
 					if(!$promoContent){
 						DB::rollBack();
 						$result = [
