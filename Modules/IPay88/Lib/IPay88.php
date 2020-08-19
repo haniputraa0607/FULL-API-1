@@ -593,7 +593,7 @@ class IPay88
     	$to_match = implode('/', $to_check2); // PG/PaymentResponse/BacktoMerchant?
     	/**
     	 * Allowed: 
-    	 * https://sapi.jiwa.app/api/ipay88/pay?type=trx&id_reference=623&payment_id=CREDIT_CARD
+    	 * https://project/api/ipay88/pay?type=trx&id_reference=623&payment_id=CREDIT_CARD
 		 * https://sandbox.ipay88.co.id/epayment/entry.asp
 		 * https://sandbox.ipay88.co.id/PG/F46D26EF401F85BB8DFD8481BFA1350D569BBD591EF4C22634AC1130FFAF9E48
     	 */
@@ -604,11 +604,11 @@ class IPay88
 		 * https://sandbox.ipay88.co.id/ePayment/sandprocess/ccV2.asp
 		 * https://sandbox.ipay88.co.id/ePayment/sandprocess/ccV2.asp
 		 * https://sandbox.ipay88.co.id:8462/PG/PaymentResponse/BacktoMerchant?EID=f46d26ef401f85bb8dfd8481bfa1350d569bbd591ef4c22634ac1130ffaf9e48
-		 * https://sapi.jiwa.app/api/ipay88/detail/trx#trxPaid*623*success*
+		 * https://project/api/ipay88/detail/trx#trxPaid*623*success*
     	 */
 
     	if (
-    		(preg_match('/^api\/ipay88\/pay/', $to_match)) // https://sapi.jiwa.app/api/ipay88/pay?type=trx&id_reference=623&payment_id=CREDIT_CARD
+    		(preg_match('/^api\/ipay88\/pay/', $to_match)) // https://project/api/ipay88/pay?type=trx&id_reference=623&payment_id=CREDIT_CARD
     		|| (($to_check2[0]??false) == 'epayment' && ($to_check2[1]??false) == 'entry.asp') // https://sandbox.ipay88.co.id/epayment/entry.asp
     		|| (($to_check2[0]??false) == 'PG' && count($to_check2) == 2) // https://sandbox.ipay88.co.id/PG/F46D26EF401F85BB8DFD8481BFA1350D569BBD591EF4C22634AC1130FFAF9E48
     		|| (preg_match('/^api[\/]+webview\/default/', $to_match)) // https://project/api//webview/default
