@@ -4,9 +4,11 @@ namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Modules\ProductVariant\Entities\ProductGroup;
+use Wildside\Userstamps\Userstamps;
 
 class NewsProduct extends Model
 {
+	use Userstamps;
 	protected $connection = 'mysql';
 	public $incrementing = false;
     /**

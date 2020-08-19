@@ -8,9 +8,11 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class DealTotal extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_deals_total';
     protected $table = 'deals_total';
 

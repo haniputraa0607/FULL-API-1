@@ -59,6 +59,7 @@ use DB;
 use Hash;
 use Modules\SettingFraud\Entities\DailyCheckPromoCode;
 use Modules\SettingFraud\Entities\LogCheckPromoCode;
+use Illuminate\Support\Facades\Auth;
 
 class ApiPromoCampaign extends Controller
 {
@@ -786,7 +787,7 @@ class ApiPromoCampaign extends Controller
                     unset($post['promo_tag']);
                 }
 
-                $promoCampaign = PromoCampaign::where('id_promo_campaign', '=', $post['id_promo_campaign'])->update($post);
+                    $promoCampaign = PromoCampaign::where('id_promo_campaign', '=', $post['id_promo_campaign'])->updateWithUserstamps($post);
 
                 if (!$promoCampaign) {
                 	DB::rollBack();
@@ -805,6 +806,7 @@ class ApiPromoCampaign extends Controller
                         'promo-campaign'  => $post
                     ];
                 } else {
+
                     DB::rollBack();
                     $result = [
                         'status'  => 'fail',
@@ -824,11 +826,13 @@ class ApiPromoCampaign extends Controller
                 }
 
                 $promoCampaign = PromoCampaign::where('id_promo_campaign', '=', $post['id_promo_campaign'])->first();
-                $promoCampaignUpdate = $promoCampaign->update($post);
+                $promoCampaignUpdate = $promoCampaign->updateWithUserstamps($post);
                 $generateCode = $this->generateCode('update', $post['id_promo_campaign'], $post['code_type'], $promo_code, $post['prefix_code'], $post['number_last_code'], $post['total_coupon']);
+
 
                 if ($promoCampaignUpdate == 1) {
                     $promoCampaign = $promoCampaign->toArray();
+
                     $result = [
                         'status'  => 'success',
                         'result'  => 'Promo Campaign has been updated',
@@ -1019,7 +1023,7 @@ class ApiPromoCampaign extends Controller
 			}
 		}
 
-        $update = $table::where($id_table, $id_post)->update($dataPromoCampaign);
+        $update = $table::where($id_table, $id_post)->updateWithUserstamps($dataPromoCampaign);
 
         if ($post['promo_type'] == 'Product Discount') {
             if ($post['filter_product'] == 'All Product') {
@@ -1085,7 +1089,7 @@ class ApiPromoCampaign extends Controller
 
         if ($parameter == 'all_outlet') {
             try {
-                PromoCampaign::where('id_promo_campaign', '=', $id_promo_campaign)->update(['is_all_outlet' => $operator]);
+                PromoCampaign::where('id_promo_campaign', '=', $id_promo_campaign)->updateWithUserstamps(['is_all_outlet' => $operator]);
                 $result = ['status'  => 'success'];
             } catch (\Exception $e) {
                 $result = [
@@ -1102,10 +1106,12 @@ class ApiPromoCampaign extends Controller
                 $dataOutlet[$i]['id_promo_campaign']    = $id_promo_campaign;
                 $dataOutlet[$i]['created_at']           = date('Y-m-d H:i:s');
                 $dataOutlet[$i]['updated_at']           = date('Y-m-d H:i:s');
+                $dataOutlet[$i]['created_by']           = Auth::id();
+                $dataOutlet[$i]['updated_by']           = Auth::id();
             }
             try {
                 PromoCampaignOutlet::insert($dataOutlet);
-                PromoCampaign::where('id_promo_campaign', '=', $id_promo_campaign)->update(['is_all_outlet' => $operator]);
+                PromoCampaign::where('id_promo_campaign', '=', $id_promo_campaign)->updateWithUserstamps(['is_all_outlet' => $operator]);
                 $result = ['status'  => 'success'];
             } catch (\Exception $e) {
                 $result = [
@@ -1210,7 +1216,9 @@ class ApiPromoCampaign extends Controller
             'max_product'       		=> $max_product,
             'max_percent_discount'      => $max_percent_discount,
             'created_at'        		=> date('Y-m-d H:i:s'),
-            'updated_at'        		=> date('Y-m-d H:i:s')
+            'updated_at'        		=> date('Y-m-d H:i:s'),
+            'created_by'        		=> Auth::id(),
+            'updated_by'        		=> Auth::id()
         ];
         if ($parameter == 'all_product') {
             try {
@@ -1232,6 +1240,8 @@ class ApiPromoCampaign extends Controller
                 $dataProduct[$i]['product_type']		 = $product_type;
                 $dataProduct[$i]['created_at']           = date('Y-m-d H:i:s');
                 $dataProduct[$i]['updated_at']           = date('Y-m-d H:i:s');
+                $dataProduct[$i]['created_by']           = Auth::id();
+                $dataProduct[$i]['updated_by']           = Auth::id();
             }
 
             try {
@@ -1308,7 +1318,9 @@ class ApiPromoCampaign extends Controller
                 'min_qty'           => $rule['min_qty'],
                 'discount_value'    => $rule['discount_value'],
                 'created_at'        => date('Y-m-d H:i:s'),
-                'updated_at'        => date('Y-m-d H:i:s')
+                'updated_at'        => date('Y-m-d H:i:s'),
+                'created_by'        => Auth::id(),
+            	'updated_by'        => Auth::id()
             ];
 	        if ($is_nominal) {
 	        	$data[$key]['max_percent_discount'] = null;
@@ -1324,6 +1336,8 @@ class ApiPromoCampaign extends Controller
             $dataProduct[$i]['product_type']    	 = $product_type;
             $dataProduct[$i]['created_at']           = date('Y-m-d H:i:s');
             $dataProduct[$i]['updated_at']           = date('Y-m-d H:i:s');
+            $dataProduct[$i]['created_by']           = Auth::id();
+            $dataProduct[$i]['updated_by']           = Auth::id();
         }
 
         try {
@@ -1386,7 +1400,11 @@ class ApiPromoCampaign extends Controller
                 'max_qty_requirement' 	=> $rule['max_qty_requirement'],
                 'min_qty_requirement' 	=> $rule['min_qty_requirement'],
                 'benefit_qty'         	=> $rule['benefit_qty'],
-                'max_percent_discount'  => $rule['max_percent_discount']
+                'max_percent_discount'  => $rule['max_percent_discount'],
+                'created_at'        	=> date('Y-m-d H:i:s'),
+            	'updated_at'        	=> date('Y-m-d H:i:s'),
+                'created_by'        	=> Auth::id(),
+            	'updated_by'        	=> Auth::id()
             ];
 
             if ($rule['benefit_type'] == "percent")
@@ -1422,6 +1440,8 @@ class ApiPromoCampaign extends Controller
         $dataProduct['product_type']    	 = $product_type;
         $dataProduct['created_at']           = date('Y-m-d H:i:s');
         $dataProduct['updated_at']           = date('Y-m-d H:i:s');
+        $dataProduct['created_by']           = Auth::id();
+        $dataProduct['updated_by']           = Auth::id();
 
         try {
             $table_buyxgety_discount_rule::insert($data);
@@ -1499,6 +1519,8 @@ class ApiPromoCampaign extends Controller
                     $generateCode[$i]['promo_code']         = implode('', [$prefix_code, MyHelper::createrandom($number_last_code, 'PromoCode')]);
                     $generateCode[$i]['created_at']         = date('Y-m-d H:i:s');
                     $generateCode[$i]['updated_at']         = date('Y-m-d H:i:s');
+                    $generateCode[$i]['created_by']         = Auth::id();
+                    $generateCode[$i]['updated_by']         = Auth::id();
                 }
 
                 // $unique_code = $this->removeDuplicateCode($generateCode, $total_coupon);
@@ -1517,7 +1539,7 @@ class ApiPromoCampaign extends Controller
             }
             else
             {
-                GeneratePromoCode::dispatch($status, $id, $prefix_code, $number_last_code, $total_coupon)->allOnConnection('database');
+                GeneratePromoCode::dispatch($status, $id, $prefix_code, $number_last_code, $total_coupon, Auth::id())->allOnConnection('database');
                 $result = ['status'  => 'success'];
                 return $result;
             }
@@ -1534,6 +1556,8 @@ class ApiPromoCampaign extends Controller
             $generateCode['promo_code']         = $promo_code;
             $generateCode['created_at']         = date('Y-m-d H:i:s');
             $generateCode['updated_at']         = date('Y-m-d H:i:s');
+            $generateCode['created_by']         = Auth::id();
+            $generateCode['updated_by']         = Auth::id();
         }
 
         if ($status == 'insert')
@@ -1576,6 +1600,8 @@ class ApiPromoCampaign extends Controller
             if (is_numeric(array_values($tag)[$i])) {
                 $tagID[$i]['id_promo_campaign_tag']     = array_values($tag)[$i];
                 $tagID[$i]['id_promo_campaign']         = $id_promo_campaign;
+                $tagID[$i]['created_by']         		= Auth::id();
+                $tagID[$i]['updated_by']         		= Auth::id();
             }
         }
 

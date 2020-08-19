@@ -8,7 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class UserInbox
  * 
@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class UserInbox extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_user_inboxes';
 
 	protected $casts = [

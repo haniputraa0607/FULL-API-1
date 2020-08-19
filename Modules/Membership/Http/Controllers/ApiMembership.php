@@ -191,7 +191,7 @@ class ApiMembership extends Controller
 						$data['cashback_maximum'] = $membership['cashback_maximum'];
 					}
 
-					$query = Membership::where('id_membership', $membership['id_membership'])->update($data);
+					$query = Membership::where('id_membership', $membership['id_membership'])->updateWithUserstamps($data);
 					//benefit promo id
 					$deletePromoId = MembershipPromoId::where('id_membership', $membership['id_membership'])->delete();
 					if(isset($membership['benefit_promo_id'])){

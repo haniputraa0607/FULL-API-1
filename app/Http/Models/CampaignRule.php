@@ -8,7 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class CampaignRule
  * 
@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class CampaignRule extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_campaign_rule';
 
 	protected $casts = [

@@ -46,7 +46,7 @@ use Modules\Deals\Http\Requests\Deals\ImportDealsRequest;
 use Modules\Deals\Http\Requests\Deals\UpdateComplete;
 
 use Illuminate\Support\Facades\Schema;
-
+use Illuminate\Support\Facades\Auth;
 use Image;
 
 class ApiDeals extends Controller
@@ -1087,7 +1087,7 @@ class ApiDeals extends Controller
             unset($data['id_outlet']);
         }
 
-        $save = Deal::where('id_deals', $id)->update($data);
+        $save = Deal::where('id_deals', $id)->updateWithUserstamps($data);
 
         return $save;
     }
@@ -1243,7 +1243,9 @@ class ApiDeals extends Controller
         foreach ($id_outlet as $value) {
             array_push($dataOutlet, [
                 'id_outlet' => $value,
-                'id_deals'  => $id_deals
+                'id_deals'  => $id_deals,
+                'created_by'=> Auth::id(),
+            	'updated_by'=> Auth::id()
             ]);
         }
 
@@ -1331,7 +1333,9 @@ class ApiDeals extends Controller
                 'id_deals' => $list_id[$i],
                 'deals_total' => $list_deals_total[$i],
                 'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
+                'updated_at' => date('Y-m-d H:i:s'),
+                'created_by' => Auth::id(),
+            	'updated_by' => Auth::id()
             ];
             array_push($arrInsert,$data);
         }
@@ -1353,7 +1357,7 @@ class ApiDeals extends Controller
     function welcomeVoucherSettingUpdateStatus(Request $request){
         $post = $request->json()->all();
         $status = $post['status'];
-        $updateStatus = Setting::where('key', 'welcome_voucher_setting')->update(['value' => $status]);
+        $updateStatus = Setting::where('key', 'welcome_voucher_setting')->updateWithUserstamps(['value' => $status]);
 
         return response()->json(MyHelper::checkUpdate($updateStatus));
     }
@@ -1486,9 +1490,9 @@ class ApiDeals extends Controller
     	if ($update)
     	{
     		if ($post['deals_type'] != 'Promotion') {
-				$update = Deal::where('id_deals','=',$post['id_deals'])->update(['deals_description' => $post['deals_description'], 'step_complete' => 0, 'last_updated_by' => auth()->user()->id]);
+				$update = Deal::where('id_deals','=',$post['id_deals'])->updateWithUserstamps(['deals_description' => $post['deals_description'], 'step_complete' => 0, 'last_updated_by' => auth()->user()->id]);
     		}else{
-				$update = DealsPromotionTemplate::where('id_deals_promotion_template','=',$post['id_deals'])->update(['deals_description' => $post['deals_description'], 'step_complete' => 0, 'last_updated_by' => auth()->user()->id]);
+				$update = DealsPromotionTemplate::where('id_deals_promotion_template','=',$post['id_deals'])->updateWithUserstamps(['deals_description' => $post['deals_description'], 'step_complete' => 0, 'last_updated_by' => auth()->user()->id]);
     		}
 
             if ($update)
@@ -1525,9 +1529,9 @@ class ApiDeals extends Controller
 		if ($check)
 		{
 			if ($post['deals_type'] == 'Promotion' || $post['deals_type'] == 'deals_promotion') {
-				$update = DealsPromotionTemplate::where('id_deals_promotion_template','=',$post['id_deals'])->update(['step_complete' => 1, 'last_updated_by' => auth()->user()->id]);
+				$update = DealsPromotionTemplate::where('id_deals_promotion_template','=',$post['id_deals'])->updateWithUserstamps(['step_complete' => 1, 'last_updated_by' => auth()->user()->id]);
 			}else{
-				$update = Deal::where('id_deals','=',$post['id_deals'])->update(['step_complete' => 1, 'last_updated_by' => auth()->user()->id]);
+				$update = Deal::where('id_deals','=',$post['id_deals'])->updateWithUserstamps(['step_complete' => 1, 'last_updated_by' => auth()->user()->id]);
 			}
 
 			if ($update)
@@ -1904,7 +1908,9 @@ class ApiDeals extends Controller
 						'content' => $value2,
 						'order' => $i,
 						'created_at' => date('Y-m-d H:i:s'),
-	            		'updated_at' => date('Y-m-d H:i:s')
+	            		'updated_at' => date('Y-m-d H:i:s'),
+	            		'created_by' => Auth::id(),
+            			'updated_by' => Auth::id()
 					];
 					$i++;
 				}
@@ -1981,7 +1987,9 @@ class ApiDeals extends Controller
 	        				'product_type'			=> $create['product_type'],
 	        				'id_product' 			=> $ruleProductId[$value['product_code']],
 	        				'created_at' 			=> date('Y-m-d H:i:s'),
-	            			'updated_at' 			=> date('Y-m-d H:i:s')
+	            			'updated_at' 			=> date('Y-m-d H:i:s'),
+	            			'created_by'        	=> Auth::id(),
+            				'updated_by'        	=> Auth::id()
 	        			];
 	        		}
 
@@ -2020,7 +2028,9 @@ class ApiDeals extends Controller
         				'discount_value'		=> $value['discount_value'],
         				'max_percent_discount'	=> $value['max_percent_discount'],
         				'created_at' 			=> date('Y-m-d H:i:s'),
-	            		'updated_at' 			=> date('Y-m-d H:i:s')
+	            		'updated_at' 			=> date('Y-m-d H:i:s'),
+	            		'created_by'        	=> Auth::id(),
+            			'updated_by'        	=> Auth::id()
         			];
         		}
         		
@@ -2078,7 +2088,9 @@ class ApiDeals extends Controller
 	        				'benefit_id_product' 	=> $ruleProductId[$value['benefit_product_code']],
 	        				'benefit_qty'  			=> $value['benefit_product_qty'],
 	        				'created_at' 			=> date('Y-m-d H:i:s'),
-	            			'updated_at' 			=> date('Y-m-d H:i:s')
+	            			'updated_at' 			=> date('Y-m-d H:i:s'),
+	            			'created_by'        	=> Auth::id(),
+            				'updated_by'        	=> Auth::id()
 	        			];
 	        		}
 
@@ -2122,12 +2134,14 @@ class ApiDeals extends Controller
 	                    'voucher_code'         => strtoupper($value),
 	                    'deals_voucher_status' => 'Available',
 	                    'created_at'           => date('Y-m-d H:i:s'),
-	                    'updated_at'           => date('Y-m-d H:i:s')
+	                    'updated_at'           => date('Y-m-d H:i:s'),
+	                    'created_by'        	=> Auth::id(),
+            			'updated_by'        	=> Auth::id()
 	                ]);
 	            }
 
 	            $saveVoucher = DealsVoucher::insert($dataVoucher);
-	            $updateDeals = Deal::where('id_deals', $create['id_deals'])->update(['deals_total_voucher' => count($voucher_diff)]);
+	            $updateDeals = Deal::where('id_deals', $create['id_deals'])->updateWithUserstamps(['deals_total_voucher' => count($voucher_diff)]);
             }
 
         	foreach ($voucher_same as $key => $value) {
@@ -2398,7 +2412,7 @@ class ApiDeals extends Controller
             app($this->promotion_deals)->deleteImage($id);
         }
 
-        $save = DealsPromotionTemplate::where('id_deals_promotion_template', $id)->update($data);
+        $save = DealsPromotionTemplate::where('id_deals_promotion_template', $id)->updateWithUserstamps($data);
 
         return $save;
     }

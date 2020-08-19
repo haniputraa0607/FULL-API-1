@@ -3,9 +3,11 @@
 namespace Modules\ProductVariant\Entities;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class ProductVariant extends Model
 {
+	use Userstamps;
     protected $primaryKey = 'id_product_variant';
 
     protected $fillable   = [

@@ -5,6 +5,7 @@ namespace Modules\Promotion\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 
 use App\Http\Models\Promotion;
 use App\Http\Models\PromotionRule;
@@ -133,7 +134,7 @@ class ApiPromotionDeals extends Controller
 			if($deals && $deals['']){
 
 			}
-			$deals = DealsPromotionTemplate::where('id_deals_promotion_template', $post['id_deals_promotion_template'])->update($post);
+			$deals = DealsPromotionTemplate::where('id_deals_promotion_template', $post['id_deals_promotion_template'])->updateWithUserstamps($post);
 		}else{
 			$deals = DealsPromotionTemplate::create($post);
 		}
@@ -235,7 +236,7 @@ class ApiPromotionDeals extends Controller
 		}
 		$mark = 'insert';
 		if(isset($post['id_deals'][$key]) && $post['id_deals'][$key] != "") {
-			$dealsQuery = Deal::where('id_deals','=',$post['id_deals'][$key])->update($dataDeals);
+			$dealsQuery = Deal::where('id_deals','=',$post['id_deals'][$key])->updateWithUserstamps($dataDeals);
 			$id_deals = $post['id_deals'][$key];
 			$mark = 'update';
 		} else {
@@ -295,7 +296,9 @@ class ApiPromotionDeals extends Controller
 		                    'voucher_code'         => strtoupper($value),
 		                    'deals_voucher_status' => 'Available',
 		                    'created_at'           => date('Y-m-d H:i:s'),
-		                    'updated_at'           => date('Y-m-d H:i:s')
+		                    'updated_at'           => date('Y-m-d H:i:s'),
+		                    'created_by'           => Auth::id(),
+		                    'updated_by'           => Auth::id()
 		                ]);
 		            }
 
@@ -401,8 +404,8 @@ class ApiPromotionDeals extends Controller
  			}
 			
 
-			$updatePromotion = PromotionContent::where('id_promotion_content','=',$id_promotion_content)->update(['id_deals' => $id_deals]);
-			$updateDeals 	 = Deal::where('id_deals','=',$id_deals)->update(['step_complete' => 1]);
+			$updatePromotion = PromotionContent::where('id_promotion_content','=',$id_promotion_content)->updateWithUserstamps(['id_deals' => $id_deals]);
+			$updateDeals 	 = Deal::where('id_deals','=',$id_deals)->updateWithUserstamps(['step_complete' => 1]);
 
 			$result = [
 				'status'	=> 'success',
@@ -448,7 +451,9 @@ class ApiPromotionDeals extends Controller
     				'product_type'	=> $value['product_type'],
     				'id_product' 	=> $value['id_product'],
     				'created_at' 	=> date('Y-m-d H:i:s'),
-        			'updated_at' 	=> date('Y-m-d H:i:s')
+        			'updated_at' 	=> date('Y-m-d H:i:s'),
+    				'created_by' 	=> Auth::id(),
+        			'updated_by' 	=> Auth::id()
     			];
     		}
     		$delProduct = DealsProductDiscount::where('id_deals',$id_deals)->delete();
@@ -477,7 +482,9 @@ class ApiPromotionDeals extends Controller
 				'discount_value'		=> $value['discount_value'],
 				'max_percent_discount'	=> $value['max_percent_discount'],
 				'created_at' 			=> date('Y-m-d H:i:s'),
-        		'updated_at' 			=> date('Y-m-d H:i:s')
+        		'updated_at' 			=> date('Y-m-d H:i:s'),
+				'created_by' 			=> Auth::id(),
+        		'updated_by' 			=> Auth::id()
 			];
 		}
 		$delProduct = DealsTierDiscountRule::where('id_deals',$id_deals)->delete();
@@ -508,7 +515,9 @@ class ApiPromotionDeals extends Controller
 				'benefit_id_product' 	=> $value['benefit_id_product'],
 				'benefit_qty'  			=> $value['benefit_qty'],
 				'created_at' 			=> date('Y-m-d H:i:s'),
-    			'updated_at' 			=> date('Y-m-d H:i:s')
+    			'updated_at' 			=> date('Y-m-d H:i:s'),
+				'created_by' 			=> Auth::id(),
+    			'updated_by' 			=> Auth::id()
 			];
 		}
 
@@ -541,7 +550,9 @@ class ApiPromotionDeals extends Controller
 					'content' 			=> $value2['content'],
 					'order' 			=> $value2['order'],
 					'created_at' => date('Y-m-d H:i:s'),
-            		'updated_at' => date('Y-m-d H:i:s')
+            		'updated_at' => date('Y-m-d H:i:s'),
+					'created_by' => Auth::id(),
+            		'updated_by' => Auth::id()
 				];
 				$i++;
 			}

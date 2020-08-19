@@ -169,6 +169,8 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
         Route::post('delete', 'ApiFeaturedDeal@destroy');
     });
 
+    Route::any('be/whatsapp', 'ApiSetting@settingWhatsApp');
+
 });
 
 Route::group(['middleware' => ['auth:api', 'scopes:be'], 'prefix' => 'api/timesetting', 'namespace' => 'Modules\Setting\Http\Controllers'], function()

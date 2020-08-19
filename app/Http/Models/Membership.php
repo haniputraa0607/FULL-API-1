@@ -8,7 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class Membership
  * 
@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Membership extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_membership';
 
 	protected $casts = [

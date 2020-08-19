@@ -8,7 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class Faq
  * 
@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Faq extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_faq';
 
 	protected $fillable = [

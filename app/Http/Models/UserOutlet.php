@@ -8,7 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class UserOutlet
  * 
@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class UserOutlet extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_user_outlet';
 	
 	public $incrementing = false;
