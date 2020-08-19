@@ -763,102 +763,59 @@ class ApiPromoCampaign extends Controller
 	                ]);
 	           	}
 			}
-            if ($checkData->date_start <= $datenow)
-            {
-                $post['date_start']     = $checkData['date_start'];
-                $post['date_end']       = $checkData['date_end'];
 
-                if ($checkData['code_type'] == 'Single') {
-                    $checkData['promo_code'] = $checkData->promo_campaign_promo_codes[0]->promo_code;
+            if ($checkData['code_type'] == 'Single') {
+                $checkData['promo_code'] = $checkData->promo_campaign_promo_codes[0]->promo_code;
+            }
+
+            if ($checkData['code_type'] != $post['code_type'] ||
+            	$checkData['prefix_code'] != $post['prefix_code'] ||
+            	$checkData['number_last_code'] != $post['number_last_code'] ||
+            	$checkData['promo_code'] != $post['promo_code'] ||
+            	$checkData['total_coupon'] != $post['total_coupon']
+            	)
+            {
+
+                $promo_code = $post['promo_code']??null;
+
+                if ($post['code_type'] == 'Single') {
+                    unset($post['promo_code']);
                 }
 
-                if ($checkData['code_type'] != $post['code_type'] ||
-                	$checkData['prefix_code'] != $post['prefix_code'] ||
-                	$checkData['number_last_code'] != $post['number_last_code'] ||
-                	$checkData['promo_code'] != $post['promo_code'] ||
-                	$checkData['total_coupon'] != $post['total_coupon']
-                	)
-                {
-
-                    $promo_code = $post['promo_code']??null;
-
-                    if ($post['code_type'] == 'Single') {
-                        unset($post['promo_code']);
-                    }
-
-                    if (isset($post['promo_tag'])) {
-                        $insertTag = $this->insertTag('update', $post['id_promo_campaign'], $post['promo_tag']);
-                        unset($post['promo_tag']);
-                    }
+                if (isset($post['promo_tag'])) {
+                    $insertTag = $this->insertTag('update', $post['id_promo_campaign'], $post['promo_tag']);
+                    unset($post['promo_tag']);
+                }
 
                     $promoCampaign = PromoCampaign::where('id_promo_campaign', '=', $post['id_promo_campaign'])->updateWithUserstamps($post);
 
-                    if (!$promoCampaign) {
-                    	DB::rollBack();
-                    	return response()->json([
-		                    'status'  => 'fail',
-		                    'messages'  => ['Update Failed']
-		                ]);
-                    }
+                if (!$promoCampaign) {
+                	DB::rollBack();
+                	return response()->json([
+	                    'status'  => 'fail',
+	                    'messages'  => ['Update Failed']
+	                ]);
+                }
 
-                    $generateCode = $this->generateCode('update', $post['id_promo_campaign'], $post['code_type'], $promo_code, $post['prefix_code'], $post['number_last_code'], $post['total_coupon']);
+                $generateCode = $this->generateCode('update', $post['id_promo_campaign'], $post['code_type'], $promo_code, $post['prefix_code'], $post['number_last_code'], $post['total_coupon']);
 
-                    if ($generateCode['status'] == 'success') {
-                        $result = [
-                            'status'  => 'success',
-                            'result'  => 'Update Promo Campaign & Promo Code Success',
-                            'promo-campaign'  => $post
-                        ];
-                    } else {
-                        DB::rollBack();
-                        $result = [
-                            'status'  => 'fail',
-                            'message'  => ['Create Another Unique Promo Code']
-                        ];
-                    }
+                if ($generateCode['status'] == 'success') {
+                    $result = [
+                        'status'  => 'success',
+                        'result'  => 'Update Promo Campaign & Promo Code Success',
+                        'promo-campaign'  => $post
+                    ];
                 } else {
 
-                    $promo_code = $post['promo_code']??null;
-                    if (isset($post['promo_code']) || $post['promo_code'] == null) {
-                        unset($post['promo_code']);
-                    }
-
-                    if (isset($post['promo_tag'])) {
-                        $insertTag = $this->insertTag('update', $post['id_promo_campaign'], $post['promo_tag']);
-                        unset($post['promo_tag']);
-                    }
-
-                    $promoCampaign = PromoCampaign::where('id_promo_campaign', '=', $post['id_promo_campaign'])->first();
-                    $promoCampaignUpdate = $promoCampaign->update($post);
-                    $generateCode = $this->generateCode('update', $post['id_promo_campaign'], $post['code_type'], $promo_code, $post['prefix_code'], $post['number_last_code'], $post['total_coupon']);
-
-                    if ($promoCampaignUpdate == 1) {
-                        $promoCampaign = $promoCampaign->toArray();
-                        $result = [
-                            'status'  => 'success',
-                            'result'  => 'Promo Campaign has been updated',
-                            'promo-campaign'  => $post
-                        ];
-                        $send = app($this->autocrm)->SendAutoCRM('Update Promo Campaign', $user['phone'], [
-                            'campaign_name' => $promoCampaign['campaign_name']?:'',
-                            'promo_title' => $promoCampaign['promo_title']?:'',
-                            'code_type' => $promoCampaign['code_type']?:'',
-                            'prefix_code' => $promoCampaign['prefix_code']?:'',
-                            'number_last_code' => $promoCampaign['number_last_code']?:'',
-                            'total_coupon' => number_format($promoCampaign['total_coupon'],0,',','.')?:'',
-                            'created_at' => date('d F Y H:i',strtotime($promoCampaign['created_at']))?:'',
-                            'updated_at' => date('d F Y H:i',strtotime($promoCampaign['updated_at']))?:'',
-                            'detail' => view('promocampaign::emails.detail',['detail'=>$promoCampaign])->render()
-                        ] + $promoCampaign,null,true);
-                    } else {
-                        DB::rollBack();
-                        $result = ['status'  => 'fail'];
-                    }
+                    DB::rollBack();
+                    $result = [
+                        'status'  => 'fail',
+                        'message'  => ['Create Another Unique Promo Code']
+                    ];
                 }
             } else {
 
-                $promo_code = $post['promo_code'];
-
+                $promo_code = $post['promo_code']??null;
                 if (isset($post['promo_code']) || $post['promo_code'] == null) {
                     unset($post['promo_code']);
                 }
@@ -868,18 +825,33 @@ class ApiPromoCampaign extends Controller
                     unset($post['promo_tag']);
                 }
 
+                $promoCampaign = PromoCampaign::where('id_promo_campaign', '=', $post['id_promo_campaign'])->first();
+                $promoCampaignUpdate = $promoCampaign->update($post);
                 $generateCode = $this->generateCode('update', $post['id_promo_campaign'], $post['code_type'], $promo_code, $post['prefix_code'], $post['number_last_code'], $post['total_coupon']);
 
-                try {
-                    PromoCampaign::where('id_promo_campaign', '=', $post['id_promo_campaign'])->updateWithUserstamps($post);
+
+                if ($promoCampaignUpdate == 1) {
+                    $promoCampaign = $promoCampaign->toArray();
+
                     $result = [
                         'status'  => 'success',
                         'result'  => 'Promo Campaign has been updated',
                         'promo-campaign'  => $post
                     ];
-                } catch (\Exception $e) {
+                    $send = app($this->autocrm)->SendAutoCRM('Update Promo Campaign', $user['phone'], [
+                        'campaign_name' => $promoCampaign['campaign_name']?:'',
+                        'promo_title' => $promoCampaign['promo_title']?:'',
+                        'code_type' => $promoCampaign['code_type']?:'',
+                        'prefix_code' => $promoCampaign['prefix_code']?:'',
+                        'number_last_code' => $promoCampaign['number_last_code']?:'',
+                        'total_coupon' => number_format($promoCampaign['total_coupon'],0,',','.')?:'',
+                        'created_at' => date('d F Y H:i',strtotime($promoCampaign['created_at']))?:'',
+                        'updated_at' => date('d F Y H:i',strtotime($promoCampaign['updated_at']))?:'',
+                        'detail' => view('promocampaign::emails.detail',['detail'=>$promoCampaign])->render()
+                    ] + $promoCampaign,null,true);
+                } else {
                     DB::rollBack();
-                    $result = ['status' => 'fail'];
+                    $result = ['status'  => 'fail'];
                 }
             }
 
