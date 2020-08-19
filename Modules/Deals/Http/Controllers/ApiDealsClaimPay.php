@@ -1031,7 +1031,13 @@ class ApiDealsClaimPay extends Controller
                     }elseif($paymentMethod == 'cimb'){
                         return $this->cimb($deals, $voucher, -$kurangBayar);
                     }elseif($paymentMethod == 'ipay88'){
-                        return $this->ipay88($deals, $voucher, -$kurangBayar,$post);
+                        $pay = $this->ipay88($deals, $voucher, -$kurangBayar,$post);
+                        $ipay88 = [
+                            'MERCHANT_TRANID'   => $pay['order_id'],
+                            'AMOUNT'            => $pay['amount'],
+                            'payment'           => 'ipay88'
+                        ];
+                        return $ipay88;
                     }elseif($paymentMethod == 'shopeepay'){
                         return $this->shopeepay($deals, $voucher, -$kurangBayar,$post);
                     }
