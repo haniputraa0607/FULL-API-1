@@ -2511,7 +2511,9 @@ class ApiOnlineTransaction extends Controller
             return MyHelper::checkGet([],'Transaction cannot be canceled');
         }
         $errors = '';
-        $cancel = \Modules\IPay88\Lib\IPay88::create()->cancel('trx',$trx,$errors);
+
+        $cancel = \Modules\IPay88\Lib\IPay88::create()->cancel('trx',$trx,$errors, $request->last_url);
+
         if($cancel){
             return ['status'=>'success'];
         }
