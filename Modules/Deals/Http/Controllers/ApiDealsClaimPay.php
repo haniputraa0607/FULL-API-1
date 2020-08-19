@@ -70,7 +70,7 @@ class ApiDealsClaimPay extends Controller
             return MyHelper::checkGet([],'Paid deals cannot be canceled');
         }
         $errors = '';
-        $cancel = \Modules\IPay88\Lib\IPay88::create()->cancel('deals',$deals_user,$errors);
+        $cancel = \Modules\IPay88\Lib\IPay88::create()->cancel('deals',$deals_user,$errors, $request->last_url);
         if($cancel){
             return ['status'=>'success'];
         }
@@ -90,8 +90,8 @@ class ApiDealsClaimPay extends Controller
         if(isset($request->user()->email_verified) && $request->user()->email_verified != '1'){
             return response()->json([
                 'status'    => 'fail',
-                'message_verfiy_email'=> 'Sorry your email not verified. Please verify your email.',
-                'messages'  => ['Sorry your email not verified. Please verify your email.']
+                'message_verfiy_email'=> 'Sorry your email has not yet been verified. Please verify your email.',
+                'messages'  => ['Sorry your email has not yet been verified. Please verify your email.']
             ]);
         }
         if (empty($dataDeals)) {
@@ -1031,7 +1031,13 @@ class ApiDealsClaimPay extends Controller
                     }elseif($paymentMethod == 'cimb'){
                         return $this->cimb($deals, $voucher, -$kurangBayar);
                     }elseif($paymentMethod == 'ipay88'){
-                        return $this->ipay88($deals, $voucher, -$kurangBayar,$post);
+                        $pay = $this->ipay88($deals, $voucher, -$kurangBayar,$post);
+                        $ipay88 = [
+                            'MERCHANT_TRANID'   => $pay['order_id'],
+                            'AMOUNT'            => $pay['amount'],
+                            'payment'           => 'ipay88'
+                        ];
+                        return $ipay88;
                     }elseif($paymentMethod == 'shopeepay'){
                         return $this->shopeepay($deals, $voucher, -$kurangBayar,$post);
                     }
