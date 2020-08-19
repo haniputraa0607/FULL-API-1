@@ -237,7 +237,7 @@ class ApiCustomPageController extends Controller
 
         if (isset($post['id_custom_page'])) {
             try {
-                $updateCustomPage = CustomPage::where('id_custom_page', $post['id_custom_page'])->update($data);
+                $updateCustomPage = CustomPage::where('id_custom_page', $post['id_custom_page'])->updateWithUserstamps($data);
             } catch (\Exception $e) {
                 $result = [
                     'status'  => 'fail',
@@ -252,7 +252,7 @@ class ApiCustomPageController extends Controller
                     if (!is_int($value)) {
                         CustomPageImage::create(['id_custom_page' => $post['id_custom_page'], 'custom_page_image' => $value, 'image_order' => $key + 1]);
                     } else {
-                        CustomPageImage::where('id_custom_page_image', $value)->update(['image_order' => $key + 1]);
+                        CustomPageImage::where('id_custom_page_image', $value)->updateWithUserstamps(['image_order' => $key + 1]);
                     }
                 }
             }
