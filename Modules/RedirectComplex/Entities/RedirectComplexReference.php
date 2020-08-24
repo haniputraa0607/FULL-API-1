@@ -70,7 +70,7 @@ class RedirectComplexReference extends Eloquent
 		return $this->belongsToMany(\App\Http\Models\Product::class, 'redirect_complex_products', 'id_redirect_complex_reference', 'id_product')
 					->select('product_categories.*','products.*')
 					->leftJoin('product_categories', 'product_categories.id_product_category', '=', 'products.id_product_category')
-					->withPivot('id_redirect_complex_product', 'qty')
+					->withPivot('id_redirect_complex_product', 'qty', 'id_brand')
 					->withTimestamps();
 	}
 

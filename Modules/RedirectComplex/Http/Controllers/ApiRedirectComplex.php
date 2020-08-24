@@ -8,6 +8,7 @@ use Illuminate\Routing\Controller;
 use Modules\RedirectComplex\Entities\RedirectComplexReference;
 use Modules\RedirectComplex\Entities\RedirectComplexProduct;
 use Modules\RedirectComplex\Entities\RedirectComplexOutlet;
+use Modules\RedirectComplex\Entities\RedirectComplexBrand;
 
 use Modules\PromoCampaign\Entities\PromoCampaignPromoCode;
 
@@ -72,13 +73,18 @@ class ApiRedirectComplex extends Controller
 	    	$save_reference = RedirectComplexReference::create($reference);
 	    	if(!$save_reference) break;
 
-	    	if ($request->outlet  && $request->outlet_type == 'specific') {
-				$save_outlet 	= $this->saveOutlet($request->outlet, $save_reference->id_redirect_complex_reference);
-	    		if(!$save_outlet) break;
-
+	    	if ($request->brand) {
+				$save_brand = $this->saveBrand($request->brand, $save_reference->id_redirect_complex_reference);
+	    		if(!$save_brand) break;
 	    	}
+
+	    	if ($request->outlet  && $request->outlet_type == 'specific') {
+				$save_outlet = $this->saveOutlet($request->outlet, $save_reference->id_redirect_complex_reference);
+	    		if(!$save_outlet) break;
+	    	}
+
 	    	if ($request->product) {
-				$save_product 	= $this->saveProduct($request->product, $save_reference->id_redirect_complex_reference);
+				$save_product = $this->saveProduct($request->product, $save_reference->id_redirect_complex_reference);
 	    		if(!$save_product) break;
 	    	}
     		
@@ -87,6 +93,24 @@ class ApiRedirectComplex extends Controller
     	} while (0);
 
         return MyHelper::checkCreate($status);
+    }
+
+    function saveBrand($brand=[], $id)
+    {
+    	$now = date("Y-m-d H:i:s");
+    	$data = [];
+    	foreach ($brand as $key => $value) {
+    		$data[] = [
+    			'id_redirect_complex_reference' => $id,
+				'id_brand' 		=> $value,
+				'created_at' 	=> $now,
+				'updated_at'	=> $now
+    		];
+    	}
+
+    	$save = RedirectComplexBrand::insert($data);
+
+    	return $save;
     }
 
     function saveOutlet($outlet=[], $id)
@@ -112,12 +136,16 @@ class ApiRedirectComplex extends Controller
     	$now = date("Y-m-d H:i:s");
     	$data = [];
     	foreach ($product as $key => $value) {
+    		$explode = explode('-', $value['id']);
+    		$id_brand = $explode[0];
+    		$id_product = $explode[1];
     		$data[] = [
     			'id_redirect_complex_reference' => $id,
-				'id_product' 	=> $value['id'],
-				'qty' 			=> $value['qty'],
-				'created_at' 	=> $now,
-				'updated_at'	=> $now
+				'id_brand' 						=> $id_brand,
+				'id_product' 					=> $id_product,
+				'qty' 							=> $value['qty'],
+				'created_at' 					=> $now,
+				'updated_at'					=> $now
     		];
     	}
 
@@ -135,6 +163,9 @@ class ApiRedirectComplex extends Controller
     				},
     				'products' => function($q) {
     					$q->select('products.id_product', 'product_code', 'product_name');
+    				},
+    				'brands' => function($q) {
+    					$q->select('brands.id_brand', 'code_brand', 'name_brand');
     				}
     			])
     			->first();
@@ -146,7 +177,7 @@ class ApiRedirectComplex extends Controller
     public function update(UpdateRequest $request)
     {
     	$post 		= $request->json()->all();
-    	$status		= true;
+    	$status		= false;
     	$reference 	= [
 			'name'				=> $request->name,
 			'outlet_type'		=> $request->outlet_type,
@@ -159,23 +190,27 @@ class ApiRedirectComplex extends Controller
     	try {
     		do {
 	    		$delete = $this->deleteRule($request->id_redirect_complex_reference);
-	    		if (!$delete) {
-	    			return $delete;
-	    			$status = false; 
-	    			break;
-	    		}
+	    		if(!$delete) break;
 
 	    		$save_reference = RedirectComplexReference::where('id_redirect_complex_reference', $request->id_redirect_complex_reference)->update($reference);
 
+	    		if ($request->brand) {
+					$save_brand 	= $this->saveBrand($request->brand, $request->id_redirect_complex_reference);
+		    		if(!$save_brand) break;
+		    	}
+
 		    	if ($request->outlet && $request->outlet_type == 'specific') {
 					$save_outlet 	= $this->saveOutlet($request->outlet, $request->id_redirect_complex_reference);
-
+					if(!$save_outlet) break;
 		    	}
+
 		    	if ($request->product) {
 					$save_product 	= $this->saveProduct($request->product, $request->id_redirect_complex_reference);
+					if(!$save_product) break;
 		    	}
 
 	    		DB::commit();
+		    	$status = true;
     		} while (0);
     	} 
     	catch (Exception $e) {
@@ -191,6 +226,7 @@ class ApiRedirectComplex extends Controller
     	try {
 	    	$del = RedirectComplexProduct::where('id_redirect_complex_reference', $id)->delete();
 	    	$del = RedirectComplexOutlet::where('id_redirect_complex_reference', $id)->delete();
+	    	$del = RedirectComplexBrand::where('id_redirect_complex_reference', $id)->delete();
     		
     		return true;
     	} 
@@ -236,7 +272,6 @@ class ApiRedirectComplex extends Controller
 	    				},
 	    				'products' => function($q) {
 	    					$q->with(['brands', 'product_variants']);
-	    					// $q->select('products.id_product', 'product_code', 'product_name');
 	    				}
 	    			])
 					->first();
@@ -268,7 +303,14 @@ class ApiRedirectComplex extends Controller
 							return $request->user();
 						});
 
-		return app($this->online_transaction)->checkTransaction($custom_request);
+		$online_trx =  app($this->online_transaction)->checkTransaction($custom_request);
+
+		if ($online_trx['promo_error']) {
+			$online_trx['promo_error'] = null;
+			$online_trx['promo'] = null;
+		}
+		
+		return $online_trx;
     }
 
     function getOutlet($latitude, $longitude, $outlet_list=[], $outlet_type=null) {
@@ -328,18 +370,22 @@ class ApiRedirectComplex extends Controller
 	    	}
         }
 
-        return ['status' => 'success', 'id_outlet' => $id_outlet];
+        if (!isset($id_outlet)) {
+        	return ['status' => 'fail', 'messages' => ['Outlet not found']];
+        }
+        else {
+        	return ['status' => 'success', 'id_outlet' => $id_outlet];
+        }
     }
 
     function getProduct($products)
     {
     	$data =[];
-    	$brand = Brand::select('id_brand')->first();
     	foreach ($products as $value) {
     		$temp = [
 				"id_product_group" => $value['id_product_group'],
 		    	"bonus"		=> 0,
-				"id_brand"	=> $value['brands'][0]['id_brand']??$brand['id_brand'],
+				"id_brand"	=> $value['pivot']['id_brand'],
 				"modifiers"	=> [],
 				"note"		=> "",
 				"qty"		=> $value['pivot']['qty'],
@@ -392,7 +438,7 @@ class ApiRedirectComplex extends Controller
 		        }
 		        else
 		        {
-		            $data = Product::select('products.id_product', DB::raw('CONCAT(name_brand, " - ", product_code, " - ", product_name) AS product'))
+		            $data = Product::select('products.id_product', 'brands.id_brand' ,DB::raw('CONCAT(name_brand, " - ", product_code, " - ", product_name) AS product'),DB::raw('CONCAT(products.id_product, ".", brands.id_brand) AS id_product'))
 		            		->whereHas('product_group', function($q) {
 		            			$q->whereNotNull('id_product_category');
 		            		})
@@ -402,9 +448,7 @@ class ApiRedirectComplex extends Controller
 		            		->orderBy('brands.id_brand');
 
 			        if (!empty($post['brand'])) {
-		            	$data = $data->whereHas('brands',function($query) use ($post){
-		                    $query->whereIn('brands.id_brand',$post['brand']);
-		                });
+		                $data = $data->whereIn('brands.id_brand',$post['brand']);
 		            }
 
 		            $data = $data->get()->toArray();
