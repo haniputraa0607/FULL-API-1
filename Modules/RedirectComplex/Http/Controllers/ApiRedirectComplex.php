@@ -5,25 +5,31 @@ namespace Modules\RedirectComplex\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
+
 use Modules\RedirectComplex\Entities\RedirectComplexReference;
 use Modules\RedirectComplex\Entities\RedirectComplexProduct;
 use Modules\RedirectComplex\Entities\RedirectComplexOutlet;
 use Modules\RedirectComplex\Entities\RedirectComplexBrand;
-
-use Modules\PromoCampaign\Entities\PromoCampaignPromoCode;
 
 use Modules\RedirectComplex\Http\Requests\CreateRequest;
 use Modules\RedirectComplex\Http\Requests\EditRequest;
 use Modules\RedirectComplex\Http\Requests\UpdateRequest;
 use Modules\RedirectComplex\Http\Requests\DeleteRequest;
 use Modules\RedirectComplex\Http\Requests\DetailRequest;
+
 use Modules\PromoCampaign\Entities\PromoCampaign;
+use Modules\PromoCampaign\Entities\PromoCampaignPromoCode;
+
 use Modules\ProductVariant\Entities\ProductGroup;
 use Modules\ProductVariant\Entities\ProductVariant;
+
 use App\Http\Models\Outlet;
 use App\Http\Models\Setting;
 use App\Http\Models\Product;
+
 use Modules\Brand\Entities\Brand;
+
 use App\Lib\MyHelper;
 use DB;
 
@@ -104,7 +110,9 @@ class ApiRedirectComplex extends Controller
     			'id_redirect_complex_reference' => $id,
 				'id_brand' 		=> $value,
 				'created_at' 	=> $now,
-				'updated_at'	=> $now
+				'updated_at'	=> $now,
+                'created_by'   	=> Auth::id(),
+            	'updated_by'    => Auth::id()
     		];
     	}
 
@@ -122,7 +130,9 @@ class ApiRedirectComplex extends Controller
     			'id_redirect_complex_reference' => $id,
 				'id_outlet' 	=> $value,
 				'created_at' 	=> $now,
-				'updated_at'	=> $now
+				'updated_at'	=> $now,
+                'created_by'   	=> Auth::id(),
+            	'updated_by'    => Auth::id()
     		];
     	}
 
@@ -145,7 +155,9 @@ class ApiRedirectComplex extends Controller
 				'id_product' 					=> $id_product,
 				'qty' 							=> $value['qty'],
 				'created_at' 					=> $now,
-				'updated_at'					=> $now
+				'updated_at'					=> $now,
+                'created_by'   					=> Auth::id(),
+            	'updated_by'    				=> Auth::id()
     		];
     	}
 
@@ -192,7 +204,7 @@ class ApiRedirectComplex extends Controller
 	    		$delete = $this->deleteRule($request->id_redirect_complex_reference);
 	    		if(!$delete) break;
 
-	    		$save_reference = RedirectComplexReference::where('id_redirect_complex_reference', $request->id_redirect_complex_reference)->update($reference);
+	    		$save_reference = RedirectComplexReference::where('id_redirect_complex_reference', $request->id_redirect_complex_reference)->updateWithUserstamps($reference);
 
 	    		if ($request->brand) {
 					$save_brand 	= $this->saveBrand($request->brand, $request->id_redirect_complex_reference);
@@ -309,7 +321,7 @@ class ApiRedirectComplex extends Controller
 			$online_trx['promo_error'] = null;
 			$online_trx['promo'] = null;
 		}
-		
+
 		return $online_trx;
     }
 
