@@ -8,7 +8,7 @@
 namespace Modules\RedirectComplex\Entities;
 
 use Reliese\Database\Eloquent\Model as Eloquent;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class RedirectComplexProduct
  * 
@@ -26,6 +26,7 @@ use Reliese\Database\Eloquent\Model as Eloquent;
  */
 class RedirectComplexProduct extends Eloquent
 {
+	use Userstamps;
 	protected $primaryKey = 'id_redirect_complex_product';
 
 	protected $casts = [
