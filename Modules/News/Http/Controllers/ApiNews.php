@@ -371,7 +371,7 @@ class ApiNews extends Controller
                     $data['news_expired_date']=null;
                 }
                 $save = News::where('id_news', $request->json('id_news'))->first();
-                $save->updateWithUserstamps($data);
+                $save->update($data);
 
                 // jika ada upload file
                 if (isset($data['news_image_luar'])) {

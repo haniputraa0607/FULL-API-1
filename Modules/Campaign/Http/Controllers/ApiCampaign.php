@@ -5,6 +5,7 @@ namespace Modules\Campaign\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 
 use App\Http\Models\User;
 use App\Http\Models\UserInbox;
@@ -488,6 +489,8 @@ class ApiCampaign extends Controller
 		if($campaign['campaign_media_inbox'] == "Yes"){
 			$receipient_inbox = explode(',', str_replace(' ', ',', str_replace(';', ',', $campaign['campaign_inbox_receipient'])));
 
+			$campaign['created_by'] = Auth::id();
+			$campaign['updated_by'] = Auth::id();
 			$data['campaign'] = $campaign;
 			$data['type'] = 'inbox';
 			foreach (array_chunk($receipient_inbox,10) as $recipients) {
