@@ -167,7 +167,7 @@ class ApiProductModifierController extends Controller
             'text'=>$post['text'],
             'product_modifier_visibility'=>($post['product_modifier_visibility']??false)?'Visible':'Hidden',
         ];
-        $update = $product_modifier->updateWithUserstamps($data);
+        $update = $product_modifier->update($data);
         if(!$update){
             DB::rollBack();
             return MyHelper::checkUpdate($update);
