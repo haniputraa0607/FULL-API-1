@@ -826,7 +826,7 @@ class ApiPromoCampaign extends Controller
                 }
 
                 $promoCampaign = PromoCampaign::where('id_promo_campaign', '=', $post['id_promo_campaign'])->first();
-                $promoCampaignUpdate = $promoCampaign->updateWithUserstamps($post);
+                $promoCampaignUpdate = $promoCampaign->update($post);
                 $generateCode = $this->generateCode('update', $post['id_promo_campaign'], $post['code_type'], $promo_code, $post['prefix_code'], $post['number_last_code'], $post['total_coupon']);
 
 

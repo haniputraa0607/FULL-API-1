@@ -649,7 +649,7 @@ class ApiCategoryController extends Controller
         }
         // update position
         foreach ($post['category_ids'] as $key => $category_id) {
-            $update = ProductCategory::find($category_id)->updateWithUserstamps(['product_category_order'=>$key+1]);
+            $update = ProductCategory::find($category_id)->update(['product_category_order'=>$key+1]);
         }
 
         return ['status' => 'success'];

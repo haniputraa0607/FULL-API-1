@@ -363,7 +363,7 @@ class ApiProductGroupController extends Controller
                 if(count($pv[0]->product_variants) == 2){
                     // delete record
                     ProductProductVariant::where('id_product',$pv[0]->id_product)->delete();
-                    $pv[0]->updateWithUserstamps(['id_product_group'=>null]);
+                    $pv[0]->update(['id_product_group'=>null]);
                     $append = ['switch'=>true];
                 }
             }
@@ -390,7 +390,7 @@ class ApiProductGroupController extends Controller
                 if($p['product_variants'][1]['product_variant_code']??'general' != 'general'){
                     $new_name.=' '.$p['product_variants'][1]['product_variant_code'];
                 }
-                $product->updateWithUserstamps(['product_name'=>$new_name]);
+                $product->update(['product_name'=>$new_name]);
             }
         }
         \DB::commit();
@@ -1012,7 +1012,7 @@ class ApiProductGroupController extends Controller
                                     if($p['product_variants'][1]['product_variant_code']??'general' != 'general'){
                                         $new_name.=' '.$p['product_variants'][1]['product_variant_code'];
                                     }
-                                    $product->updateWithUserstamps(['product_name'=>$new_name]);
+                                    $product->update(['product_name'=>$new_name]);
                                 }
                             }
                         }else{
@@ -1088,7 +1088,7 @@ class ApiProductGroupController extends Controller
                                 if($p['product_variants'][1]['product_variant_code']??'general' != 'general'){
                                     $new_name.=' '.$p['product_variants'][1]['product_variant_code'];
                                 }
-                                $product->updateWithUserstamps(['product_name'=>$new_name]);
+                                $product->update(['product_name'=>$new_name]);
                             }
                         }
                     }else{
