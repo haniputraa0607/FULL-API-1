@@ -1273,7 +1273,7 @@ class ApiOnlineTransaction extends Controller
             }
         }
 
-        if (isset($post['payment_type'])) {
+        if (isset($post['payment_type']) || $insertTransaction['transaction_grandtotal'] == 0) {
 
             if ($post['payment_type'] == 'Balance'  || $insertTransaction['transaction_grandtotal'] == 0) {
 
@@ -1398,6 +1398,12 @@ class ApiOnlineTransaction extends Controller
                     }
 
                     DB::commit();
+
+                    //remove for result
+                    unset($insertTransaction['user']);
+                    unset($insertTransaction['outlet']);
+                    unset($insertTransaction['product_transaction']);
+
                     return response()->json([
                         'status'     => 'success',
                         'redirect'   => false,

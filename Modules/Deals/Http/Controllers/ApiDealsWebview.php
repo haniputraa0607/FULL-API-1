@@ -87,14 +87,14 @@ class ApiDealsWebview extends Controller
         elseif($deals['deals_voucher_price_type']=='point')
         {
             $deals['button_text'] = 'Claim';
-            $payment_message = Setting::where('key', 'payment_messages_point')->pluck('value_text')->first()??'Are you going to exchange your %points% for a % deals_title%?';
-            $payment_message = MyHelper::simpleReplace($payment_message,['point'=>$deals['deals_voucher_price_point'],'deals_title'=>$deals['deals_title']]);
+            $payment_message = Setting::where('key', 'payment_messages_point')->pluck('value_text')->first()??'Are you going to exchange your %point% for a %deals_title%?';
+            $payment_message = MyHelper::simpleReplace($payment_message,['point'=>$deals['deals_voucher_price_pretty'],'deals_title'=>$deals['deals_title']]);
         }
         else
         {
             $deals['button_text'] = 'Buy';
-            $payment_message = Setting::where('key', 'payment_messages_cash')->pluck('value_text')->first()??'Will you buy a %deals_title% at a price of %cash%?';
-            $payment_message = MyHelper::simpleReplace($payment_message,['cash'=>$deals['deals_voucher_price_cash'],'deals_title'=>$deals['deals_title']]);
+            $payment_message = Setting::where('key', 'payment_messages_cash')->pluck('value_text')->first()??'Will you buy one %deals_title% at a price of %cash%?';
+            $payment_message = MyHelper::simpleReplace($payment_message,['cash'=>$deals['deals_voucher_price_pretty'],'deals_title'=>$deals['deals_title']]);
         }
 
         $payment_success_message = Setting::where('key', 'payment_success_messages')->pluck('value_text')->first()??'Do you want to use this voucher now?';

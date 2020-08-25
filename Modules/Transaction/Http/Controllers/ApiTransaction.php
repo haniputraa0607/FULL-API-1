@@ -1847,7 +1847,7 @@ class ApiTransaction extends Controller
                 }
             }
 
-            $discount = $list['transaction_discount'];
+            $discount = abs($list['transaction_discount']);
             $quantity = 0;
             foreach ($list['product_transaction'] as $keyTrx => $valueTrx) {
                 $quantity = $quantity + $valueTrx['transaction_product_qty'];
@@ -1857,7 +1857,7 @@ class ApiTransaction extends Controller
                 $result['product_transaction'][$keyTrx]['transaction_modifier_subtotal']        = MyHelper::requestNumber($valueTrx['transaction_modifier_subtotal'],'_CURRENCY');
                 $result['product_transaction'][$keyTrx]['transaction_product_note']             = $valueTrx['transaction_product_note'];
                 $result['product_transaction'][$keyTrx]['product']['product_name']              = $valueTrx['product']['product_group']['product_group_name'];
-                $discount = $discount + $valueTrx['transaction_product_discount'];
+                // $discount = $discount + $valueTrx['transaction_product_discount'];
                 if(isset($valueTrx['product']['product_variants'])){
                     foreach ($valueTrx['product']['product_variants'] as $keyVar => $valueVar) {
                         $result['product_transaction'][$keyTrx]['product']['product_variants'][$keyVar]['product_variant_name']     = $valueVar['product_variant_name'];
