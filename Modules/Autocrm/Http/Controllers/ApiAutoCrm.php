@@ -430,6 +430,12 @@ class ApiAutoCrm extends Controller
                             } else {
                                 $dataOptional['id_reference'] = 0;
                             }
+                        }elseif ($crm['autocrm_push_clickto'] == 'Transaction Detail') {
+                            if (isset($variables['id_transaction'])) {
+                                $dataOptional['id_reference'] = $variables['id_transaction'];
+                            } else {
+                                $dataOptional['id_reference'] = 0;
+                            }
                         }elseif ($crm['autocrm_push_clickto'] == 'History Point') {
                             if (isset($variables['id_log_balance'])) {
                                 $dataOptional['id_reference'] = $variables['id_log_balance'];
@@ -549,7 +555,13 @@ class ApiAutoCrm extends Controller
                         } else {
                             $inbox['inboxes_id_reference'] = 0;
                         }
-                    } elseif ($crm['autocrm_inbox_clickto'] == 'History Point') {
+                    } elseif ($crm['autocrm_inbox_clickto'] == 'Transaction Detail') {
+                        if (isset($variables['id_transaction'])) {
+                            $inbox['inboxes_id_reference'] = $variables['id_transaction'];
+                        } else {
+                            $inbox['inboxes_id_reference'] = 0;
+                        }
+                    }elseif ($crm['autocrm_inbox_clickto'] == 'History Point') {
                         if (isset($variables['id_log_balance'])) {
                             $inbox['inboxes_id_reference'] = $variables['id_log_balance'];
                         } else {
