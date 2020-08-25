@@ -3,11 +3,9 @@
 namespace Modules\UserRating\Entities;
 
 use Illuminate\Database\Eloquent\Model;
-use Wildside\Userstamps\Userstamps;
 
 class UserRating extends Model
 {
-	use Userstamps;
     protected $primaryKey = 'id_user_rating';
     protected $fillable = ['id_user','id_transaction','option_question','rating_value','suggestion','option_value'];
     public function transaction() {
