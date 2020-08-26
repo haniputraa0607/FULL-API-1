@@ -2099,8 +2099,15 @@ class ApiPromoCampaign extends Controller
         		$discount = 'Rp '.number_format($query[$source.'_product_discount_rules']['discount_value']??0);
         	}
 
-			$key_null = 'Anda berhak mendapatkan potongan %discount% untuk pembelian %product%. Maksimal %qty% buah untuk setiap produk.';
-			$desc = Setting::where('key', '=', 'description_product_discount')->first()['value']??$key_null;
+        	if ( empty($qty) ) {
+    			$key = 'description_product_discount_no_qty';
+				$key_null = 'Anda berhak mendapatkan potongan %discount% untuk pembelian %product%';
+        	}else{
+        		$key = 'description_product_discount';
+				$key_null = 'Anda berhak mendapatkan potongan %discount% untuk pembelian %product%. Maksimal %qty% buah untuk setiap produk.';
+			}
+
+			$desc = Setting::where('key', '=', $key)->first()['value']??$key_null;
 
 			$desc = MyHelper::simpleReplace($desc,['discount'=>$discount, 'product'=>$product, 'qty'=>$qty]);
     	}
