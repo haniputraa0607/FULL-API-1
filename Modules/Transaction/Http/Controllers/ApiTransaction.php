@@ -1597,7 +1597,8 @@ class ApiTransaction extends Controller
                                     break;
                                 case 'IPay88':
                                     $PayIpay = TransactionPaymentIpay88::find($mp['id_payment']);
-                                    $payment['name']    = $PayIpay->payment_method;
+                                    // $payment['name']    = $PayIpay->payment_method;
+                                    $payment['name']    = "CREDIT/DEBIT CARD";
                                     $payment['amount']  = $PayIpay->amount / 100;
                                     $payment['reject']  = $PayIpay->err_desc;
                                     $list['payment'][]  = $payment;
@@ -1689,7 +1690,8 @@ class ApiTransaction extends Controller
                     foreach($multiPayment as $dataKey => $dataPay){
                         if($dataPay['type'] == 'IPay88'){
                             $PayIpay = TransactionPaymentIpay88::find($dataPay['id_payment']);
-                            $payment[$dataKey]['name']      = $PayIpay->payment_method;
+                            // $payment[$dataKey]['name']      = $PayIpay->payment_method;
+                            $payment[$dataKey]['name']      = "CREDIT/DEBIT CARD";
                             $payment[$dataKey]['amount']    = $PayIpay->amount / 100;
                             $payment[$dataKey]['reject']    = $PayIpay->err_desc;
                         }else{
