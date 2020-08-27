@@ -10,11 +10,12 @@ namespace App\Http\Models;
 use Laravel\Passport\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Wildside\Userstamps\Userstamps;
 
 class User extends Authenticatable
 {
 	protected $connection = 'mysql';
-    use HasApiTokens, Notifiable;
+    use HasApiTokens, Notifiable, Userstamps;
 	
 	public function findForPassport($username) {
 		if(substr($username, 0, 2) == '62'){

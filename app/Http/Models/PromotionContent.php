@@ -8,9 +8,11 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class PromotionContent extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_promotion_content';
 
 	protected $casts = [

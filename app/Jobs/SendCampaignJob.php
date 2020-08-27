@@ -402,6 +402,8 @@ class SendCampaignJob implements ShouldQueue
                     $inbox['inboxes_send_at'] = date("Y-m-d H:i:s");
                     $inbox['created_at'] = date("Y-m-d H:i:s");
                     $inbox['updated_at'] = date("Y-m-d H:i:s");
+                    $inbox['created_by']  = $campaign['created_by'];
+                    $inbox['updated_by']  = $campaign['updated_by'];
 
                     $inboxQuery = UserInbox::insert($inbox);
                 }

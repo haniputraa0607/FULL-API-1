@@ -1619,10 +1619,6 @@ class ApiTransaction extends Controller
                                     }
                                     break;
                                 default:
-                                    $list['payment'][] = [
-                                        'name'      => null,
-                                        'amount'    => null
-                                    ];
                                     break;
                             }
                         }
@@ -1735,10 +1731,6 @@ class ApiTransaction extends Controller
                     }
                     break;
                 default:
-                    $list['payment'][] = [
-                        'name'      => null,
-                        'amount'    => null
-                    ];
                     break;
             }
 
@@ -1847,7 +1839,7 @@ class ApiTransaction extends Controller
                 }
             }
 
-            $discount = $list['transaction_discount'];
+            $discount = abs($list['transaction_discount']);
             $quantity = 0;
             foreach ($list['product_transaction'] as $keyTrx => $valueTrx) {
                 $quantity = $quantity + $valueTrx['transaction_product_qty'];
@@ -1857,7 +1849,7 @@ class ApiTransaction extends Controller
                 $result['product_transaction'][$keyTrx]['transaction_modifier_subtotal']        = MyHelper::requestNumber($valueTrx['transaction_modifier_subtotal'],'_CURRENCY');
                 $result['product_transaction'][$keyTrx]['transaction_product_note']             = $valueTrx['transaction_product_note'];
                 $result['product_transaction'][$keyTrx]['product']['product_name']              = $valueTrx['product']['product_group']['product_group_name'];
-                $discount = $discount + $valueTrx['transaction_product_discount'];
+                // $discount = $discount + $valueTrx['transaction_product_discount'];
                 if(isset($valueTrx['product']['product_variants'])){
                     foreach ($valueTrx['product']['product_variants'] as $keyVar => $valueVar) {
                         $result['product_transaction'][$keyTrx]['product']['product_variants'][$keyVar]['product_variant_name']     = $valueVar['product_variant_name'];
@@ -1957,18 +1949,22 @@ class ApiTransaction extends Controller
                 ];
             }
 
-            foreach ($list['payment'] as $key => $value) {
-                if ($value['name'] == 'Balance') {
-                    $result['transaction_payment'][$key] = [
-                        'name'      => (env('POINT_NAME')) ? env('POINT_NAME') : $value['name'],
-                        'is_balance'=> 1,
-                        'amount'    => MyHelper::requestNumber($value['amount'],'_POINT')
-                    ];
-                } else {
-                    $result['transaction_payment'][$key] = [
-                        'name'      => $value['name'],
-                        'amount'    => MyHelper::requestNumber($value['amount'],'_CURRENCY')
-                    ];
+            if(!isset($list['payment'])){
+                $result['transaction_payment'] = [];
+            }else{
+                foreach ($list['payment'] as $key => $value) {
+                    if ($value['name'] == 'Balance') {
+                        $result['transaction_payment'][$key] = [
+                            'name'      => (env('POINT_NAME')) ? env('POINT_NAME') : $value['name'],
+                            'is_balance'=> 1,
+                            'amount'    => MyHelper::requestNumber($value['amount'],'_POINT')
+                        ];
+                    } else {
+                        $result['transaction_payment'][$key] = [
+                            'name'      => $value['name'],
+                            'amount'    => MyHelper::requestNumber($value['amount'],'_CURRENCY')
+                        ];
+                    }
                 }
             }
 

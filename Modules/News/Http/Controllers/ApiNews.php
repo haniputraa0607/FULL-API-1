@@ -478,6 +478,8 @@ class ApiNews extends Controller
     function createRelation(CreateRelation $request) {
 
         $data['id_news'] = $request->json('id_news');
+        $data['created_by'] = Auth::id();
+        $data['updated_by'] = Auth::id();
 
         switch ($request->json('type')) {
             case 'outlet' :

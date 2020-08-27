@@ -3,9 +3,11 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class OutletSchedule extends Model
 {
+	use Userstamps;
     protected $primaryKey = 'id_outlet_schedule';
 
     protected $fillable = [

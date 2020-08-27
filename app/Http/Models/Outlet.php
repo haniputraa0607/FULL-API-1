@@ -12,6 +12,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use SMartins\PassportMultiauth\HasMultiAuthApiTokens;
 use Hash;
 use Modules\Outlet\Entities\OutletOvo;
+use Wildside\Userstamps\Userstamps;
 
 /**
  * Class Outlet
@@ -43,7 +44,7 @@ use Modules\Outlet\Entities\OutletOvo;
  */
 class Outlet extends Authenticatable
 {
-	use Notifiable, HasMultiAuthApiTokens;
+	use Notifiable, HasMultiAuthApiTokens, Userstamps;
 
 	public function findForPassport($username) {
         return $this->where('outlet_code', $username)->first();

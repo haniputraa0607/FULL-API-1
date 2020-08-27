@@ -249,7 +249,7 @@ class ApiReferralController extends Controller
         ];
         \DB::beginTransaction();
         $update = $referral->update($dataPromoCampaignReferral);
-        $update2 = PromoCampaign::where('id_promo_campaign',$referral->id_promo_campaign)->update($dataPromoCampaign);
+        $update2 = PromoCampaign::where('id_promo_campaign',$referral->id_promo_campaign)->updateWithUserstamps($dataPromoCampaign);
         if(!$update || !$update2){
             \DB::rollback();
             return MyHelper::checkUpdate([]);

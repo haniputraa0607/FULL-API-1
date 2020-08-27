@@ -5,6 +5,7 @@ namespace Modules\ProductVariant\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 
 use Modules\Product\Entities\ProductPromoCategory;
 use Modules\ProductVariant\Entities\ProductGroup;
@@ -208,14 +209,16 @@ class ApiProductGroupController extends Controller
             ];
             $insertData[] = [
                 'id_product'=>$id_product,
-                'id_product_variant'=>$variant2->id_product_variant
+                'id_product_variant'=>$variant2->id_product_variant,
+                'created_by'    => Auth::id(),
+        		'updated_by'    => Auth::id()
             ];
             $insert = ProductProductVariant::insert($insertData);
             if(!$insert){
                 \DB::rollBack();
                 return MyHelper::checkCreate($insert);
             }
-            $update = Product::where('id_product',$id_product)->update(['id_product_group'=>$create['id_product_group']]);
+            $update = Product::where('id_product',$id_product)->updateWithUserstamps(['id_product_group'=>$create['id_product_group']]);
             if(!$update){
                 \DB::rollBack();
                 return MyHelper::checkUpdate($update);
@@ -307,7 +310,7 @@ class ApiProductGroupController extends Controller
         $append = [];
         if($update && $request->json('variant_type') == 'single'){
             $id_product = $post['id_product'];
-            Product::where('id_product_group',$pg->id_product_group)->update(['id_product_group'=>null]);
+            Product::where('id_product_group',$pg->id_product_group)->updateWithUserstamps(['id_product_group'=>null]);
             ProductProductVariant::where('id_product',$id_product)->delete();
             $variant1 = ProductVariant::where('product_variant_code','general_type')->first();
             if(!$variant1){
@@ -336,14 +339,16 @@ class ApiProductGroupController extends Controller
             ];
             $insertData[] = [
                 'id_product'=>$id_product,
-                'id_product_variant'=>$variant2->id_product_variant
+                'id_product_variant'=>$variant2->id_product_variant,
+                'created_by'    => Auth::id(),
+        		'updated_by'    => Auth::id()
             ];
             $insert = ProductProductVariant::insert($insertData);
             if(!$insert){
                 \DB::rollBack();
                 return MyHelper::checkCreate($insert);
             }
-            $update = Product::where('id_product',$id_product)->update(['id_product_group'=>$pg->id_product_group]);
+            $update = Product::where('id_product',$id_product)->updateWithUserstamps(['id_product_group'=>$pg->id_product_group]);
             if(!$update){
                 \DB::rollBack();
                 return MyHelper::checkUpdate($update);
@@ -395,7 +400,7 @@ class ApiProductGroupController extends Controller
     public function reorder(Request $request) {
         $post = $request->json()->all();
         foreach ($post['id_product_group']??[] as $key => $id_product_group) {
-            $update = ProductGroup::where('id_product_group',$id_product_group)->update(['product_group_position'=>$key+1]);
+            $update = ProductGroup::where('id_product_group',$id_product_group)->updateWithUserstamps(['product_group_position'=>$key+1]);
         }
         return MyHelper::checkUpdate(1);
     }
@@ -440,11 +445,15 @@ class ApiProductGroupController extends Controller
                 $insertData = [];
                 $insertData[] = [
                     'id_product'=>$id_product,
-                    'id_product_variant'=>$id_variant1
+                    'id_product_variant'=>$id_variant1,
+                    'created_by'    => Auth::id(),
+            		'updated_by'    => Auth::id()
                 ];
                 $insertData[] = [
                     'id_product'=>$id_product,
-                    'id_product_variant'=>$id_variant2
+                    'id_product_variant'=>$id_variant2,
+                    'created_by'    => Auth::id(),
+            		'updated_by'    => Auth::id()
                 ];
                 $insert = ProductProductVariant::insert($insertData);
                 $updatex[] = $insertData;
@@ -454,8 +463,8 @@ class ApiProductGroupController extends Controller
                 }
             }
         }
-        $update = Product::where('id_product_group',$id_product_group)->update(['id_product_group'=>null]);
-        $update = Product::whereIn('id_product',$id_products)->update(['id_product_group'=>$id_product_group]);
+        $update = Product::where('id_product_group',$id_product_group)->updateWithUserstamps(['id_product_group'=>null]);
+        $update = Product::whereIn('id_product',$id_products)->updateWithUserstamps(['id_product_group'=>$id_product_group]);
         if(!$update){
             \DB::rollBack();
             return MyHelper::checkUpdate($update);
@@ -1172,7 +1181,7 @@ class ApiProductGroupController extends Controller
         $post = $request->post();
         $update = false;
         foreach ($post['id_product_category']??[] as $id_product_group => $id_product_category) {
-            $update = ProductGroup::where('id_product_group',$id_product_group)->update(['id_product_category'=>$id_product_category?:null]);
+            $update = ProductGroup::where('id_product_group',$id_product_group)->updateWithUserstamps(['id_product_category'=>$id_product_category?:null]);
         }
         return MyHelper::checkUpdate($update);
     }

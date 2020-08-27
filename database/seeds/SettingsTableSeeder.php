@@ -703,6 +703,15 @@ class SettingsTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
+            91 =>
+                array(
+                    'id_setting' => 93,
+                    'key' => 'description_product_discount_no_qty',
+                    'value' => 'Anda berhak mendapatkan potongan %discount% untuk pembelian %product%.',
+                    'value_text' => null,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
         ));
     }
 }

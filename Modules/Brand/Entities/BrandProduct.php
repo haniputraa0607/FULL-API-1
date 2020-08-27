@@ -3,9 +3,11 @@
 namespace Modules\Brand\Entities;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 class BrandProduct extends Model
 {
+	use Userstamps;
     protected $table = 'brand_product';
 
     protected $primaryKey = 'id_brand_product';

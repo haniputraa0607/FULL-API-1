@@ -8,7 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class DealsVoucher
  *
@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class DealsVoucher extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_deals_voucher';
 
 	protected $casts = [

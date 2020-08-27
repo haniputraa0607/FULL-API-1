@@ -161,7 +161,7 @@ class ApiCategoryController extends Controller
         }
 
         // update
-        $update = ProductCategory::where('id_product_category', $post['id_product_category'])->update($data);
+        $update = ProductCategory::where('id_product_category', $post['id_product_category'])->updateWithUserstamps($data);
 
         // hapus file
         if (isset($data['product_category_photo'])) {

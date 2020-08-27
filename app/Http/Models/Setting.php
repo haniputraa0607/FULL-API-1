@@ -8,7 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class Setting
  * 
@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Setting extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_setting';
 
 	protected $fillable = [

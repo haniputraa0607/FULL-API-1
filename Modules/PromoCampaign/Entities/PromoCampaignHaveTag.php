@@ -8,6 +8,7 @@
 namespace Modules\PromoCampaign\Entities;
 
 use Reliese\Database\Eloquent\Model as Eloquent;
+use Wildside\Userstamps\Userstamps;
 
 /**
  * Class PromoCampaignHaveTag
@@ -25,6 +26,7 @@ use Reliese\Database\Eloquent\Model as Eloquent;
  */
 class PromoCampaignHaveTag extends Eloquent
 {
+	use Userstamps;
 	protected $primaryKey = 'id_promo_campaign_have_tag';
 
 	protected $casts = [

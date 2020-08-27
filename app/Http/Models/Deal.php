@@ -9,6 +9,7 @@ namespace App\Http\Models;
 
 use \App\Lib\MyHelper;
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
 
 /**
  * Class Deal
@@ -49,6 +50,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Deal extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_deals';
 
 	protected $casts = [
@@ -73,7 +75,7 @@ class Deal extends Model
 
 	protected $fillable = [
 		'deals_type',
-		'created_by',
+		// 'created_by',
 		'last_updated_by',
 		'deals_voucher_type',
 		'deals_promo_id_type',

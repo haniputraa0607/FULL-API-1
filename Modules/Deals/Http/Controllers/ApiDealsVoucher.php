@@ -224,7 +224,7 @@ class ApiDealsVoucher extends Controller
 
     /* UPDATE VOUCHER */
     function update($id_deals_voucher, $post) {
-        $update = DealsVoucher::where('id_deals_voucher', $id_deals_voucher)->update($post);
+        $update = DealsVoucher::where('id_deals_voucher', $id_deals_voucher)->updateWithUserstamps($post);
 
         return $update;
     }
@@ -245,7 +245,7 @@ class ApiDealsVoucher extends Controller
 
     /* UPDATE VOUCHER USER */
     function updateVoucherUser($id_deals_user, $post) {
-        $update = DealsVoucher::where('id_deals_user', $id_deals_user)->update($post);
+        $update = DealsVoucher::where('id_deals_user', $id_deals_user)->updateWithUserstamps($post);
 
         return $update;
     }

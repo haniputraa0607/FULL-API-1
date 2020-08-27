@@ -8,7 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Wildside\Userstamps\Userstamps;
 /**
  * Class ProductPrice
  * 
@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ProductPrice extends Model
 {
+	use Userstamps;
 	protected $table = 'product_prices';
 	
 	protected $primaryKey = 'id_product_price';

@@ -9,6 +9,7 @@ use App\Http\Models\ProductTag;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 
 use App\Lib\MyHelper;
 use Validator;
@@ -71,6 +72,8 @@ class ApiTagController extends Controller
         $data['id_tag']     = $request->json('id_tag');
         $data['created_at'] = date('Y-m-d h:i:s');
         $data['updated_at'] = date('Y-m-d h:i:s');
+        $data['created_by'] = Auth::id();
+        $data['updated_by'] = Auth::id();
         
         // save
         $insert = ProductTag::insert($data);

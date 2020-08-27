@@ -9,6 +9,7 @@ namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Modules\ProductVariant\Entities\ProductGroup;
+use Wildside\Userstamps\Userstamps;
 /**
  * Class Product
  *
@@ -35,6 +36,7 @@ use Modules\ProductVariant\Entities\ProductGroup;
  */
 class Product extends Model
 {
+	use Userstamps;
 	protected $primaryKey = 'id_product';
 
 	protected $casts = [

@@ -5,6 +5,7 @@ namespace Modules\Campaign\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 
 use App\Http\Models\User;
 use App\Http\Models\UserInbox;
@@ -127,7 +128,7 @@ class ApiCampaign extends Controller
 
 		DB::beginTransaction();
 		if(isset($post['id_campaign']))
-			$queryCampaign = Campaign::where('id_campaign','=',$post['id_campaign'])->update($data);
+			$queryCampaign = Campaign::where('id_campaign','=',$post['id_campaign'])->updateWithUserstamps($data);
 		else
 			$queryCampaign = Campaign::create($data);
 
@@ -488,6 +489,8 @@ class ApiCampaign extends Controller
 		if($campaign['campaign_media_inbox'] == "Yes"){
 			$receipient_inbox = explode(',', str_replace(' ', ',', str_replace(';', ',', $campaign['campaign_inbox_receipient'])));
 
+			$campaign['created_by'] = Auth::id();
+			$campaign['updated_by'] = Auth::id();
 			$data['campaign'] = $campaign;
 			$data['type'] = 'inbox';
 			foreach (array_chunk($receipient_inbox,10) as $recipients) {
@@ -560,7 +563,7 @@ class ApiCampaign extends Controller
 			unset($post['campaign_whatsapp_content']);
 		}
 
-		$query = Campaign::where('id_campaign','=',$id_campaign)->update($post);
+		$query = Campaign::where('id_campaign','=',$id_campaign)->updateWithUserstamps($post);
 
 		if($query){
 			//whatsapp contents

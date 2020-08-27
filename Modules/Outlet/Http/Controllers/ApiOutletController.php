@@ -57,6 +57,7 @@ use Modules\Outlet\Http\Requests\Holiday\HolidayUpdate;
 use Modules\Outlet\Http\Requests\Holiday\HolidayDelete;
 
 use Modules\PromoCampaign\Entities\PromoCampaignPromoCode;
+use Illuminate\Support\Facades\Auth;
 
 class ApiOutletController extends Controller
 {
@@ -222,7 +223,7 @@ class ApiOutletController extends Controller
         }
 
         unset($post['outlet_brands']);
-        $save = Outlet::where('id_outlet', $request->json('id_outlet'))->update($post);
+        $save = Outlet::where('id_outlet', $request->json('id_outlet'))->updateWithUserstamps($post);
         // return Outlet::where('id_outlet', $request->json('id_outlet'))->first();
         if($save){
             DB::commit();
@@ -242,7 +243,7 @@ class ApiOutletController extends Controller
             ]);
         }
         $post = $this->checkInputOutlet($request->json()->all());
-        $save = Outlet::where('id_outlet', $request->json('id_outlet'))->update($post);
+        $save = Outlet::where('id_outlet', $request->json('id_outlet'))->updateWithUserstamps($post);
         // return Outlet::where('id_outlet', $request->json('id_outlet'))->first();
 
         return response()->json(MyHelper::checkUpdate($save));
@@ -396,7 +397,7 @@ class ApiOutletController extends Controller
     * update foto product
     */
     function updatePhoto(Request $request) {
-        $update =   OutletPhoto::where('id_outlet_photo', $request->json('id_outlet_photo'))->update([
+        $update =   OutletPhoto::where('id_outlet_photo', $request->json('id_outlet_photo'))->updateWithUserstamps([
             'outlet_photo_order' => $request->json('outlet_photo_order')
         ]);
 
@@ -643,7 +644,7 @@ class ApiOutletController extends Controller
         if (!$post) {
             $outlet = Outlet::with(['outlet_ovo'])->get()->toArray();
         } else {
-            $update = OutletOvo::where('id_outlet', $post['id_outlet'])->update($post);
+            $update = OutletOvo::where('id_outlet', $post['id_outlet'])->updateWithUserstamps($post);
             if ($update) {
                 $outlet['updated'] = 1;
             }
@@ -1329,7 +1330,9 @@ class ApiOutletController extends Controller
                     'id_holiday'    => $insertHoliday['id_holiday'],
                     'date'          => date('Y-m-d', strtotime($value)),
                     'created_at'    => date('Y-m-d H:i:s'),
-                    'updated_at'    => date('Y-m-d H:i:s')
+                    'updated_at'    => date('Y-m-d H:i:s'),
+                    'created_by'    => Auth::id(),
+            		'updated_by'    => Auth::id()
                 ];
 
                 array_push($dateHoliday, $dataDate);
@@ -1346,7 +1349,9 @@ class ApiOutletController extends Controller
                         'id_holiday'    => $insertHoliday['id_holiday'],
                         'id_outlet'     => $ou,
                         'created_at'    => date('Y-m-d H:i:s'),
-                        'updated_at'    => date('Y-m-d H:i:s')
+                        'updated_at'    => date('Y-m-d H:i:s'),
+                        'created_by'    => Auth::id(),
+                		'updated_by'    => Auth::id()
                     ];
 
                     array_push($outletHoliday, $dataOutlet);
@@ -1401,7 +1406,7 @@ class ApiOutletController extends Controller
         ];
 
         DB::beginTransaction();
-        $updateHoliday = Holiday::where('id_holiday', $post['id_holiday'])->update($holiday);
+        $updateHoliday = Holiday::where('id_holiday', $post['id_holiday'])->updateWithUserstamps($holiday);
 
         if ($updateHoliday) {
             $delete = DateHoliday::where('id_holiday', $post['id_holiday'])->delete();
@@ -1415,8 +1420,10 @@ class ApiOutletController extends Controller
                         'id_holiday'    => $post['id_holiday'],
                         'date'          => date('Y-m-d', strtotime($value)),
                         'created_at'    => date('Y-m-d H:i:s'),
-                        'updated_at'    => date('Y-m-d H:i:s')
-                    ];
+                        'updated_at'    => date('Y-m-d H:i:s'),
+                        'created_by'    => Auth::id(),
+                		'updated_by'    => Auth::id()
+                ];
 
                     array_push($dateHoliday, $dataDate);
                 }
@@ -1435,7 +1442,9 @@ class ApiOutletController extends Controller
                                 'id_holiday'    => $post['id_holiday'],
                                 'id_outlet'     => $ou,
                                 'created_at'    => date('Y-m-d H:i:s'),
-                                'updated_at'    => date('Y-m-d H:i:s')
+                                'updated_at'    => date('Y-m-d H:i:s'),
+		                        'created_by'    => Auth::id(),
+		                		'updated_by'    => Auth::id()
                             ];
 
                             array_push($outletHoliday, $dataOutlet);
@@ -1711,7 +1720,9 @@ class ApiOutletController extends Controller
                                 $search_brand = array_search(strtolower($key), $name_brand);
                                 $insertBrandOutlet = [
                                     'id_brand' => $id_brand[$search_brand]??null,
-                                    'id_outlet' => $id_outlet[$search_outlet]??null
+                                    'id_outlet' => $id_outlet[$search_outlet]??null,
+			                        'created_by' => Auth::id(),
+			                		'updated_by' => Auth::id()
                                 ];
 
                                 $saveBrandOutlet = BrandOutlet::insert($insertBrandOutlet);
@@ -1901,7 +1912,7 @@ class ApiOutletController extends Controller
         $save=1;
         foreach ($posts['outlets']??[] as $id_outlet=>$data) {
             $post = $this->checkInputOutlet($data);
-            $save_t = Outlet::where('id_outlet', $id_outlet)->update($post);
+            $save_t = Outlet::where('id_outlet', $id_outlet)->updateWithUserstamps($post);
             // return Outlet::where('id_outlet', $request->json('id_outlet'))->first();
             if(!$save_t){
                 $save=0;
@@ -2137,7 +2148,7 @@ class ApiOutletController extends Controller
     }
     public function updateDifferentPrice(Request $request) {
         $post = $request->json()->all();
-        $update = Outlet::whereIn('id_outlet',$post['id_outlet']??'')->update(['outlet_different_price'=>$post['status']??0]);
+        $update = Outlet::whereIn('id_outlet',$post['id_outlet']??'')->updateWithUserstamps(['outlet_different_price'=>$post['status']??0]);
         if($update){
             return [
                 'status'=>'success',
