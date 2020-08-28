@@ -36,29 +36,74 @@ class ApiTransactionOnlinePOS extends Controller
     }
 
     public function listTransaction(Request $request) {
-        $post = $request->json()->all();
-
-        if(isset($post['start'])){
-            $start = $post['start'];
-            $length = $post['length'];
-        }
-
-        $getData = TransactionOnlinePOS::join('transactions', 'transactions.id_transaction', 'transactions_online_pos.id_transaction')
+        $result = TransactionOnlinePOS::join('transactions', 'transactions.id_transaction', 'transactions_online_pos.id_transaction')
                     ->join('users', 'users.id', 'transactions.id_user')
                     ->select('transactions_online_pos.*', 'transactions.transaction_receipt_number', 'users.name', 'users.phone');
 
-        $total = $getData->count();
-        $dataReport = $getData->select(DB::raw("transactions_online_pos.id_transaction_online_pos as '0', transactions_online_pos.success_retry_status as '1', transactions.transaction_receipt_number as '2', users.name as '3', users.phone as '4', transactions_online_pos.request as '5', 
-                        transactions_online_pos.response as '6', transactions_online_pos.count_retry as '7'"))
-            ->skip($start)->take($length)->get()->toArray();
+        $countTotal = null;
 
-        $result = [
-            'status' => 'success',
-            'result' => $dataReport,
-            'total' => $total
-        ];
+        if ($keyword = ($request->search['value']??false)) {
+            $countTotal = $result->count();
+            $result->where(function ($query) use ($keyword) {
+                $query->where('transactions.transaction_receipt_number', 'like', '%'.$keyword.'%');
+            });
+        }
 
-        return response()->json($result);
+        if($request->rule){
+            $this->filterList($result,$request->rule,$request->operator?:'and');
+        }
+
+        if (is_array($orders = $request->order)) {
+            $columns = [
+                null,
+                null,
+                'transaction_receipt_number',
+                'users.name',
+                'users.phone',
+                null,
+                null,
+                'count_retry'
+            ];
+            foreach ($orders as $column) {
+                if ($colname = ($columns[$column['column']]??false)) {
+                    $result->orderBy($colname, $column['dir']);
+                }
+            }
+        }
+
+        $result->orderBy('transaction_date','desc');
+
+        if ($request->page) {
+            $result = $result->paginate($request->length?:15)->toArray();
+            if (is_null($countTotal)) {
+                $countTotal = $result['total'];
+            }
+            // needed for datatables
+            $result['recordsTotal'] = $countTotal;
+        } else {
+            $result = $result->get();
+        }
+        return MyHelper::checkGet($result);
+    }
+
+    public function filterList($model,$rule,$operator='and'){
+        $newRule=[];
+        $where=$operator=='and'?'where':'orWhere';
+        foreach ($rule as $var) {
+            $var1=['operator'=>$var['operator']??'=','parameter'=>$var['parameter']??null];
+            if($var1['operator']=='like'){
+                $var1['parameter']='%'.$var1['parameter'].'%';
+            }
+            $newRule[$var['subject']][]=$var1;
+        }
+        $inner=['transaction_receipt_number', 'transaction_date', 'success_retry_status', 'id_outlet', 'name', 'phone'];
+        foreach ($inner as $col_name) {
+            if($rules=$newRule[$col_name]??false){
+                foreach ($rules as $rul) {
+                    $model->$where($col_name,$rul['operator'],$rul['parameter']);
+                }
+            }
+        }
     }
 
     public function resendTransaction(Request $request){
