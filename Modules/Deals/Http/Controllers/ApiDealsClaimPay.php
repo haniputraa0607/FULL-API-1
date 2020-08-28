@@ -580,7 +580,8 @@ class ApiDealsClaimPay extends Controller
             'id_deals'       => $deals->id_deals,
             'id_deals_user'  => $voucher->id_deals_user,
             'amount'         => $voucher->voucher_price_cash*100,
-            'order_id'       => time().sprintf("%05d", $voucher->id_deals_user).'-'.$voucher->id_deals_user,
+            // 'order_id'       => time().sprintf("%05d", $voucher->id_deals_user).'-'.$voucher->id_deals_user,
+            'order_id'       => $voucher->deals_receipt_number,
             'payment_id'     => $ipay->getPaymentId($payment_id??''), // ex. 1,2,3,7,19
             'payment_method' => $ipay->getPaymentMethod($payment_id), // ex CREDIT CARD, BRI VA, MANDIRI ATM
             'user_contact'   => $post['phone']??null
@@ -624,7 +625,8 @@ class ApiDealsClaimPay extends Controller
             $paymentShopeepay->id_deals_user        = $voucher['id_deals_user'];
             $paymentShopeepay->id_deals             = $deals['id_deals'];
             $paymentShopeepay->amount               = $grossAmount * 100;
-            $paymentShopeepay->order_id = time().sprintf("%05d", $voucher->id_deals_user);
+            // $paymentShopeepay->order_id = time().sprintf("%05d", $voucher->id_deals_user);
+            $paymentShopeepay->order_id = $voucher->deals_receipt_number;
             $paymentShopeepay->save();
             $trx_shopeepay = app($this->shopeepay)->order($paymentShopeepay, 'deals', $errors);
         } elseif (!($paymentShopeepay->redirect_url_app && $paymentShopeepay->redirect_url_http)) {
@@ -755,7 +757,8 @@ class ApiDealsClaimPay extends Controller
             'phone' => $request->json('phone'),
             'reversal' => 'not yet',
             'is_production' => $is_prod,
-            'order_id' => time().sprintf("%05d", $voucher->id_deals_user)
+            // 'order_id' => time().sprintf("%05d", $voucher->id_deals_user)
+            'order_id' => time().sprintf("%05d", $voucher->deals_receipt_number)
         ];
 
         $payData = DealsPaymentOvo::create($data);

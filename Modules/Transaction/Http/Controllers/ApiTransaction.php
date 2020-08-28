@@ -1552,7 +1552,7 @@ class ApiTransaction extends Controller
                 }
             }
 
-            
+            $list['payment'] = [];            
             switch ($list['trasaction_payment_type']) {
                 case 'Balance':
                     $multiPayment = TransactionMultiplePayment::where('id_transaction', $list['id_transaction'])->get()->toArray();
