@@ -885,6 +885,9 @@ class ApiOutletController extends Controller
             ]);
         }
 
+        $latitude  = $post['latitude'];
+        $longitude = $post['longitude'];
+
         $distance = $post['distance']??"";
         $id_city = $post['id_city']??"";
         $sort = $post['sort']??"";
