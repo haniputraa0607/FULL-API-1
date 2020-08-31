@@ -877,6 +877,8 @@ class ApiOutletController extends Controller
 	/* Filter*/
     function filter(Filter $request) {
         $post=$request->except('_token');
+        $latitude  = $request->json('latitude');
+        $longitude = $request->json('longitude');
 
         if(!isset($post['latitude']) || !isset($post['longitude'])){
             return response()->json([
@@ -1172,13 +1174,40 @@ class ApiOutletController extends Controller
             $outlet['today']['status'] = 'closed';
         }else{
             if($outlet['today']['is_closed'] == '1'){
+	        	$schedule = OutletSchedule::where('id_outlet', $outlet['id_outlet'])->get()->toArray();
+	            $new_days = $this->reorderDays($schedule, $outlet['today']['day']);
+
+	            foreach ($new_days as $key => $value) {
+	            	if ($value['is_closed'] != 1) {
+	            		$outlet['today']['day'] 	= $value['day'];
+	            		$outlet['today']['open'] 	= $value['open'];
+	            		$outlet['today']['close'] 	= $value['close'];
+	            		break;
+	            	}
+	            }
                 $outlet['today']['status'] = 'closed';
-            }else{
-                if($outlet['today']['open'] && date('H:i:01') < date('H:i', strtotime($outlet['today']['open']))){
+            }
+            else{
+            	$soon = env('OUTLET_OPEN_CLOSE_SOON_TIME', null);
+            	if ( $soon 
+            		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['open'])) )
+            		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['open']." -".$soon." minutes")) )
+            	) {
+            		$outlet['today']['status'] = 'opening soon';
+            	}
+            	elseif($outlet['today']['open'] && date('H:i:01') < date('H:i', strtotime($outlet['today']['open']))){
                     $outlet['today']['status'] = 'closed';
-                }elseif($outlet['today']['close'] && date('H:i') > date('H:i', strtotime('-'.$processing.' minutes', strtotime($outlet['today']['close'])))){
+                }
+            	elseif ( $soon 
+            		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['close'])) )
+            		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['close']." -".$soon." minutes")) )
+            	) {
+            		$outlet['today']['status'] = 'closing soon';
+            	}
+                elseif($outlet['today']['close'] && date('H:i') > date('H:i', strtotime('-'.$processing.' minutes', strtotime($outlet['today']['close'])))){
                     $outlet['today']['status'] = 'closed';
-                }else{
+                }
+                else{
                     $holiday = Holiday::join('outlet_holidays', 'holidays.id_holiday', 'outlet_holidays.id_holiday')->join('date_holidays', 'holidays.id_holiday', 'date_holidays.id_holiday')
                     ->where('id_outlet', $outlet['id_outlet'])->whereDay('date_holidays.date', date('d'))->whereMonth('date_holidays.date', date('m'))->get();
                     if(count($holiday) > 0){
@@ -2176,5 +2205,23 @@ class ApiOutletController extends Controller
             break;
         }
         return $data;
+    }
+
+    public function reorderDays($days, $now)
+    {	
+    	$temp_days 	= [];
+    	$new_days	= [];
+		foreach ($days as $key => $value) {
+			$temp_days[] = $value;
+			if ($value['day'] == $now) {
+				$new_days = array_slice($days, $key+1);
+				break;
+			}
+		}
+		if (!empty($new_days)) {
+			$days = array_merge($new_days, $temp_days);
+		}
+
+		return $days;
     }
 }
