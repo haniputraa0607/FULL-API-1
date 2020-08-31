@@ -2218,7 +2218,7 @@ class ApiOutletController extends Controller
 				break;
 			}
 		}
-		if (!empty($temp_days)) {
+		if (!empty($new_days)) {
 			$days = array_merge($new_days, $temp_days);
 		}
 
