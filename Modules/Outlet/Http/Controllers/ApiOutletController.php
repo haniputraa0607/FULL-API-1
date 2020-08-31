@@ -877,21 +877,19 @@ class ApiOutletController extends Controller
 	/* Filter*/
     function filter(Filter $request) {
         $post=$request->except('_token');
-        $latitude  = $request->json('latitude');
-        $longitude = $request->json('longitude');
 
-        if(!isset($latitude) || !isset($longitude)){
+        if(!isset($post['latitude']) || !isset($post['longitude'])){
             return response()->json([
                 'status' => 'fail',
                 'messages' => ["Make sure your phone's location settings are connected"]
             ]);
         }
 
-        $distance = $request->json('distance');
-        $id_city = $request->json('id_city');
-        $sort = $request->json('sort');
-        $gofood = $request->json('gofood');
-        $grabfood = $request->json('grabfood');
+        $distance = $post['distance']??"";
+        $id_city = $post['id_city']??"";
+        $sort = $post['sort']??"";
+        $gofood = $post['gofood']??"";
+        $grabfood = $post['grabfood']??"";
 
         // outlet
         $outlet = Outlet::with(['today'])->select('outlets.id_outlet','outlets.outlet_name','outlets.outlet_phone','outlets.outlet_code','outlets.outlet_status','outlets.outlet_address','outlets.id_city','outlet_latitude','outlet_longitude')->where('outlet_status', 'Active')->whereNotNull('id_city')->orderBy('outlet_name','asc');
@@ -912,16 +910,16 @@ class ApiOutletController extends Controller
             });
         }
 
-        if($request->json('search') && $request->json('search') != ""){
-            $outlet = $outlet->where('outlet_name', 'LIKE', '%'.$request->json('search').'%');
+        if($post['search'] && $post['search'] != ""){
+            $outlet = $outlet->where('outlet_name', 'LIKE', '%'.$post['search'].'%');
         }
 
         if ($gofood) {
-            $outlet = $outlet->whereNotNull('deep_link_gojek');
+            $outlet = $outlet->whereNotNull('deep_link_gojek')->addSelect('deep_link_gojek');
         }
 
         if ($grabfood) {
-            $outlet = $outlet->whereNotNull('deep_link_grab');
+            $outlet = $outlet->whereNotNull('deep_link_grab')->addSelect('deep_link_grab');
         }
 
         $outlet = $outlet->get()->toArray();
