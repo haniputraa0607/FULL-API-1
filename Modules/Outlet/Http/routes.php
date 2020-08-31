@@ -10,7 +10,7 @@ Route::group(['prefix' => 'api/outlet', 'middleware' => ['log_activities', 'auth
     /*WEBVIEW*/
     Route::any('webview/{id}', 'ApiOutletWebview@detailWebview');
     Route::any('detail/mobile', 'ApiOutletWebview@detailOutlet');
-    Route::any('webview/gofood/list', 'ApiOutletWebview@listOutletGofood');
+    Route::any('webview/list/{type}', 'ApiOutletWebview@listOutletGofood');
     Route::any('webview/gofood/list/v2', 'ApiOutletWebview@listOutletGofood');
 
     Route::get('city', 'ApiOutletController@cityOutlet');

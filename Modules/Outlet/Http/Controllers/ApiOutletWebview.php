@@ -6,11 +6,15 @@ use App\Http\Models\Outlet;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Modules\Outlet\Http\Requests\outlet\Filter;
 
 use App\Lib\MyHelper;
 
 class ApiOutletWebview extends Controller
 {
+    function __construct() {
+		$this->outlet  = "Modules\Outlet\Http\Controllers\ApiOutletController";
+    }
     public function detailWebview(Request $request, $id)
     {
     	$bearer = $request->header('Authorization');
@@ -93,7 +97,7 @@ class ApiOutletWebview extends Controller
         }
     }
 
-    public function listOutletGofood(Request $request)
+    public function listOutletGofood(Request $request, $type='gofood')
     {
     	$bearer = $request->header('Authorization');
         if ($bearer == "") {
@@ -106,19 +110,23 @@ class ApiOutletWebview extends Controller
 
     	$post = $request->all();
     	// $post['latitude'] = '-7.803761';
-     //    $post['longitude'] = '110.383058';
+        // $post['longitude'] = '110.383058';
         $post['sort'] = 'Nearest';
         $post['type'] = 'transaction';
         $post['search'] = '';
-    	$post['gofood'] = 1;
-        // return $post;
+    	$post[$type] = 1;
         // $list = MyHelper::post('outlet/filter', $post);
-        $list = MyHelper::postCURLWithBearer('api/outlet/filter/gofood', $post, $bearer);
-        // return $list;
+
+        $filter = New Filter;
+        $filter->merge($post);
+        $list = json_decode(json_encode(app($this->outlet)->filter($filter)), true);
+        $list = $list['original'];
+        // $list = MyHelper::postCURLWithBearer('api/outlet/filter/gofood', $post, $bearer);
         if (isset($list['status']) && $list['status'] == 'success') {
             return view('outlet::webview.outlet_gofood_v2', ['outlet' => $list['result']]);
         } elseif (isset($list['status']) && $list['status'] == 'fail') {
-            return view('error', ['msg' => 'Data failed']);
+            return view('outlet::webview.outlet_gofood_v2', ['outlet' => [], 'msg' => $list['messages'][0]]);
+            // return view('error', ['msg' => 'Data failed']);
         } else {
             return view('error', ['msg' => 'Something went wrong, try again']);
         }
