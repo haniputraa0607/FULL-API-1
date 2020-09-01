@@ -241,7 +241,7 @@
   <body>
     {{ csrf_field() }}
   	<div class="kotak1">
-   		<div class="row" style="margin-top: -20px;">
+   		<div class="row" style="margin-top: 0px;">
    			<div class="col-12 mb-4 mt-4">
 	   			<div class="input-group kelas-input">
 				  <input type="text" id="id-input" class="form-control text-12-7px Ubuntu-Regular" placeholder="Search">
@@ -323,7 +323,7 @@
 
 	$(document).ready(function(){
 		var height = $('#row').height();
-		$('#row').css('margin-top', 'calc((100vh - '+height+'px)/2 - 40px)')
+		$('#row').css('margin-top', 'calc((100vh - '+height+'px)/2 - 60px)')
 	})
 
   </script>
