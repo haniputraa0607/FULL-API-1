@@ -1172,14 +1172,18 @@ class ApiOutletController extends Controller
     // unset outlet yang tutup dan libur
     function setAvailableOutlet($outlet, $processing){
         $outlet['today']['status'] = 'open';
+        $outlet['today']['status_detail'] = '';
 
         if( !isset($outlet['today']['open']) || !isset($outlet['today']['close']) ){
             $outlet['today']['status'] = 'closed';
-        }else{
+        }
+        else
+        {
+        	$outlet['today']['status_detail'] = 'Today until '.$outlet['today']['close'];
             if($outlet['today']['is_closed'] == '1'){
 	        	$schedule = OutletSchedule::where('id_outlet', $outlet['id_outlet'])->get()->toArray();
 	            $new_days = $this->reorderDays($schedule, $outlet['today']['day']);
-
+	            $i = 0;
 	            foreach ($new_days as $key => $value) {
 	            	if ($value['is_closed'] != 1) {
 	            		$outlet['today']['day'] 	= $value['day'];
@@ -1187,8 +1191,14 @@ class ApiOutletController extends Controller
 	            		$outlet['today']['close'] 	= $value['close'];
 	            		break;
 	            	}
+	            	$i++;
 	            }
                 $outlet['today']['status'] = 'closed';
+                if ($i===0) {
+                	$outlet['today']['status_detail'] = 'Tomorrow open at '.$outlet['today']['open'];
+                }else{
+                	$outlet['today']['status_detail'] = 'Open '.$outlet['today']['day'].' at '.$outlet['today']['open'];
+                }
             }
             else{
             	$soon = env('OUTLET_OPEN_CLOSE_SOON_TIME', null);
@@ -1197,19 +1207,40 @@ class ApiOutletController extends Controller
             		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['open']." -".$soon." minutes")) )
             	) {
             		$outlet['today']['status'] = 'opening soon';
+            		$outlet['today']['status_detail'] = 'Today open at '.$outlet['today']['open'];
             	}
             	elseif($outlet['today']['open'] && date('H:i:01') < date('H:i', strtotime($outlet['today']['open']))){
                     $outlet['today']['status'] = 'closed';
+            		$outlet['today']['status_detail'] = 'Today open at '.$outlet['today']['open'];
                 }
             	elseif ( $soon 
             		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['close'])) )
             		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['close']." -".$soon." minutes")) )
             	) {
             		$outlet['today']['status'] = 'closing soon';
+        			$outlet['today']['status_detail'] = 'Today until '.$outlet['today']['close'];
             	}
                 elseif($outlet['today']['close'] && date('H:i') > date('H:i', strtotime('-'.$processing.' minutes', strtotime($outlet['today']['close'])))){
-                    $outlet['today']['status'] = 'closed';
-                }
+                	$schedule = OutletSchedule::where('id_outlet', $outlet['id_outlet'])->get()->toArray();
+		            $new_days = $this->reorderDays($schedule, $outlet['today']['day']);
+		            $i = 0;
+		            foreach ($new_days as $key => $value) {
+		            	if ($value['is_closed'] != 1) {
+		            		$outlet['today']['day'] 	= $value['day'];
+		            		$outlet['today']['open'] 	= $value['open'];
+		            		$outlet['today']['close'] 	= $value['close'];
+		            		break;
+		            	}
+		            	$i++;
+		            }
+	                $outlet['today']['status'] = 'closed';
+	                if ($i===0) {
+                		$outlet['today']['status_detail'] = 'Tomorrow open at '.$outlet['today']['open'];
+	                }
+	                else{
+	                	$outlet['today']['status_detail'] = 'Open '.$outlet['today']['day'].' at '.$outlet['today']['open'];
+	                }
+	            }
                 else{
                     $holiday = Holiday::join('outlet_holidays', 'holidays.id_holiday', 'outlet_holidays.id_holiday')->join('date_holidays', 'holidays.id_holiday', 'date_holidays.id_holiday')
                     ->where('id_outlet', $outlet['id_outlet'])->whereDay('date_holidays.date', date('d'))->whereMonth('date_holidays.date', date('m'))->get();
