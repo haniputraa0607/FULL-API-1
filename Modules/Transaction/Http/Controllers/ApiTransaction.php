@@ -1987,7 +1987,7 @@ class ApiTransaction extends Controller
                 'deals_voucher'                 => $list['dealVoucher']['deal']['deals_title'],
                 'payment_methods'               => $list['payment_method']
             ];
-
+            $result['payment'] = [];
             if (!is_null($list['balance_nominal'])) {
                 $result['payment'][] = [
                     'name'      => (env('POINT_NAME')) ? env('POINT_NAME') : 'Balance',
@@ -2020,7 +2020,8 @@ class ApiTransaction extends Controller
                 case 'Ipay88':
                     $payment = DealsPaymentIpay88::where('id_deals_user', $id)->first();
                     $result['payment'][] = [
-                        'name'      => $payment->payment_method?:'Credit / Debit Card',
+                        // 'name'      => $payment->payment_method?:'Credit / Debit Card',
+                        'name'      => 'CREDIT/DEBIT CARD',
                         'amount'    =>  MyHelper::requestNumber($payment->amount / 100,'_CURRENCY')
                     ];
                     break;

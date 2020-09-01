@@ -26,6 +26,7 @@ use App\Http\Models\CampaignWhatsappSent;
 use App\Http\Models\CampaignWhatsappSentContent;
 use App\Http\Models\News;
 use App\Http\Models\OauthAccessToken;
+use Modules\RedirectComplex\Entities\RedirectComplexReference;
 
 //use Modules\Campaign\Http\Requests\campaign_list;
 //use Modules\Campaign\Http\Requests\campaign_create;
@@ -224,6 +225,12 @@ class ApiCampaign extends Controller
 					if($campaign['campaign_push_id_reference'] != 0){
 						$q = Outlet::where('id_outlet','=',$campaign['campaign_push_id_reference'])->get()->first();
 						$campaign['campaign_push_name_reference'] = $q['outlet_name'];
+					}
+				}
+				elseif($campaign['campaign_push_clickto'] == "Complex"){
+					if($campaign['campaign_push_id_reference'] != 0){
+						$q = RedirectComplexReference::where('id_redirect_complex_reference','=',$campaign['campaign_push_id_reference'])->get()->first();
+						$campaign['campaign_push_name_reference'] = $q['name'];
 					}
 				}
 			}
