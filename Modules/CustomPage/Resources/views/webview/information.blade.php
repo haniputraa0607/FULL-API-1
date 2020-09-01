@@ -6,43 +6,43 @@
 
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
         <link href="https://fonts.googleapis.com/css?family=Open+Sans|Questrial" rel="stylesheet">
-        <link href="{{ env('S3_URL_VIEW') }}{{('/css/slide.css') }}" rel="stylesheet">
+        <link href="{{ env('STORAGE_URL_API') }}{{('/css/slide.css') }}" rel="stylesheet">
         <style type="text/css">
         @font-face {
                 font-family: "Ubuntu-Bold", sans-serif;
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('/fonts/ubuntu/ubuntu_bold.ttf') }}');
+                src: url('{{ env('STORAGE_URL_API') }}{{ ('/fonts/ubuntu/ubuntu_bold.ttf') }}');
         }
         @font-face {
                 font-family: "Ubuntu-BoldItalic", sans-serif;
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('/fonts/ubuntu/ubuntu_bolditalic.ttf') }}');
+                src: url('{{ env('STORAGE_URL_API') }}{{ ('/fonts/ubuntu/ubuntu_bolditalic.ttf') }}');
         }
         @font-face {
                 font-family: "Ubuntu-Italic", sans-serif;
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('/fonts/ubuntu/ubuntu_italic.ttf') }}');
+                src: url('{{ env('STORAGE_URL_API') }}{{ ('/fonts/ubuntu/ubuntu_italic.ttf') }}');
         }
         @font-face {
                 font-family: "Ubuntu-Medium", sans-serif;
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('/fonts/ubuntu/ubuntu_medium.ttf') }}');
+                src: url('{{ env('STORAGE_URL_API') }}{{ ('/fonts/ubuntu/ubuntu_medium.ttf') }}');
         }
         @font-face {
                 font-family: "Ubuntu-MediumItalic", sans-serif;
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('/fonts/ubuntu/ubuntu_mediumitalic.ttf') }}');
+                src: url('{{ env('STORAGE_URL_API') }}{{ ('/fonts/ubuntu/ubuntu_mediumitalic.ttf') }}');
         }
         @font-face {
                 font-family: "Ubuntu", sans-serif;
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('/fonts/ubuntu/ubuntu_regular.ttf') }}');
+                src: url('{{ env('STORAGE_URL_API') }}{{ ('/fonts/ubuntu/ubuntu_regular.ttf') }}');
         }
         .Ubuntu{
             font-family: "Ubuntu", sans-serif;
