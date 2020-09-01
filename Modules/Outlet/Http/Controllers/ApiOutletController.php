@@ -696,8 +696,6 @@ class ApiOutletController extends Controller
                 $outlet[$key]['distance'] = number_format($jaraknya, 2, '.', ',')." km";
                 $outlet[$key]['dist']     = (float) $jaraknya;
 
-                $outlet[$key] = $this->setAvailableOutlet($outlet[$key], $processing);
-
                 if(isset($outlet[$key]['today']['time_zone'])){
                     $outlet[$key]['today'] = $this->setTimezone($outlet[$key]['today']);
                 }
@@ -718,6 +716,15 @@ class ApiOutletController extends Controller
             $outlet = [];
 
             $pagingOutlet = $this->pagingOutlet($dataOutlet, $page);
+
+        	$check_holiday = $this->checkOutletHoliday();
+            foreach ($pagingOutlet['data'] as $key => $value) {
+	            if ($check_holiday['status'] && in_array($pagingOutlet['data'][$key]['id_outlet'], $check_holiday['list_outlet'])) {
+	            	$pagingOutlet['data'][$key]['today']['is_closed'] = 1;
+	            }
+	            $pagingOutlet['data'][$key] = $this->setAvailableOutlet($pagingOutlet['data'][$key], $processing);
+            }
+
             if (isset($pagingOutlet['data']) && count($pagingOutlet['data']) > 0) {
                 $outlet['current_page']  = $page;
                 $outlet['data']          = $pagingOutlet['data'];
@@ -769,7 +776,6 @@ class ApiOutletController extends Controller
                 $outlet[$key]['distance'] = number_format($jaraknya, 2, '.', ',')." km";
                 $outlet[$key]['dist']     = (float) $jaraknya;
 
-                $outlet[$key] = $this->setAvailableOutlet($outlet[$key], $processing);
             }
             usort($outlet, function($a, $b) {
                 return $a['dist'] <=> $b['dist'];
@@ -785,6 +791,15 @@ class ApiOutletController extends Controller
             $outlet = [];
 
             $pagingOutlet = $this->pagingOutlet($dataOutlet, $page);
+
+        	$check_holiday = $this->checkOutletHoliday();
+            foreach ($pagingOutlet['data'] as $key => $value) {
+	            if ($check_holiday['status'] && in_array($pagingOutlet['data'][$key]['id_outlet'], $check_holiday['list_outlet'])) {
+	            	$pagingOutlet['data'][$key]['today']['is_closed'] = 1;
+	            }
+	            $pagingOutlet['data'][$key] = $this->setAvailableOutlet($pagingOutlet['data'][$key], $processing);
+            }
+
             // format outlet data into geojson
             $pagingOutlet['data'] = $this->geoJson($pagingOutlet['data']);
 
@@ -976,14 +991,12 @@ class ApiOutletController extends Controller
                     continue;
                 }
 
-                $outlet[$key] = $this->setAvailableOutlet($outlet[$key], $processing);
-
                 if(isset($outlet[$key]['today']['time_zone'])){
                     $outlet[$key]['today'] = $this->setTimezone($outlet[$key]['today']);
                 }
 
                 unset($outlet[$key]['today']['id_outlet']);
-                unset($outlet[$key]['today']['is_closed']);
+                // unset($outlet[$key]['today']['is_closed']);
                 unset($outlet[$key]['today']['time_zone_id']);
                 unset($outlet[$key]['today']['time_zone']);
 
@@ -1026,6 +1039,15 @@ class ApiOutletController extends Controller
             $urutan = [];
 
             $pagingOutlet = $this->pagingOutlet($dataOutlet, $page);
+
+        	$check_holiday = $this->checkOutletHoliday();
+            foreach ($pagingOutlet['data'] as $key => $value) {
+	            if ($check_holiday['status'] && in_array($pagingOutlet['data'][$key]['id_outlet'], $check_holiday['list_outlet'])) {
+	            	$pagingOutlet['data'][$key]['today']['is_closed'] = 1;
+	            }
+	            $pagingOutlet['data'][$key] = $this->setAvailableOutlet($pagingOutlet['data'][$key], $processing);
+            }
+
             if (isset($pagingOutlet['data']) && count($pagingOutlet['data']) > 0) {
                 $urutan['current_page']  = $page;
                 $urutan['data']          = $pagingOutlet['data'];
@@ -1109,8 +1131,6 @@ class ApiOutletController extends Controller
                 if($id_city != "" && $id_city != $value['id_city']){
                     unset($outlet[$key]);
                 }
-
-                $outlet[$key] = $this->setAvailableOutlet($outlet[$key], $processing);
             }
             if($sort != 'Alphabetical'){
                 usort($outlet, function($a, $b) {
@@ -1136,6 +1156,15 @@ class ApiOutletController extends Controller
             $urutan = [];
 
             $pagingOutlet = $this->pagingOutlet($dataOutlet, $page);
+
+        	$check_holiday = $this->checkOutletHoliday();
+            foreach ($pagingOutlet['data'] as $key => $value) {
+	            if ($check_holiday['status'] && in_array($pagingOutlet['data'][$key]['id_outlet'], $check_holiday['list_outlet'])) {
+	            	$pagingOutlet['data'][$key]['today']['is_closed'] = 1;
+	            }
+	            $pagingOutlet['data'][$key] = $this->setAvailableOutlet($pagingOutlet['data'][$key], $processing);
+            }
+
             // format outlet data into geojson
             $pagingOutlet['data'] = $this->geoJson($pagingOutlet['data']);
 
@@ -1184,11 +1213,13 @@ class ApiOutletController extends Controller
 	        	$schedule = OutletSchedule::where('id_outlet', $outlet['id_outlet'])->get()->toArray();
 	            $new_days = $this->reorderDays($schedule, $outlet['today']['day']);
 	            $i = 0;
+	            $found = 0;
 	            foreach ($new_days as $key => $value) {
 	            	if ($value['is_closed'] != 1) {
 	            		$outlet['today']['day'] 	= $value['day'];
 	            		$outlet['today']['open'] 	= $value['open'];
 	            		$outlet['today']['close'] 	= $value['close'];
+	            		$found = 1;
 	            		break;
 	            	}
 	            	$i++;
@@ -1196,6 +1227,8 @@ class ApiOutletController extends Controller
                 $outlet['today']['status'] = 'closed';
                 if ($i===0) {
                 	$outlet['today']['status_detail'] = 'Tomorrow open at '.$outlet['today']['open'];
+                }elseif ($found===0) {
+                	$outlet['today']['status_detail'] = 'Temporarily closed';
                 }else{
                 	$outlet['today']['status_detail'] = 'Open '.$outlet['today']['day'].' at '.$outlet['today']['open'];
                 }
@@ -1241,22 +1274,6 @@ class ApiOutletController extends Controller
 	                	$outlet['today']['status_detail'] = 'Open '.$outlet['today']['day'].' at '.$outlet['today']['open'];
 	                }
 	            }
-                else{
-                    $holiday = Holiday::join('outlet_holidays', 'holidays.id_holiday', 'outlet_holidays.id_holiday')->join('date_holidays', 'holidays.id_holiday', 'date_holidays.id_holiday')
-                    ->where('id_outlet', $outlet['id_outlet'])->whereDay('date_holidays.date', date('d'))->whereMonth('date_holidays.date', date('m'))->get();
-                    if(count($holiday) > 0){
-                        foreach($holiday as $i => $holi){
-                            if($holi['yearly'] == '0'){
-                                if($holi['date'] == date('Y-m-d')){
-                                    $outlet['today']['status'] = 'closed';
-                                }
-                            }else{
-                                $outlet['today']['status'] = 'closed';
-                            }
-                        }
-
-                    }
-                }
             }
         }
 
@@ -2023,6 +2040,13 @@ class ApiOutletController extends Controller
         }else{
             $outlet['distance'] = '';
         }
+
+    	$check_holiday = $this->checkOutletHoliday();
+        
+        if ($check_holiday['status'] && in_array($outlet['id_outlet'], $check_holiday['list_outlet'])) {
+        	$outlet['today']['is_closed'] = 1;
+        }
+
         $outlet = $this->setAvailableOutlet($outlet, $processing);
         return MyHelper::checkGet($outlet);
     }
@@ -2241,7 +2265,7 @@ class ApiOutletController extends Controller
         return $data;
     }
 
-    public function reorderDays($days, $now)
+    function reorderDays($days, $now)
     {	
     	$temp_days 	= [];
     	$new_days	= [];
@@ -2257,5 +2281,44 @@ class ApiOutletController extends Controller
 		}
 
 		return $days;
+    }
+
+    function checkOutletHoliday()
+    {
+    	$result = [
+			'status' 		=> false,
+			'list_outlet' 	=> []
+		];
+
+    	$holiday 	= Holiday::join('outlet_holidays', 'holidays.id_holiday', 'outlet_holidays.id_holiday')
+					->join('date_holidays', 'holidays.id_holiday', 'date_holidays.id_holiday')
+	                ->select('outlet_holidays.id_outlet', 'holidays.id_holiday', 'holidays.yearly', 'date_holidays.date')
+	                ->whereDay('date_holidays.date', date('d'))
+	                ->whereMonth('date_holidays.date', date('m'))
+	                ->get()
+	                ->toArray();
+
+		if ($holiday) {
+			$list_outlet = array_column($holiday, 'id_outlet');
+            foreach($holiday as $i => $holi){
+                if($holi['yearly'] == '0'){
+                    if($holi['date'] == date('Y-m-d')){
+                        $result = [
+							'status' 		=> true,
+							'list_outlet' 	=> $list_outlet
+						];
+                    }
+                }
+                else
+                {
+                    $result = [
+						'status' 		=> true,
+						'list_outlet' 	=> $list_outlet
+					];
+                }
+            }
+		}
+
+		return $result;
     }
 }
