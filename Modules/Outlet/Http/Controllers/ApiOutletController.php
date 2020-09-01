@@ -1018,8 +1018,8 @@ class ApiOutletController extends Controller
         //     $request['page'] = 1;
         // }
 
-        if(isset($request['page']) && $request['page'] > 0){
-            $page = $request['page'];
+        if(isset($post['page']) && $post['page'] > 0){
+            $page = $post['page'];
             $next_page = $page + 1;
 
             $dataOutlet = $urutan;
