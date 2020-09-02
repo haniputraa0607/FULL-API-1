@@ -6,61 +6,61 @@
 
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
         <link href="https://fonts.googleapis.com/css?family=Open+Sans|Questrial" rel="stylesheet">
-        <link href="{{ env('S3_URL_VIEW') }}{{('kopikenangan-view-asset/public/css/slide.css') }}" rel="stylesheet">
+        <link href="{{ env('STORAGE_URL_API') }}{{('/css/slide.css') }}" rel="stylesheet">
         <style type="text/css">
         @font-face {
-                font-family: "GoogleSans-Bold";
+                font-family: "Ubuntu-Bold", sans-serif;
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('/fonts/GoogleSans-Bold.ttf') }}');
+                src: url('{{ env('STORAGE_URL_API') }}{{ ('/fonts/ubuntu/ubuntu_bold.ttf') }}');
         }
         @font-face {
-                font-family: "GoogleSans-BoldItalic";
+                font-family: "Ubuntu-BoldItalic", sans-serif;
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('/fonts/GoogleSans-BoldItalic.ttf') }}');
+                src: url('{{ env('STORAGE_URL_API') }}{{ ('/fonts/ubuntu/ubuntu_bolditalic.ttf') }}');
         }
         @font-face {
-                font-family: "GoogleSans-Italic";
+                font-family: "Ubuntu-Italic", sans-serif;
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('/fonts/GoogleSans-Italic.ttf') }}');
+                src: url('{{ env('STORAGE_URL_API') }}{{ ('/fonts/ubuntu/ubuntu_italic.ttf') }}');
         }
         @font-face {
-                font-family: "GoogleSans-Medium";
+                font-family: "Ubuntu-Medium", sans-serif;
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('/fonts/GoogleSans-Medium.ttf') }}');
+                src: url('{{ env('STORAGE_URL_API') }}{{ ('/fonts/ubuntu/ubuntu_medium.ttf') }}');
         }
         @font-face {
-                font-family: "GoogleSans-MediumItalic";
+                font-family: "Ubuntu-MediumItalic", sans-serif;
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('/fonts/GoogleSans-MediumItalic.ttf') }}');
+                src: url('{{ env('STORAGE_URL_API') }}{{ ('/fonts/ubuntu/ubuntu_mediumitalic.ttf') }}');
         }
         @font-face {
-                font-family: "GoogleSans";
+                font-family: "Ubuntu", sans-serif;
                 font-style: normal;
                 font-weight: 400;
-                src: url('{{ env('S3_URL_VIEW') }}{{ ('/fonts/GoogleSans-Regular.ttf') }}');
+                src: url('{{ env('STORAGE_URL_API') }}{{ ('/fonts/ubuntu/ubuntu_regular.ttf') }}');
         }
-        .GoogleSans{
-            font-family: "GoogleSans";
+        .Ubuntu{
+            font-family: "Ubuntu", sans-serif;
         }
-        .GoogleSans-MediumItalic{
-            font-family: "GoogleSans-MediumItalic";
+        .Ubuntu-MediumItalic{
+            font-family: "Ubuntu-MediumItalic", sans-serif;
         }
-        .GoogleSans-Medium{
-            font-family: "GoogleSans-Medium";
+        .Ubuntu-Medium{
+            font-family: "Ubuntu-Medium", sans-serif;
         }
-        .GoogleSans-Italic{
-            font-family: "GoogleSans-Italic";
+        .Ubuntu-Italic{
+            font-family: "Ubuntu-Italic", sans-serif;
         }
-        .GoogleSans-BoldItalic{
-            font-family: "GoogleSans-BoldItalic";
+        .Ubuntu-BoldItalic{
+            font-family: "Ubuntu-BoldItalic", sans-serif;
         }
-        .GoogleSans-Bold{
-            font-family: "GoogleSans-Bold";
+        .Ubuntu-Bold{
+            font-family: "Ubuntu-Bold", sans-serif;
         }
         .kotak1 {
             padding-top: 10px;
@@ -68,7 +68,7 @@
             padding-left: 21.3px;
             padding-right: 21.3px;
             background: #fff;
-            font-family: 'Seravek', sans-serif;
+            font-family: 'Ubuntu', sans-serif;
             word-wrap:break-word;
         }
 
@@ -77,7 +77,7 @@
             padding-left: 41.3px;
             padding-right: 41.3px;
             background: #fff;
-            font-family: 'Seravek', sans-serif;
+            font-family: 'Ubuntu', sans-serif;
             height: 100%;
             word-wrap:break-word;
         }
@@ -88,7 +88,7 @@
             padding-left: 26.3px;
             padding-right: 26.3px;
             background: #fff;
-            font-family: 'Open Sans', sans-serif;
+            font-family: 'Ubuntu', sans-serif;
             height: 100%;
             word-wrap:break-word;
         }
@@ -99,7 +99,7 @@
             padding-left: 26.3px;
             padding-right: 26.3px;
             background: #fff;
-            font-family: 'Open Sans', sans-serif;
+            font-family: 'Ubuntu', sans-serif;
             height: 100%;
             word-wrap:break-word;
         }
@@ -316,7 +316,7 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', end
                         <div class="row space-bottom">
                             <div class="owl-carousel owl-theme">
                                 @foreach ($result['custom_page_image_header'] as $key => $value)
-                                <div class="item"> <img style="height: 60vw !important; object-fit: cover" src="{{env('S3_URL_API')}}{{ $value['custom_page_image'] }}"> <div class="questrial-font image-caption-all text-13-3px"></div> </div>
+                                <div class="item"> <img style="height: 60vw !important; object-fit: cover" src="{{env('S3_URL_API')}}{{ $value['custom_page_image'] }}"> </div>
                                 @endforeach
                             </div>
                         </div>
@@ -331,47 +331,47 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', end
             @if (isset($result['custom_page_event_date_start']))
                 @if ($result['custom_page_event_date_start'] == $result['custom_page_event_date_end'])
                     <div class="row space-bottom">
-                        <div class="col-12 text-red text-11-7px GoogleSans-Medium">TANGGAL</div>
-                         <div class="col-12 text-grey-black text13-3px GoogleSans-Medium"> {{ date('d F Y', strtotime($result['custom_page_event_date_start'])) }}</div>
+                        <div class="col-12 text-red text-11-7px Ubuntu-Medium">TANGGAL</div>
+                         <div class="col-12 text-grey-black text13-3px Ubuntu-Medium"> {{ date('d F Y', strtotime($result['custom_page_event_date_start'])) }}</div>
                     </div>
                 @else
                     <div class="row space-bottom">
-                         <div class="col-12 text-red text-11-7px GoogleSans-Medium">TANGGAL</div>
-                         <div class="col-12 text-grey-black text-13-3px GoogleSans-Reguler"> {{ date('d F', strtotime($result['custom_page_event_date_start'])) }} - {{ date('d F Y', strtotime($result['custom_page_event_date_end'])) }}</div>
+                         <div class="col-12 text-red text-11-7px Ubuntu-Medium">TANGGAL</div>
+                         <div class="col-12 text-grey-black text-13-3px Ubuntu-Reguler"> {{ date('d F', strtotime($result['custom_page_event_date_start'])) }} - {{ date('d F Y', strtotime($result['custom_page_event_date_end'])) }}</div>
                     </div>
                 @endif
             @endif
             @if (isset($result['custom_page_event_time_start']))
                 @if ($result['custom_page_event_time_start'] == $result['custom_page_event_time_end'])
                     <div class="row space-bottom">
-                        <div class="col-12 text-red text-11-7px GoogleSans-Medium">JAM</div>
-                        <div class="col-12 text-grey-black text-13-3px GoogleSans-Reguler"> {{ date('H:i', strtotime($result['custom_page_event_time_start'])) }}</div>
+                        <div class="col-12 text-red text-11-7px Ubuntu-Medium">JAM</div>
+                        <div class="col-12 text-grey-black text-13-3px Ubuntu-Reguler"> {{ date('H:i', strtotime($result['custom_page_event_time_start'])) }}</div>
                     </div>
                 @else
                     <div class="row space-bottom">
-                        <div class="col-12 text-red text-11-7px GoogleSans-Medium">JAM</div>
-                        <div class="col-12 text-grey-black text-13-3px GoogleSans-Reguler">{{ date('H:i', strtotime($result['custom_page_event_time_start'])) }} - {{ date('H:i', strtotime($result['custom_page_event_time_end'])) }}</div>
+                        <div class="col-12 text-red text-11-7px Ubuntu-Medium">JAM</div>
+                        <div class="col-12 text-grey-black text-13-3px Ubuntu-Reguler">{{ date('H:i', strtotime($result['custom_page_event_time_start'])) }} - {{ date('H:i', strtotime($result['custom_page_event_time_end'])) }}</div>
                     </div>
                 @endif
             @endif
             @if (isset($result['custom_page_event_location_name']))
                 <div class="row space-bottom">
-                    <div class="col-12 text-red text-11-7px GoogleSans-Medium">LOKASI</div>
-                    <div class="col-12 text-grey-black text-13-3px GoogleSans-Reguler"> {{ $result['custom_page_event_location_name'] }} </div>
+                    <div class="col-12 text-red text-11-7px Ubuntu-Medium">LOKASI</div>
+                    <div class="col-12 text-grey-black text-13-3px Ubuntu-Reguler"> {{ $result['custom_page_event_location_name'] }} </div>
                 </div>
             @endif
 
             @if (isset($result['custom_page_event_location_address']))
                 <div class="row space-bottom">
-                     <div class="col-12 text-red text-11-7px GoogleSans-Medium">ALAMAT</div>
-                     <div class="col-12 text-grey-black text-13-3px GoogleSans-Reguler">{{ $result['custom_page_event_location_address'] }} </div>
+                     <div class="col-12 text-red text-11-7px Ubuntu-Medium">ALAMAT</div>
+                     <div class="col-12 text-grey-black text-13-3px Ubuntu-Reguler">{{ $result['custom_page_event_location_address'] }} </div>
                 </div>
             @endif
 
             @if (isset($result['custom_page_event_location_phone']))
                 <div class="row space-bottom">
-                    <div class="col-12 text-red text-11-7px GoogleSans-Medium">TELEPON</div>
-                    <div class="col-12 text-grey-black text-13-3px GoogleSans-Reguler"> {{ $result['custom_page_event_location_phone'] }} </div>
+                    <div class="col-12 text-red text-11-7px Ubuntu-Medium">TELEPON</div>
+                    <div class="col-12 text-grey-black text-13-3px Ubuntu-Reguler"> {{ $result['custom_page_event_location_phone'] }} </div>
                 </div>
             @endif
 
@@ -389,7 +389,7 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', end
 
         <div class="kotak2">
             <div class="container">
-                <div class="row space-bottom text-13-3px GoogleSans-Reguler">
+                <div class="row space-bottom text-13-3px Ubuntu-Reguler">
                     <div class="col-12" style="display: inline-block;">{!! $result['custom_page_description'] !!}</div>
                 </div>
             </div>
@@ -400,7 +400,7 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', end
                 <div class="container">
                     @if (isset($result['custom_page_video_text']))
                         <div class="row space-bottom">
-                            <div class="col-12 text-bot text-black text-15px GoogleSans-Reguler"> <span> {{ $result['custom_page_video_text'] }} :  </span></div>
+                            <div class="col-12 text-bot text-black text-15px Ubuntu-Reguler"> <span> {{ $result['custom_page_video_text'] }} :  </span></div>
                         </div>
                     @endif
 
@@ -422,7 +422,7 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', end
                 <div class="container">
                 @if (isset($result['custom_page_outlet_text']))
                     <div class="row space-bottom">
-                        <div class="col-12 text-bot text-black text-15px GoogleSans-Reguler"> <span> {{ $result['custom_page_outlet_text'] }} :  </span></div>
+                        <div class="col-12 text-bot text-black text-15px Ubuntu-Reguler"> <span> {{ $result['custom_page_outlet_text'] }} :  </span></div>
 
                     </div>
                 @endif
@@ -455,7 +455,7 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', end
                 <div class="container">
                     @if (isset($result['custom_page_product_text']))
                         <div class="row space-bottom">
-                            <div class="col-12 text-bot text-black text-15px GoogleSans-Reguler"> <span> {{ $result['custom_page_product_text'] }} :  </span></div>
+                            <div class="col-12 text-bot text-black text-15px Ubuntu-Reguler"> <span> {{ $result['custom_page_product_text'] }} :  </span></div>
 
                         </div>
                     @endif
@@ -479,7 +479,7 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', end
         <div class="kotak2">
             <div class="container">
                 <div class="col-12 text-13-3px" @if (!isset($result['custom_page_button_form'])) hidden @endif>
-                    <button style="color:#ffffff; background-color: #990003;" id="action" type="button" class="btn btn-block GoogleSans-Bold">{{$result['custom_page_button_form_text_button']}}</button>
+                    <button style="color:#ffffff; background-color: #b72126;" id="action" type="button" class="btn btn-block Ubuntu-Bold">{{$result['custom_page_button_form_text_button']}}</button>
                 </div>
             </div>
         </div>
