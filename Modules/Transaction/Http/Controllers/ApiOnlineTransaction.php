@@ -1145,22 +1145,6 @@ class ApiOnlineTransaction extends Controller
                                                 ->first();
             }
 
-            //cek unique order id today
-            $cekOrderId = TransactionPickup::join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
-                                            ->where('id_outlet', $insertTransaction['id_outlet'])
-                                            ->where('order_id', $order_id)
-                                            ->whereDate('transaction_date', date('Y-m-d'))
-                                            ->first();
-            while ($cekOrderId) {
-                $order_id = MyHelper::createrandom(4, 'Besar Angka');
-
-                $cekOrderId = TransactionPickup::join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
-                                                ->where('id_outlet', $insertTransaction['id_outlet'])
-                                                ->where('order_id', $order_id)
-                                                ->whereDate('transaction_date', date('Y-m-d'))
-                                                ->first();
-            }
-
             if (isset($post['taken_at']) && $post['taken_at']) {
                 $post['taken_at'] = date('Y-m-d H:i:s', strtotime($post['taken_at']));
             } else {
@@ -1213,6 +1197,10 @@ class ApiOnlineTransaction extends Controller
                 'id_admin_outlet_taken'   => $post['id_admin_outlet_taken'],
                 'short_link'              => $link
             ];
+
+            if($transaction['transaction_payment_status'] == 'Completed'){
+                $dataPickup['completed_at'] = date('Y-m-d H:i:s');
+            }
 
             if($post['type'] == 'GO-SEND'){
                 $dataPickup['pickup_by'] = 'GO-SEND';
