@@ -166,15 +166,15 @@ class ApiDealsVoucherWebviewController extends Controller
         }
         if($voucher['used_at']){
             // $voucher['status_text']="Sudah digunakan pada \n".MyHelper::dateFormatInd($voucher['used_at'],false);
-            $voucher['status_text']="Used on ".date('d F Y', strtotime($voucher['used_at']));
+            $voucher['status_text']="Used on ".date('d M Y', strtotime($voucher['used_at']));
             $voucher['btn_disable'] = 1;
         }elseif($voucher['voucher_expired_at']<date('Y-m-d H:i:s')){
             // $voucher['status_text']="Telah berakhir pada \n".MyHelper::dateFormatInd($voucher['voucher_expired_at'],false);
-            $voucher['status_text']="Expired on ".date('d F Y', strtotime($voucher['voucher_expired_at']));
+            $voucher['status_text']="Expired on ".date('d M Y', strtotime($voucher['voucher_expired_at']));
             $voucher['btn_disable'] = 1;
         }else{
             // $voucher['status_text']="Berlaku hingga \n".MyHelper::dateFormatInd($voucher['voucher_expired_at'],false);
-            $voucher['status_text']="Valid until ".date('d F Y', strtotime($voucher['voucher_expired_at']));
+            $voucher['status_text']="Valid until ".date('d M Y', strtotime($voucher['voucher_expired_at']));
             $voucher['btn_disable'] = 0;
         }
         $data = $voucher;
@@ -188,7 +188,7 @@ class ApiDealsVoucherWebviewController extends Controller
             'voucher_hash'          => $data['voucher_hash'],
             'voucher_hash_code'     => $data['voucher_hash_code'],
             'id_deals_user'         => $data['id_deals_user'],
-            'voucher_expired'       => date('d F Y', strtotime($data['voucher_expired_at'])),
+            'voucher_expired'       => date('d M Y', strtotime($data['voucher_expired_at'])),
             'is_used'               => $data['is_used'],
             'status'                => $data['status'],
             'btn_used'              => 'Use Later',

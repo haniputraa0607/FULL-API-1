@@ -104,8 +104,13 @@ class ApiHome extends Controller
             }elseif ($value->type == 'gofood') {
                 $item['type']       = 'gofood';
                 $item['id_news'] = 99999999;
-                $item['news_title'] = "GO-FOOD";
-                $item['url']     = env('APP_URL').'outlet/webview/gofood/list';
+                $item['news_title'] = "GoFood";
+                $item['url']     = env('API_URL').'api/outlet/webview/list/gofood';
+            }elseif ($value->type == 'grabfood') {
+                $item['type']       = 'gofood';
+                $item['id_news'] = 99999999;
+                $item['news_title'] = "GrabFood";
+                $item['url']     = env('API_URL').'api/outlet/webview/list/grabfood';
             }elseif ($value->type == 'referral') {
                 $item['type']       = 'referral';
                 $item['id_news'] = 999999999;
