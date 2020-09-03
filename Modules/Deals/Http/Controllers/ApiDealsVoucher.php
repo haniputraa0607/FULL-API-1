@@ -472,9 +472,9 @@ class ApiDealsVoucher extends Controller
                     }
 
                     $useragent = $_SERVER['HTTP_USER_AGENT'];
-                    if(stristr($useragent,'okhttp')){
-                        $voucher[$index]['voucher_expired_at'] = date('d/m/Y H:i',strtotime($voucher[$index]['voucher_expired_at']));
-                    }
+                    // if(stristr($useragent,'okhttp')){
+                    //     $voucher[$index]['voucher_expired_at'] = date('d/m/Y H:i',strtotime($voucher[$index]['voucher_expired_at']));
+                    // }
                 // }
                 // else{
                 //     unset($voucher[$index]);
