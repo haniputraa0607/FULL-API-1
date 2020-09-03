@@ -692,6 +692,7 @@ class ApiOnlineTransaction extends Controller
 
         if($transaction['transaction_grandtotal'] == 0){
             $transaction['transaction_payment_status'] = 'Completed';
+            $transaction['completed_at'] = date('Y-m-d H:i:s');
         }
 
         $newTopupController = new NewTopupController();
@@ -1197,10 +1198,6 @@ class ApiOnlineTransaction extends Controller
                 'id_admin_outlet_taken'   => $post['id_admin_outlet_taken'],
                 'short_link'              => $link
             ];
-
-            if($transaction['transaction_payment_status'] == 'Completed'){
-                $dataPickup['completed_at'] = date('Y-m-d H:i:s');
-            }
 
             if($post['type'] == 'GO-SEND'){
                 $dataPickup['pickup_by'] = 'GO-SEND';
