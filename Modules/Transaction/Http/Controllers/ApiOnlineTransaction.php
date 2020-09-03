@@ -692,6 +692,7 @@ class ApiOnlineTransaction extends Controller
 
         if($transaction['transaction_grandtotal'] == 0){
             $transaction['transaction_payment_status'] = 'Completed';
+            $transaction['completed_at'] = date('Y-m-d H:i:s');
         }
 
         $newTopupController = new NewTopupController();
@@ -1136,22 +1137,6 @@ class ApiOnlineTransaction extends Controller
                                             ->whereDate('transaction_date', date('Y-m-d'))
                                             ->first();
             while($cekOrderId){
-                $order_id = MyHelper::createrandom(4, 'Besar Angka');
-
-                $cekOrderId = TransactionPickup::join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
-                                                ->where('id_outlet', $insertTransaction['id_outlet'])
-                                                ->where('order_id', $order_id)
-                                                ->whereDate('transaction_date', date('Y-m-d'))
-                                                ->first();
-            }
-
-            //cek unique order id today
-            $cekOrderId = TransactionPickup::join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
-                                            ->where('id_outlet', $insertTransaction['id_outlet'])
-                                            ->where('order_id', $order_id)
-                                            ->whereDate('transaction_date', date('Y-m-d'))
-                                            ->first();
-            while ($cekOrderId) {
                 $order_id = MyHelper::createrandom(4, 'Besar Angka');
 
                 $cekOrderId = TransactionPickup::join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
