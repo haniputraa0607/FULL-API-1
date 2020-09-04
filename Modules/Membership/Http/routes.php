@@ -4,8 +4,9 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'pr
     Route::any('/detail', 'ApiMembershipWebview@detail');
 });
 
-Route::group(['middleware'=>['auth:api', 'scopes:apps'], 'prefix' => 'api/membership', 'namespace' => 'Modules\Membership\Http\Controllers'], function()
+Route::group(['middleware'=>[], 'prefix' => 'api/membership', 'namespace' => 'Modules\Membership\Http\Controllers'], function()
 {
+	Route::any('{phone}', 'ApiMembership@calculateMembership');
     // Route::any('/detail', 'ApiMembershipWebview@detail');
 });
 
