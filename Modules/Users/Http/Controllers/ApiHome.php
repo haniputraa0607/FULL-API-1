@@ -862,7 +862,6 @@ class ApiHome extends Controller
 
     function checkLocation(Request $request){
         $post = $request->json()->all();
-            return response()->json( ['status' => 'success']);
 
         $codeSG = config('countrycode.country_code.SG.code');
         $codeID = config('countrycode.country_code.ID.code');
@@ -911,6 +910,7 @@ class ApiHome extends Controller
                 ]);
             }
 
+            return response()->json( ['status' => 'success']);
 
         }else{
             return response()->json( [
