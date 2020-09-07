@@ -18,7 +18,9 @@ class DetailRequest extends FormRequest
         return [
             'id_reference'	=>'required',
             'latitude'		=>'required',
-            'longitude'		=>'required'
+            'longitude'		=>'required',
+            'device_id'		=>'required',
+            'device_type'	=>'required'
         ];
     }
 

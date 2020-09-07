@@ -42,6 +42,7 @@ class ApiRedirectComplex extends Controller
 		$this->outlet 				= "Modules\Outlet\Http\Controllers\ApiOutletController";
 		$this->online_transaction   = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
 		$this->api_promo   			= "Modules\PromoCampaign\Http\Controllers\ApiPromo";
+		$this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
 	}
 
     /**
@@ -274,7 +275,12 @@ class ApiRedirectComplex extends Controller
     {
     	$post = $request->all();
     	$data = [
-    		'id_outlet' => null
+    		'id_outlet' 	=> null,
+    		'device_type' 	=> $request->device_type,
+    		'device_id' 	=> $request->device_id,
+    		'promo_code' 	=> null,
+    		'id_deals_user' => null,
+    		'item' 			=> []
     	];
 
     	$reference 	= RedirectComplexReference::where('id_redirect_complex_reference', $request->id_reference)
@@ -305,8 +311,9 @@ class ApiRedirectComplex extends Controller
 		$data['item'] = $this->getProduct($reference->products);
 
 		// get promo
-		$data['promo_code'] = $this->getPromo($reference->promo_reference);
-		
+		$promo 	= $this->getPromo($reference->promo_reference);
+		$data['promo_code'] = $promo['promo_code'] ?? null;
+
 		$custom_request = new \Modules\Transaction\Http\Requests\CheckTransaction;
 		$custom_request = $custom_request
 						->setJson(new \Symfony\Component\HttpFoundation\ParameterBag($data))
@@ -314,15 +321,43 @@ class ApiRedirectComplex extends Controller
 						->setUserResolver(function () use ($request) {
 							return $request->user();
 						});
-
 		$online_trx =  app($this->online_transaction)->checkTransaction($custom_request);
 
 		if ($online_trx['promo_error']) {
-			$online_trx['promo_error'] = null;
-			$online_trx['promo'] = null;
+			$online_trx['promo_error'] 		= null;
+			$online_trx['promo'] 			= null;
+			$online_trx['promo_code'] 		= null;
+			$online_trx['id_deals_user'] 	= null;
+			$online_trx['title'] 			= null;
+
+		}
+		else{
+			// trigger check used promo
+			if ($data['promo_code']) {
+				$data_promo = [
+					'promo_code' 	=> $promo['promo_code'],
+					'id_deals_user' => $promo['id_deals_user'],
+					'device_type' 	=> $request->device_type,
+					'device_id' 	=> $request->device_id
+				];
+
+				$custom_request = new \Modules\PromoCampaign\Http\Requests\ValidateCode;
+				$custom_request = $custom_request
+								->setJson(new \Symfony\Component\HttpFoundation\ParameterBag($data_promo))
+								->merge($data_promo)
+								->setUserResolver(function () use ($request) {
+									return $request->user();
+								});
+				$check_promo 	=  app($this->promo_campaign)->checkValid($custom_request);
+				$online_trx['promo_code'] 		= $promo['promo_code'];
+				$online_trx['id_deals_user'] 	= $promo['id_deals_user'];
+				$online_trx['title'] 			= $check_promo['result']['title'] ?? null;
+			}
 		}
 
-		return $online_trx;
+		$result = $online_trx;
+
+		return $result;
     }
 
     function getOutlet($latitude, $longitude, $outlet_list=[], $outlet_type=null) {
@@ -415,13 +450,17 @@ class ApiRedirectComplex extends Controller
 
     function getPromo($promo_reference)
     {
-    	$data = null;
+    	$result = [
+    		'promo_code' 	=> null,
+    		'id_deals_user' => null
+    	];
+
     	if ($promo_reference) {
     		$promo = PromoCampaignPromoCode::where('id_promo_campaign', $promo_reference)->first();
-    		$data = $promo['promo_code'];
+    		$result['promo_code'] = $promo['promo_code'] ?? null;
     	}
 
-    	return $data;
+    	return $result;
     }
 
     public function getData(Request $request)
