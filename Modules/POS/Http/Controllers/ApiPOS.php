@@ -47,6 +47,7 @@ use App\Http\Models\LogBackendError;
 use App\Http\Models\OutletSchedule;
 use App\Http\Models\SyncTransactionFaileds;
 use App\Http\Models\SyncTransactionQueues;
+use Modules\UserRating\Entities\UserRatingLog;
 use App\Lib\MyHelper;
 use Mail;
 
@@ -2626,6 +2627,7 @@ class ApiPOS extends Controller
                 }
 
                 $dataTrx['show_rate_popup'] = 1;
+                UserRatingLog::where('id_user',$dataTrx['id_user'])->delete();
 
                 $createTrx = Transaction::create($dataTrx);
                 if (!$createTrx) {
