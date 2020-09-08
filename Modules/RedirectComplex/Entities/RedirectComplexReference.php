@@ -39,7 +39,8 @@ class RedirectComplexReference extends Eloquent
 		'name',
 		'outlet_type',
 		'promo_type',
-		'promo_reference'
+		'promo_reference',
+		'payment_method'
 	];
 
 	public function redirect_complex_outlets()

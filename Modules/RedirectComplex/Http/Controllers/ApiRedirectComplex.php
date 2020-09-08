@@ -51,10 +51,18 @@ class ApiRedirectComplex extends Controller
      */
     public function index()
     {
-    	$data = RedirectComplexReference::orderBy('updated_at','Desc')->paginate(10);
+    	$query 	= RedirectComplexReference::orderBy('updated_at','Desc');
+    	$data 	= $query->paginate(10)->toArray();
+    	$data['data'] = $query->paginate(10)
+        				->each(function($q){
+						    $q->setAppends([
+						        'get_promo'
+						    ]);
+						})
+	        			->toArray();
+
 
     	return MyHelper::checkGet($data);
-        
     }
 
     /**
@@ -70,7 +78,8 @@ class ApiRedirectComplex extends Controller
 			'name'				=> $request->name,
 			'outlet_type'		=> $request->outlet_type,
 			'promo_type'		=> !empty($request->promo) ? 'promo_campaign' : null,
-			'promo_reference'	=> !empty($request->promo) ? $request->promo : null
+			'promo_reference'	=> !empty($request->promo) ? $request->promo : null,
+			'payment_method'	=> !empty($request->payment) ? $request->payment : null
     	];
 
     	DB::beginTransaction();
@@ -195,7 +204,8 @@ class ApiRedirectComplex extends Controller
 			'name'				=> $request->name,
 			'outlet_type'		=> $request->outlet_type,
 			'promo_type'		=> !empty($request->promo) ? 'promo_campaign' : null,
-			'promo_reference'	=> !empty($request->promo) ? $request->promo : null
+			'promo_reference'	=> !empty($request->promo) ? $request->promo : null,
+			'payment_method'	=> !empty($request->payment) ? $request->payment : null
     	];
 
     	DB::beginTransaction();
@@ -323,39 +333,40 @@ class ApiRedirectComplex extends Controller
 						});
 		$online_trx =  app($this->online_transaction)->checkTransaction($custom_request);
 
-		if ($online_trx['promo_error']) {
+		if ($online_trx['promo_error'] || !$data['promo_code']) {
 			$online_trx['promo_error'] 		= null;
 			$online_trx['promo'] 			= null;
 			$online_trx['promo_code'] 		= null;
 			$online_trx['id_deals_user'] 	= null;
 			$online_trx['title'] 			= null;
-
 		}
 		else{
 			// trigger check used promo
-			if ($data['promo_code']) {
-				$data_promo = [
-					'promo_code' 	=> $promo['promo_code'],
-					'id_deals_user' => $promo['id_deals_user'],
-					'device_type' 	=> $request->device_type,
-					'device_id' 	=> $request->device_id
-				];
+			$data_promo = [
+				'promo_code' 	=> $promo['promo_code'],
+				'id_deals_user' => $promo['id_deals_user'],
+				'device_type' 	=> $request->device_type,
+				'device_id' 	=> $request->device_id
+			];
 
-				$custom_request = new \Modules\PromoCampaign\Http\Requests\ValidateCode;
-				$custom_request = $custom_request
-								->setJson(new \Symfony\Component\HttpFoundation\ParameterBag($data_promo))
-								->merge($data_promo)
-								->setUserResolver(function () use ($request) {
-									return $request->user();
-								});
-				$check_promo 	=  app($this->promo_campaign)->checkValid($custom_request);
-				$online_trx['promo_code'] 		= $promo['promo_code'];
-				$online_trx['id_deals_user'] 	= $promo['id_deals_user'];
-				$online_trx['title'] 			= $check_promo['result']['title'] ?? null;
-			}
+			$custom_request = new \Modules\PromoCampaign\Http\Requests\ValidateCode;
+			$custom_request = $custom_request
+							->setJson(new \Symfony\Component\HttpFoundation\ParameterBag($data_promo))
+							->merge($data_promo)
+							->setUserResolver(function () use ($request) {
+								return $request->user();
+							});
+			$check_promo 	=  app($this->promo_campaign)->checkValid($custom_request);
+			$online_trx['promo_code'] 		= $promo['promo_code'];
+			$online_trx['id_deals_user'] 	= $promo['id_deals_user'];
+			$online_trx['title'] 			= $check_promo['result']['title'] ?? null;
 		}
 
 		$result = $online_trx;
+
+		// get payment
+		$payment = $this->getPayment($reference->payment_method);
+		$result['payment'] = $payment;
 
 		return $result;
     }
@@ -560,8 +571,28 @@ class ApiRedirectComplex extends Controller
         		break;
         }
 
-
         return response()->json($data);
+    }
+
+    function getPayment($payment)
+    {
+    	$custom_data 	= [];
+    	$custom_request = new \Illuminate\Http\Request;
+		$custom_request = $custom_request
+						->setJson(new \Symfony\Component\HttpFoundation\ParameterBag($custom_data))
+						->merge($custom_data);
+
+		$payment_list 	= app($this->online_transaction)->availablePayment($custom_request);
+		
+		$result = null;
+		foreach ($payment_list['result']??[] as $key => $value) {
+			if ($value['code'] == $payment) {
+				$result = $value;
+				break;
+			}
+		}
+	
+		return $result;
     }
 }
 	
