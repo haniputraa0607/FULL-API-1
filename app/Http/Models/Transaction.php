@@ -88,7 +88,8 @@ class Transaction extends Model
 		'latitude',
 		'longitude',
 		'membership_promo_id',
-		'completed_at'
+		'completed_at',
+		'show_rate_popup'
 	];
 
 	public function user()

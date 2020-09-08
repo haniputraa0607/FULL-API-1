@@ -297,11 +297,14 @@ class ApiUserRatingController extends Controller
         $post = $request->json()->all();
         $showOutlet = 10;
         $counter = UserRating::select(\DB::raw('rating_value,count(id_user_rating) as total'))
+        ->join('transactions','transactions.id_transaction','=','user_ratings.id_transaction')
         ->groupBy('rating_value');
         $this->applyFilter($counter,$post);
         $counter = $counter->get()->toArray();
         foreach ($counter as &$value) {
-            $datax = UserRating::where('rating_value',$value['rating_value'])->with([
+            $datax = UserRating::where('rating_value',$value['rating_value'])
+                ->join('transactions','transactions.id_transaction','=','user_ratings.id_transaction')
+                ->with([
                 'transaction'=>function($query){
                     $query->select('id_transaction','transaction_receipt_number','trasaction_type','transaction_grandtotal');
                 },'user'=>function($query){
@@ -340,6 +343,11 @@ class ApiUserRatingController extends Controller
         if($rule['notes_only']??false){
             $model->whereNotNull($col.'.suggestion');
             $model->where($col.'.suggestion','<>','');
+        }
+        if(($rule['transaction_type']??false) == 'online'){
+            $model->where('trasaction_type', 'pickup order');
+        } elseif (($rule['transaction_type']??false) == 'offline'){
+            $model->where('trasaction_type', 'offline');
         }
         $model->whereDate($col.'.created_at','>=',$rule['date_start'])->whereDate($col.'.created_at','<=',$rule['date_end']);
     }
