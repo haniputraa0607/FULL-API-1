@@ -18,9 +18,9 @@ class CreateRequest extends FormRequest
         return [
             'name'		=>'required',
             'outlet'	=>'nullable',
-            'product'	=>'required',
+            'product'	=>'nullable',
             'promo'		=>'nullable',
-            'outlet_type'	=>'required',
+            'outlet_type'	=>'nullable',
         ];
     }
 
