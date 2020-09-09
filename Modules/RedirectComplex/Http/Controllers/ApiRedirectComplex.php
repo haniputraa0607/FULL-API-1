@@ -32,6 +32,7 @@ use Modules\Brand\Entities\Brand;
 
 use App\Lib\MyHelper;
 use DB;
+use Modules\PromoCampaign\Lib\PromoCampaignTools;
 
 class ApiRedirectComplex extends Controller
 {
@@ -284,13 +285,12 @@ class ApiRedirectComplex extends Controller
     function detail(DetailRequest $request)
     {
     	$post = $request->all();
+    	$use_promo = false;
     	$data = [
-    		'id_outlet' 	=> null,
-    		'device_type' 	=> $request->device_type,
-    		'device_id' 	=> $request->device_id,
-    		'promo_code' 	=> null,
-    		'id_deals_user' => null,
-    		'item' 			=> []
+    		'outlet' 	=> null,
+    		'item' 		=> null,
+    		'promo'		=> null,
+    		'payment' 	=> null
     	];
 
     	$reference 	= RedirectComplexReference::where('id_redirect_complex_reference', $request->id_reference)
@@ -309,42 +309,78 @@ class ApiRedirectComplex extends Controller
 		}
     	$reference = $reference->append('get_promo');
 
-    	// get outlet
-    	$outlet 	= $this->getOutlet($request->latitude, $request->longitude, $reference->outlets, $reference->outlet_type);
-    	if ($outlet['status'] == 'fail') {
-			return ['status' => 'fail', 'messages' => ['Outlet not found']];
-		}else{
-			$data['id_outlet'] = $outlet['id_outlet'];
-		}
+		// get promo
+		$promo 	= $this->getPromo($reference->promo_type, $reference->promo_reference);
+		$data['promo'] = $promo;
+		$use_promo = $promo['use_promo'];
+
+	   	// get outlet
+    	if (!empty($reference['outlet_type'])) {
+	    	$outlet 	= $this->getOutlet(
+				    		$request->latitude, 
+				    		$request->longitude, 
+				    		$reference->outlets, 
+				    		$reference->outlet_type, 
+				    		$promo
+				    	);
+
+	    	if ($outlet['status']) {
+	    		// dd($outlet);
+	    		$outlet 		= $outlet['outlet_promo'] ?? $outlet['outlet'];
+	    		$use_promo 		= $outlet['use_promo'];
+				$data['outlet'] = [
+					'id_outlet' 	=> $outlet['id_outlet'],
+					'outlet_code' 	=> $outlet['outlet_code']
+				];
+			}else{
+				return ['status' => 'fail', 'messages' => ['Outlet not found']];
+			}
+    	}
 
 		// get product
-		$data['item'] = $this->getProduct($reference->products);
+		if ($reference['use_product']) {
+			$products = $this->getProduct($reference->products, $outlet['id_outlet']);
 
-		// get promo
-		$promo 	= $this->getPromo($reference->promo_reference);
-		$data['promo_code'] = $promo['promo_code'] ?? null;
+			$data_trx = [
+	    		'id_outlet' 	=> $outlet['id_outlet'],
+	    		'device_type' 	=> $request->device_type,
+	    		'device_id' 	=> $request->device_id,
+	    		'promo_code' 	=> null,
+	    		'id_deals_user' => null,
+	    		'item' 			=> $products
+	    	];
 
-		$custom_request = new \Modules\Transaction\Http\Requests\CheckTransaction;
-		$custom_request = $custom_request
-						->setJson(new \Symfony\Component\HttpFoundation\ParameterBag($data))
-						->merge($data)
-						->setUserResolver(function () use ($request) {
-							return $request->user();
-						});
-		$online_trx =  app($this->online_transaction)->checkTransaction($custom_request);
+	    	if ($use_promo) {
+	    		$data_trx['promo_code'] 	= $promo['promo_code'] ?? null;
+	    		$data_trx['id_deals_user'] 	= $promo['id_deals_user'] ?? null;
+	    	}
 
-		if ($online_trx['promo_error'] || !$data['promo_code']) {
-			$online_trx['promo_error'] 		= null;
-			$online_trx['promo'] 			= null;
-			$online_trx['promo_code'] 		= null;
-			$online_trx['id_deals_user'] 	= null;
-			$online_trx['title'] 			= null;
+			$custom_request = new \Modules\Transaction\Http\Requests\CheckTransaction;
+			$custom_request = $custom_request
+							->setJson(new \Symfony\Component\HttpFoundation\ParameterBag($data_trx))
+							->merge($data_trx)
+							->setUserResolver(function () use ($request) {
+								return $request->user();
+							});
+			$data['item'] =  app($this->online_transaction)->checkTransaction($custom_request)['result']['item'] ?? null;
+
+			// trigger check used promo if promo valid
+			if ($use_promo && empty($online_trx['promo_error'])) {
+				$use_promo = true;
+			}else{
+				$use_promo = false;
+			}
 		}
-		else{
-			// trigger check used promo
+
+		// get payment
+		$payment = $this->getPayment($reference->payment_method);
+		$data['payment'] = $payment;
+
+		// trigger check used promo if promo valid
+		if ($use_promo) {
 			$data_promo = [
-				'promo_code' 	=> $promo['promo_code'],
-				'id_deals_user' => $promo['id_deals_user'],
+				'promo_code' 	=> $promo['promo_code'] ?? null,
+				'id_deals_user' => $promo['id_deals_user'] ?? null,
 				'device_type' 	=> $request->device_type,
 				'device_id' 	=> $request->device_id
 			];
@@ -357,21 +393,19 @@ class ApiRedirectComplex extends Controller
 								return $request->user();
 							});
 			$check_promo 	=  app($this->promo_campaign)->checkValid($custom_request);
-			$online_trx['promo_code'] 		= $promo['promo_code'];
-			$online_trx['id_deals_user'] 	= $promo['id_deals_user'];
-			$online_trx['title'] 			= $check_promo['result']['title'] ?? null;
+			if(($check_promo['status']??true) != 'success'){
+				$data['promo'] = null;
+			}
 		}
+		else{
+			$data['promo'] = null;
+		}
+		$data['redirect'] = $this->getRedirect($data['outlet'], $data['item'], $data['promo'], $data['payment']);
 
-		$result = $online_trx;
-
-		// get payment
-		$payment = $this->getPayment($reference->payment_method);
-		$result['payment'] = $payment;
-
-		return $result;
+		return MyHelper::checkGet($data);
     }
 
-    function getOutlet($latitude, $longitude, $outlet_list=[], $outlet_type=null) {
+    function getOutlet($latitude, $longitude, $outlet_list=[], $outlet_type=null, $promo) {
 
         // outlet
         $outlet = Outlet::with(['today'])->select('outlets.id_outlet','outlets.outlet_name','outlets.outlet_phone','outlets.outlet_code','outlets.outlet_status','outlets.outlet_address','outlets.id_city','outlet_latitude','outlet_longitude')->where('outlet_status', 'Active')->whereNotNull('id_city')->orderBy('outlet_name','asc');
@@ -413,30 +447,94 @@ class ApiRedirectComplex extends Controller
             return ['status' => 'fail', 'messages' => ['There is no open store','at this moment']];
         }
 
+    	if ($promo['use_promo']) {
+    		$get_promo = app($this->promo_campaign)->checkPromoCode($promo['promo_code'], 'outlet');
+			if ($get_promo) {
+				$promo_outlet = $get_promo->promo_campaign->promo_campaign_outlets;
+			}
+			$pct = new PromoCampaignTools();
+    	}
+
+    	$selected_outlet = [
+    		'outlet' 		=> null,
+    		'outlet_promo' 	=> null
+    	];
+
         if ($outlet_type) {
         	if ($outlet_type == 'specific') {
 	    		$outlet_list = array_column($outlet_list->toArray(), 'id_outlet');
-	    		foreach ($outlet as $key => $value) {
-	    			if (in_array($value['id_outlet'], $outlet_list)) {
-	    				$id_outlet = $value['id_outlet'];
-	    				break;
-	    			}
-	    		}
+	    		if ($promo['use_promo']) {
+		    		foreach ($outlet as $key => $value) {
+		    			if ($promo['use_promo']) {
+		    				$outlet = $pct->checkOutletRule($value['id_outlet'], $get_promo->is_all_outlet??0, $promo_outlet);
+		    				if ($outlet) {
+			    				$selected_outlet['outlet_promo'] = [
+			    					'use_promo'		=> true,
+			    					'id_outlet' 	=> $value['id_outlet'],
+				    				'outlet_code' 	=> $value['outlet_code']
+				    			];
+			    				break;
+		    				}
+		    			}
+
+		    			if (empty($selected_outlet['outlet']) && in_array($value['id_outlet'], $outlet_list)) {
+		    				$selected_outlet['outlet'] = [
+		    					'use_promo'		=> false,
+			    				'id_outlet' 	=> $value['id_outlet'],
+			    				'outlet_code' 	=> $value['outlet_code']
+			    			];
+
+			    			if (!$promo['use_promo']) break;
+		    			}
+		    		}
+		    	}
+		    	else {
+		    		foreach ($outlet as $key => $value) {
+		    			if (empty($selected_outlet['outlet']) && in_array($value['id_outlet'], $outlet_list)) {
+		    				$selected_outlet['outlet'] = [
+		    					'use_promo'		=> false,
+			    				'id_outlet' 	=> $value['id_outlet'],
+			    				'outlet_code' 	=> $value['outlet_code']
+			    			];
+
+			    			break;
+		    			}
+		    		}
+		    	}
 	    	}
 	    	else {
-	    		$id_outlet = $outlet[0]['id_outlet'];
+
+	    		if ($promo['use_promo']) {
+		    		foreach ($outlet as $key => $value) {
+		    				$outlet = $pct->checkOutletRule($value['id_outlet'], $get_promo->is_all_outlet??0, $promo_outlet);
+		    				$selected_outlet['outlet_promo'] = [
+		    					'use_promo'		=> true,
+		    					'id_outlet' 	=> $value['id_outlet'],
+			    				'outlet_code' 	=> $value['outlet_code']
+			    			];
+		    				break;
+		    		}
+	    		}
+
+	    		if (empty($selected_outlet['outlet']) && !empty($outlet[0]['id_outlet'])) {
+	    			$selected_outlet['outlet'] = [
+	    				'use_promo'		=> false,
+	    				'id_outlet' 	=> $outlet[0]['id_outlet'],
+	    				'outlet_code' 	=> $outlet[0]['outlet_code']
+	    			];
+	    		}
 	    	}
         }
 
-        if (!isset($id_outlet)) {
-        	return ['status' => 'fail', 'messages' => ['Outlet not found']];
+        if (!$selected_outlet['outlet'] && !$selected_outlet['outlet_promo']) {
+        	return ['status' => false, 'messages' => ['Outlet not found']];
         }
         else {
-        	return ['status' => 'success', 'id_outlet' => $id_outlet];
+        	return ['status' => true]+$selected_outlet;
         }
     }
 
-    function getProduct($products)
+    function getProduct($products, $id_outlet)
     {
     	$data =[];
     	foreach ($products as $value) {
@@ -459,16 +557,20 @@ class ApiRedirectComplex extends Controller
 
     }
 
-    function getPromo($promo_reference)
+    function getPromo($promo_type, $promo_reference)
     {
     	$result = [
+    		'use_promo'		=> false,
     		'promo_code' 	=> null,
     		'id_deals_user' => null
     	];
 
     	if ($promo_reference) {
-    		$promo = PromoCampaignPromoCode::where('id_promo_campaign', $promo_reference)->first();
-    		$result['promo_code'] = $promo['promo_code'] ?? null;
+	    	if ($promo_type == 'promo_campaign') {
+	    		$promo = PromoCampaignPromoCode::where('id_promo_campaign', $promo_reference)->first();
+	    		$result['use_promo'] 	= true;
+	    		$result['promo_code'] 	= $promo['promo_code'] ?? null;
+	    	}
     	}
 
     	return $result;
@@ -594,5 +696,20 @@ class ApiRedirectComplex extends Controller
 	
 		return $result;
     }
+
+    function getRedirect($outlet, $product, $promo, $payment)
+    {
+    	$result = null;
+    	if ($outlet && $product) {
+    		$result = 'checkout';
+    	}
+    	elseif ($outlet){
+    		$result = 'list product';
+    	}
+    	elseif ($promo) {
+    		$result = 'list outlet';
+    	}
+
+    	return $result;
+    }
 }
-	
