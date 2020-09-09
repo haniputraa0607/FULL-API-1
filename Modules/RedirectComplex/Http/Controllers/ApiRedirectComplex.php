@@ -274,9 +274,9 @@ class ApiRedirectComplex extends Controller
         $post = $request->json()->all();
 
         $data = RedirectComplexReference::whereNotNull('name')
-        		->whereNotNull('type')
-        		->whereNotNull('outlet_type')
-        		->whereHas('redirect_complex_products');
+        		->whereNotNull('type');
+        		// ->whereNotNull('outlet_type')
+        		// ->whereHas('redirect_complex_products');
 
         if(isset($post['select'])){
             $data = $data->select($post['select']);
