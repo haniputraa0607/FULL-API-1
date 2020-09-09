@@ -1698,7 +1698,8 @@ class ApiOnlineTransaction extends Controller
             if ($code)
             {
 	        	if ($code['promo_campaign']['date_end'] < date('Y-m-d H:i:s')) {
-	        		$promo_error='Promo campaign is ended';
+	        		$error = ['Promo campaign is ended'];
+            		$promo_error = app($this->promo_campaign)->promoError('transaction', $error);
 	        	}
 	        	else
 	        	{
@@ -1710,7 +1711,7 @@ class ApiOnlineTransaction extends Controller
 		            $pct=new PromoCampaignTools();
 		            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
 
-		            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type']);
+		            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product);
 
 
 		            // if (isset($discount_promo['is_free']) && $discount_promo['is_free'] == 1) {
@@ -1736,7 +1737,7 @@ class ApiOnlineTransaction extends Controller
 		            }
 
 		            if ( !empty($errore) || !empty($errors)) {
-		            	$promo_error = app($this->promo_campaign)->promoError('transaction', $errore, $errors);
+		            	$promo_error = app($this->promo_campaign)->promoError('transaction', $errore, $errors, $error_product);
 		            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('promo_campaign', $code['promo_campaign'])['product']??'';
 		            	$promo_error['warning_image'] = env('S3_URL_API').($code['promo_campaign_warning_image']??$promo_error['warning_image']);
 				        $promo_error['product'] = $pct->getRequiredProduct($code->id_promo_campaign)??null;
@@ -1748,7 +1749,8 @@ class ApiOnlineTransaction extends Controller
             }
             else
             {
-            	$promo_error = 'Promo code invalid';
+            	$error = ['Promo code invalid'];
+            	$promo_error = app($this->promo_campaign)->promoError('transaction', $error);
             }
         }
         elseif($request->json('id_deals_user'))
@@ -1757,7 +1759,7 @@ class ApiOnlineTransaction extends Controller
 			if($deals)
 			{
 				$pct=new PromoCampaignTools();
-				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals');
+				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals', null, $error_product);
 
 				// if ($discount_promo['is_free'] == 1) {
 	   //          	// unset($discount_promo['item']);
@@ -1775,7 +1777,7 @@ class ApiOnlineTransaction extends Controller
 				if ( !empty($errors) ) {
 					$code = $deals->toArray();
 
-	            	$promo_error = app($this->promo_campaign)->promoError('transaction', null, $errors);
+	            	$promo_error = app($this->promo_campaign)->promoError('transaction', null, $errors, $error_product);
 	            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('deals', $code['deal_voucher']['deals'])['product']??'';
 	            	$promo_error['warning_image'] = env('S3_URL_API').($code['deal_voucher']['deals']['deals_warning_image']??$promo_error['warning_image']);
 		        	$promo_error['product'] = $pct->getRequiredProduct($deals->dealVoucher->id_deals, 'deals')??null;
@@ -1785,7 +1787,8 @@ class ApiOnlineTransaction extends Controller
 	        }
 	        else
 	        {
-	        	$promo_error = 'Voucher is not valid';
+	        	$error = ['Voucher is not valid'];
+	        	$promo_error = app($this->promo_campaign)->promoError('transaction', $error);
 	        }
         }
         // end check promo code
