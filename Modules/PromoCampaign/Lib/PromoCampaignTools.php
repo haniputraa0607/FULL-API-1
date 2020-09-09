@@ -35,7 +35,7 @@ class PromoCampaignTools{
 	 * @param  	array 		$error     	error message
 	 * @return 	array/boolean     modified array of trxs if can, otherwise false
 	 */
-	public function validatePromo($id_promo, $id_outlet, $trxs, &$errors, $source='promo_campaign', $payment_type=null){
+	public function validatePromo($id_promo, $id_outlet, $trxs, &$errors, $source='promo_campaign', $payment_type=null, &$errorProduct=0){
 		/**
 		 $trxs=[
 			{
@@ -324,6 +324,7 @@ class PromoCampaignTools{
 					$message = MyHelper::simpleReplace($message,['product'=>'specially marked product', 'title' => $promo_title]);
 
 					$errors[]= $message;
+					$errorProduct = 1;
 					return false;
 				}
 
@@ -406,6 +407,7 @@ class PromoCampaignTools{
 					$message = MyHelper::simpleReplace($message,['product'=>$product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
 
 					$errors[]= $message;
+					$errorProduct = 1;
 					return false;
 				}
 
@@ -427,6 +429,7 @@ class PromoCampaignTools{
 					$message = MyHelper::simpleReplace($message,['product'=>$product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
 
 					$errors[]= $message;
+					$errorProduct = 1;
 					return false;
 				}
 
@@ -457,6 +460,7 @@ class PromoCampaignTools{
 					$message = MyHelper::simpleReplace($message,['product'=>$product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
 
 					$errors[]= $message;
+					$errorProduct = 1;
 					return false;
 				}
 				// count discount
@@ -538,6 +542,7 @@ class PromoCampaignTools{
 					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
 
 					$errors[]= $message;
+					$errorProduct = 1;
 					return false;
 				}
 				//get cart's product to get benefit
@@ -559,6 +564,7 @@ class PromoCampaignTools{
 					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
 
 					$errors[]= $message;
+					$errorProduct = 1;
 					return false;
 				}
 				//find promo
@@ -593,6 +599,7 @@ class PromoCampaignTools{
 					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
 
 					$errors[]= $message;
+					$errorProduct = 1;
 					return false;
 				}
 				$benefit_product = $this->getOneProduct($id_outlet, $promo_rule->benefit_id_product,1, 1);
