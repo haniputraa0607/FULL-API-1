@@ -1698,7 +1698,8 @@ class ApiOnlineTransaction extends Controller
             if ($code)
             {
 	        	if ($code['promo_campaign']['date_end'] < date('Y-m-d H:i:s')) {
-	        		$promo_error='Promo campaign is ended';
+	        		$error = ['Promo campaign is ended'];
+            		$promo_error = app($this->promo_campaign)->promoError('transaction', $error);
 	        	}
 	        	else
 	        	{
