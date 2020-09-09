@@ -80,7 +80,8 @@ class ApiRedirectComplex extends Controller
 			'outlet_type'		=> $request->outlet_type,
 			'promo_type'		=> !empty($request->promo) ? 'promo_campaign' : null,
 			'promo_reference'	=> !empty($request->promo) ? $request->promo : null,
-			'payment_method'	=> !empty($request->payment) ? $request->payment : null
+			'payment_method'	=> !empty($request->payment) && !empty($request->use_product) && !empty($request->product) ? $request->payment : null,
+			'use_product'		=> !empty($request->use_product) && !empty($request->product) ? $request->use_product : 0
     	];
 
     	DB::beginTransaction();
@@ -100,7 +101,7 @@ class ApiRedirectComplex extends Controller
 	    		if(!$save_outlet) break;
 	    	}
 
-	    	if ($request->product) {
+	    	if ($request->product && $request->use_product) {
 				$save_product = $this->saveProduct($request->product, $save_reference->id_redirect_complex_reference);
 	    		if(!$save_product) break;
 	    	}
@@ -202,11 +203,13 @@ class ApiRedirectComplex extends Controller
     	$post 		= $request->json()->all();
     	$status		= false;
     	$reference 	= [
+			'type'				=> 'push',
 			'name'				=> $request->name,
 			'outlet_type'		=> $request->outlet_type,
 			'promo_type'		=> !empty($request->promo) ? 'promo_campaign' : null,
 			'promo_reference'	=> !empty($request->promo) ? $request->promo : null,
-			'payment_method'	=> !empty($request->payment) ? $request->payment : null
+			'payment_method'	=> !empty($request->payment) && !empty($request->use_product) && !empty($request->product) ? $request->payment : null,
+			'use_product'		=> !empty($request->use_product) && !empty($request->product) ? $request->use_product : 0
     	];
 
     	DB::beginTransaction();
@@ -228,7 +231,7 @@ class ApiRedirectComplex extends Controller
 					if(!$save_outlet) break;
 		    	}
 
-		    	if ($request->product) {
+		    	if ($request->product && $request->use_product) {
 					$save_product 	= $this->saveProduct($request->product, $request->id_redirect_complex_reference);
 					if(!$save_product) break;
 		    	}
@@ -341,30 +344,36 @@ class ApiRedirectComplex extends Controller
 		if ($reference['use_product']) {
 			$products = $this->getProduct($reference->products, $outlet['id_outlet']);
 
-			$data_trx = [
-	    		'id_outlet' 	=> $outlet['id_outlet'],
-	    		'device_type' 	=> $request->device_type,
-	    		'device_id' 	=> $request->device_id,
-	    		'promo_code' 	=> null,
-	    		'id_deals_user' => null,
-	    		'item' 			=> $products
-	    	];
+			if ($products) {
+				$data_trx = [
+		    		'id_outlet' 	=> $outlet['id_outlet'],
+		    		'device_type' 	=> $request->device_type,
+		    		'device_id' 	=> $request->device_id,
+		    		'promo_code' 	=> null,
+		    		'id_deals_user' => null,
+		    		'item' 			=> $products
+		    	];
 
-	    	if ($use_promo) {
-	    		$data_trx['promo_code'] 	= $promo['promo_code'] ?? null;
-	    		$data_trx['id_deals_user'] 	= $promo['id_deals_user'] ?? null;
-	    	}
+		    	if ($use_promo) {
+		    		$data_trx['promo_code'] 	= $promo['promo_code'] ?? null;
+		    		$data_trx['id_deals_user'] 	= $promo['id_deals_user'] ?? null;
+		    	}
 
-			$custom_request = new \Modules\Transaction\Http\Requests\CheckTransaction;
-			$custom_request = $custom_request
-							->setJson(new \Symfony\Component\HttpFoundation\ParameterBag($data_trx))
-							->merge($data_trx)
-							->setUserResolver(function () use ($request) {
-								return $request->user();
-							});
-			$data['item'] =  app($this->online_transaction)->checkTransaction($custom_request)['result']['item'] ?? null;
+				$custom_request = new \Modules\Transaction\Http\Requests\CheckTransaction;
+				$custom_request = $custom_request
+								->setJson(new \Symfony\Component\HttpFoundation\ParameterBag($data_trx))
+								->merge($data_trx)
+								->setUserResolver(function () use ($request) {
+									return $request->user();
+								});
+				$data['item'] =  app($this->online_transaction)->checkTransaction($custom_request)['result']['item'] ?? null;
 
-			// trigger check used promo if promo valid
+			}
+			else {
+				$data['item'] = null;
+			}
+
+			
 			if ($use_promo && empty($online_trx['promo_error'])) {
 				$use_promo = true;
 			}else{
@@ -536,7 +545,8 @@ class ApiRedirectComplex extends Controller
 
     function getProduct($products, $id_outlet)
     {
-    	$data =[];
+    	$data 	= [];
+    	$result = null;
     	foreach ($products as $value) {
     		$temp = [
 				"id_product_group" => $value['id_product_group'],
@@ -553,7 +563,10 @@ class ApiRedirectComplex extends Controller
 			}
 			$data[] = $temp;
     	}
-    	return $data;
+    	if (!empty($data)) {
+    		$result = $data;
+    	}
+    	return $result;
 
     }
 
@@ -607,7 +620,7 @@ class ApiRedirectComplex extends Controller
 		            			$q->whereNotNull('id_product_category');
 		            		})
 		            		->leftJoin('brand_product', 'products.id_product', '=', 'brand_product.id_product')
-		            		->leftJoin('brands', 'brands.id_brand', '=', 'brand_product.id_brand')
+		            		->join('brands', 'brands.id_brand', '=', 'brand_product.id_brand')
 		            		->groupBy('brand_product.id_brand_product')
 		            		->orderBy('brands.id_brand');
 

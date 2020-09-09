@@ -18,9 +18,9 @@ class UpdateRequest extends FormRequest
         return [
             'name'		=>'required',
             'outlet'	=>'nullable',
-            'product'	=>'required',
+            'product'	=>'nullable',
             'promo'		=>'nullable',
-            'outlet_type'	=>'required',
+            'outlet_type'	=>'nullable',
             'id_redirect_complex_reference'	=>'required'
         ];
     }
