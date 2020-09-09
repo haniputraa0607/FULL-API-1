@@ -2316,7 +2316,7 @@ class ApiPromoCampaign extends Controller
         return $deals;
     }
 
-    public function promoError($source, $errore=null, $errors=null)
+    public function promoError($source, $errore=null, $errors=null, $error_product=0)
     {
     	if ($source == 'transaction')
     	{
@@ -2327,10 +2327,15 @@ class ApiPromoCampaign extends Controller
 	    		$data[$value['key']] = $value['value'];
 	    	}
 
-	    	$result['title'] = $data['promo_error_title']??'Promo tidak berlaku';
-	        $result['button_ok'] = $data['promo_error_ok_button']??'Tambah item';
+	    	$result['title'] 		 = $data['promo_error_title']??'Promo tidak berlaku';
+	        $result['button_ok'] 	 = $data['promo_error_ok_button']??'Tambah item';
 	        $result['button_cancel'] = $data['promo_error_cancel_button']??'Tidak';
 	        $result['warning_image'] = $data['promo_warning_image']??'';
+	        $result['remove'] 		 = 0;
+
+	        if (!$error_product) {
+	        	$result['remove'] 	 = 1;
+	        }
 
     	}
     	else
