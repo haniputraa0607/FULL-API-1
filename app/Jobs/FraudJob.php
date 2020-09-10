@@ -183,6 +183,8 @@ class FraudJob implements ShouldQueue
                         }
                     }
 
+                    $checkMembership = app('Modules\Membership\Http\Controllers\ApiMembership')->calculateMembership($dataUser['phone']);
+
                 }
 
                 $updatePointCashback = Transaction::where('id_transaction', $dataTrx['id_transaction'])
