@@ -161,9 +161,9 @@ class ApiUserRatingController extends Controller
             'option_value' => implode(',',array_map(function($var){return trim($var,'"');},$post['option_value']??[]))
         ];
         $create = UserRating::updateOrCreate(['id_transaction'=>$trx->id_transaction],$insert);
-        UserRatingLog::where('id_user',$request->user()->id)->delete();
+        UserRatingLog::where('id_user',$request->user()->id)->update(['refuse_count' => 0]);
         if($create){
-            Transaction::where('id_user',$user->id)->update(['show_rate_popup'=>0]);
+            Transaction::where('id_transaction',$trx->id_transaction)->update(['show_rate_popup'=>0]);
         }
         return MyHelper::checkCreate($create);
     }
@@ -239,7 +239,7 @@ class ApiUserRatingController extends Controller
             }])
             ->where(['show_rate_popup'=>1,'id_user'=>$user->id])
             ->whereDate('transaction_date','>',$max_date)
-            ->orderBy('transaction_date','desc')
+            ->orderBy('transaction_date','asc')
             ->first();
             if(!$transaction){
                 return MyHelper::checkGet([]);
