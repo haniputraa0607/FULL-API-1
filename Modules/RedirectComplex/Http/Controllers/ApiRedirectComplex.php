@@ -81,7 +81,8 @@ class ApiRedirectComplex extends Controller
 			'promo_type'		=> !empty($request->promo) ? 'promo_campaign' : null,
 			'promo_reference'	=> !empty($request->promo) ? $request->promo : null,
 			'payment_method'	=> !empty($request->payment) && !empty($request->use_product) && !empty($request->product) ? $request->payment : null,
-			'use_product'		=> !empty($request->use_product) && !empty($request->product) ? $request->use_product : 0
+			'use_product'		=> !empty($request->use_product) && !empty($request->product) ? $request->use_product : 0,
+			'transaction_type'	=> !empty($request->transaction_type) && !empty($request->use_product) && !empty($request->product) ? $request->transaction_type : null
     	];
 
     	DB::beginTransaction();
@@ -209,7 +210,8 @@ class ApiRedirectComplex extends Controller
 			'promo_type'		=> !empty($request->promo) ? 'promo_campaign' : null,
 			'promo_reference'	=> !empty($request->promo) ? $request->promo : null,
 			'payment_method'	=> !empty($request->payment) && !empty($request->use_product) && !empty($request->product) ? $request->payment : null,
-			'use_product'		=> !empty($request->use_product) && !empty($request->product) ? $request->use_product : 0
+			'use_product'		=> !empty($request->use_product) && !empty($request->product) ? $request->use_product : 0,
+			'transaction_type'	=> !empty($request->transaction_type) && !empty($request->use_product) && !empty($request->product) ? $request->transaction_type : null
     	];
 
     	DB::beginTransaction();
@@ -293,7 +295,8 @@ class ApiRedirectComplex extends Controller
     		'outlet' 	=> null,
     		'item' 		=> null,
     		'promo'		=> null,
-    		'payment' 	=> null
+    		'payment' 	=> null,
+    		'transaction_type' => null
     	];
 
     	$reference 	= RedirectComplexReference::where('id_redirect_complex_reference', $request->id_reference)
@@ -351,6 +354,7 @@ class ApiRedirectComplex extends Controller
 		    		'device_id' 	=> $request->device_id,
 		    		'promo_code' 	=> null,
 		    		'id_deals_user' => null,
+		    		'type'			=> null,
 		    		'item' 			=> $products
 		    	];
 
@@ -368,6 +372,10 @@ class ApiRedirectComplex extends Controller
 								});
 				$data['item'] =  app($this->online_transaction)->checkTransaction($custom_request)['result']['item'] ?? null;
 
+				if ($data['item'] === []) {
+					$data['item'] = null;
+				}
+
 			}
 			else {
 				$data['item'] = null;
@@ -382,8 +390,12 @@ class ApiRedirectComplex extends Controller
 		}
 
 		// get payment
-		$payment = $this->getPayment($reference->payment_method);
-		$data['payment'] = $payment;
+		if ($data['item']) {
+			$payment = $this->getPayment($reference->payment_method);
+			$data['payment'] = $payment;
+
+			$data['transaction_type'] = $reference->transaction_type;
+		}
 
 		// trigger check used promo if promo valid
 		if ($use_promo) {
@@ -474,26 +486,30 @@ class ApiRedirectComplex extends Controller
 	    		$outlet_list = array_column($outlet_list->toArray(), 'id_outlet');
 	    		if ($promo['use_promo']) {
 		    		foreach ($outlet as $key => $value) {
-		    			if ($promo['use_promo']) {
-		    				$outlet = $pct->checkOutletRule($value['id_outlet'], $get_promo->is_all_outlet??0, $promo_outlet);
-		    				if ($outlet) {
-			    				$selected_outlet['outlet_promo'] = [
-			    					'use_promo'		=> true,
-			    					'id_outlet' 	=> $value['id_outlet'],
+
+		    			if (in_array($value['id_outlet'], $outlet_list)) {
+		    				if (empty($selected_outlet['outlet'])) {
+			    				$selected_outlet['outlet'] = [
+			    					'use_promo'		=> false,
+				    				'id_outlet' 	=> $value['id_outlet'],
 				    				'outlet_code' 	=> $value['outlet_code']
 				    			];
+				    		}
+
+			    			if ($promo['use_promo']) {
+			    				$outlet = $pct->checkOutletRule($value['id_outlet'], $get_promo->is_all_outlet??0, $promo_outlet);
+			    				if ($outlet) {
+				    				$selected_outlet['outlet_promo'] = [
+				    					'use_promo'		=> true,
+				    					'id_outlet' 	=> $value['id_outlet'],
+					    				'outlet_code' 	=> $value['outlet_code']
+					    			];
+				    				break;
+			    				}
+			    			}
+			    			else{
 			    				break;
-		    				}
-		    			}
-
-		    			if (empty($selected_outlet['outlet']) && in_array($value['id_outlet'], $outlet_list)) {
-		    				$selected_outlet['outlet'] = [
-		    					'use_promo'		=> false,
-			    				'id_outlet' 	=> $value['id_outlet'],
-			    				'outlet_code' 	=> $value['outlet_code']
-			    			];
-
-			    			if (!$promo['use_promo']) break;
+			    			}
 		    			}
 		    		}
 		    	}
@@ -568,6 +584,29 @@ class ApiRedirectComplex extends Controller
     	}
     	return $result;
 
+    }
+
+    function getProductV2($products, $id_outlet)
+    {
+    	$data 	= [];
+    	$result = null;
+    	foreach ($products as $value) {
+    		$temp = [
+				"id_custom"		=> null,
+	            "id_product"	=> $value['id_product'],
+	            "id_brand"		=> $value['pivot']['id_brand'],
+	            "qty"			=> $value['pivot']['qty'],
+	            "note"			=> "",
+	            "modifiers"		=> []
+			];
+
+			$data[] = $temp;
+    	}
+
+    	if (!empty($data)) {
+    		$result = $data;
+    	}
+    	return $result;
     }
 
     function getPromo($promo_type, $promo_reference)
@@ -681,6 +720,23 @@ class ApiRedirectComplex extends Controller
         		}
         		break;
 
+        	case 'product-only':
+
+				$data = Product::select('products.id_product', 'brands.id_brand' ,DB::raw('CONCAT(name_brand, " - ", product_code, " - ", product_name) AS product'),DB::raw('CONCAT(products.id_product, ".", brands.id_brand) AS id_product'))
+						->leftJoin('brand_product', 'products.id_product', '=', 'brand_product.id_product')
+						->join('brands', 'brands.id_brand', '=', 'brand_product.id_brand')
+						->whereNotNull('brand_product.id_product_category')
+						->groupBy('brand_product.id_brand_product')
+						->orderBy('brands.id_brand');
+
+				if (!empty($post['brand'])) {
+					$data = $data->whereIn('brands.id_brand',$post['brand']);
+				}
+
+				$data = $data->get()->toArray();
+
+				break;
+
         	default:
         		$data = [];
         		break;
@@ -706,7 +762,6 @@ class ApiRedirectComplex extends Controller
 				break;
 			}
 		}
-	
 		return $result;
     }
 
