@@ -32,6 +32,7 @@ use App\Http\Models\Autocrm;
 use App\Http\Models\Setting;
 use App\Http\Models\LogPoint;
 use Modules\IPay88\Entities\TransactionPaymentIpay88;
+use Modules\UserRating\Entities\UserRatingLog;
 
 class ApiCronTrxController extends Controller
 {
@@ -399,6 +400,17 @@ class ApiCronTrxController extends Controller
                     {
                         $savePoint = app($this->getNotif)->savePoint($newTrx);
                     }
+                }
+
+                // show rate popup
+                if ($newTrx->id_user) {
+                    UserRatingLog::updateOrCreate([
+                        'id_user' => $newTrx->id_user,
+                        'id_transaction' => $newTrx->id_transaction
+                    ],[
+                        'refuse_count' => 0,
+                        'last_popup' => date('Y-m-d H:i:s', time() - MyHelper::setting('popup_min_interval', 'value', 900))
+                    ]);
                 }
             }
             //update taken_by_sistem_at
