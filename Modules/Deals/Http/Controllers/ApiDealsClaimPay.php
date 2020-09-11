@@ -72,7 +72,7 @@ class ApiDealsClaimPay extends Controller
         $errors = '';
         $cancel = \Modules\IPay88\Lib\IPay88::create()->cancel('deals',$deals_user,$errors, $request->last_url);
         if($cancel){
-            return ['status'=>'success'];
+            return ['status'=>'success', 'messages' => ['Your Debit/Credit Card transaction has failed. Please try again.']];
         }
         return [
             'status'=>'fail',
