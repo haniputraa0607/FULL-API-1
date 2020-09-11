@@ -161,9 +161,9 @@ class ApiUserRatingController extends Controller
             'option_value' => implode(',',array_map(function($var){return trim($var,'"');},$post['option_value']??[]))
         ];
         $create = UserRating::updateOrCreate(['id_transaction'=>$trx->id_transaction],$insert);
-        UserRatingLog::where('id_user',$request->user()->id)->delete();
+        UserRatingLog::where(['id_user' => $request->user()->id, 'id_transaction' => $id])->delete();
         if($create){
-            Transaction::where('id_user',$user->id)->update(['show_rate_popup'=>0]);
+            Transaction::where('id_transaction',$trx->id_transaction)->update(['show_rate_popup'=>0]);
         }
         return MyHelper::checkCreate($create);
     }
@@ -223,38 +223,47 @@ class ApiUserRatingController extends Controller
             }
         }else{
             $user->load('log_popup');
-            $log_popup = $user->log_popup;
-            if($log_popup){
-                $interval =(Setting::where('key','popup_min_interval')->pluck('value')->first()?:900);
+            $log_popups = $user->log_popup;
+            $log_popup = null;
+            $interval =(Setting::where('key','popup_min_interval')->pluck('value')->first()?:900);
+            // dd($log_popups->toArray());
+            foreach($log_popups as $log_pop){
                 if(
-                    $log_popup->refuse_count>=(Setting::where('key','popup_max_refuse')->pluck('value')->first()?:3) ||
-                    strtotime($log_popup->last_popup)+$interval>time()
+                    $log_pop->refuse_count>=(Setting::where('key','popup_max_refuse')->pluck('value')->first()?:3) ||
+                    strtotime($log_pop->last_popup)+$interval>time()
                 ){
-                    return MyHelper::checkGet([]);
+                    continue;
                 }
+                if($log_popup && $log_popup->last_popup < $log_pop->last_popup) {
+                    continue;
+                }
+                $log_popup = $log_pop;
+            }
+
+            if (!$log_popup) {
+                return MyHelper::checkGet([]);
             }
             $max_date = date('Y-m-d',time() - ((Setting::select('value')->where('key','popup_max_days')->pluck('value')->first()?:3) * 86400));
             $transaction = Transaction::select('id_transaction','transaction_receipt_number','transaction_date','id_outlet')->with(['outlet'=>function($query){
                 $query->select('outlet_name','id_outlet');
             }])
-            ->where(['show_rate_popup'=>1,'id_user'=>$user->id])
+            ->where('id_transaction', $log_popup->id_transaction)
+            ->where(['id_user'=>$user->id])
             ->whereDate('transaction_date','>',$max_date)
-            ->orderBy('transaction_date','desc')
+            ->orderBy('transaction_date','asc')
             ->first();
+
+            // check if transaction is exist
             if(!$transaction){
-                return MyHelper::checkGet([]);
+                // log popup is not valid
+                $log_popup->delete();
+                return $this->getDetail($request);
             }
-            if($log_popup) {
-                $log_popup->refuse_count++;
-                $log_popup->last_popup = date('Y-m-d H:i:s');
-                $log_popup->save();
-            }else{
-                UserRatingLog::create([
-                    'id_user' => $user->id,
-                    'refuse_count' => 1,
-                    'last_popup' => date('Y-m-d H:i:s')
-                ]);
-            }
+
+            $log_popup->refuse_count++;
+            $log_popup->last_popup = date('Y-m-d H:i:s');
+            $log_popup->save();
+
         }
         $result['id'] = $transaction->id_transaction;
         $result['transaction_receipt_number'] = $transaction->transaction_receipt_number;
