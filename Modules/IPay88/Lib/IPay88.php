@@ -441,7 +441,7 @@ class IPay88
 			            }
 	                    $update = $deals_user->update(['paid_status'=>'Cancelled']);
 			            // revert back deals data
-			            if ($deals) {
+			            if ($update) {
 			                $up1 = $deals->update(['deals_total_claimed' => $deals->deals_total_claimed - 1]);
 			                if (!$up1) {
 			                    DB::rollBack();

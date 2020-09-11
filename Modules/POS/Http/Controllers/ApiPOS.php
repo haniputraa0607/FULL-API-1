@@ -2627,12 +2627,22 @@ class ApiPOS extends Controller
                 }
 
                 $dataTrx['show_rate_popup'] = 1;
-                UserRatingLog::where('id_user',$dataTrx['id_user'])->delete();
 
                 $createTrx = Transaction::create($dataTrx);
                 if (!$createTrx) {
                     DB::rollBack();
                     return ['status' => 'fail', 'messages' => 'Transaction sync failed'];
+                }
+
+                // show rate popup
+                if ($createTrx->id_user) {
+                    UserRatingLog::updateOrCreate([
+                        'id_user' => $createTrx->id_user,
+                        'id_transaction' => $createTrx->id_transaction
+                    ],[
+                        'refuse_count' => 0,
+                        'last_popup' => date('Y-m-d H:i:s', time() - MyHelper::setting('popup_min_interval', 'value', 900))
+                    ]);
                 }
 
                 $dataPayments = [];
