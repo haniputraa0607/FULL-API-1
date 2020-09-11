@@ -662,7 +662,6 @@ class ApiOnlineTransaction extends Controller
         }
 
         DB::beginTransaction();
-        UserRatingLog::where('id_user',$request->user()->id)->delete();
         $transaction = [
             'id_outlet'                   => $post['id_outlet'],
             'id_user'                     => $id,
