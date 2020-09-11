@@ -215,7 +215,7 @@ class User extends Authenticatable
 
     public function log_popup()
     {
-    	return $this->hasOne(\Modules\UserRating\Entities\UserRatingLog::class,'id_user');
+    	return $this->hasMany(\Modules\UserRating\Entities\UserRatingLog::class,'id_user')->orderBy('last_popup')->orderBy('id_user_rating_log');
     }
 
     public function referred_user()
