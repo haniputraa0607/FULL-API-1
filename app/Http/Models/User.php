@@ -193,6 +193,13 @@ class User extends Authenticatable
     	return $this->hasMany(LogBalance::class, 'id_user', 'id')->orderBy('created_at', 'DESC');
     }
 
+    public function history_balance_trx() {
+        return $this->hasMany(LogBalance::class, 'id_user', 'id')
+            ->join('transactions', 'transactions.id_transaction', 'log_balances.id_reference')
+            ->whereIn('source', ['Transaction', 'Transaction Failed', 'Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Rejected Order Ovo', 'Reversal'])
+            ->orderBy('log_balances.created_at', 'DESC');
+    }
+
     public function pointTransaction() {
     	return $this->hasMany(LogPoint::class, 'id_user', 'id')->orderBy('created_at', 'DESC')->where('source', '=', 'transaction');
     }

@@ -86,8 +86,8 @@ class ApiSettingFraud extends Controller
 
     function fraudConfig(Request $request){
         $post = $request->json()->all();
-        $get = Configs::where('config_name', 'fraud transaction point')->first()->is_active;
+        $get = Configs::where('config_name', 'fraud transaction point')->first();
 
-        return response()->json(['status' => 'success', 'result'=> ['is_active' => $get]]);
+        return response()->json(['status' => 'success', 'result'=> ['is_active' => $get['is_active']??0]]);
     }
 }

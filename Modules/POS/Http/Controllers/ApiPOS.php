@@ -2943,9 +2943,14 @@ class ApiPOS extends Controller
                 }
 
                 if (!empty($createTrx['id_user']) && $config['fraud_use_queue'] != 1) {
-                    if ((($fraudTrxDay && $countTrxDay <= $fraudTrxDay['parameter_detail']) && ($fraudTrxWeek && $countTrxWeek <= $fraudTrxWeek['parameter_detail']))
-                        || (!$fraudTrxDay && !$fraudTrxWeek)
-                    ) {
+                    $canGetCashBack = 0;
+                    if($fraudTrxDay && $countTrxDay > $fraudTrxDay['parameter_detail']){
+                        $canGetCashBack = 1;
+                    }elseif($fraudTrxWeek && $countTrxWeek > $fraudTrxWeek['parameter_detail']){
+                        $canGetCashBack = 1;
+                    }
+
+                    if ($canGetCashBack == 0 || (!$fraudTrxDay && !$fraudTrxWeek)) {
 
                         if ($createTrx['transaction_point_earned']) {
                             $dataLog = [
