@@ -25,6 +25,7 @@ use App\Http\Models\Product;
 use App\Http\Models\ProductCategory;
 use App\Http\Models\ProductPrice;
 use App\Http\Models\LogBalance;
+use Modules\UserRating\Entities\UserRatingLog;
 
 use Modules\OutletApp\Http\Requests\UpdateToken;
 use Modules\OutletApp\Http\Requests\DeleteToken;
@@ -853,6 +854,18 @@ class ApiOutletApp extends Controller
             ]);
 
             $updatePaymentStatus = Transaction::where('id_transaction', $order->id_transaction)->update(['transaction_payment_status' => 'Completed', 'show_rate_popup' => 1,'completed_at' => date('Y-m-d H:i:s')]);
+
+            // show rate popup
+            if ($order->id_user) {
+                UserRatingLog::updateOrCreate([
+                    'id_user' => $order->id_user,
+                    'id_transaction' => $order->id_transaction
+                ],[
+                    'refuse_count' => 0,
+                    'last_popup' => date('Y-m-d H:i:s', time() - MyHelper::setting('popup_min_interval', 'value', 900))
+                ]);
+            }
+
             \App\Lib\ConnectPOS::create()->sendTransaction($order->id_transaction);
 
             if($send != true){
