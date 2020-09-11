@@ -2509,7 +2509,7 @@ class ApiOnlineTransaction extends Controller
         $cancel = \Modules\IPay88\Lib\IPay88::create()->cancel('trx',$trx,$errors, $request->last_url);
 
         if($cancel){
-            return ['status'=>'success'];
+            return ['status'=>'success', 'messages' => ['Your Debit/Credit Card transaction has failed. Please try again.']];
         }
         return [
             'status'=>'fail',
