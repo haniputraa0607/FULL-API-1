@@ -178,4 +178,26 @@ class PromoCampaign extends Eloquent
     {
     	return $this->belongsTo(\Modules\RedirectComplex\Entities\RedirectComplexReference::class, 'id_redirect_complex_reference');
     }
+
+    public function getGetAllRulesAttribute() {
+		$this->load([
+			'promo_campaign_outlets',
+			'promo_campaign_product_discount_rules',
+			'promo_campaign_tier_discount_rules',
+			'promo_campaign_buyxgety_rules',
+			'promo_campaign_product_discount.product' => function($q) {
+				$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
+			},
+			'promo_campaign_buyxgety_product_requirement.product' => function($q) {
+				$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
+			},
+			'promo_campaign_tier_discount_product.product' => function($q) {
+				$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
+			},
+			'promo_campaign_tier_discount_rules.product' => function($q) {
+				$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
+			},
+			'brand'
+		]);
+	}
 }
