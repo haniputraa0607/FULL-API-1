@@ -48,6 +48,7 @@ use Modules\Deals\Http\Requests\Deals\UpdateComplete;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Auth;
 use Image;
+use Storage;
 
 class ApiDeals extends Controller
 {
