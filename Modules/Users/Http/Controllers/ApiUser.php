@@ -2382,7 +2382,7 @@ class ApiUser extends Controller
         $post = $request->json()->all();
 
         $query = User::select('*')
-            ->with('history_transactions.outlet_name', 'history_balance.detail_trx', 'user_membership')
+            ->with('history_transactions.outlet_name', 'history_balance_trx', 'user_membership')
             ->where('phone','=',$post['phone']);
         if($use_custom_province){
             $query->leftJoin('province_customs','province_customs.id_province_custom','=','users.id_province');
