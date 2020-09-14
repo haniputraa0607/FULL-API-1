@@ -872,6 +872,16 @@ class ApiDealsClaimPay extends Controller
 
                 $updatePaymentStatus = DealsUser::where('id_deals_user', $voucher['id_deals_user'])->update(['paid_status' => 'Cancelled']);
 
+                if ($updatePaymentStatus) {
+                    $up1 = $deals->update(['deals_total_claimed' => \DB::raw('deals.deals_total_claimed - 1')]);
+                    if (!$up1) {
+                        DB::rollBack();
+                        return [
+                            'status'=>'fail',
+                            'messages' => ['Failed update total claimed']
+                        ];
+                    }
+                }
                 //return balance\
 
                 if ($voucher->balance_nominal) {
