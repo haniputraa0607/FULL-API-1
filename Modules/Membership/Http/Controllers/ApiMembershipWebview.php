@@ -157,11 +157,9 @@ class ApiMembershipWebview extends Controller
 					$membershipUser['next_trx_text']	= str_replace(['%value%', '%membership%'], [MyHelper::requestNumber($subtotal_transaction - $nextTrx, '_CURRENCY'), $nextMembershipName], $result['user_membership']['membership']['next_level_text']);
 				}
 			}elseif($nextTrxType == 'balance'){
-				$total_balance_now = LogBalance::where('id_user', $post['id_user'])->whereNotIn('source', [ 'Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal'])->where('balance', '>', 0)->sum('balance');
-                $total_balance = LogBalance::where('id_user', $post['id_user'])->whereNotIn('source', [ 'Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point'])->where('balance', '>', 0)->sum('balance');
-
-				$membershipUser['progress_now_text'] = MyHelper::requestNumber($total_balance_now,'_CURRENCY');
-				$membershipUser['progress_now'] = (int) $total_balance_now;
+				$total_balance = LogBalance::where('id_user', $post['id_user'])->whereNotIn('source', [ 'Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point'])->where('balance', '>', 0)->sum('balance');
+				$membershipUser['progress_now_text'] = MyHelper::requestNumber($total_balance,'_CURRENCY');
+				$membershipUser['progress_now'] = (int) $total_balance;
 				$membershipUser['progress_active'] = ($total_balance / $nextTrx) * 100;
 				$membershipUser['next_trx']		= $nextTrx - $total_balance;
 				if ($result['user_membership']['membership']['next_level_text'] == "" && is_null($result['user_membership']['membership']['next_level_text'])) {
@@ -176,6 +174,9 @@ class ApiMembershipWebview extends Controller
 		if($nextMembershipName == ""){
 			$result['progress_active'] = 100;
 			$result['next_trx'] = 0;
+            $membershipUser['progress_active'] = 0;
+            $membershipUser['next_trx_text'] = 0;
+            $membershipUser['next_trx_text'] = 'You are already at the top level. Increase your transactions and enjoy the benefits';
 			if($allMembership[0]['membership_type'] == 'count'){
 				$count_transaction = Transaction::where('id_user', $post['id_user'])->where('transaction_payment_status', 'Completed')->count('transaction_grandtotal');
 				$membershipUser['progress_now_text'] = MyHelper::requestNumber($count_transaction,'_CURRENCY');
@@ -185,10 +186,9 @@ class ApiMembershipWebview extends Controller
 				$membershipUser['progress_now_text'] = MyHelper::requestNumber($subtotal_transaction,'_CURRENCY');
 				$membershipUser['progress_now'] = (int) $subtotal_transaction;
 			}elseif($allMembership[0]['membership_type'] == 'balance'){
-				$total_balance = LogBalance::where('id_user', $post['id_user'])->whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal'])->where('balance', '>', 0)->sum('balance');
-                $total_balance_now = LogBalance::where('id_user', $post['id_user'])->whereNotIn('source', [ 'Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal'])->where('balance', '>', 0)->sum('balance');
-				$membershipUser['progress_now_text'] = MyHelper::requestNumber($total_balance_now,'_CURRENCY');
-				$membershipUser['progress_now'] = (int) $total_balance_now;
+				$total_balance = LogBalance::where('id_user', $post['id_user'])->whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point'])->where('balance', '>', 0)->sum('balance');
+				$membershipUser['progress_now_text'] = MyHelper::requestNumber($total_balance,'_CURRENCY');
+				$membershipUser['progress_now'] = (int) $total_balance;
 			}
 		}
 		unset($result['user_membership']['user']);
@@ -201,6 +201,11 @@ class ApiMembershipWebview extends Controller
 			$membershipUser['progress_max_text']	= MyHelper::requestNumber(1500000,'_CURRENCY');
 			$membershipUser['progress_max']	= 1500000;
 		}
+
+		if($membershipUser['progress_now'] > $membershipUser['progress_max']){
+            $membershipUser['progress_max_text'] = MyHelper::requestNumber($membershipUser['progress_now'],'_CURRENCY');
+            $membershipUser['progress_max'] = (int) $membershipUser['progress_now'];
+        }
 		$result['user_membership']['user']	= $membershipUser;
 
 		unset($result['user_membership']['membership']);
