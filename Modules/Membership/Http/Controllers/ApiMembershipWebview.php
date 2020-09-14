@@ -172,9 +172,8 @@ class ApiMembershipWebview extends Controller
 		$result['all_membership'] = $allMembership;
 		//user dengan level tertinggi
 		if($nextMembershipName == ""){
-			$result['progress_active'] = 100;
 			$result['next_trx'] = 0;
-            $membershipUser['progress_active'] = 0;
+            $membershipUser['progress_active'] = NULL;
             $membershipUser['next_trx_text'] = 0;
             $membershipUser['next_trx_text'] = 'You are already at the top level. Increase your transactions and enjoy the benefits';
 			if($allMembership[0]['membership_type'] == 'count'){
