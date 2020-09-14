@@ -930,7 +930,7 @@ class ApiOutletController extends Controller
             });
         }
 
-        if($post['search'] && $post['search'] != ""){
+        if(isset($post['search']) && $post['search'] && $post['search'] != ""){
             $outlet = $outlet->where('outlet_name', 'LIKE', '%'.$post['search'].'%');
         }
 
