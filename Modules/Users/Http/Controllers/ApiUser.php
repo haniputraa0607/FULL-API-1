@@ -1474,19 +1474,37 @@ class ApiUser extends Controller
                 $holdTime = $checkRuleRequest['otp_timer'];
             }
 
-            if(env('APP_ENV') == 'production'){
+            switch (env('OTP_TYPE', 'PHONE')) {
+                case 'MISSCALL':
+                    $msg_otp = str_replace('%phone%', $phone, MyHelper::setting('message_send_otp_miscall', 'value_text', 'Kami akan mengirimkan kode OTP melalui Missed Call ke %phone%.<br/>Anda akan mendapatkan panggilan dari nomor 6 digit.<br/>Nomor panggilan tsb adalah Kode OTP Anda.'));
+                    break;
+
+                case 'WA':
+                    $msg_otp = str_replace('%phone%', $phone, MyHelper::setting('message_send_otp_wa', 'value_text', 'Kami akan mengirimkan kode OTP melalui Whatsapp.<br/>Pastikan nomor %phone% terdaftar di Whatsapp.'));
+                    break;
+
+                default:
+                    $msg_otp = str_replace('%phone%', $phone, MyHelper::setting('message_send_otp_sms', 'value_text', 'Kami akan mengirimkan kode OTP melalui SMS.<br/>Pastikan nomor %phone% aktif.'));
+                    break;
+            }
+
+            if (env('APP_ENV') == 'production') {
                 $result = [
                     'status'	=> 'success',
                     'otp_timer' => $holdTime,
-                    'result'	=> ['phone'	=>	$data[0]['phone'],
+                    'result'    => [
+                        'phone'    =>    $data[0]['phone'],
+                        'message'  =>    $msg_otp
                     ]
                 ];
             }else{
                 $result = [
                     'status'	=> 'success',
                     'otp_timer' => $holdTime,
-                    'result'	=> ['phone'	=>	$data[0]['phone'],
-                    'pin'	=>	''
+                    'result'    => [
+                        'phone'    =>    $data[0]['phone'],
+                        'pin'    =>    '',
+                        'message' => $msg_otp
                     ]
                 ];
             }
@@ -1601,19 +1619,37 @@ class ApiUser extends Controller
                 $holdTime = $checkRuleRequest['otp_timer'];
             }
 
-            if(env('APP_ENV') == 'production'){
+            switch (env('OTP_TYPE', 'PHONE')) {
+                case 'MISSCALL':
+                    $msg_otp = str_replace('%phone%', $phone, MyHelper::setting('message_send_otp_miscall', 'value_text', 'Kami akan mengirimkan kode OTP melalui Missed Call ke %phone%.<br/>Anda akan mendapatkan panggilan dari nomor 6 digit.<br/>Nomor panggilan tsb adalah Kode OTP Anda.'));
+                    break;
+
+                case 'WA':
+                    $msg_otp = str_replace('%phone%', $phone, MyHelper::setting('message_send_otp_wa', 'value_text', 'Kami akan mengirimkan kode OTP melalui Whatsapp.<br/>Pastikan nomor %phone% terdaftar di Whatsapp.'));
+                    break;
+
+                default:
+                    $msg_otp = str_replace('%phone%', $phone, MyHelper::setting('message_send_otp_sms', 'value_text', 'Kami akan mengirimkan kode OTP melalui SMS.<br/>Pastikan nomor %phone% aktif.'));
+                    break;
+            }
+
+            if (env('APP_ENV') == 'production') {
                 $result = [
                     'status'	=> 'success',
                     'otp_timer' => $holdTime,
-                    'result'	=> ['phone'	=>	$phone
+                    'result'    => [
+                        'phone'    =>    $phone,
+                        'message'  => $msg_otp
                     ]
                 ];
             }else{
                 $result = [
                     'status'	=> 'success',
                     'otp_timer' => $holdTime,
-                    'result'	=> ['phone'	=>	$phone,
-                    'pin'	    =>	''
+                    'result'    => [
+                        'phone'    =>    $phone,
+                        'pin'        =>  '', 
+                        'message' => $msg_otp
                     ]
                 ];
             }
