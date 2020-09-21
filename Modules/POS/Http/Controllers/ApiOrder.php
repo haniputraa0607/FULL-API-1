@@ -661,7 +661,7 @@ class ApiOrder extends Controller
         }
 
         //get id product
-        $cekProduct = Product::where('product_code', $post['plu_id'])->first();
+        $cekProduct = Product::where('product_code', $post['sap_matnr'])->first();
         if(empty($cekProduct)){
             return response()->json(['status' => 'fail', 'messages' => ['Product not found']]);
         }
