@@ -56,7 +56,7 @@ class ApiCronTrxController extends Controller
             $crossLine = date('Y-m-d H:i:s', strtotime('- 3days'));
             $dateLine  = date('Y-m-d H:i:s', strtotime('- 1days'));
             $now       = date('Y-m-d H:i:s');
-            $expired   = date('Y-m-d H:i:s',strtotime('- 15minutes'));
+            $expired   = date('Y-m-d H:i:s',strtotime('- 5minutes'));
 
             $getTrx = Transaction::where('transaction_payment_status', 'Pending')->where('transaction_date', '<=', $expired)->get();
 
@@ -81,6 +81,11 @@ class ApiCronTrxController extends Controller
                     $connectMidtrans = Midtrans::expire($singleTrx->transaction_receipt_number);
                 }elseif($singleTrx->trasaction_payment_type == 'Ipay88') {
                     $trx_ipay = TransactionPaymentIpay88::where('id_transaction',$singleTrx->id_transaction)->first();
+
+                    if (strtolower($trx_ipay->payment_method) == 'credit card' && $singleTrx->transaction_date > date('Y-m-d H:i:s', strtotime('- 15minutes'))) {
+                        continue;
+                    }
+
                     $update = \Modules\IPay88\Lib\IPay88::create()->update($trx_ipay?:$singleTrx->id_transaction,[
                         'type' =>'trx',
                         'Status' => '0',

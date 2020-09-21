@@ -34,7 +34,7 @@ class ApiCronDealsController extends Controller
         $log = MyHelper::logCron('Cancel Deals');
         try {
             $now       = date('Y-m-d H:i:s');
-            $expired   = date('Y-m-d H:i:s',strtotime('- 15minutes'));
+            $expired   = date('Y-m-d H:i:s',strtotime('- 5minutes'));
 
             $getTrx = DealsUser::join('deals_vouchers', 'deals_vouchers.id_deals_voucher', '=', 'deals_users.id_deals_voucher')->where('paid_status', 'Pending')->where('claimed_at', '<=', $expired)->get();
 
@@ -56,6 +56,11 @@ class ApiCronDealsController extends Controller
                     }
                 }elseif($singleTrx->payment_method == 'Ipay88') {
                     $trx_ipay = DealsPaymentIpay88::where('id_deals_user',$singleTrx->id_deals_user)->first();
+
+                    if (strtolower($trx_ipay->payment_method) == 'credit card' && $singleTrx->claimed_at > date('Y-m-d H:i:s', strtotime('- 15minutes'))) {
+                        continue;
+                    }
+
                     $update = \Modules\IPay88\Lib\IPay88::create()->update($trx_ipay?:$singleTrx->id_deals_user,[
                         'type' =>'deals',
                         'Status' => '0',
