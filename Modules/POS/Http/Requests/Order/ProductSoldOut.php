@@ -14,7 +14,7 @@ class ProductSoldOut extends FormRequest
             'api_key'		=> 'required',
             'api_secret'	=> 'required',
             'store_code'	=> 'required',
-            'plu_id'        => 'required',
+            'sap_matnr'        => 'required',
             'product_stock_status'  => 'required|in:Available,Sold Out',
         ];
     }
