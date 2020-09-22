@@ -2457,6 +2457,7 @@ class MyHelper{
     public static function checkRuleForRequestOTP($data_user, $check = 0){
         //get setting rule for request otp
         $setting = Setting::where('key', 'otp_rule_request')->first();
+        $emailSender = Setting::where('key', 'email_sender')->first();
         /*
           note : hold time in seconds. if the user has requested otp exceeds the
           maximum number then the user cannot make an otp request.
@@ -2477,7 +2478,7 @@ class MyHelper{
             return [
                 'status'=>'fail',
                 'otp_check'=> 1,
-                'messages'=> ["OTP request has passed the limit, please contact our customer service at ".config('configs.EMAIL_ADDRESS_ADMIN')]
+                'messages'=> ["OTP request has passed the limit, please contact our customer service at ".$emailSender['value']??'']
             ];
         }
 
@@ -2513,7 +2514,7 @@ class MyHelper{
                 return [
                     'status'=>'fail',
                     'otp_check'=> 1,
-                    'messages'=> ["OTP request has passed the limit, please contact our customer service at ".config('configs.EMAIL_ADDRESS_ADMIN')]
+                    'messages'=> ["OTP request has passed the limit, please contact our customer service at ".$emailSender['value']??'']
                 ];
             } elseif($check == 0){
                 $availebleTime = date('Y-m-d H:i:s',strtotime('+'.$holdTime.' seconds',strtotime(date('Y-m-d H:i:s'))));
@@ -2538,6 +2539,7 @@ class MyHelper{
     public static function checkRuleForRequestEmailVerify($data_user){
         //get setting rule for request email verify
         $setting = Setting::where('key', 'email_verify_rule_request')->first();
+        $emailSender = Setting::where('key', 'email_sender')->first();
         /*
           note : hold time in seconds. if the user has requested email verify exceeds the
           maximum number then the user cannot make an email verify request.
@@ -2558,7 +2560,7 @@ class MyHelper{
             return [
                 'status'=>'fail',
                 'email_verify_check'=> 1,
-                'messages'=> ["Email Verify request has passed the limit, please contact our customer service at ".config('configs.EMAIL_ADDRESS_ADMIN')]
+                'messages'=> ["Email Verify request has passed the limit, please contact our customer service at ".$emailSender['value']??'']
             ];
         }
 
@@ -2587,7 +2589,7 @@ class MyHelper{
                 return [
                     'status'=>'fail',
                     'email_verify_check'=> 1,
-                    'messages'=> ["Email Verify request has passed the limit, please contact our customer service at ".config('configs.EMAIL_ADDRESS_ADMIN')]
+                    'messages'=> ["Email Verify request has passed the limit, please contact our customer service at ".$emailSender['value']??'']
                 ];
             } else{
                 $availebleTime = date('Y-m-d H:i:s',strtotime('+'.$holdTime.' seconds',strtotime(date('Y-m-d H:i:s'))));

@@ -959,11 +959,12 @@ class ApiUser extends Controller
         }
 
         if(isset($data[0]['is_suspended']) && $data[0]['is_suspended'] == '1'){
+            $emailSender = Setting::where('key', 'email_sender')->first();
             return response()->json([
                 'status' => 'success',
                 'result' => $data,
                 'otp_timer' => $holdTime,
-                'messages' => ['Sorry your account has been suspended, please contact '.config('configs.EMAIL_ADDRESS_ADMIN')]
+                'messages' => ['Sorry your account has been suspended, please contact '.$emailSender['value']??'']
             ]);
         }
 
@@ -1292,16 +1293,17 @@ class ApiUser extends Controller
                         if($deviceCus && count($deviceCus) > (int)$fraud['parameter_detail'] && array_search($datauser[0]['id'], $check) !== false){
                             $sendFraud = app($this->setting_fraud)->checkFraud($fraud, $datauser[0], ['device_id' => $device_id, 'device_type' => $request->json('device_type')], 0, 0, null, 0);
                             $data = User::with('city')->where('phone', '=', $datauser[0]['phone'])->get()->toArray();
+                            $emailSender = Setting::where('key', 'email_sender')->first();
 
                             if ($data[0]['is_suspended'] == 1) {
                                 return response()->json([
                                     'status' => 'fail',
-                                    'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at '.config('configs.EMAIL_ADDRESS_ADMIN')]
+                                    'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at '.$emailSender['value']??'']
                                 ]);
                             } else {
                                 return response()->json([
                                     'status' => 'fail',
-                                    'messages' => ['Your account cannot log in on this device because it shows suspicious activity. For more information, please contact our customer service at '.config('configs.EMAIL_ADDRESS_ADMIN')]
+                                    'messages' => ['Your account cannot log in on this device because it shows suspicious activity. For more information, please contact our customer service at '.$emailSender['value']??'']
                                 ]);
                             }
                         }
@@ -1672,16 +1674,17 @@ class ApiUser extends Controller
                             if($deviceCus && count($deviceCus) > (int)$fraud['parameter_detail'] && array_search($data[0]['id'], $check) !== false){
                                 $sendFraud = app($this->setting_fraud)->checkFraud($fraud, $data[0], ['device_id' => $device_id, 'device_type' => $request->json('device_type')], 0, 0, null, 0);
                                 $data = User::with('city')->where('phone', '=', $phone)->get()->toArray();
+                                $emailSender = Setting::where('key', 'email_sender')->first();
 
                                 if ($data[0]['is_suspended'] == 1) {
                                     return response()->json([
                                         'status' => 'fail',
-                                        'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at '.config('configs.EMAIL_ADDRESS_ADMIN')]
+                                        'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at '.$emailSender['value']??'']
                                     ]);
                                 } else {
                                     return response()->json([
                                         'status' => 'fail',
-                                        'messages' => ['Your account cannot be registered in on this device because it shows suspicious activity. For more information, please contact our customer service at '.config('configs.EMAIL_ADDRESS_ADMIN')]
+                                        'messages' => ['Your account cannot be registered in on this device because it shows suspicious activity. For more information, please contact our customer service at '.$emailSender['value']??'']
                                     ]);
                                 }
                             }
