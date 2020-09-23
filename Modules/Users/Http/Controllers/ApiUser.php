@@ -999,6 +999,7 @@ class ApiUser extends Controller
             return response()->json([
                 'status' => 'fail',
                 'otp_timer' => $holdTime,
+                'confirmation_message' => $msg_check,
                 'messages' => ['empty!']
             ]);
         }
@@ -1477,6 +1478,11 @@ class ApiUser extends Controller
 
 
                 if(\Module::collections()->has('Autocrm')) {
+                    $autocrm = app($this->autocrm)->SendAutoCRM(
+                        'Pin Create',
+                        $phone,
+                        []
+                    );
                     $autocrm = app($this->autocrm)->SendAutoCRM('Pin Sent', $phone,
                         ['pin' => $pinnya,
                             'useragent' => $useragent,
