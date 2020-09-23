@@ -1703,7 +1703,37 @@ Message :
                     'custom_text_replace'=>'%point%;%received_date%;%void_date%;%receipt_number%;',
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
-                )
+                ),
+            51 =>
+            array (
+                'id_autocrm' => 52,
+                'autocrm_type' => 'Response',
+                'autocrm_trigger' => 'Daily',
+                'autocrm_cron_reference' => NULL,
+                'autocrm_title' => 'Pin Create',
+                'autocrm_email_toogle' => '0',
+                'autocrm_sms_toogle' => '0',
+                'autocrm_push_toogle' => '1',
+                'autocrm_inbox_toogle' => '0',
+                'autocrm_forward_toogle' => '0',
+                'autocrm_email_subject' => null,
+                'autocrm_email_content' => null,
+                'autocrm_sms_content' => null,
+                'autocrm_push_subject' => NULL,
+                'autocrm_push_content' => NULL,
+                'autocrm_push_image' => NULL,
+                'autocrm_push_clickto' => NULL,
+                'autocrm_push_link' => NULL,
+                'autocrm_push_id_reference' => NULL,
+                'autocrm_inbox_subject' => NULL,
+                'autocrm_inbox_content' => NULL,
+                'autocrm_forward_email' => NULL,
+                'autocrm_forward_email_subject' => NULL,
+                'autocrm_forward_email_content' => NULL,
+                'custom_text_replace'=>'',
+                'created_at' => '2018-03-12 13:53:17',
+                'updated_at' => '2018-05-03 15:02:05',
+            ),
         ));
     }
 }

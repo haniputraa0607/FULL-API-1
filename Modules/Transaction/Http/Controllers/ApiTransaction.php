@@ -1854,8 +1854,10 @@ class ApiTransaction extends Controller
                 // $discount = $discount + $valueTrx['transaction_product_discount'];
                 if(isset($valueTrx['product']['product_variants'])){
                     foreach ($valueTrx['product']['product_variants'] as $keyVar => $valueVar) {
+                        if(in_array($valueVar['product_variant_code'], ['general_size', 'general_type'])) continue;
                         $result['product_transaction'][$keyTrx]['product']['product_variants'][$keyVar]['product_variant_name']     = $valueVar['product_variant_name'];
                     }
+                    $result['product_transaction'][$keyTrx]['product']['product_variants'] = array_values($result['product_transaction'][$keyTrx]['product']['product_variants']??[]);
                 }
                 foreach ($valueTrx['modifiers'] as $keyMod => $valueMod) {
                     $result['product_transaction'][$keyTrx]['product']['product_modifiers'][$keyMod]['product_modifier_name']   = $valueMod['text'];

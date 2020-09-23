@@ -825,7 +825,7 @@ class ApiOnlineTransaction extends Controller
                 DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
-                    'messages'  => ['Product '.$checkProduct['product_name'].' sudah habis, silakan pilih yang lain']
+                    'messages'  => [$checkProduct['product_name'].' is out of stock']
                 ]);
             }
 

@@ -959,11 +959,12 @@ class ApiUser extends Controller
         }
 
         if(isset($data[0]['is_suspended']) && $data[0]['is_suspended'] == '1'){
+            $emailSender = Setting::where('key', 'email_sender')->first();
             return response()->json([
                 'status' => 'success',
                 'result' => $data,
                 'otp_timer' => $holdTime,
-                'messages' => ['Sorry your account has been suspended, please contact '.config('configs.EMAIL_ADDRESS_ADMIN')]
+                'messages' => ['Sorry your account has been suspended, please contact '.$emailSender['value']??'']
             ]);
         }
 
@@ -973,17 +974,33 @@ class ApiUser extends Controller
             }
         }
 
+        switch (env('OTP_TYPE', 'PHONE')) {
+            case 'MISSCALL':
+                $msg_check = str_replace('%phone%', $phone, MyHelper::setting('message_send_otp_miscall', 'value_text', 'Kami akan mengirimkan kode OTP melalui Missed Call ke %phone%.<br/>Anda akan mendapatkan panggilan dari nomor 6 digit.<br/>Nomor panggilan tsb adalah Kode OTP Anda.'));
+                break;
+
+            case 'WA':
+                $msg_check = str_replace('%phone%', $phone, MyHelper::setting('message_send_otp_wa', 'value_text', 'Kami akan mengirimkan kode OTP melalui Whatsapp.<br/>Pastikan nomor %phone% terdaftar di Whatsapp.'));
+                break;
+
+            default:
+                $msg_check = str_replace('%phone%', $phone, MyHelper::setting('message_send_otp_sms', 'value_text', 'Kami akan mengirimkan kode OTP melalui SMS.<br/>Pastikan nomor %phone% aktif.'));
+                break;
+        }
+
         if($data){
             return response()->json([
                 'status' => 'success',
                 'result' => $data,
                 'otp_timer' => $holdTime,
+                'confirmation_message' => $msg_check,
                 'messages' => null
             ]);
         }else{
             return response()->json([
                 'status' => 'fail',
                 'otp_timer' => $holdTime,
+                'confirmation_message' => $msg_check,
                 'messages' => ['empty!']
             ]);
         }
@@ -1063,6 +1080,11 @@ class ApiUser extends Controller
 
 
             if(\Module::collections()->has('Autocrm')) {
+                $autocrm = app($this->autocrm)->SendAutoCRM(
+                    'Pin Create',
+                    $phone,
+                    []
+                );
                 $autocrm = app($this->autocrm)->SendAutoCRM('Pin Sent', $phone,
                     ['pin' => $pin,
                         'useragent' => $useragent,
@@ -1085,17 +1107,34 @@ class ApiUser extends Controller
 
             }
 
+            switch (env('OTP_TYPE', 'PHONE')) {
+                case 'MISSCALL':
+                    $msg_otp = str_replace('%phone%', $phone, MyHelper::setting('message_sent_otp_miscall', 'value_text', 'Kami telah mengirimkan PIN ke nomor %phone% melalui Missed Call.'));
+                    break;
+
+                case 'WA':
+                    $msg_otp = str_replace('%phone%', $phone, MyHelper::setting('message_sent_otp_wa', 'value_text', 'Kami telah mengirimkan PIN ke nomor %phone% melalui Whatsapp.'));
+                    break;
+
+                default:
+                    $msg_otp = str_replace('%phone%', $phone, MyHelper::setting('message_sent_otp_sms', 'value_text', 'Kami telah mengirimkan PIN ke nomor %phone% melalui SMS.'));
+                    break;
+            }
+
+
             if(env('APP_ENV') == 'production'){
                 $result = ['status'	=> 'success',
                     'result'	=> ['phone'	=>	$create->phone,
-                        'autocrm'	=>	$autocrm
+                        'autocrm'	=>	$autocrm,
+                        'message'  =>    $msg_otp
                     ]
                 ];
             }else{
                 $result = ['status'	=> 'success',
                     'result'	=> ['phone'	=>	$create->phone,
                         'autocrm'	=>	$autocrm,
-                        'pin'	=>	MyHelper::encPIN($pin)
+                        'pin'	=>	MyHelper::encPIN($pin),
+                        'message'  =>    $msg_otp
                     ]
                 ];
             }
@@ -1292,16 +1331,17 @@ class ApiUser extends Controller
                         if($deviceCus && count($deviceCus) > (int)$fraud['parameter_detail'] && array_search($datauser[0]['id'], $check) !== false){
                             $sendFraud = app($this->setting_fraud)->checkFraud($fraud, $datauser[0], ['device_id' => $device_id, 'device_type' => $request->json('device_type')], 0, 0, null, 0);
                             $data = User::with('city')->where('phone', '=', $datauser[0]['phone'])->get()->toArray();
+                            $emailSender = Setting::where('key', 'email_sender')->first();
 
                             if ($data[0]['is_suspended'] == 1) {
                                 return response()->json([
                                     'status' => 'fail',
-                                    'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at '.config('configs.EMAIL_ADDRESS_ADMIN')]
+                                    'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at '.$emailSender['value']??'']
                                 ]);
                             } else {
                                 return response()->json([
                                     'status' => 'fail',
-                                    'messages' => ['Your account cannot log in on this device because it shows suspicious activity. For more information, please contact our customer service at '.config('configs.EMAIL_ADDRESS_ADMIN')]
+                                    'messages' => ['Your account cannot log in on this device because it shows suspicious activity. For more information, please contact our customer service at '.$emailSender['value']??'']
                                 ]);
                             }
                         }
@@ -1440,6 +1480,11 @@ class ApiUser extends Controller
 
 
                 if(\Module::collections()->has('Autocrm')) {
+                    $autocrm = app($this->autocrm)->SendAutoCRM(
+                        'Pin Create',
+                        $phone,
+                        []
+                    );
                     $autocrm = app($this->autocrm)->SendAutoCRM('Pin Sent', $phone,
                         ['pin' => $pinnya,
                             'useragent' => $useragent,
@@ -1449,19 +1494,37 @@ class ApiUser extends Controller
                 $holdTime = $checkRuleRequest['otp_timer'];
             }
 
-            if(env('APP_ENV') == 'production'){
+            switch (env('OTP_TYPE', 'PHONE')) {
+                case 'MISSCALL':
+                    $msg_otp = str_replace('%phone%', $phone, MyHelper::setting('message_sent_otp_miscall', 'value_text', 'Kami telah mengirimkan PIN ke nomor %phone% melalui Missed Call.'));
+                    break;
+
+                case 'WA':
+                    $msg_otp = str_replace('%phone%', $phone, MyHelper::setting('message_sent_otp_wa', 'value_text', 'Kami telah mengirimkan PIN ke nomor %phone% melalui Whatsapp.'));
+                    break;
+
+                default:
+                    $msg_otp = str_replace('%phone%', $phone, MyHelper::setting('message_sent_otp_sms', 'value_text', 'Kami telah mengirimkan PIN ke nomor %phone% melalui SMS.'));
+                    break;
+            }
+
+            if (env('APP_ENV') == 'production') {
                 $result = [
                     'status'	=> 'success',
                     'otp_timer' => $holdTime,
-                    'result'	=> ['phone'	=>	$data[0]['phone'],
+                    'result'    => [
+                        'phone'    =>    $data[0]['phone'],
+                        'message'  =>    $msg_otp
                     ]
                 ];
             }else{
                 $result = [
                     'status'	=> 'success',
                     'otp_timer' => $holdTime,
-                    'result'	=> ['phone'	=>	$data[0]['phone'],
-                    'pin'	=>	''
+                    'result'    => [
+                        'phone'    =>    $data[0]['phone'],
+                        'pin'    =>    '',
+                        'message' => $msg_otp
                     ]
                 ];
             }
@@ -1576,19 +1639,37 @@ class ApiUser extends Controller
                 $holdTime = $checkRuleRequest['otp_timer'];
             }
 
-            if(env('APP_ENV') == 'production'){
+            switch (env('OTP_TYPE', 'PHONE')) {
+                case 'MISSCALL':
+                    $msg_otp = str_replace('%phone%', $phone, MyHelper::setting('message_sent_otp_miscall', 'value_text', 'Kami telah mengirimkan PIN ke nomor %phone% melalui Missed Call.'));
+                    break;
+
+                case 'WA':
+                    $msg_otp = str_replace('%phone%', $phone, MyHelper::setting('message_sent_otp_wa', 'value_text', 'Kami telah mengirimkan PIN ke nomor %phone% melalui Whatsapp.'));
+                    break;
+
+                default:
+                    $msg_otp = str_replace('%phone%', $phone, MyHelper::setting('message_sent_otp_sms', 'value_text', 'Kami telah mengirimkan PIN ke nomor %phone% melalui SMS.'));
+                    break;
+            }
+
+            if (env('APP_ENV') == 'production') {
                 $result = [
                     'status'	=> 'success',
                     'otp_timer' => $holdTime,
-                    'result'	=> ['phone'	=>	$phone
+                    'result'    => [
+                        'phone'    =>    $phone,
+                        'message'  => $msg_otp
                     ]
                 ];
             }else{
                 $result = [
                     'status'	=> 'success',
                     'otp_timer' => $holdTime,
-                    'result'	=> ['phone'	=>	$phone,
-                    'pin'	    =>	''
+                    'result'    => [
+                        'phone'    =>    $phone,
+                        'pin'        =>  '', 
+                        'message' => $msg_otp
                     ]
                 ];
             }
@@ -1672,16 +1753,17 @@ class ApiUser extends Controller
                             if($deviceCus && count($deviceCus) > (int)$fraud['parameter_detail'] && array_search($data[0]['id'], $check) !== false){
                                 $sendFraud = app($this->setting_fraud)->checkFraud($fraud, $data[0], ['device_id' => $device_id, 'device_type' => $request->json('device_type')], 0, 0, null, 0);
                                 $data = User::with('city')->where('phone', '=', $phone)->get()->toArray();
+                                $emailSender = Setting::where('key', 'email_sender')->first();
 
                                 if ($data[0]['is_suspended'] == 1) {
                                     return response()->json([
                                         'status' => 'fail',
-                                        'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at '.config('configs.EMAIL_ADDRESS_ADMIN')]
+                                        'messages' => ['Your account has been suspended because it shows suspicious activity. For more information please contact our customer service at '.$emailSender['value']??'']
                                     ]);
                                 } else {
                                     return response()->json([
                                         'status' => 'fail',
-                                        'messages' => ['Your account cannot be registered in on this device because it shows suspicious activity. For more information, please contact our customer service at '.config('configs.EMAIL_ADDRESS_ADMIN')]
+                                        'messages' => ['Your account cannot be registered in on this device because it shows suspicious activity. For more information, please contact our customer service at '.$emailSender['value']??'']
                                     ]);
                                 }
                             }
@@ -1884,13 +1966,14 @@ class ApiUser extends Controller
             ->toArray();
 
         if($data){
+
+        	DB::beginTransaction();
             // $pin_x = MyHelper::decryptkhususpassword($data[0]['pin_k'], md5($data[0]['id_user'], true));
             if($request->json('email') != "" && $request->json('name') != "" &&
                 empty($data[0]['email']) && empty($data[0]['name'])){
                 $setting = Setting::where('key','welcome_voucher_setting')->first()->value;
-                if($setting == 1){
-                    $injectVoucher = app($this->deals)->injectWelcomeVoucher(['id' => $data[0]['id']], $data[0]['phone']);
-                }
+
+            	$welcome_promo = 1;
             }
 
             if($request->json('email') != ""){
@@ -1955,8 +2038,6 @@ class ApiUser extends Controller
                     $dataupdate['address'] = $request->json('address');
                 }
 
-                DB::beginTransaction();
-
                 $referral = \Modules\PromoCampaign\Lib\PromoCampaignTools::createReferralCode($data[0]['id']);
 
                 if(!$referral){
@@ -1973,7 +2054,14 @@ class ApiUser extends Controller
 
                 //cek complete profile ?
                 if($datauser[0]['complete_profile'] != "1"){
-                    if($datauser[0]['name'] != "" && $datauser[0]['email'] != "" && $datauser[0]['gender'] != "" && $datauser[0]['birthday'] != "" && $datauser[0]['id_province'] != ""){
+                    if($datauser[0]['name'] != "" 
+                    	&& $datauser[0]['email'] != "" 
+                    	&& $datauser[0]['gender'] != "" 
+                    	&& $datauser[0]['birthday'] != "" 
+                    	&& $datauser[0]['id_province'] != ""
+                    	&& $datauser[0]['phone_verified'] == "1"
+                    	&& $datauser[0]['email_verified'] == "1"
+                    ){
                         //get point
 
                         $complete_profile_cashback = 0;
@@ -2039,7 +2127,6 @@ class ApiUser extends Controller
                     }
                 }
 
-                DB::commit();
                 $result = [
                     'status'	=> 'success',
                     'result'	=> ['phone'	=>	$data[0]['phone'],
@@ -2054,6 +2141,15 @@ class ApiUser extends Controller
                     ],
                     'message'	=> 'Data has been changed successfully'
                 ];
+
+                if ($welcome_promo ?? false) {
+		        	if($setting == 1){
+		                $injectVoucher = app($this->deals)->injectWelcomeVoucher(['id' => $data[0]['id']], $data[0]['phone']);
+		            }
+		        }
+
+                DB::commit();
+
                 if($use_custom_province){
                     $result['result']['id_province'] = $datauser[0]['id_province'];
                 }else{
