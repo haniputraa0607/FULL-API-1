@@ -1884,13 +1884,14 @@ class ApiUser extends Controller
             ->toArray();
 
         if($data){
+
+        	DB::beginTransaction();
             // $pin_x = MyHelper::decryptkhususpassword($data[0]['pin_k'], md5($data[0]['id_user'], true));
             if($request->json('email') != "" && $request->json('name') != "" &&
                 empty($data[0]['email']) && empty($data[0]['name'])){
                 $setting = Setting::where('key','welcome_voucher_setting')->first()->value;
-                if($setting == 1){
-                    $injectVoucher = app($this->deals)->injectWelcomeVoucher(['id' => $data[0]['id']], $data[0]['phone']);
-                }
+
+            	$welcome_promo = 1;
             }
 
             if($request->json('email') != ""){
@@ -1955,8 +1956,6 @@ class ApiUser extends Controller
                     $dataupdate['address'] = $request->json('address');
                 }
 
-                DB::beginTransaction();
-
                 $referral = \Modules\PromoCampaign\Lib\PromoCampaignTools::createReferralCode($data[0]['id']);
 
                 if(!$referral){
@@ -1973,7 +1972,14 @@ class ApiUser extends Controller
 
                 //cek complete profile ?
                 if($datauser[0]['complete_profile'] != "1"){
-                    if($datauser[0]['name'] != "" && $datauser[0]['email'] != "" && $datauser[0]['gender'] != "" && $datauser[0]['birthday'] != "" && $datauser[0]['id_province'] != ""){
+                    if($datauser[0]['name'] != "" 
+                    	&& $datauser[0]['email'] != "" 
+                    	&& $datauser[0]['gender'] != "" 
+                    	&& $datauser[0]['birthday'] != "" 
+                    	&& $datauser[0]['id_province'] != ""
+                    	&& $datauser[0]['phone_verified'] != ""
+                    	&& $datauser[0]['email_verified'] != ""
+                    ){
                         //get point
 
                         $complete_profile_cashback = 0;
@@ -2039,7 +2045,6 @@ class ApiUser extends Controller
                     }
                 }
 
-                DB::commit();
                 $result = [
                     'status'	=> 'success',
                     'result'	=> ['phone'	=>	$data[0]['phone'],
@@ -2054,6 +2059,15 @@ class ApiUser extends Controller
                     ],
                     'message'	=> 'Data has been changed successfully'
                 ];
+
+                if ($welcome_promo ?? false) {
+		        	if($setting == 1){
+		                $injectVoucher = app($this->deals)->injectWelcomeVoucher(['id' => $data[0]['id']], $data[0]['phone']);
+		            }
+		        }
+
+                DB::commit();
+
                 if($use_custom_province){
                     $result['result']['id_province'] = $datauser[0]['id_province'];
                 }else{
