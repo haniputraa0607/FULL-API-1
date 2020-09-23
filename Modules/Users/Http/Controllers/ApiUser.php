@@ -1977,8 +1977,8 @@ class ApiUser extends Controller
                     	&& $datauser[0]['gender'] != "" 
                     	&& $datauser[0]['birthday'] != "" 
                     	&& $datauser[0]['id_province'] != ""
-                    	&& $datauser[0]['phone_verified'] != ""
-                    	&& $datauser[0]['email_verified'] != ""
+                    	&& $datauser[0]['phone_verified'] == "1"
+                    	&& $datauser[0]['email_verified'] == "1"
                     ){
                         //get point
 
