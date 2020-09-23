@@ -724,8 +724,8 @@ class ApiFraud extends Controller
             $startDateLog = date('Y-m-d', strtotime($endDateLog. ' - '.$autoSuspendTimePeriod.' days'));
             $getLog = FraudDetectionLogTransactionInBetween::whereRaw("DATE(created_at) BETWEEN '".$startDateLog."' AND '".$endDateLog."'")
                 ->where('id_user', $id_user)
-                ->where('status', 'Active')->get();
-            $countLog = count($getLog);
+                ->where('status', 'Active')->count();
+            $countLog = $getLog;
 
             if($countLog > (int)$fraudSetting['auto_suspend_value']){
                 $autoSuspend = 1;
@@ -1584,35 +1584,28 @@ class ApiFraud extends Controller
     public function fraudCron(){
         $log = MyHelper::logCron('Fraud Cron');
         try {
-          //cron fraud in between
-          $fraudBetween = $this->cronFraudInBetween();
-          if (!$fraudBetween) {
-              $log->fail('Failed to check fraud "Transaction in Between"');
-              return false;
-          }
+            //delete data daily trx
+            $deleteDailyTrx = $this->deleteDailyTransactions();
+            if (!$deleteDailyTrx) {
+                $log->fail('Failed delete daily transactions');
+                return false;
+            }
 
-          //delete data from table daily check promo code
-          $deleteDailyPromoCode = $this->deleteDailyLogCheckPromo();
-          if (!$deleteDailyPromoCode) {
-              $log->fail('Failed delete from table daily check promo code');
-              return false;
-          }
+            //delete data from table daily check promo code
+            $deleteDailyPromoCode = $this->deleteDailyLogCheckPromo();
+            if (!$deleteDailyPromoCode) {
+                  $log->fail('Failed delete from table daily check promo code');
+                  return false;
+            }
 
-          //delete data daily trx
-          $deleteDailyTrx = $this->deleteDailyTransactions();
-          if (!$deleteDailyTrx) {
-              $log->fail('Failed delete daily transactions');
-              return false;
-          }
-
-          $log->success('success');
-          return true;
+            $log->success('success');
+            return true;
         } catch (\Exception $e) {
           $log->fail($e->getMessage());
         }
     }
 
-    public function cronFraudInBetween(){
+    public function cronFraudInBetween($id_user){
         $fraudSetting = FraudSetting::where('parameter', 'LIKE', '%between%')->where('fraud_settings_status','Active')->first();
 
         if($fraudSetting){
@@ -1626,6 +1619,7 @@ class ApiFraud extends Controller
             //Count current transaction by user
             $getTrxFisrt = DailyTransactions::whereDate('transaction_date','=',$currentDate)
                                 ->where('flag_check',0)
+                                ->where('id_user', $id_user)
                                ->orderBy('id_user')
                                ->orderBy('transaction_date', 'asc')
                                ->pluck('id_transaction');
@@ -1635,6 +1629,7 @@ class ApiFraud extends Controller
 
             $getTrx = DailyTransactions::whereDate('transaction_date','=',$currentDate)
                 ->where('flag_check',0)
+                ->where('id_user', $id_user)
                 ->whereIn('id_transaction',$getTrxStatusCompleted)
                 ->orderBy('id_user')
                 ->orderBy('transaction_date', 'asc')
