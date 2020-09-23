@@ -728,7 +728,7 @@ class ApiProductGroupController extends Controller
                 $data['variants']['childs'][]=$stock;
             }
         }
-        if(in_array(1, array_column($data['variants']['childs'], 'default'))){
+        if(!in_array(1, array_column($data['variants']['childs'], 'default'))){
             $data['variants']['childs'][0]['default'] = 1;
         }
         // get available modifiers
