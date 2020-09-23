@@ -55,6 +55,13 @@ return [
             'retry_after' => 600,
         ],
 
+        'dealsqueue' => [
+            'driver' => 'database',
+            'table' => 'deals_queue',
+            'queue' => 'dealsqueue',
+            'retry_after' => 90,
+        ],
+
         'beanstalkd' => [
             'driver' => 'beanstalkd',
             'host' => 'localhost',
