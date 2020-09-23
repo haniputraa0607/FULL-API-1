@@ -825,7 +825,7 @@ class ApiOnlineTransaction extends Controller
                 DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
-                    'messages'  => ['Product '.$checkProduct['product_name'].' sudah habis, silakan pilih yang lain']
+                    'messages'  => [$checkProduct['product_name'].' is out of stock']
                 ]);
             }
 
@@ -1351,6 +1351,8 @@ class ApiOnlineTransaction extends Controller
 
                     // PromoCampaignTools::applyReferrerCashback($insertTransaction);
 
+                    DB::commit();
+
                     /* Add daily Trx*/
                     $dataDailyTrx = [
                         'id_transaction'    => $insertTransaction['id_transaction'],
@@ -1380,8 +1382,7 @@ class ApiOnlineTransaction extends Controller
                         }
                         //======= End Check Fraud Referral User =======//
                     }
-
-                    DB::commit();
+                    FraudJob::dispatch($insertTransaction['id_user'], [], 'transaction_in_between')->onConnection('fraudqueue');
 
                     //remove for result
                     unset($insertTransaction['user']);
@@ -1446,6 +1447,31 @@ class ApiOnlineTransaction extends Controller
         //    $savelocation = $this->saveLocation($post['latitude'], $post['longitude'], $insertTransaction['id_user'], $insertTransaction['id_transaction']);
         // }
 
+        if($request->json('id_deals_user') && !$request->json('promo_code'))
+        {
+        	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $deals['id_deals_voucher'])->where('status','success')->count();
+
+			if(($check_trx_voucher??false) > 1)
+			{
+				DB::rollBack();
+	            return [
+	                'status'=>'fail',
+	                'messages'=>['Voucher is not valid']
+	            ];
+	        }
+        }
+        if (!empty($data_autocrm_cashback)) {
+	        $send   = app($this->autocrm)->SendAutoCRM('Transaction Point Achievement', $usere->phone,$data_autocrm_cashback);
+	        if($send != true){
+	            DB::rollBack();
+	            return response()->json([
+	                'status' => 'fail',
+	                'messages' => ['Failed Send notification to customer']
+	            ]);
+	        }
+        }
+
+        DB::commit();
         /* Add daily Trx*/
         $dataDailyTrx = [
             'id_transaction'    => $insertTransaction['id_transaction'],
@@ -1475,32 +1501,8 @@ class ApiOnlineTransaction extends Controller
             }
             //======= End Check Fraud Referral User =======//
         }
+        FraudJob::dispatch($insertTransaction['id_user'], [], 'transaction_in_between')->onConnection('fraudqueue');
 
-        if($request->json('id_deals_user') && !$request->json('promo_code'))
-        {
-        	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $deals['id_deals_voucher'])->where('status','success')->count();
-
-			if(($check_trx_voucher??false) > 1)
-			{
-				DB::rollBack();
-	            return [
-	                'status'=>'fail',
-	                'messages'=>['Voucher is not valid']
-	            ];
-	        }
-        }
-        if (!empty($data_autocrm_cashback)) {
-	        $send   = app($this->autocrm)->SendAutoCRM('Transaction Point Achievement', $usere->phone,$data_autocrm_cashback);
-	        if($send != true){
-	            DB::rollBack();
-	            return response()->json([
-	                'status' => 'fail',
-	                'messages' => ['Failed Send notification to customer']
-	            ]);
-	        }
-        }
-
-        DB::commit();
         $insertTransaction['cancel_message'] = 'Are you sure you want to cancel this transaction?';
 
         $getSettingTimer = Setting::where('key', 'setting_timer_ovo')->first();

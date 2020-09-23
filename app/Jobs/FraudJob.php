@@ -210,6 +210,8 @@ class FraudJob implements ShouldQueue
             app('Modules\SettingFraud\Http\Controllers\ApiFraud')->fraudCheckReferralUser($this->data);
         }elseif ($this->type == 'referral'){
             app('Modules\SettingFraud\Http\Controllers\ApiFraud')->fraudCheckReferral($this->data);
+        }elseif ($this->type == 'transaction_in_between'){
+            app('Modules\SettingFraud\Http\Controllers\ApiFraud')->cronFraudInBetween($this->user);
         }
 
         return 'success';
