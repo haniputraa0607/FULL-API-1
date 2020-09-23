@@ -444,7 +444,7 @@ class ApiAutoCrm extends Controller
                             }
                         }elseif ($crm['autocrm_push_clickto'] == 'Voucher') {
                             if (isset($variables['id_deals_user'])) {
-                                $dataOptional['id_reference'] = $variables['id_deals'];
+                                $dataOptional['id_reference'] = $variables['id_deals_user'];
                             } else{
                                 $dataOptional['id_reference'] = 0;
                             }
@@ -569,7 +569,7 @@ class ApiAutoCrm extends Controller
                         }
                     } elseif ($crm['autocrm_inbox_clickto'] == 'Voucher') {
                         if (isset($variables['id_deals_user'])) {
-                            $inbox['inboxes_id_reference'] = $variables['id_deals'];
+                            $inbox['inboxes_id_reference'] = $variables['id_deals_user'];
                         } else{
                             $inbox['inboxes_id_reference'] = 0;
                         }
