@@ -2,6 +2,7 @@
 
 namespace Modules\POS\Http\Controllers;
 
+use App\Http\Models\DailyTransactions;
 use App\Jobs\FraudJob;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -3064,6 +3065,17 @@ class ApiPOS extends Controller
                 }
 
                 DB::commit();
+                $dataDailyTrx = [
+                    'id_transaction'    => $createTrx['id_transaction'],
+                    'id_outlet'         => $createTrx['id_outlet'],
+                    'transaction_date'  => date('Y-m-d H:i:s', strtotime($createTrx['transaction_date'])),
+                    'referral_code_use_date'=> date('Y-m-d H:i:s', strtotime($createTrx['transaction_date'])),
+                    'id_user'           => $createTrx['id_user'],
+                    'referral_code'     => NULL
+                ];
+                $createDailyTrx = DailyTransactions::create($dataDailyTrx);
+                FraudJob::dispatch($createTrx['id_user'], [], 'transaction_in_between')->onConnection('fraudqueue');
+
                 return [
                     'id_transaction'    => $createTrx->id_transaction,
                     'point_before'      => (int) $pointBefore,
