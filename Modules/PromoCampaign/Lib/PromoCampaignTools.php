@@ -301,18 +301,19 @@ class PromoCampaignTools{
 						// get product data
 						// $product = $this->getOneProduct($id_outlet, $trx['id_product']);
 						$product = $this->getProductPrice($id_outlet, $trx['id_product'], $trx['id_brand'], $trx['id_product_group']);
+						
+						//is product available
+						if(!$product){
+							// product not available
+							$errors[]='Product could not be found';
+							continue;
+						}
 
 						if ( empty($promo_detail[$product['id_product']]) ) {
 							$promo_detail[$product['id_product']]['name'] = $product['product_name'];
 							$promo_detail[$product['id_product']]['promo_qty'] = $trx['promo_qty'];
 						}else{
 							$promo_detail[$product['id_product']]['promo_qty'] = $promo_detail[$product['id_product']]['promo_qty'] + $trx['promo_qty'];
-						}
-						//is product available
-						if(!$product){
-							// product not available
-							$errors[]='Product could not be found';
-							continue;
 						}
 						// add discount
 						$discount+=$this->discount_product($product,$promo_rules,$trx, $modifier);
@@ -551,6 +552,7 @@ class PromoCampaignTools{
 					//is this the cart product we looking for?
 					if($trx[$id]==$promo_product->id_product){
 						//set reference to this cart product
+						$ref_item = &$trx;
 						$product=&$trx;
 						// break from loop
 						break;
@@ -610,7 +612,7 @@ class PromoCampaignTools{
 					$benefit_product->id_product_group
 				);
 				// dd($benefit_product_price->toArray());
-
+				$ref_item['is_promo'] = 1;
 				$benefit_qty=$promo_rule->benefit_qty;
 				$benefit_value=$promo_rule->discount_value;
 				$benefit_type = $promo_rule->discount_type;
