@@ -660,7 +660,10 @@ class ApiDeals extends Controller
 
 
             for ($i=$start; $i < $end; $i++) {
-                $deals[$i]['time_to_end']=strtotime($deals[$i]['deals_end'])-time();
+                $deals[$i]['time_to_end'] = strtotime($deals[$i]['deals_end'])-time();
+                $deals[$i]['custom_deals_start'] = date('d M Y H:i', strtotime($deals[$i]['deals_start']));
+                $deals[$i]['custom_deals_end'] = date('d M Y H:i', strtotime($deals[$i]['deals_end']));
+                $deals[$i]['custom_time_server'] = date('d M Y H:i', strtotime($deals[$i]['time_server']));
                 array_push($resultData, $deals[$i]);
             }
 
@@ -1371,7 +1374,10 @@ class ApiDeals extends Controller
             		->where('deals_start', "<", $now)
             		->where('deals_end', ">", $now)
             		->where('step_complete','=','1')
-            		->whereColumn('deals_total_claimed','<','deals_total_voucher')
+            		->where(function($q){
+            			$q->where('deals_total_voucher','0')
+            			->orWhereColumn('deals_total_claimed','<','deals_total_voucher');
+            		})
             		->select('deals.*','deals_total.deals_total')->get();
 
         if (!$getDeals->isEmpty()) {
