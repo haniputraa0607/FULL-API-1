@@ -3344,6 +3344,79 @@ class ApiUser extends Controller
                             $data = ['status_verify' => 'expired', 'message' => 'This page is expired, please re-request verify email from apps', 'settings' => $setting];
                             return view('users::verify_email', $data);
                         }else{
+                            if($user['complete_profile'] != "1"){
+                                if($user['name'] != ""
+                                    && $user['email'] != ""
+                                    && $user['gender'] != ""
+                                    && $user['birthday'] != ""
+                                    && $user['id_province'] != ""
+                                    && $user['phone_verified'] == "1"
+                                ){
+                                    //get point
+
+                                    $complete_profile_cashback = 0;
+                                    // $setting_profile_point = Setting::where('key', 'complete_profile_point')->first();
+                                    $setting_profile_cashback = Setting::where('key', 'complete_profile_cashback')->first();
+                                    /*if (isset($setting_profile_point->value)) {
+                                        $complete_profile_point = $setting_profile_point->value;
+                                    }*/
+                                    if (isset($setting_profile_cashback->value)) {
+                                        $complete_profile_cashback = $setting_profile_cashback->value;
+                                    }
+
+                                    /*** uncomment this if point feature is active
+                                    // add point
+                                    $setting_point = Setting::where('key', 'point_conversion_value')->first();
+                                    $log_point = [
+                                    'id_user'                     => $user->id,
+                                    'point'                       => $complete_profile_point,
+                                    'id_reference'                => null,
+                                    'source'                      => 'Completing User Profile',
+                                    'grand_total'                 => 0,
+                                    'point_conversion'            => $setting_point->value,
+                                    'membership_level'            => $level,
+                                    'membership_point_percentage' => $point_percentage
+                                    ];
+                                    $insert_log_point = LogPoint::create($log_point);
+
+                                    // update user point
+                                    $new_user_point = LogPoint::where('id_user', $user->id)->sum('point');
+                                    $user_update = $user->update(['points' => $new_user_point]);
+                                     */
+
+                                    /* add cashback */
+                                    $balance_nominal = $complete_profile_cashback;
+                                    // add log balance & update user balance
+                                    $balanceController = new BalanceController();
+                                    $addLogBalance = $balanceController->addLogBalance($user['id'], $balance_nominal, null, "Welcome Point", 0);
+
+                                    if ( !$addLogBalance ) {
+                                        DB::rollBack();
+                                        return [
+                                            'status' => 'fail',
+                                            'messages' => 'Failed to save data'
+                                        ];
+                                    }
+                                    if($balance_nominal??false){
+                                        $send   = app($this->autocrm)->SendAutoCRM('Complete User Profile Point Bonus', $user['phone'],
+                                            [
+                                                'received_point' => (string) $balance_nominal
+                                            ]
+                                        );
+                                        if($send != true){
+                                            DB::rollBack();
+                                            return response()->json([
+                                                'status' => 'fail',
+                                                'messages' => ['Failed Send notification to customer']
+                                            ]);
+                                        }
+                                    }
+                                    $update = User::where('id','=',$user['id'])->update(['complete_profile' => '1']);
+
+                                    $checkMembership = app($this->membership)->calculateMembership($user['phone']);
+                                }
+                            }
+
                             $udpate = User::where('phone', $phone)->where('email', $email)->update(['email_verified' => 1, 'email_verified_valid_time' => NULL]);
                             if($udpate){
                                 $data = ['status_verify' => 'success', 'message' => 'Successfully verified your email ', 'settings' => $setting];
