@@ -25,6 +25,7 @@
         "smartins/passport-multiauth": "^4.1",
         "spatie/laravel-backup": "^6.7",
         "stevebauman/location": "^5.1",
+        "timehunter/laravel-google-recaptcha-v3": "^2.4",
         "wildside/userstamps": "^2.0",
         "yajra/laravel-auditable": "3.2.0"
     },
