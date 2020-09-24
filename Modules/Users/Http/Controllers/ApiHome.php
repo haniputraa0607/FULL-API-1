@@ -782,6 +782,9 @@ class ApiHome extends Controller
                 }
                 $value['deals']['show'] = 1;
                 $value['deals']['time_to_end']=strtotime($value['deals']['deals_end'])-time();
+                $value['deals']['custom_full_deals_publish_end'] = date('d M Y', strtotime($value['deals']['deals_publish_end'])).' at '.date('H:i', strtotime($value['deals']['deals_publish_end']));
+                $value['deals']['custom_full_deals_start'] = date('d M Y', strtotime($value['deals']['deals_start'])).' at '.date('H:i', strtotime($value['deals']['deals_start']));
+                $value['deals']['custom_full_deals_end'] = date('d M Y', strtotime($value['deals']['deals_end'])).' at '.date('H:i', strtotime($value['deals']['deals_end']));
                 return $value;
             },$deals->toArray());
             foreach ($deals as $key => $value) {
