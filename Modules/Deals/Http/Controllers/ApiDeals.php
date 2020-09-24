@@ -660,7 +660,10 @@ class ApiDeals extends Controller
 
 
             for ($i=$start; $i < $end; $i++) {
-                $deals[$i]['time_to_end']=strtotime($deals[$i]['deals_end'])-time();
+                $deals[$i]['time_to_end'] = strtotime($deals[$i]['deals_end'])-time();
+                $deals[$i]['custom_deals_start'] = date('d M Y H:i', strtotime($deals[$i]['deals_start']));
+                $deals[$i]['custom_deals_end'] = date('d M Y H:i', strtotime($deals[$i]['deals_end']));
+                $deals[$i]['custom_time_server'] = date('d M Y H:i', strtotime($deals[$i]['time_server']));
                 array_push($resultData, $deals[$i]);
             }
 
