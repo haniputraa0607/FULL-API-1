@@ -551,7 +551,8 @@ class ApiDealsVoucher extends Controller
                     'is_offline'=>$var['is_offline'],
                     'redeem_info'=>$redeem_info,
                     'custom_voucher_expired'=> date('d M Y', strtotime($var['voucher_expired_at'])),
-                	'custom_time_voucher_expired'=> date('H:i', strtotime($var['voucher_expired_at']))
+                	'custom_time_voucher_expired'=> date('H:i', strtotime($var['voucher_expired_at'])),
+                    'custom_full_voucher_expired'=> date('d M Y', strtotime($var['voucher_expired_at'])).' at '.date('H:i', strtotime($var['voucher_expired_at']))
                 ];
             },$voucher);
             $result['current_page'] = $current_page;
