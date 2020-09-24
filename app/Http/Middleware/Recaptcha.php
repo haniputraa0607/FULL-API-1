@@ -3,7 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use TimeHunter\LaravelGoogleReCaptchaV3\Facades\GoogleReCaptchaV3;
+use TimeHunter\LaravelGoogleReCaptchaV2\Facades\GoogleReCaptchaV2;
 
 class Recaptcha
 {
@@ -20,7 +20,7 @@ class Recaptcha
             return $next($request);
         }
 
-        $captcha = GoogleReCaptchaV3::verifyResponse($request->g_recaptcha)->isSuccess();
+        $captcha = GoogleReCaptchaV2::verifyResponse($request->g_recaptcha)->isSuccess();
         if (!$captcha) {
             return response()->json(['status' => 'fail', 'messages' => ['Invalid captcha. Try again.']]);
         }
