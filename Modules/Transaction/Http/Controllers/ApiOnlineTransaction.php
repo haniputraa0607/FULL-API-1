@@ -1532,6 +1532,8 @@ class ApiOnlineTransaction extends Controller
     public function checkTransaction(CheckTransaction $request) {
         $post = $request->json()->all();
         $missing_product = 0;
+        $clear_cart = 0;
+        $error_msg	= [];
         $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
         $post['item'] = $this->mergeProducts($post['item']);
         if($use_product_variant){
@@ -1562,8 +1564,9 @@ class ApiOnlineTransaction extends Controller
             DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
-                'messages'  => ['Outlet Not Found']
-                ]);
+                'messages'  => ['Outlet Not Found'],
+                'clear_cart'  => 1
+            ]);
         }
 
         $issetDate = false;
@@ -1581,6 +1584,7 @@ class ApiOnlineTransaction extends Controller
             //     'status'    => 'fail',
             //     'messages'  => ['Outlet is closed']
             // ]);
+            $clear_cart = 1;
             $outlet_status = 0;
         }
 
@@ -1677,7 +1681,7 @@ class ApiOnlineTransaction extends Controller
         if (is_numeric($productDis)) {
             $totalDisProduct = $productDis;
         }else{
-            return $productDis;
+            $error_msg[] = $productDis['messages'];
         }
 
         // remove bonus item
@@ -1719,6 +1723,7 @@ class ApiOnlineTransaction extends Controller
 		            // 	// unset($discount_promo['item']);
 		            // 	$discount_promo['discount'] = 0;
 		            // }
+		            $discount_type 			= $code->promo_campaign->promo_type;
 		            $promo['description']	= $discount_promo['new_description'];
 		            $promo['detail'] 		= $discount_promo['promo_detail'];
 		            $promo['discount'] 		= $discount_promo['discount'];
@@ -1762,11 +1767,11 @@ class ApiOnlineTransaction extends Controller
 				$pct=new PromoCampaignTools();
 				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals', null, $error_product);
 
-				// if ($discount_promo['is_free'] == 1) {
-	   //          	// unset($discount_promo['item']);
-	   //          	$discount_promo['discount'] = 0;
-	   //          }
-
+				/*if ($discount_promo['is_free'] == 1) {
+	            	// unset($discount_promo['item']);
+	            	$discount_promo['discount'] = 0;
+	            }*/
+	            $discount_type = $deals->dealVoucher->deals->promo_type;
 				$promo['description'] = $discount_promo['new_description'];
 	            $promo['detail'] = $discount_promo['promo_detail'];
 	            $promo['discount'] = $discount_promo['discount'];
@@ -1801,8 +1806,22 @@ class ApiOnlineTransaction extends Controller
         $tree = [];
         // check and group product
         $subtotal = 0;
-        $error_msg=[];
+        $product_promo = 0;
+        $product_promo_sold_out = 0;
+        $remove_promo = 0;
         foreach ($discount_promo['item']??$post['item'] as &$item) {
+
+        	if ($item['is_promo'] ?? false) {
+        		$product_promo++;
+        	}
+
+        	if ($product_promo_sold_out != 0 && $item['bonus'] ?? false) {
+
+				$discount_promo['item'] = $post['item'];
+				$remove_promo = 1;
+        		continue;
+        	}
+
             // get detail product
             if($use_product_variant){
                 $select = [
@@ -1867,6 +1886,14 @@ class ApiOnlineTransaction extends Controller
                 }
             }
             if($product['product_stock_status']!='Available'){
+
+            	if ($item['is_promo'] ?? false) {
+	        		$product_promo_sold_out++;
+	        	}
+	        	if ($item['bonus'] ?? false) {
+	        		$remove_promo = 1;
+	        	}
+
                 $error_msg[] = MyHelper::simpleReplace(
                     '%product_name% is out of stock',
                     [
@@ -1956,6 +1983,14 @@ class ApiOnlineTransaction extends Controller
             $tree[$product['id_brand']]['products'][]=$product;
             $subtotal += $product_price_total;
         }
+        if ($product_promo == $product_promo_sold_out || $remove_promo == 1) {
+        	$discount_promo['item'] = $post['item'];
+        	$promo_error = null;
+        	$promo = null;
+        }
+        elseif($discount_type == 'Product discount' && $product_promo > $product_promo_sold_out){
+        	$promo_error = null;
+        }
         if($missing_product){
             $error_msg[] = MyHelper::simpleReplace(
                 '%missing_product% products not found',
@@ -1981,11 +2016,12 @@ class ApiOnlineTransaction extends Controller
                         }
                     }
 
-                    DB::rollBack();
+                    $error_msg[] = $mes;
+                    /*DB::rollBack();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => $mes
-                    ]);
+                    ]);*/
                 }
 
                 $post['discount'] = $post['dis'] + $totalDisProduct;
@@ -2008,11 +2044,12 @@ class ApiOnlineTransaction extends Controller
                             }
                         }
 
-                        DB::rollBack();
+                        $error_msg[] = $mes;
+                        /*DB::rollBack();
                         return response()->json([
                             'status'    => 'fail',
                             'messages'  => $mes
-                        ]);
+                        ]);*/
                     }
             }
             else {
@@ -2069,11 +2106,13 @@ class ApiOnlineTransaction extends Controller
         if ($use_referral){
             $referral_rule = PromoCampaignReferral::where('id_promo_campaign',$code->id_promo_campaign)->first();
             if(!$referral_rule){
-                DB::rollBack();
+            	$error = ['Insert Referrer Cashback Failed'];
+            	$promo_error = app($this->promo_campaign)->promoError('transaction', $error);
+                /*DB::rollBack();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Insert Referrer Cashback Failed']
-                ]);
+                ]);*/
             }
             $referred_cashback = 0;
             if($referral_rule->referred_promo_type == 'Cashback'){
@@ -2160,7 +2199,7 @@ class ApiOnlineTransaction extends Controller
         $result['total_payment_pretty'] = MyHelper::requestNumber(($grandtotal-$used_point),'_CURRENCY');
         $result['total_payment'] = MyHelper::requestNumber(($grandtotal-$used_point),$rn);
 
-        return MyHelper::checkGet($result)+['messages'=>$error_msg, 'promo_error'=>$promo_error, 'promo'=>$promo];
+        return MyHelper::checkGet($result)+['messages'=>$error_msg, 'promo_error'=>$promo_error, 'promo'=>$promo, 'clear_cart'=>$clear_cart];
     }
 
     public function saveLocation($latitude, $longitude, $id_user, $id_transaction, $id_outlet){
