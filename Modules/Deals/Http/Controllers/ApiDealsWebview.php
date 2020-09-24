@@ -121,7 +121,10 @@ class ApiDealsWebview extends Controller
             'time_to_end'                   => strtotime($deals['deals_end']) - time(),
             'button_text'                   => $deals['button_text'],
             'payment_message'               => $payment_message,
-            'payment_success_message'       => $payment_success_message
+            'payment_success_message'       => $payment_success_message,
+            'custom_deals_start'            => date('d M Y H:i', strtotime($deals['deals_start'])),
+            'custom_deals_end'              => date('d M Y H:i', strtotime($deals['deals_end'])),
+            'custom_time_server'            => date('d M Y H:i:s')
         ];
         if ($deals['deals_voucher_price_cash'] != "") {
             $result['deals_price'] = MyHelper::requestNumber($deals['deals_voucher_price_cash'], '_CURRENCY');
@@ -250,7 +253,11 @@ class ApiDealsWebview extends Controller
             'claimed_at'                => date('d M Y H:i', strtotime($dealsUser['claimed_at'])),
             'transaction_id'            => (!is_null($dealsUser['deals_receipt_number'])) ? $dealsUser['deals_receipt_number'] : strtotime($dealsUser['claimed_at']).$dealsUser['id_deals_user'],
             'balance'                   => number_format($dealsUser['balance_nominal'],0,",",".").' points',
-            'use_point'                 => (!is_null($dealsUser['balance_nominal'])) ? 1 : 0
+            'use_point'                 => (!is_null($dealsUser['balance_nominal'])) ? 1 : 0,
+            'custom_voucher_expired_at'   => date('d M Y', strtotime($dealsUser['voucher_expired_at'])),
+            'custom_time_voucher_expired_at' => date('H:i', strtotime($dealsUser['voucher_expired_at'])),
+            'custom_claimed_at'           => date('d M Y', strtotime($dealsUser['claimed_at'])),
+            'custom_time_claimed_at'      => date('H:i', strtotime($dealsUser['claimed_at']))
         ];
 
         if ($dealsUser['voucher_price_point'] != null) {
