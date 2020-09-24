@@ -3,7 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use TimeHunter\LaravelGoogleReCaptchaV3\GoogleReCaptchaV3;
+use TimeHunter\LaravelGoogleReCaptchaV3\Facades\GoogleReCaptchaV3;
 
 class Recaptcha
 {
