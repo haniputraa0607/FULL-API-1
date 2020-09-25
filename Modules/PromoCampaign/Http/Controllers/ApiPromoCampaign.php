@@ -2096,8 +2096,13 @@ class ApiPromoCampaign extends Controller
         elseif ( !empty($query[$source.'_product_discount']) )
         {
         	$applied_product = $query[$source.'_product_discount'];
+        	if (count($applied_product) == 1) {
+        		$product = $applied_product[0]['product']['product_name']??$applied_product[0]['product_group']['product_group_name']??'specified product';
+        	}
+        	else{
+        		$product = 'specified product';
+        	}
         	// $product = $applied_product[0]['product']['product_name']??'specified product';
-        	$product = 'specified product';
         }
         elseif ( !empty($query[$source.'_tier_discount_product']) )
         {
@@ -2127,6 +2132,15 @@ class ApiPromoCampaign extends Controller
     	// add description
         if ($query['promo_type'] == 'Product discount')
         {
+        	if ($product == 'All Product') {
+        		$product = 'this item';
+        	}
+        	elseif ($product == 'specified product') {
+        		$product = 'these products';
+        	}else {
+        		$product = 'purchasing "'.$product.'"';
+        	}
+
         	$discount = $query[$source.'_product_discount_rules']['discount_type']??'Nominal';
         	$qty = $query[$source.'_product_discount_rules']['max_product']??0;
 
@@ -2138,10 +2152,12 @@ class ApiPromoCampaign extends Controller
 
         	if ( empty($qty) ) {
     			$key = 'description_product_discount_no_qty';
-				$key_null = 'Anda berhak mendapatkan potongan %discount% untuk pembelian %product%';
+				// $key_null = 'Anda berhak mendapatkan potongan %discount% untuk pembelian %product%';
+				$key_null = 'You are entitled to a %discount% discount on %product%';
         	}else{
         		$key = 'description_product_discount';
-				$key_null = 'Anda berhak mendapatkan potongan %discount% untuk pembelian %product%. Maksimal %qty% buah untuk setiap produk.';
+				// $key_null = 'Anda berhak mendapatkan potongan %discount% untuk pembelian %product%. Maksimal %qty% buah untuk setiap produk.';
+				$key_null = 'You are entitled to a %discount% discount on %product%. Maximum discount %qty% qty for each product.';
 			}
 
 			$desc = Setting::where('key', '=', $key)->first()['value']??$key_null;
