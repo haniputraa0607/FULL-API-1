@@ -346,7 +346,7 @@ class PromoCampaignTools{
 				{
 					$new_description = "";
 					foreach ($promo_detail as $key => $value) {
-						$new_description .= $value['name'].' ('.$value['promo_qty'].'x)\n';
+						$new_description .= $value['name']." (".$value['promo_qty']."x)\n";
 					}
 
 					if ($new_description != "") {
