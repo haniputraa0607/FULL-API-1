@@ -1984,7 +1984,7 @@ class ApiOnlineTransaction extends Controller
             $tree[$product['id_brand']]['products'][]=$product;
             $subtotal += $product_price_total;
         }
-        if ($product_promo == $product_promo_sold_out || $remove_promo == 1) {
+        if ( (!empty($product_promo) && !empty($product_promo_sold_out) && $product_promo == $product_promo_sold_out) || $remove_promo == 1 ) {
         	$discount_promo['item'] = $post['item'];
         	$promo_error = null;
         	$promo = null;
