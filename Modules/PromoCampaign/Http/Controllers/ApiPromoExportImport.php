@@ -339,6 +339,8 @@ class ApiPromoExportImport extends Controller
 		if (!empty($promo['url_promo_campaign_warning_image']) && empty($promo['promo_campaign_warning_image'])) {
 			$warnings[] = 'Promo Campaign warning Image url\'s invalid';
 		}
+		$promo['limitation_usage'] = $promo['limitation_usage'] ?? 0;
+		$promo['total_coupon'] = $promo['total_coupon'] ?? 0;
 		$create = PromoCampaign::create($promo);
 		
 		if (!$create) {

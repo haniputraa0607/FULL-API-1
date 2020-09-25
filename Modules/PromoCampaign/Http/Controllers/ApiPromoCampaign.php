@@ -753,10 +753,10 @@ class ApiPromoCampaign extends Controller
            	}
 
            	if ($checkData->product_type != $post['product_type']) {
-           		return 0;
+
 				$delete_rule = $this->deleteAllProductRule('promo_campaign', $post['id_promo_campaign']);
-				$delete_outlet_rule = $this->deleteOutletRule('promo_campaign', $post['id_promo_campaign']);
-				if (!$delete_rule || !$delete_outlet_rule) {
+				// $delete_outlet_rule = $this->deleteOutletRule('promo_campaign', $post['id_promo_campaign']);
+				if (!$delete_rule) {
 	           		return response()->json([
 	                    'status'  => 'fail',
 	                    'messages'  => ['Update Failed']

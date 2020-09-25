@@ -1904,8 +1904,8 @@ class ApiTransaction extends Controller
             	if ($list['promo_campaign_referral_transaction']['referred_bonus_type'] == 'Cashback') {
 	            	$result['promo_cashback'] = [
 	            		'name' 		=> 'Referral',
-	            		'code' 		=> $list['promo_campaign_promo_code']['promo_code'],
-	            		'cashback' 	=> (string) number_format($list['promo_campaign_referral_transaction']['referred_bonus']).' points'
+	            		'code' 		=> $list['promo_campaign_promo_code']['promo_code'] ?? "",
+	            		'cashback' 	=> !empty($list['promo_campaign_referral_transaction']['referred_bonus']) ? (string) number_format($list['promo_campaign_referral_transaction']['referred_bonus']).' points' : ""
 	            		// 'cashback' 	=> MyHelper::requestNumber($list['promo_campaign_referral_transaction']['referred_bonus'],'point')
 	            	];
             	}else{
