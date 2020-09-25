@@ -211,7 +211,8 @@ class ApiDealsVoucherWebviewController extends Controller
                 'will be used on the next transaction'
             ],
             'custom_voucher_expired' 	  => date('d M Y', strtotime($data['voucher_expired_at'])),
-            'custom_time_voucher_expired' => date('H:i', strtotime($data['voucher_expired_at']))
+            'custom_time_voucher_expired' => date('H:i', strtotime($data['voucher_expired_at'])),
+            'custom_full_voucher_expired' => date('d M Y', strtotime($data['voucher_expired_at'])).' at '.date('H:i', strtotime($data['voucher_expired_at']))
         ];
 
         if ($data['outlet']['outlet_name']) {
