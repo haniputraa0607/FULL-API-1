@@ -24,7 +24,7 @@ Route::group(['prefix' => 'api', 'middleware' => ['log_activities', 'user_agent'
         Route::post('pin/check', 'ApiUser@checkPin')->middleware('recaptcha');
         Route::post('pin/resend', 'ApiUser@resendPin')->middleware('recaptcha');
         Route::post('pin/forgot', 'ApiUser@forgotPin')->middleware('recaptcha');
-        Route::post('pin/verify', 'ApiUser@verifyPin')->middleware('recaptcha');
+        Route::post('pin/verify', 'ApiUser@verifyPin');
         Route::post('pin/create', 'ApiUser@createPin')->middleware('recaptcha');
         Route::post('pin/change', 'ApiUser@changePin');
         Route::post('profile/update', 'ApiUser@profileUpdate');
