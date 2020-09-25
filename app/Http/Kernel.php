@@ -69,5 +69,6 @@ class Kernel extends HttpKernel
 		'feature_control'   => \App\Http\Middleware\FeatureControl::class,
         'user_agent'   => \App\Http\Middleware\UserAgentControl::class,
         'scopes' => \App\Http\Middleware\CheckScopes::class,
+        'recaptcha' => \App\Http\Middleware\Recaptcha::class,
     ];
 }

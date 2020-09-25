@@ -73,6 +73,18 @@ class ApiDealsWebview extends Controller
             $deals['outlet_by_city'] = $kota;
         }
 
+        usort($deals['outlet_by_city'], function($a, $b) {
+            if(isset($a['city_name']) && isset($b['city_name'])){
+                return $a['city_name'] <=> $b['city_name'];
+            }
+        });
+
+        for ($i = 0; $i < count($deals['outlet_by_city']); $i++) {
+            usort($deals['outlet_by_city'][$i]['outlet'] ,function($a, $b) {
+                return $a['outlet_name'] <=> $b['outlet_name'];
+            });
+        }
+        
         unset($deals['outlets']);
         $point = Auth::user()->balance;
 
@@ -124,7 +136,10 @@ class ApiDealsWebview extends Controller
             'payment_success_message'       => $payment_success_message,
             'custom_deals_start'            => date('d M Y H:i', strtotime($deals['deals_start'])),
             'custom_deals_end'              => date('d M Y H:i', strtotime($deals['deals_end'])),
-            'custom_time_server'            => date('d M Y H:i:s')
+            'custom_time_server'            => date('d M Y H:i:s'),
+            'custom_full_deals_start'       => date('d M Y', strtotime($deals['deals_start'])).' at '.date('H:i', strtotime($deals['deals_start'])),
+            'custom_full_deals_end'         => date('d M Y', strtotime($deals['deals_end'])).' at '.date('H:i', strtotime($deals['deals_end'])),
+            'custom_full_time_server'       => date('d M Y').' at '.date('H:i')
         ];
         if ($deals['deals_voucher_price_cash'] != "") {
             $result['deals_price'] = MyHelper::requestNumber($deals['deals_voucher_price_cash'], '_CURRENCY');
@@ -257,7 +272,9 @@ class ApiDealsWebview extends Controller
             'custom_voucher_expired_at'   => date('d M Y', strtotime($dealsUser['voucher_expired_at'])),
             'custom_time_voucher_expired_at' => date('H:i', strtotime($dealsUser['voucher_expired_at'])),
             'custom_claimed_at'           => date('d M Y', strtotime($dealsUser['claimed_at'])),
-            'custom_time_claimed_at'      => date('H:i', strtotime($dealsUser['claimed_at']))
+            'custom_time_claimed_at'      => date('H:i', strtotime($dealsUser['claimed_at'])),
+            'custom_full_voucher_expired_at'   => date('d M Y', strtotime($dealsUser['voucher_expired_at'])).' at '.date('H:i', strtotime($dealsUser['voucher_expired_at'])),
+            'custom_full_claimed_at'           => date('d M Y', strtotime($dealsUser['claimed_at'])).' at '.date('H:i', strtotime($dealsUser['claimed_at']))
         ];
 
         if ($dealsUser['voucher_price_point'] != null) {

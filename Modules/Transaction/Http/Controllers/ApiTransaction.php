@@ -1464,6 +1464,7 @@ class ApiTransaction extends Controller
                     'transaction_payment_offlines',
                     'transaction_vouchers.deals_voucher.deal',
                     'promo_campaign_promo_code.promo_campaign',
+                    'promo_campaign_referral_transaction',
                     'outlet.city')->first();
             }else{
                 $list = $list->with(
@@ -1476,6 +1477,7 @@ class ApiTransaction extends Controller
                     'transaction_payment_offlines',
                     'transaction_vouchers.deals_voucher.deal',
                     'promo_campaign_promo_code.promo_campaign',
+                    'promo_campaign_referral_transaction',
                     'outlet.city')->first();
             }
             if(!$list){
@@ -1897,6 +1899,25 @@ class ApiTransaction extends Controller
 
             $result['promo']['discount'] = $discount;
             $result['promo']['discount'] = MyHelper::requestNumber($discount,'_CURRENCY');
+
+            if (!empty($list['promo_campaign_referral_transaction'])) {
+            	if ($list['promo_campaign_referral_transaction']['referred_bonus_type'] == 'Cashback') {
+	            	$result['promo_cashback'] = [
+	            		'name' 		=> 'Referral',
+	            		'code' 		=> $list['promo_campaign_promo_code']['promo_code'] ?? "",
+	            		'cashback' 	=> !empty($list['promo_campaign_referral_transaction']['referred_bonus']) ? (string) number_format($list['promo_campaign_referral_transaction']['referred_bonus']).' points' : ""
+	            		// 'cashback' 	=> MyHelper::requestNumber($list['promo_campaign_referral_transaction']['referred_bonus'],'point')
+	            	];
+            	}else{
+            		$result['promo']['code'][$p++]   = $list['promo_campaign_promo_code']['promo_code'];
+	                $result['payment_detail'][] = [
+	                    'name'          => 'Discount',
+	                    'desc'          => $list['promo_campaign_promo_code']['promo_code'],
+	                    "is_discount"   => 1,
+	                    'amount'        => MyHelper::requestNumber($discount,'_CURRENCY')
+	                ];
+            	}
+            }
 
             if ($list['trasaction_payment_type'] != 'Offline') {
 
