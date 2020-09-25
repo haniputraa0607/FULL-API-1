@@ -211,4 +211,9 @@ class Transaction extends Model
         return $this->belongsTo(\App\Http\Models\Outlet::class, 'id_outlet')
             ->join('cities','cities.id_city','outlets.id_city');
     }
+
+    public function promo_campaign_referral_transaction()
+	{
+		return $this->hasOne(\Modules\PromoCampaign\Entities\PromoCampaignReferralTransaction::class, 'id_transaction');
+	}
 }
