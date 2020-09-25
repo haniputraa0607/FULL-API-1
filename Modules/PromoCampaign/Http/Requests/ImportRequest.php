@@ -23,10 +23,10 @@ class ImportRequest extends FormRequest
             'data.rule.promo campaign name' 	=> 'required',
             'data.rule.promo campaign title' 	=> 'required',
             'data.rule.code type' 		=> 'required',
-            'data.rule.total coupon' 	=> 'required',
+            'data.rule.total coupon' 	=> 'nullable',
             'data.rule.all outlet' 	=> 'required',
             'data.rule.product type' 	=> 'required',
-            'data.rule.limit usage' 	=> 'required',
+            'data.rule.limit usage' 	=> 'nullable',
 
             'data.outlet'	=> 'nullable',
             'data.tags'	=> 'nullable',
