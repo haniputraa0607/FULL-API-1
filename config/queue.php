@@ -41,6 +41,11 @@ return [
             'retry_after' => 90,
         ],
 
+        'email' => [
+            'driver' => 'file',
+            'queue' => 'email_default',
+        ],
+
         'fraudqueue' => [
             'driver' => 'database',
             'table' => 'fraud_queue',

@@ -4,8 +4,61 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8ac10d82cde0188ded94d00da7b0a83c",
+    "content-hash": "3faaa87ef07a6b6eada1278a1a9a69ce",
     "packages": [
+        {
+            "name": "al-one/laravel-queue-file",
+            "version": "v1.5.7-beta5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/al-one/laravel-queue-file.git",
+                "reference": "17c02dd83a975ba209bf4893bb87f25dcafb1202"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/al-one/laravel-queue-file/zipball/17c02dd83a975ba209bf4893bb87f25dcafb1202",
+                "reference": "17c02dd83a975ba209bf4893bb87f25dcafb1202",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/contracts": "^5.7 || ^6.0",
+                "illuminate/queue": "^5.7 || ^6.0",
+                "illuminate/support": "^5.7 || ^6.0",
+                "php": ">=7.1.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Alone\\LaravelQueueFile\\ServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Alone\\LaravelQueueFile\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Alone",
+                    "email": "hi@anlo.ng"
+                }
+            ],
+            "description": "File based driver for Laravel Queue",
+            "keywords": [
+                "file-based",
+                "illuminate",
+                "laravel",
+                "laravel-queues",
+                "queue"
+            ],
+            "time": "2020-09-08T03:37:46+00:00"
+        },
         {
             "name": "arcanedev/log-viewer",
             "version": "4.7.3",
@@ -3054,63 +3107,6 @@
                 "jsonpath"
             ],
             "time": "2016-12-03T22:08:25+00:00"
-        },
-        {
-            "name": "mxl/laravel-queue-rate-limit",
-            "version": "v1.0.2",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/mxl/laravel-queue-rate-limit.git",
-                "reference": "6f19d4a0546f8e5309de82be4753d5a44b5fc784"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/mxl/laravel-queue-rate-limit/zipball/6f19d4a0546f8e5309de82be4753d5a44b5fc784",
-                "reference": "6f19d4a0546f8e5309de82be4753d5a44b5fc784",
-                "shasum": ""
-            },
-            "require": {
-                "illuminate/cache": "^5.5",
-                "illuminate/contracts": "^5.5",
-                "illuminate/log": "^5.5",
-                "illuminate/queue": "^5.5",
-                "php": ">=7.0"
-            },
-            "require-dev": {
-                "phpunit/phpunit": "^7.5"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "MichaelLedin\\LaravelQueueRateLimit\\QueueServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "MichaelLedin\\LaravelQueueRateLimit\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Michael Ledin",
-                    "email": "mledin89@gmail.com"
-                }
-            ],
-            "description": "Simple Laravel queue rate limiting",
-            "homepage": "https://github.com/mxl/laravel-queue-rate-limit",
-            "keywords": [
-                "Rate",
-                "laravel",
-                "limit",
-                "queue"
-            ],
-            "time": "2020-02-11T08:53:51+00:00"
         },
         {
             "name": "nesbot/carbon",
@@ -6549,6 +6545,75 @@
             "time": "2019-10-24T08:53:34+00:00"
         },
         {
+            "name": "timehunter/laravel-google-recaptcha-v3",
+            "version": "v2.4.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/RyanDaDeng/laravel-google-recaptcha-v3.git",
+                "reference": "d05e4400bd7e9891cb7b41cf1c1f8881efc66ecf"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/RyanDaDeng/laravel-google-recaptcha-v3/zipball/d05e4400bd7e9891cb7b41cf1c1f8881efc66ecf",
+                "reference": "d05e4400bd7e9891cb7b41cf1c1f8881efc66ecf",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.5"
+            },
+            "require-dev": {
+                "orchestra/testbench": "~3.0",
+                "php-coveralls/php-coveralls": "^2.1",
+                "phpunit/phpunit": "~7.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "TimeHunter\\LaravelGoogleReCaptchaV3\\Providers\\GoogleReCaptchaV3ServiceProvider"
+                    ],
+                    "aliases": {
+                        "GoogleReCaptchaV3": "TimeHunter\\LaravelGoogleReCaptchaV3\\Facades\\GoogleReCaptchaV3"
+                    }
+                },
+                "branch-alias": {
+                    "dev-master": "3.0.*-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "TimeHunter\\LaravelGoogleReCaptchaV3\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ryan Deng",
+                    "email": "ryandadeng@gmail.com",
+                    "homepage": "https://ryandeng.com"
+                }
+            ],
+            "description": "Laravel Package for google reCAPTCHA v3",
+            "homepage": "https://github.com/RyanDaDeng/laravel-google-recaptcha-v3",
+            "keywords": [
+                "Google ReCaptcha",
+                "GoogleReCaptcha",
+                "Laravel reCAPTCHA",
+                "google recaptcha v3",
+                "laravel",
+                "laravel google recaptcha",
+                "laravel google recaptcha v3",
+                "laravel recaptcha v3",
+                "recaptcha",
+                "recaptcha v3",
+                "recaptcha v3 laravel"
+            ],
+            "time": "2020-09-21T07:04:55+00:00"
+        },
+        {
             "name": "vlucas/phpdotenv",
             "version": "v3.6.0",
             "source": {
@@ -7237,6 +7302,63 @@
             "time": "2019-09-30T08:30:27+00:00"
         },
         {
+            "name": "mxl/laravel-queue-rate-limit",
+            "version": "v1.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/mxl/laravel-queue-rate-limit.git",
+                "reference": "6f19d4a0546f8e5309de82be4753d5a44b5fc784"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mxl/laravel-queue-rate-limit/zipball/6f19d4a0546f8e5309de82be4753d5a44b5fc784",
+                "reference": "6f19d4a0546f8e5309de82be4753d5a44b5fc784",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/cache": "^5.5",
+                "illuminate/contracts": "^5.5",
+                "illuminate/log": "^5.5",
+                "illuminate/queue": "^5.5",
+                "php": ">=7.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^7.5"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "MichaelLedin\\LaravelQueueRateLimit\\QueueServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "MichaelLedin\\LaravelQueueRateLimit\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Michael Ledin",
+                    "email": "mledin89@gmail.com"
+                }
+            ],
+            "description": "Simple Laravel queue rate limiting",
+            "homepage": "https://github.com/mxl/laravel-queue-rate-limit",
+            "keywords": [
+                "Rate",
+                "laravel",
+                "limit",
+                "queue"
+            ],
+            "time": "2020-02-11T08:53:51+00:00"
+        },
+        {
             "name": "myclabs/deep-copy",
             "version": "1.9.3",
             "source": {
@@ -7846,6 +7968,7 @@
             "keywords": [
                 "tokenizer"
             ],
+            "abandoned": true,
             "time": "2017-11-27T05:48:46+00:00"
         },
         {
@@ -8752,7 +8875,9 @@
     ],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": [],
+    "stability-flags": {
+        "al-one/laravel-queue-file": 10
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
