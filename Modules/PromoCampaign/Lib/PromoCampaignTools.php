@@ -540,7 +540,7 @@ class PromoCampaignTools{
 				if(!in_array($promo_product->id_product, array_column($trxs, $id))){
 					$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
 					$message = $this->getMessage('error_buyxgety_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.';
-					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
+					$message = MyHelper::simpleReplace($message,['product'=>$product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
 
 					$errors[]= $message;
 					$errorProduct = 1;
@@ -558,12 +558,11 @@ class PromoCampaignTools{
 						break;
 					}
 				}
-
 				// product not found? buat jaga-jaga kalau sesuatu yang tidak diinginkan terjadi
 				if(!$product){
 					$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
 					$message = $this->getMessage('error_buyxgety_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.';
-					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
+					$message = MyHelper::simpleReplace($message,['product'=>$product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
 
 					$errors[]= $message;
 					$errorProduct = 1;
@@ -598,7 +597,7 @@ class PromoCampaignTools{
 				if(!$promo_rule){
 					$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
 					$message = $this->getMessage('error_buyxgety_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.';
-					$message = MyHelper::simpleReplace($message,['product'=>$promo_product->product->product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
+					$message = MyHelper::simpleReplace($message,['product'=>$product_name, 'minmax'=>$minmax, 'title' => $promo_title]);
 
 					$errors[]= $message;
 					$errorProduct = 1;
@@ -737,6 +736,7 @@ class PromoCampaignTools{
 
 				if ($grandtotal < $promo_rules->referred_min_value) {
 					$errors[] = str_replace(['%min_total%'], [MyHelper::requestNumber($promo_rules->referred_min_value,'_CURRENCY')], 'You can use this promo with a minimum transaction subtotal of %min_total%');
+					$errorProduct = 1;
 					return false;
 				}
 				if($promo_rules->referred_promo_type == 'Product Discount'){
