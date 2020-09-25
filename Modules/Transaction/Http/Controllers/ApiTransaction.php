@@ -75,7 +75,7 @@ use App\Lib\GoSend;
 use Validator;
 use Hash;
 use DB;
-use Mail;
+use App\Lib\MailQueue as Mail;
 use Image;
 
 class ApiTransaction extends Controller

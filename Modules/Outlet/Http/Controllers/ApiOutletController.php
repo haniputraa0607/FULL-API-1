@@ -29,7 +29,7 @@ use Modules\Outlet\Http\Requests\Outlet\OutletListOrderNow;
 use Validator;
 use Hash;
 use DB;
-use Mail;
+use App\Lib\MailQueue as Mail;
 use Excel;
 use Storage;
 
