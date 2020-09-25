@@ -2181,6 +2181,9 @@ class ApiOnlineTransaction extends Controller
         $result['points_pretty'] = MyHelper::requestNumber($balance,'_POINT');
         $result['points'] = MyHelper::requestNumber($balance,'point');
         $result['get_point'] = ($post['payment_type'] != 'Balance') ? $this->checkPromoGetPoint($promo_source) : 0;
+        if($cashback_earned <= 0){
+            $result['get_point'] = 0;
+        }
         $result['ovo_available'] = $ovo_available?1:0;
         $result['earned_cashback_text'] = $cashback_text_array;
         if (isset($post['payment_type'])&&$post['payment_type'] == 'Balance') {
