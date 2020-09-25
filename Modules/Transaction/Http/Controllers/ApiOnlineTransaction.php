@@ -1276,6 +1276,7 @@ class ApiOnlineTransaction extends Controller
                 }else{
                     $save['status'] = 'success'; 
                     $save['type'] = 'no_topup';
+                    \App\Lib\ConnectPOS::create()->sendTransaction($insertTransaction['id_transaction']);
                 }
                 
                 if($save['status'] == 'success'){
