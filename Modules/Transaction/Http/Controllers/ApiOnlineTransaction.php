@@ -1988,7 +1988,7 @@ class ApiOnlineTransaction extends Controller
         	$promo_error = null;
         	$promo = null;
         }
-        elseif($discount_type == 'Product discount' && $product_promo > $product_promo_sold_out){
+        elseif(($discount_type??false) == 'Product discount' && $product_promo > $product_promo_sold_out){
         	$promo_error = null;
         }
         if($missing_product){
