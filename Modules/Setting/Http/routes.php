@@ -131,8 +131,8 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::get('maintenance-mode', ['middleware' => 'feature_control:235', 'uses' => 'ApiSetting@maintenanceMode']);
 
     /* Time Expired OTP and Email Verify */
-    Route::post('time-expired/update', ['uses' => 'ApiSetting@updateTimeExpired']);
-    Route::get('time-expired', ['uses' => 'ApiSetting@timeExpired']);
+    Route::post('otp-email-rule/update', ['uses' => 'ApiSetting@updateOtpEmailVerifyRule']);
+    Route::get('otp-email-rule', ['uses' => 'ApiSetting@otpEmailVerifyRule']);
 
     /* setting some url in email */
     Route::any('url-email', 'ApiSetting@someUrlEmail');
