@@ -661,6 +661,12 @@ class ApiOnlineTransaction extends Controller
             }
         }
 
+        if ($post['grandTotal'] < 0 || $post['subtotal'] < 0) {
+            return [
+                'status' => 'fail',
+                'messages' => ['Invalid transaction']
+            ];
+        }
         DB::beginTransaction();
         $transaction = [
             'id_outlet'                   => $post['id_outlet'],
