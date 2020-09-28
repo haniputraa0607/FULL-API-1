@@ -2457,7 +2457,7 @@ class MyHelper{
     public static function checkRuleForRequestOTP($data_user, $check = 0){
         //get setting rule for request otp
         $setting = Setting::where('key', 'otp_rule_request')->first();
-        $emailSender = Setting::where('key', 'email_sender')->first();
+        $emailSender = Setting::where('key', 'email_admin')->first();
         /*
           note : hold time in seconds. if the user has requested otp exceeds the
           maximum number then the user cannot make an otp request.
@@ -2539,7 +2539,7 @@ class MyHelper{
     public static function checkRuleForRequestEmailVerify($data_user){
         //get setting rule for request email verify
         $setting = Setting::where('key', 'email_verify_rule_request')->first();
-        $emailSender = Setting::where('key', 'email_sender')->first();
+        $emailSender = Setting::where('key', 'email_admin')->first();
         /*
           note : hold time in seconds. if the user has requested email verify exceeds the
           maximum number then the user cannot make an email verify request.
