@@ -1701,31 +1701,51 @@ class ApiSetting extends Controller
     /* ============== End Some URL email Setting ============== */
 
     /* ============== Start Time Expired Setting ============== */
-    function timeExpired(){
+    function otpEmailVerifyRule(){
         $timeOtp = Setting::where('key', 'setting_expired_otp')->first();
+        $ruleOtp = Setting::where('key', 'otp_rule_request')->first();
         $timeEmail = Setting::where('key', 'setting_expired_time_email_verify')->first();
+        $ruleEmail = Setting::where('key', 'email_verify_rule_request')->first();
 
         $data = [];
         if($timeOtp){
             $data['expired_otp'] = $timeOtp['value'];
         }
 
+        if($ruleOtp){
+            $data['rule_otp'] = json_decode($ruleOtp['value_text']);
+        }
+
         if($timeEmail){
             $data['expired_time_email'] = $timeEmail['value'];
+        }
+
+        if($ruleEmail){
+            $data['rule_email'] = json_decode($ruleEmail['value_text']);
         }
 
         return response()->json(MyHelper::checkGet($data));
     }
 
-    function updateTimeExpired(Request $request){
+    function updateOtpEmailVerifyRule(Request $request){
         $post = $request->json()->all();
 
         if(isset($post['expired_otp'])){
             $update = Setting::where('key', 'setting_expired_otp')->updateWithUserstamps(['value' => $post['expired_otp']]);
         }
 
+        if(isset($post['hold_time_otp'])){
+            $dataUpdate = ['hold_time' => $post['hold_time_otp'], 'max_value_request' => $post['max_value_request_otp']];
+            $update = Setting::where('key', 'otp_rule_request')->updateWithUserstamps(['value_text' => json_encode($dataUpdate)]);
+        }
+
         if(isset($post['expired_time_email'])){
             $update = Setting::where('key', 'setting_expired_time_email_verify')->updateWithUserstamps(['value' => $post['expired_time_email']]);
+        }
+
+        if(isset($post['hold_time_email'])){
+            $dataUpdate = ['hold_time' => $post['hold_time_email'], 'max_value_request' => $post['max_value_request_email']];
+            $update = Setting::where('key', 'email_verify_rule_request')->updateWithUserstamps(['value_text' => json_encode($dataUpdate)]);
         }
 
         return response()->json(MyHelper::checkUpdate($update));
