@@ -114,7 +114,7 @@ class ApiTransactionOnlinePOS extends Controller
             return MyHelper::checkGet($trx);
         }
 
-        $send = \App\Lib\ConnectPOS::create()->sendTransaction($trx->id_transaction);
+        $send = \App\Lib\ConnectPOS::create()->doSendTransaction($trx->id_transaction);
         return MyHelper::checkUpdate($send);
     }
 
