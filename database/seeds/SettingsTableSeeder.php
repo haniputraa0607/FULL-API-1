@@ -712,6 +712,15 @@ class SettingsTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
+            93 =>
+                array(
+                    'id_setting' => 94,
+                    'key' => 'email_admin',
+                    'value' => NULL,
+                    'value_text' => null,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                )
         ));
     }
 }
