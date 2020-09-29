@@ -2101,10 +2101,14 @@ class ApiPromoCampaign extends Controller
         	$rule = "$source.'_product_discount'";
         	$applied_product = $query[$source.'_product_discount'];
         	if (count($applied_product) == 1) {
-        		$product = $applied_product[0]['product']['product_name']??$applied_product[0]['product_group']['product_group_name']??'specified product';
-        		if ($applied_product[0]['product']['product_name']??false) {
-        			$get_product_name = true;
-        			$id_product = $applied_product[0]['product']['id_product'];
+        		if ($applied_product[0]['product_type'] == 'group') {
+        			$product = $applied_product[0]['product_group']['product_group_name']??'specified product';
+        		}else{
+        			$product = $applied_product[0]['product']['product_name']??'specified product';
+	        		if ($applied_product[0]['product']['product_name']??false) {
+	        			$get_product_name = true;
+	        			$id_product = $applied_product[0]['product']['id_product'];
+	        		}
         		}
         	}
         	else{
@@ -2116,21 +2120,29 @@ class ApiPromoCampaign extends Controller
         {
         	$rule = $source.'_tier_discount_product';
         	$applied_product = $query[$source.'_tier_discount_product'];
-        	$product = $applied_product['product']['product_name']??$applied_product['product_group']['product_group_name']??'specified product';
-        	if ($applied_product['product']['product_name']??false) {
-    			$get_product_name = true;
-    			$id_product = $applied_product['product']['id_product'];
-    		}
+        	if ($applied_product['product_type'] == 'group') {
+        		$product = $applied_product['product_group']['product_group_name']??'specified product';
+        	}else{
+        		$product = $applied_product['product']['product_name']??'specified product';
+	        	if ($applied_product['product']['product_name']??false) {
+	    			$get_product_name = true;
+	    			$id_product = $applied_product['product']['id_product'];
+	    		}
+        	}
         }
         elseif ( !empty($query[$source.'_buyxgety_product_requirement']) )
         {
         	$rule = $source.'_buyxgety_product_requirement';
         	$applied_product = $query[$source.'_buyxgety_product_requirement'];
-        	$product = $applied_product['product']['product_name']??$applied_product['product_group']['product_group_name']??'specified product';
-        	if ($applied_product['product']['product_name']??false) {
-    			$get_product_name = true;
-    			$id_product = $applied_product['product']['id_product'];
-    		}
+        	if ($applied_product['product_type'] == 'group') {
+        		$product = $applied_product['product_group']['product_group_name']??'specified product';
+        	}else{
+        		$product = $applied_product['product']['product_name']??'specified product';
+	        	if ($applied_product['product']['product_name']??false) {
+	    			$get_product_name = true;
+	    			$id_product = $applied_product['product']['id_product'];
+	    		}
+        	}
         }
         else
         {
@@ -2171,7 +2183,7 @@ class ApiPromoCampaign extends Controller
         	if ($discount == 'Percent') {
         		$discount = ($query[$source.'_product_discount_rules']['discount_value']??0).'%';
         	}else{
-        		$discount = 'Rp '.number_format($query[$source.'_product_discount_rules']['discount_value']??0);
+        		$discount = 'IDR '.number_format(($query[$source.'_product_discount_rules']['discount_value']??0),0,',','.');
         	}
 
         	if ( empty($qty) ) {
