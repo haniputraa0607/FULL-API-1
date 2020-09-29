@@ -885,7 +885,7 @@ class ApiAutoCrm extends Controller
 					}
 				}
 
-				if($replace['keyword'] == "%maxx_points%"){
+				if($replace['keyword'] == "%points%"){
 				    $text = str_replace("%point%",number_format($replaced, 0, ',', '.'), $text);
 				    $text = str_replace("%points%",number_format($replaced, 0, ',', '.'), $text);
 				    $text = str_replace($replace['keyword'],number_format($replaced, 0, ',', '.'), $text);
@@ -901,7 +901,23 @@ class ApiAutoCrm extends Controller
 				    }
 				}
 			}
-		}
+		}elseif((empty($user) && $wherefield == 'email')){
+            foreach($query as $replace){
+                if($replace['keyword'] == '%email%'){
+                    $text = str_replace($replace['keyword'],$receipient, $text);
+                }else{
+                    $text = str_replace($replace['keyword'],'', $text);
+                }
+            }
+
+            if(!empty($variables)){
+                foreach($variables as $key => $var){
+                    if(is_string($var)){
+                        $text = str_replace('%'.$key.'%',$var, $text);
+                    }
+                }
+            }
+        }
 
 		return $text;
 	}

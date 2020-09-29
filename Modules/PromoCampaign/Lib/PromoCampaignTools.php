@@ -345,12 +345,12 @@ class PromoCampaignTools{
 				if ($promo_rules->discount_type == 'Percent') {
 	        		$discount_benefit = ($promo_rules['discount_value']??0).'%';
 	        	}else{
-	        		$discount_benefit = 'Rp '.number_format($promo_rules['discount_value']??0);
+	        		$discount_benefit = 'IDR '.number_format(($promo_rules['discount_value']??0),0,',','.');
 	        	}
 
 				if($promo_rules->is_all_product || count($promo_detail) > 3)
 				{
-					$new_description = 'You get discount of IDR '.number_format($discount).' for '.$product['product'];
+					$new_description = 'You get discount of IDR '.number_format($discount,0,',','.').' for '.$product['product'];
 				}
 				else
 				{
@@ -360,7 +360,7 @@ class PromoCampaignTools{
 					}
 
 					if ($new_description != "") {
-						$new_description = 'You get discount of IDR '.number_format($discount).' for '.substr($new_description, 0);
+						$new_description = 'You get discount of IDR '.number_format($discount,0,',','.').' for '.substr($new_description, 0);
 					}
 				}
 
@@ -494,10 +494,10 @@ class PromoCampaignTools{
 				if ($promo_rule->discount_type == 'Percent') {
 	        		$discount_benefit = ($promo_rule['discount_value']??0).'%';
 	        	}else{
-	        		$discount_benefit = 'Rp '.number_format($promo_rule['discount_value']??0);
+	        		$discount_benefit = 'IDR '.number_format(($promo_rule['discount_value']??0),0,',','.');
 	        	}
 
-				$new_description = 'You get discount of IDR '.number_format($discount).' for '.$product_benefit['product'];
+				$new_description = 'You get discount of IDR '.number_format($discount,0,',','.').' for '.$product_benefit['product'];
 				$promo_detail_message = 'Discount '.$discount_benefit;
 
 				break;
@@ -669,13 +669,13 @@ class PromoCampaignTools{
 						$is_free = 1;
 					}else{
 		        		$discount_benefit = ($promo_rule['discount_value']??0).'%';
-		        		$new_description = 'You get discount of IDR '.number_format($discount).' for '.$product['product'];
+		        		$new_description = 'You get discount of IDR '.number_format($discount,0,',','.').' for '.$product['product'];
 						$promo_detail_message = 'Discount '.$discount_benefit;
 					}
 
 	        	}else{
-	        		$discount_benefit = 'Rp '.number_format($promo_rule['discount_value']??0);
-					$new_description = 'You get discount of IDR '.number_format($discount).' for '.$product['product'];
+	        		$discount_benefit = 'IDR '.number_format(($promo_rule['discount_value']??0),0,',','.');
+					$new_description = 'You get discount of IDR '.number_format($discount,0,',','.').' for '.$product['product'];
 					$promo_detail_message = 'Discount '.$discount_benefit;
 	        	}
 
@@ -759,10 +759,10 @@ class PromoCampaignTools{
 					if ($promo_rules->discount_type == 'Percent') {
 						$discount_benefit = ($promo_rules['discount_value']??0).'%';
 					}else{
-						$discount_benefit = 'Rp '.number_format($promo_rules['discount_value']??0);
+						$discount_benefit = 'IDR '.number_format(($promo_rules['discount_value']??0),0,',','.');
 					}
 
-					$new_description = 'You get discount of IDR '.number_format($discount).' for all Product';
+					$new_description = 'You get discount of IDR '.number_format($discount,0,',','.').' for all Product';
 
 					$promo_detail_message = 'Discount '.$discount_benefit;
 					/** end add new description & promo detail **/
@@ -775,7 +775,7 @@ class PromoCampaignTools{
 	            	{
 						switch ($promo_rules->referred_promo_unit) {
 							case 'Nominal':
-								$new_description = 'You will get cashback of IDR '.number_format($promo_rules->referred_promo_value);
+								$new_description = 'You will get cashback of IDR '.number_format($promo_rules->referred_promo_value,0,',','.');
 							break;
 							case 'Percent':
 								$new_description = 'You will get cashback of '.number_format($promo_rules->referred_promo_value).'%';
