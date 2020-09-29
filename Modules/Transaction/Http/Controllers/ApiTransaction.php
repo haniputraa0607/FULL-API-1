@@ -1969,7 +1969,7 @@ class ApiTransaction extends Controller
                 }
 
                 $result['detail']['detail_status'][] = [
-                    'text'  => 'Your order awaits confirmation payment',
+                    'text'  => 'Your order awaits payment confirmation',
                     'date'  => date('d F Y H:i', strtotime($list['created_at']))
                 ];
             }
