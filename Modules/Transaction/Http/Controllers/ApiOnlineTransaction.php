@@ -1782,10 +1782,11 @@ class ApiOnlineTransaction extends Controller
 		        $promo_source = 'voucher_online';
 
 				if ( !empty($errors) ) {
+					$code_obj = $deals;
 					$code = $deals->toArray();
 
 	            	$promo_error = app($this->promo_campaign)->promoError('transaction', null, $errors, $error_product);
-	            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('deals', $code['deal_voucher']['deals'])['product']??'';
+	            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('deals', $code_obj['dealVoucher']['deals'])['product']??'';
 	            	$promo_error['warning_image'] = env('S3_URL_API').($code['deal_voucher']['deals']['deals_warning_image']??$promo_error['warning_image']);
 		        	$promo_error['product'] = $pct->getRequiredProduct($deals->dealVoucher->id_deals, 'deals')??null;
 		        	$promo_source = null;

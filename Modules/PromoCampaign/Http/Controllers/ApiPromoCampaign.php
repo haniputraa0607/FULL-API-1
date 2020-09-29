@@ -1912,6 +1912,7 @@ class ApiPromoCampaign extends Controller
 	            }
 	        }
 
+	    	$query_obj = $code;
 	    	$code = $code->toArray();
 
         	// check user
@@ -1969,6 +1970,7 @@ class ApiPromoCampaign extends Controller
 	            ];
         	}
 
+        	$query_obj = $deals['dealVoucher'];
         	$deals = $deals->toArray();
 	    	$query = $deals['deal_voucher'];
 	    	$source = 'deals';
@@ -1981,7 +1983,7 @@ class ApiPromoCampaign extends Controller
             ];
         }
 
-    	$getProduct = $this->getProduct($source,$query[$source]);
+    	$getProduct = $this->getProduct($source,$query_obj[$source]);
     	$desc = $this->getPromoDescription($source, $query[$source], $getProduct['product']??'');
 
         $errors=[];
@@ -2084,10 +2086,11 @@ class ApiPromoCampaign extends Controller
 
     public function getProduct($source, $query)
     {
-    	// return $query[$source.'_tier_discount_product'];
+    	$query_obj = $query;
     	if (!is_array($query)) {
 			$query = $query->toArray();
     	}
+    	$get_product_name = false;
     	if ( ($query[$source.'_product_discount_rules']['is_all_product']??false) == 1 || ($query['promo_type']??false) == 'Referral')
         {
         	$applied_product = '*';
@@ -2095,9 +2098,14 @@ class ApiPromoCampaign extends Controller
         }
         elseif ( !empty($query[$source.'_product_discount']) )
         {
+        	$rule = "$source.'_product_discount'";
         	$applied_product = $query[$source.'_product_discount'];
         	if (count($applied_product) == 1) {
         		$product = $applied_product[0]['product']['product_name']??$applied_product[0]['product_group']['product_group_name']??'specified product';
+        		if ($applied_product[0]['product']['product_name']??false) {
+        			$get_product_name = true;
+        			$id_product = $applied_product[0]['product']['id_product'];
+        		}
         	}
         	else{
         		$product = 'specified product';
@@ -2106,18 +2114,34 @@ class ApiPromoCampaign extends Controller
         }
         elseif ( !empty($query[$source.'_tier_discount_product']) )
         {
+        	$rule = $source.'_tier_discount_product';
         	$applied_product = $query[$source.'_tier_discount_product'];
         	$product = $applied_product['product']['product_name']??$applied_product['product_group']['product_group_name']??'specified product';
+        	if ($applied_product['product']['product_name']??false) {
+    			$get_product_name = true;
+    			$id_product = $applied_product['product']['id_product'];
+    		}
         }
         elseif ( !empty($query[$source.'_buyxgety_product_requirement']) )
         {
+        	$rule = $source.'_buyxgety_product_requirement';
         	$applied_product = $query[$source.'_buyxgety_product_requirement'];
         	$product = $applied_product['product']['product_name']??$applied_product['product_group']['product_group_name']??'specified product';
+        	if ($applied_product['product']['product_name']??false) {
+    			$get_product_name = true;
+    			$id_product = $applied_product['product']['id_product'];
+    		}
         }
         else
         {
         	$applied_product = "";
         	$product = "";
+        }
+
+        if ($get_product_name) {
+        	$pct = new PromoCampaignTools;
+        	$promo_product = Product::where('id_product', $id_product)->with('product_group', 'product_variants')->first();
+			$product = $pct->getProductName($promo_product->product_group, $promo_product->product_variants);
         }
 
         $result = [

@@ -870,8 +870,8 @@ class ApiProductGroupController extends Controller
 	        		$promo_error = 'Promo is ended';
 	        		return false;
 	        	}
+	        	$code_obj = $code;
 	        	$code = $code->toArray();
-
 				if (isset($post['id_outlet'])) {
 					$pct = new PromoCampaignTools();
 					if (!$pct->checkOutletRule($post['id_outlet'], $code[$source]['is_all_outlet']??$code['deal_voucher']['deals']['is_all_outlet']??0,$code[$source][$source.'_outlets']??$code['deal_voucher'][$source]['outlets_active'])) {
@@ -880,7 +880,7 @@ class ApiProductGroupController extends Controller
 					}
 				}
 
-	        	$applied_product = app($this->promo_campaign)->getProduct($source,($code['promo_campaign']??$code['deal_voucher']['deals']))['applied_product']??[];
+	        	$applied_product = app($this->promo_campaign)->getProduct($source,($code_obj['promo_campaign']??$code_obj['dealVoucher']['deals']))['applied_product']??[];
 
         		if ($applied_product == '*') {
         			foreach ($data as $key => $value) {

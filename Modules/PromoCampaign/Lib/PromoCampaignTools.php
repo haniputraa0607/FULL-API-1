@@ -145,7 +145,8 @@ class PromoCampaignTools{
 				$qty_promo_available = [];
 
 				if(!$promo_rules->is_all_product){
-					$promo_product=$promo[$source.'_product_discount']->toArray();
+					$promo_product_obj = $promo[$source.'_product_discount'];
+					$promo_product = $promo[$source.'_product_discount']->toArray();
 				}else{
 					$promo_product="*";
 				}
@@ -254,7 +255,6 @@ class PromoCampaignTools{
 						}
 					}
 				}
-
 				$promo_detail = [];
 				foreach ($trxs as  $id_trx => &$trx) {
 					// continue if qty promo for same product is all used
@@ -272,7 +272,6 @@ class PromoCampaignTools{
 						// get product data
 						// $product = $this->getOneProduct($id_outlet, $trx['id_product']);
 						$product = $this->getProductPrice($id_outlet, $trx['id_product'], $trx['id_brand'], $trx['id_product_group']);
-
 						//is product available
 						if(!$product){
 							// product not available
@@ -310,7 +309,8 @@ class PromoCampaignTools{
 						}
 
 						if ( empty($promo_detail[$product['id_product']]) ) {
-							$promo_detail[$product['id_product']]['name'] = $product['product_name'];
+							$product->load('product_group', 'product_variants');
+							$promo_detail[$product['id_product']]['name'] = $this->getProductName($product->product_group, $product->product_variants);
 							$promo_detail[$product['id_product']]['promo_qty'] = $trx['promo_qty'];
 						}else{
 							$promo_detail[$product['id_product']]['promo_qty'] = $promo_detail[$product['id_product']]['promo_qty'] + $trx['promo_qty'];
@@ -321,8 +321,18 @@ class PromoCampaignTools{
 				}
 
 				if($discount<=0){
+					if (count($promo_product) == 1) {
+						if ($promo['product_type'] == 'group') {
+							$product_name = $this->getProductName($promo_product_obj[0]->product_group);
+						}else{
+							$promo_product_obj[0]->product->load('product_group', 'product_variants')->toArray();
+							$product_name = $this->getProductName($promo_product_obj[0]->product->product_group, $promo_product_obj[0]->product->product_variants);
+						}
+					}else{
+						$product_name = 'specially marked product';
+					}
 					$message = $this->getMessage('error_product_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b>.';
-					$message = MyHelper::simpleReplace($message,['product'=>'specially marked product', 'title' => $promo_title]);
+					$message = MyHelper::simpleReplace($message,['product'=> $product_name, 'title' => $promo_title]);
 
 					$errors[]= $message;
 					$errorProduct = 1;
@@ -396,9 +406,10 @@ class PromoCampaignTools{
 				}
 
 				if ($promo['product_type'] == 'group') {
-					$product_name = $promo_product->product_group->product_group_name;
+					$product_name = $this->getProductName($promo_product->product_group);
 				}else{
-					$product_name = $promo_product->product->product_name;
+					$promo_product->product->load('product_group', 'product_variants')->toArray();
+					$product_name = $this->getProductName($promo_product->product->product_group, $promo_product->product->product_variants);
 				}
 
 				// promo product not available in cart?
@@ -531,9 +542,10 @@ class PromoCampaignTools{
 				}
 
 				if ($promo['product_type'] == 'group') {
-					$product_name = $promo_product->product_group->product_group_name;
+					$product_name = $this->getProductName($promo_product->product_group);
 				}else{
-					$product_name = $promo_product->product->product_name;
+					$promo_product->product->load('product_group', 'product_variants')->toArray();
+					$product_name = $this->getProductName($promo_product->product->product_group, $promo_product->product->product_variants);
 				}
 
 				// promo product not available in cart?
@@ -604,6 +616,13 @@ class PromoCampaignTools{
 					return false;
 				}
 				$benefit_product = $this->getOneProduct($id_outlet, $promo_rule->benefit_id_product,1, 1);
+
+				if(!$benefit_product){
+					$errors[]="Product benefit not found.";
+					return false;
+				}
+				$benefit=null;
+
 				$benefit_product_price = $this->getProductPrice(
 					$id_outlet, 
 					$promo_rule->benefit_id_product, 
@@ -617,11 +636,6 @@ class PromoCampaignTools{
 				$benefit_type = $promo_rule->discount_type;
 				$benefit_max_value = $promo_rule->max_percent_discount;
 
-				if(!$benefit_product){
-					$errors[]="Product benefit not found.";
-					return false;
-				}
-				$benefit=null;
 
 				$rule=(object) [
 					'max_qty'=>$benefit_qty,
@@ -646,7 +660,8 @@ class PromoCampaignTools{
 
 				array_push($trxs, $benefit_item);
 
-				$product['product'] = $benefit_product->product_name;
+				// $product['product'] = $benefit_product->product_name;
+				$product['product'] = $this->getProductName($benefit_product->product_group, $benefit_product->product_variants);
 				if ($promo_rule->discount_type == 'Percent' || $promo_rule->discount_type == 'percent') {
 					if ($promo_rule->discount_value == 100) {
 						$new_description = 'You get '.$promo_rule['benefit_qty'].' '.$product['product'].' Free';
@@ -1414,5 +1429,17 @@ class PromoCampaignTools{
 		return $item;
     }
 
+    function getProductName($product_group, $variants=[]){
+    	$name = $product_group['product_group_name'];
+
+    	foreach ($variants as $key => $variant) {
+    		if ($variant['product_variant_code'] == 'general_type' || $variant['product_variant_code'] == 'general_size') {
+    			continue;
+    		}
+    		$name .= ' '.$variant['product_variant_name'];
+    	}
+    	
+    	return $name;
+    }
 }
 ?>
