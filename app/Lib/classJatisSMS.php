@@ -124,7 +124,7 @@ class classJatisSMS {
 			'MessageId' => $messageId
 		];
 		$requestXml = (new ArrayToXml($requestArray, ['rootElementName' => 'DRRequest']))->prettify()->toXml();
-		$response = json_decode(json_encode(MyHelper::postXml(env('SMS_URL').'/drreport.ashx',$requestXml)));
+		$response = json_decode(json_encode(MyHelper::postXml(env('SMS_URL').'/drreport.ashx',$requestXml)), true);
 		return $response;
 	}
 }
