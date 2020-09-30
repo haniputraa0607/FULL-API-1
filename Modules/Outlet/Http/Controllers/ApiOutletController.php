@@ -1065,6 +1065,14 @@ class ApiOutletController extends Controller
                     return response()->json(['status' => 'fail', 'messages' => ['There is no open store','at this moment']]);
                 }
             }
+        }else{
+            $check_holiday = $this->checkOutletHoliday();
+            foreach ($urutan as $key => $value) {
+	            if ($check_holiday['status'] && in_array($urutan[$key]['id_outlet'], $check_holiday['list_outlet'])) {
+	            	$urutan[$key]['today']['is_closed'] = 1;
+	            }
+	            $urutan[$key] = $this->setAvailableOutlet($urutan[$key], $processing);
+            }
         }
         if(!$urutan){
             if($countAll){
