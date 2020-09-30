@@ -465,7 +465,7 @@
                                 if(stristr($setting['email_logo'], 'http')){
                                     $email_logo = $setting['email_logo'];
                                 }else{
-                                    $email_logo = env('AWS_URL').$setting['email_logo'];
+                                    $email_logo = env('S3_URL_API').$setting['email_logo'];
                                 }
                             }else{
                                 $email_logo = env('S3_URL_API').('img/logo.jpg');

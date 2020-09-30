@@ -797,6 +797,70 @@ class MyHelper{
 			return $result;
 	}
 
+    public static function uploadPhotoSummerNote($foto, $path, $resize=800, $name=null) {
+        // kalo ada foto
+        $decoded = base64_decode($foto);
+
+        if (!file_exists($path)) {
+            mkdir($path, 0777, true);
+        }
+
+        // cek extension
+        $ext = MyHelper::checkExtensionImageBase64($decoded);
+
+        // set picture name
+        if($name != null)
+            $pictName = $name.$ext;
+        else
+            $pictName = mt_rand(0, 1000).''.time().''.$ext;
+
+        // path
+        $upload = $path.$pictName;
+
+        $img    = Image::make($decoded);
+
+        $width  = $img->width();
+        $height = $img->height();
+
+        if($resize){
+            $img->resize($resize, null, function ($constraint) {
+                $constraint->aspectRatio();
+            });
+        }
+
+        if(env('STORAGE') &&  env('STORAGE') == 's3'){
+            $resource = $img->stream()->detach();
+
+            $save = Storage::disk('s3')->put($upload, $resource, 'public');
+            if ($save) {
+                $result = [
+                    'status' => 'success',
+                    'path'  => $upload
+                ];
+            }
+            else {
+                $result = [
+                    'status' => 'fail'
+                ];
+            }
+        }else{
+            if ($img->save($upload)) {
+                $result = [
+                    'status' => 'success',
+                    'path'  => $upload
+                ];
+            }
+            else {
+                $result = [
+                    'status' => 'fail'
+                ];
+            }
+        }
+
+
+        return $result;
+    }
+
 	public static function cekImageNews($type, $foto) {
 			// kalo ada foto
 			$decoded = base64_decode($foto);

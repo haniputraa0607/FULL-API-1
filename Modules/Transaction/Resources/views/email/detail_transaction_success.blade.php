@@ -17,7 +17,7 @@
                 if(stristr($data['setting']['email_logo'], 'http')){
                     $email_logo = $data['setting']['email_logo'];
                 }else{
-                    $email_logo = env('AWS_URL').$data['setting']['email_logo'];
+                    $email_logo = env('S3_URL_API').$data['setting']['email_logo'];
                 }
             }else{
                 $email_logo = env('S3_URL_API').('img/logo.jpg');
