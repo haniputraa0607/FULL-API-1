@@ -797,6 +797,70 @@ class MyHelper{
 			return $result;
 	}
 
+    public static function uploadPhotoSummerNote($foto, $path, $resize=800, $name=null) {
+        // kalo ada foto
+        $decoded = base64_decode($foto);
+
+        if (!file_exists($path)) {
+            mkdir($path, 0777, true);
+        }
+
+        // cek extension
+        $ext = MyHelper::checkExtensionImageBase64($decoded);
+
+        // set picture name
+        if($name != null)
+            $pictName = $name.$ext;
+        else
+            $pictName = mt_rand(0, 1000).''.time().''.$ext;
+
+        // path
+        $upload = $path.$pictName;
+
+        $img    = Image::make($decoded);
+
+        $width  = $img->width();
+        $height = $img->height();
+
+        if($resize){
+            $img->resize($resize, null, function ($constraint) {
+                $constraint->aspectRatio();
+            });
+        }
+
+        if(env('STORAGE') &&  env('STORAGE') == 's3'){
+            $resource = $img->stream()->detach();
+
+            $save = Storage::disk('s3')->put($upload, $resource, 'public');
+            if ($save) {
+                $result = [
+                    'status' => 'success',
+                    'path'  => $upload
+                ];
+            }
+            else {
+                $result = [
+                    'status' => 'fail'
+                ];
+            }
+        }else{
+            if ($img->save($upload)) {
+                $result = [
+                    'status' => 'success',
+                    'path'  => $upload
+                ];
+            }
+            else {
+                $result = [
+                    'status' => 'fail'
+                ];
+            }
+        }
+
+
+        return $result;
+    }
+
 	public static function cekImageNews($type, $foto) {
 			// kalo ada foto
 			$decoded = base64_decode($foto);
@@ -1430,11 +1494,12 @@ class MyHelper{
 		try {
 			$response = $client->request('POST', $url, $options);
 			// return plain response if json_decode fail because response is plain text
-			$return = simplexml_load_string($response->getBody()->getContents());
+			$return_raw = $response->getBody()->getContents();
+			$return = simplexml_load_string($return_raw);
 			return [
 				'status_code' => $response->getStatusCode(),
 				'response' => $return,
-				'response_raw' => $response->getBody()->getContents(),
+				'response_raw' => $return_raw,
 			];
 		}catch (\GuzzleHttp\Exception\RequestException $e) {
 			try{
@@ -2561,7 +2626,7 @@ class MyHelper{
                 $availebleTime = date('Y-m-d H:i:s',strtotime('+'.$holdTime.' seconds',strtotime(date('Y-m-d H:i:s'))));
                 $contentFile = [
                     'available_request_time' => $availebleTime,
-                    'count_request' => 1 + $content->count_request
+                    'count_request' => $content->count_request
                 ];
                 $createFile = MyHelper::createFile($contentFile, 'json', 'otp/', $data_user[0]['id']);
                 return true;
@@ -2570,11 +2635,53 @@ class MyHelper{
             $availebleTime = date('Y-m-d H:i:s',strtotime('+'.$holdTime.' seconds',strtotime(date('Y-m-d H:i:s'))));
             $contentFile = [
                 'available_request_time' => $availebleTime,
-                'count_request' => 1
+                'count_request' => 0
             ];
             $createFile = MyHelper::createFile($contentFile, 'json', 'otp/', $data_user[0]['id']);
             return true;
         }
+    }
+
+    public static function addCountRequestOtp($phone){
+        $data_user = User::where('phone',$phone)->get()->toArray();
+        if($data_user){
+            //get setting rule for request otp
+            $setting = Setting::where('key', 'otp_rule_request')->first();
+            /*
+              note : hold time in seconds. if the user has requested otp exceeds the
+              maximum number then the user cannot make an otp request.
+            */
+
+            $holdTime = 60;//set default hold time if setting not exist
+            $maxValueRequest = 10;//set default max value for request if setting not exist
+            if($setting){
+                $setting = json_decode($setting['value_text']);
+                $holdTime = (int)$setting->hold_time;
+                $maxValueRequest = (int)$setting->max_value_request;
+            }
+
+            $folder1 = 'otp';
+            $file = $data_user[0]['id'].'.json';
+            if(Storage::disk(env('STORAGE'))->exists($folder1.'/'.$file)){
+                $readContent = Storage::disk(env('STORAGE'))->get($folder1.'/'.$file);
+                $content = json_decode($readContent);
+
+                $contentFile = [
+                    'available_request_time' => $content->available_request_time,
+                    'count_request' => 1 + $content->count_request
+                ];
+                $createFile = MyHelper::createFile($contentFile, 'json', 'otp/', $data_user[0]['id']);
+            }else{
+                $availebleTime = date('Y-m-d H:i:s',strtotime('+'.$holdTime.' seconds',strtotime(date('Y-m-d H:i:s'))));
+                $contentFile = [
+                    'available_request_time' => $availebleTime,
+                    'count_request' => 1
+                ];
+                $createFile = MyHelper::createFile($contentFile, 'json', 'otp/', $data_user[0]['id']);
+            }
+        }
+
+        return true;
     }
 
     public static function checkRuleForRequestEmailVerify($data_user){
