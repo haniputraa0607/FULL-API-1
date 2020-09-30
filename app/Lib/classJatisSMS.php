@@ -2,9 +2,20 @@
 
 namespace App\Lib;
 
+use Spatie\ArrayToXml\ArrayToXml;
+use App\Jobs\CheckSmsStatus;
+
 class classJatisSMS {
 	protected $data;
 	protected $smsserverip;
+	public static $deliveryStatus = [
+		'1' => 'Success, received',
+		'2' => 'Success, not received',
+		'3' => 'Success, unknown number',
+		'4' => 'Failed',
+		'77' => 'Delivery Status is not available'
+	];
+
 	public function setData($data) {
 		$this->data = $data;
 	}
@@ -60,8 +71,11 @@ class classJatisSMS {
             'response'=>$curl_response,
             'phone'=>$phone
         ];
-		MyHelper::logApiSMS($log);
-
+		$logModel = MyHelper::logApiSMS($log);
+		parse_str($logModel->response, $resultSms);
+		if ($resultSms['Status'] == 1) {
+			CheckSmsStatus::dispatch($logModel, $resultSms)->delay(now()->addMinutes(10))->allOnConnection('database');
+		}
 		return $hasil;
 	}
 	public function balance() {
@@ -99,5 +113,18 @@ class classJatisSMS {
 			}
 		}
 		return $hasil;
+	}
+
+	public static function deliveryReport(...$messageId)
+	{
+		$requestArray = [
+			'UserId' => env('SMS_USER'),
+			'Password' => env('SMS_PASSWORD'),
+			'Sender' => env('SMS_SENDER'),
+			'MessageId' => $messageId
+		];
+		$requestXml = (new ArrayToXml($requestArray, ['rootElementName' => 'DRRequest']))->prettify()->toXml();
+		$response = json_decode(json_encode(MyHelper::postXml(env('SMS_URL').'/drreport.ashx',$requestXml)));
+		return $response;
 	}
 }

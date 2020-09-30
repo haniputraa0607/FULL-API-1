@@ -1411,6 +1411,47 @@ class MyHelper{
 		}
 	}
 
+	public static function postXml($url, $xml, $optional = null)
+	{
+		$client = new Client();
+
+		// configure options
+		$options = [
+		    'headers' => [
+		        'Content-Type' => 'text/xml; charset=UTF8',
+		    ],
+		    'body' => $xml,
+		];
+
+		if ($optional){
+			$optional($client,$options);
+		}
+
+		try {
+			$response = $client->request('POST', $url, $options);
+			// return plain response if json_decode fail because response is plain text
+			$return = simplexml_load_string($response->getBody()->getContents());
+			return [
+				'status_code' => $response->getStatusCode(),
+				'response' => $return,
+				'response_raw' => $response->getBody()->getContents(),
+			];
+		}catch (\GuzzleHttp\Exception\RequestException $e) {
+			try{
+				if($e->getResponse()){
+					$response = $e->getResponse()->getBody()->getContents();
+					return [
+						'status_code' => $e->getResponse()->getStatusCode(),
+						'response' => $response
+					];
+				}
+				else  return ['status' => 'fail', 'messages' => [0 => 'Failed get response.']];
+			}
+			catch(Exception $e){
+				return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.']];
+			}
+		}
+	}
 
     public static function getBearerToken() {
 		$headers = null;
@@ -2425,7 +2466,7 @@ class MyHelper{
 		];
 		$log=array_merge($log,$arr);
 		array_walk($log, function(&$data){if(is_array($data)){$data=json_encode($data);}});
-		LogApiSms::create($log);
+		return LogApiSms::create($log);
     }
     /**
     * get Excel coumn name from number
