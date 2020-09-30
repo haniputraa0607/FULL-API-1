@@ -886,9 +886,9 @@ class ApiAutoCrm extends Controller
 				}
 
 				if($replace['keyword'] == "%points%"){
-				    $text = str_replace("%point%",number_format($replaced, 0, ',', '.'), $text);
-				    $text = str_replace("%points%",number_format($replaced, 0, ',', '.'), $text);
-				    $text = str_replace($replace['keyword'],number_format($replaced, 0, ',', '.'), $text);
+				    $text = str_replace("%point%",number_format((int)$replaced, 0, ',', '.'), $text);
+				    $text = str_replace("%points%",number_format((int)$replaced, 0, ',', '.'), $text);
+				    $text = str_replace($replace['keyword'],number_format((int)$replaced, 0, ',', '.'), $text);
 				}else{
     				$text = str_replace($replace['keyword'],$replaced, $text);
 				}
