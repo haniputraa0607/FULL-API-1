@@ -1430,11 +1430,12 @@ class MyHelper{
 		try {
 			$response = $client->request('POST', $url, $options);
 			// return plain response if json_decode fail because response is plain text
-			$return = simplexml_load_string($response->getBody()->getContents());
+			$return_raw = $response->getBody()->getContents();
+			$return = simplexml_load_string($return_raw);
 			return [
 				'status_code' => $response->getStatusCode(),
 				'response' => $return,
-				'response_raw' => $response->getBody()->getContents(),
+				'response_raw' => $return_raw,
 			];
 		}catch (\GuzzleHttp\Exception\RequestException $e) {
 			try{
