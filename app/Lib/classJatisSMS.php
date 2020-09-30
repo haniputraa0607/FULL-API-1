@@ -75,6 +75,7 @@ class classJatisSMS {
 		parse_str($logModel->response, $resultSms);
 		if ($resultSms['Status'] == 1) {
 			CheckSmsStatus::dispatch($logModel, $resultSms)->delay(now()->addMinutes(5))->allOnConnection('database');
+            MyHelper::addCountRequestOtp($phone);
 		}
 		return $hasil;
 	}
