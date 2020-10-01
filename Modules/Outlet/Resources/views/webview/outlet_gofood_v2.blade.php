@@ -11,7 +11,30 @@
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <style type="text/css">
+		<?php
+			if($useragent == 'Android'){
+		?>
         @font-face {
+                font-family: "Ubuntu-Medium";
+                font-style: normal;
+                font-weight: bold;
+                src: url('file:///android_asset/font/ubuntu_regular.ttf');
+        }
+        @font-face {
+                font-family: "Ubuntu";
+                font-style: normal;
+                font-weight: 400;
+                src: url('file:///android_asset/font/ubuntu_regular.ttf');
+        }
+        @font-face {
+                font-family: "Ubuntu-Regular";
+                font-style: normal;
+                font-weight: 400;
+                src: url('file:///android_asset/font/ubuntu_regular.ttf');
+        }
+	<?php } else { ?>
+
+		@font-face {
                 font-family: "Ubuntu-Medium";
                 font-style: normal;
                 font-weight: 400;
@@ -29,6 +52,7 @@
                 font-weight: 400;
                 src: url('{{ env('S3_URL_API') }}{{ ('fonts/ubuntu_regular.ttf') }}');
         }
+	<?php } ?>
         .Ubuntu-Medium{
             font-family: "Ubuntu-Medium";
         }
@@ -270,10 +294,10 @@
 					<div class="col-12">
 						
 						<a @if($out['today']['status'] != 'closed') href="@if(isset($out['deep_link_gojek'])){{ $out['deep_link_gojek'] }} @elseif(isset($out['deep_link_grab'])) {{$out['deep_link_grab']}} @endif" @endif class="row linkTidakAda">
-							<div class="col-9 @if($out['today']['status'] == 'closed') text-grey @else text-black-grey @endif text-14px Ubuntu-Medium"><span> {{ $out['outlet_name'] }} </span></div>
-							<div class="col-3 text-11-7px Ubuntu-Regular text-right text-grey"><span> {{ $out['distance'] }} </span></div>
-							<div class="col-9 text-11-7px Ubuntu-Regular text-grey" style="padding-top:10px; padding-bottom:10px"><span> {{ $out['outlet_address'] }} </span></div>
-							<div class="col-3 text-red text-11-7px Ubuntu-Medium text-right"><span>@if($out['today']['status'] == 'closed') {{strtoupper($out['today']['status'] )}} @endif</span></div>
+							<div class="col-8 @if($out['today']['status'] == 'closed') text-grey @else text-black-grey @endif text-14px Ubuntu-Medium"><span> {{ $out['outlet_name'] }} </span></div>
+							<div class="col-4 text-11-7px Ubuntu-Regular text-right text-grey"><span> {{ $out['distance'] }} </span></div>
+							<div class="col-10 text-11-7px Ubuntu-Regular text-grey" style="padding-top:8px; padding-bottom:8px"><span> {{ $out['outlet_address'] }} </span></div>
+							<div class="col-2 text-red text-11-7px Ubuntu-Medium text-right"><span>@if($out['today']['status'] == 'closed') {{strtoupper($out['today']['status'] )}} @endif</span></div>
 							<div class="col-12 kelas-hr"><hr style="border-top: #aaa dashed 1px;"></div>
 						</a>
 					</div>
