@@ -73,10 +73,6 @@ class ApiBanner extends Controller
 
         $deep_url = env('APP_URL').'outlet/webview/gofood/list';
 
-        if ($post['type'] == 'gofood') {
-            $post['url'] = $deep_url;
-        }
-
         $create = Banner::create($post);
 
         return response()->json(MyHelper::checkCreate($create));
@@ -141,10 +137,6 @@ class ApiBanner extends Controller
         }
 
         $deep_url = env('APP_URL').'outlet/webview/gofood/list';
-
-        if ($post['type'] == 'gofood') {
-            $post['url'] = $deep_url;
-        }
 
         $update = $banner->update($post);
 
