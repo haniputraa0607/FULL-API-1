@@ -1040,13 +1040,15 @@ class PromoCampaignTools{
         if($promo->limitation_usage){
         	// limit usage user?
         	if(PromoCampaignReport::where('id_promo_campaign',$id_promo)->where('id_user',$id_user)->count()>=$promo->limitation_usage){
-	        	$errors[]='Kuota anda untuk penggunaan kode promo ini telah habis';
+	        	// $errors[]='Kuota anda untuk penggunaan kode promo ini telah habis';
+	        	$errors[]='Your quota for using this promo code has been exceeded';
 	    		return false;
         	}
 
         	// limit usage device
         	if(PromoCampaignReport::where('id_promo_campaign',$id_promo)->where('device_id',$device_id)->count()>=$promo->limitation_usage){
-	        	$errors[]='Kuota device anda untuk penggunaan kode promo ini telah habis';
+	        	// $errors[]='Kuota device anda untuk penggunaan kode promo ini telah habis';
+	        	$errors[]='Your device quota for using this promo code has been exceeded';
 	    		return false;
         	}
         }
@@ -1209,8 +1211,12 @@ class PromoCampaignTools{
 	        }
 	        elseif ( !empty($promo[$source.'_product_discount']) )
 	        {
-	        	// $product = $promo[$source.'_product_discount'][0]['product']['product_group']??$promo[$source.'_product_discount'][0]['product_group']??'';
-	        	$product = null;
+	        	$total_product = count($promo[$source.'_product_discount']);
+	        	if ($total_product == 1) {
+	        		$product = $promo[$source.'_product_discount'][0]['product']['product_group']??$promo[$source.'_product_discount'][0]['product_group']??'';
+	        	}else{
+	        		$product = null;
+	        	}
 	        }
 	        elseif ( !empty($promo[$source.'_tier_discount_product']) )
 	        {
