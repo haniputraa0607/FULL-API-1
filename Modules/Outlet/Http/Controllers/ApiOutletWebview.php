@@ -122,8 +122,12 @@ class ApiOutletWebview extends Controller
         $list = json_decode(json_encode(app($this->outlet)->filter($filter)), true);
         $list = $list['original'];
         // $list = MyHelper::postCURLWithBearer('api/outlet/filter/gofood', $post, $bearer);
+
+        if (stristr($_SERVER['HTTP_USER_AGENT'], 'okhttp')){ $useragent = 'Android';}
+        else {$useragent = 'iOS';}
+
         if (isset($list['status']) && $list['status'] == 'success') {
-            return view('outlet::webview.outlet_gofood_v2', ['outlet' => $list['result']]);
+            return view('outlet::webview.outlet_gofood_v2', ['outlet' => $list['result'], 'useragent'=> $useragent]);
         } elseif (isset($list['status']) && $list['status'] == 'fail') {
             return view('outlet::webview.outlet_gofood_v2', ['outlet' => [], 'msg' => $list['messages'][0]]);
             // return view('error', ['msg' => 'Data failed']);
