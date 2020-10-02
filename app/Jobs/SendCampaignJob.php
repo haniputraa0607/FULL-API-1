@@ -145,6 +145,12 @@ class SendCampaignJob implements ShouldQueue
                     }else{
                         $setting['email_contact'] = null;
                     }
+                    $set = Setting::where('key', 'email_setting_url')->first();
+                    if(!empty($set)){
+                        $setting['email_setting_url'] = (array)json_decode($set['value_text']);
+                    }else{
+                        $setting['email_setting_url'] = null;
+                    }
 
                     $data = array(
                         'customer' => $name,
