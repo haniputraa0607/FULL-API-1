@@ -2437,7 +2437,8 @@ class ApiPromoCampaign extends Controller
     		return false;
     	}
 
-    	$update = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $id_promo_campaign_promo_code)->update(['usage' => 1]);
+    	$usage_code = PromoCampaignReport::where('id_promo_campaign_promo_code', $id_promo_campaign_promo_code)->count();
+    	$update = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $id_promo_campaign_promo_code)->update(['usage' => $usage_code]);
 
 		if (!$update) {
     		return false;
@@ -2461,11 +2462,20 @@ class ApiPromoCampaign extends Controller
 
 	    	if ($delete)
 	    	{
-	    		$update = PromoCampaign::where('id_promo_campaign', '=', $getReport['id_promo_campaign'])->update(['used_code' => $getReport->promo_campaign->used_code-1]);
+	    		$get_code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $id_promo_campaign_promo_code)->first();
+	    		$update = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $id_promo_campaign_promo_code)->update(['usage' => $get_code->usage-1]);
 
-	    		if ($update)
-	    		{
-		    		return true;
+	    		if ($update) {
+		    		$update = PromoCampaign::where('id_promo_campaign', '=', $getReport['id_promo_campaign'])->update(['used_code' => $getReport->promo_campaign->used_code-1]);
+
+		    		if ($update)
+		    		{
+			    		return true;
+		    		}
+		    		else
+		    		{
+		    			return false;
+		    		}
 	    		}
 	    		else
 	    		{

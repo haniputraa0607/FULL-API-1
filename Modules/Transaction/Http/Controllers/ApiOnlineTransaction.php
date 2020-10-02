@@ -1723,41 +1723,46 @@ class ApiOnlineTransaction extends Controller
 		            $pct=new PromoCampaignTools();
 		            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
 
-		            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product);
+		            if ($validate_user) {
+			            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product);
 
 
-		            // if (isset($discount_promo['is_free']) && $discount_promo['is_free'] == 1) {
-		            // 	// unset($discount_promo['item']);
-		            // 	$discount_promo['discount'] = 0;
-		            // }
-		            $discount_type 			= $code->promo_campaign->promo_type;
-		            $promo['description']	= $discount_promo['new_description'];
-		            $promo['detail'] 		= $discount_promo['promo_detail'];
-		            $promo['discount'] 		= $discount_promo['discount'];
-		            $promo['value'] 		= $discount_promo['discount'];
-		            $promo['is_free'] 		= $discount_promo['is_free'];
-		            $promo['type'] 			= 'discount';
-		            $promo_source 			= 'promo_code';
+			            // if (isset($discount_promo['is_free']) && $discount_promo['is_free'] == 1) {
+			            // 	// unset($discount_promo['item']);
+			            // 	$discount_promo['discount'] = 0;
+			            // }
+			            $discount_type 			= $code->promo_campaign->promo_type;
+			            $promo['description']	= $discount_promo['new_description'];
+			            $promo['detail'] 		= $discount_promo['promo_detail'];
+			            $promo['discount'] 		= $discount_promo['discount'];
+			            $promo['value'] 		= $discount_promo['discount'];
+			            $promo['is_free'] 		= $discount_promo['is_free'];
+			            $promo['type'] 			= 'discount';
+			            $promo_source 			= 'promo_code';
 
-		            if ($code['promo_type'] == 'Referral') 
-		            {
-		            	$code->load('promo_campaign_referral');
-			            if ($code->promo_campaign_referral->referred_promo_type == 'Cashback') 
+			            if ($code['promo_type'] == 'Referral') 
 			            {
-			            	$promo['type'] = 'cashback';
-			            	$promo['detail'] = 'Referral (Cashback)';
+			            	$code->load('promo_campaign_referral');
+				            if ($code->promo_campaign_referral->referred_promo_type == 'Cashback') 
+				            {
+				            	$promo['type'] = 'cashback';
+				            	$promo['detail'] = 'Referral (Cashback)';
+				            }
 			            }
-		            }
+			            if ( !empty($errore) || !empty($errors)) {
+			            	$promo_error = app($this->promo_campaign)->promoError('transaction', $errore, $errors, $error_product);
+			            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('promo_campaign', $code['promo_campaign'])['product']??'';
+			            	$promo_error['warning_image'] = env('S3_URL_API').($code['promo_campaign_warning_image']??$promo_error['warning_image']);
+					        $promo_error['product'] = $pct->getRequiredProduct($code->id_promo_campaign)??null;
+			            	$promo_source = null;
 
-		            if ( !empty($errore) || !empty($errors)) {
-		            	$promo_error = app($this->promo_campaign)->promoError('transaction', $errore, $errors, $error_product);
-		            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('promo_campaign', $code['promo_campaign'])['product']??'';
-		            	$promo_error['warning_image'] = env('S3_URL_API').($code['promo_campaign_warning_image']??$promo_error['warning_image']);
-				        $promo_error['product'] = $pct->getRequiredProduct($code->id_promo_campaign)??null;
-		            	$promo_source = null;
-
+			            }
+		            	$promo_discount=$discount_promo['discount'];
+		            }else{
+		            	if(!empty($errore)){
+		            		$promo_error = app($this->promo_campaign)->promoError('transaction', $errore);
+		            	}
 		            }
-		            $promo_discount=$discount_promo['discount'];
 	        	}
             }
             else
@@ -1771,6 +1776,7 @@ class ApiOnlineTransaction extends Controller
         	$deals = app($this->promo_campaign)->checkVoucher($request->id_deals_user, 1, 1);
 			if($deals)
 			{
+				$validate_user = true;
 				$pct=new PromoCampaignTools();
 				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals', null, $error_product);
 
@@ -1991,13 +1997,15 @@ class ApiOnlineTransaction extends Controller
             $tree[$product['id_brand']]['products'][]=$product;
             $subtotal += $product_price_total;
         }
-        if ( (!empty($product_promo) && !empty($product_promo_sold_out) && $product_promo == $product_promo_sold_out) || $remove_promo == 1 ) {
-        	$discount_promo['item'] = $post['item'];
-        	$promo_error = null;
-        	$promo = null;
-        }
-        elseif(($discount_type??false) == 'Product discount' && $product_promo > $product_promo_sold_out){
-        	$promo_error = null;
+        if ($validate_user??false) {
+	        if ( (!empty($product_promo) && !empty($product_promo_sold_out) && $product_promo == $product_promo_sold_out) || $remove_promo == 1 ) {
+	        	$discount_promo['item'] = $post['item'];
+	        	$promo_error = null;
+	        	$promo = null;
+	        }
+	        elseif(($discount_type??false) == 'Product discount' && $product_promo > $product_promo_sold_out){
+	        	$promo_error = null;
+	        }
         }
         if($missing_product){
             $error_msg[] = MyHelper::simpleReplace(
