@@ -1662,16 +1662,12 @@ class ApiSetting extends Controller
                         $width  = $img->width();
                         $height = $img->height();
 
-                        if($width == $height){
-                            $upload = MyHelper::uploadPhoto($imgEncode, $path = 'img/icon/');
+                        $upload = MyHelper::uploadPhoto($imgEncode, $path = 'img/icon/', null);
 
-                            if ($upload['status'] == "success") {
-                                $data[$key]->icon= $upload['path'];
-                            } else {
-                                array_push($arrFailedUploadImage, $key);
-                            }
-                        }else{
-                            array_push($arrFailedUploadImage, $key.'[dimensions not allowed]');
+                        if ($upload['status'] == "success") {
+                            $data[$key]->icon= $upload['path'];
+                        } else {
+                            array_push($arrFailedUploadImage, $key);
                         }
                     }
                 }else{
