@@ -1791,7 +1791,7 @@ class ApiOutletController extends Controller
                                     ]
                                 ]);
                             } else {
-                                $day = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                                $day = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
                                 foreach ($day as $val){
                                     $data = [
@@ -1801,15 +1801,18 @@ class ApiOutletController extends Controller
                                         'is_closed' => 0,
                                         'id_outlet' => $save['id_outlet']
                                     ];
-                                    $save = OutletSchedule::updateOrCreate(['id_outlet' => $save['id_outlet'], 'day' => $val], $data);
-                                    if (!$save) {
-                                        DB::rollBack();
-                                        return response()->json([
-                                            'status'    => 'fail',
-                                            'messages'      => [
-                                                'Add shedule failed.'
-                                            ]
-                                        ]);
+                                    $check = OutletSchedule::where('id_outlet', $save['id_outlet'])->where('day', $val)->select('day')->first();
+                                    if(!$check){
+                                        $save = OutletSchedule::updateOrCreate(['id_outlet' => $save['id_outlet'], 'day' => $val], $data);
+                                        if (!$save) {
+                                            DB::rollBack();
+                                            return response()->json([
+                                                'status'    => 'fail',
+                                                'messages'      => [
+                                                    'Add shedule failed.'
+                                                ]
+                                            ]);
+                                        }
                                     }
                                 }
                                 $countImport++;
