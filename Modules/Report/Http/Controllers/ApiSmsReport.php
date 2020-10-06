@@ -31,8 +31,8 @@ class ApiSmsReport extends Controller
 
         $data = LogApiSms::leftJoin('users','users.phone','=','log_api_sms.phone')
             ->select('log_api_sms.id_log_api_sms', 'log_api_sms.request_url', 'log_api_sms.response',
-                'log_api_sms.phone', 'log_api_sms.created_at', 'log_api_sms.updated_at',
-                'users.name', 'users.email');
+                'log_api_sms.phone', 'log_api_sms.status', 'log_api_sms.status_response', 'log_api_sms.created_at', 'log_api_sms.updated_at',
+                'users.name', 'users.email')->orderBy('id_log_api_sms', 'DESC');
 
         if(isset($post['date_start']) && !empty($post['date_start']) &&
             isset($post['date_end']) && !empty($post['date_end'])){

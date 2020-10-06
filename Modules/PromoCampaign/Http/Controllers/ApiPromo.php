@@ -113,9 +113,8 @@ class ApiPromo extends Controller
     		return response()->json(['status' => 'fail']);
     	}
 
+    	$getProduct = app($this->promo_campaign)->getProduct($user_promo->promo_type,$promo['dealVoucher']['deals']??$promo['promo_campaign']);
     	$promo = $promo->toArray();
-
-    	$getProduct = app($this->promo_campaign)->getProduct($user_promo->promo_type,$promo['deal_voucher']['deals']??$promo['promo_campaign']);
     	$desc = app($this->promo_campaign)->getPromoDescription($user_promo->promo_type, $promo['deal_voucher']['deals']??$promo['promo_campaign'], $getProduct['product']??'');
 
     	$result = [

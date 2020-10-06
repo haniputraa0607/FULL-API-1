@@ -607,6 +607,9 @@ class ApiPOS extends Controller
             $cekOutlet = Outlet::where('outlet_code', strtoupper($value['store_code']))->first();
             if ($cekOutlet) {
                 try {
+                    if($value['store_status'] == "Not Active"){
+                        $value['store_status'] = 'Inactive';
+                    }
                     $update = Outlet::updateOrCreate(['outlet_code' => strtoupper($value['store_code'])], [
                         'outlet_name'       => $value['store_name'],
                         'outlet_status'     => $value['store_status'],

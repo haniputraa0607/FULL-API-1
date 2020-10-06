@@ -1905,7 +1905,7 @@ class ApiTransaction extends Controller
 	            	$result['promo_cashback'] = [
 	            		'name' 		=> 'Referral',
 	            		'code' 		=> $list['promo_campaign_promo_code']['promo_code'] ?? "",
-	            		'cashback' 	=> !empty($list['promo_campaign_referral_transaction']['referred_bonus']) ? (string) number_format($list['promo_campaign_referral_transaction']['referred_bonus']).' points' : ""
+	            		'cashback' 	=> !empty($list['promo_campaign_referral_transaction']['referred_bonus']) ? (string) number_format($list['promo_campaign_referral_transaction']['referred_bonus'],0,',','.').' points' : ""
 	            		// 'cashback' 	=> MyHelper::requestNumber($list['promo_campaign_referral_transaction']['referred_bonus'],'point')
 	            	];
             	}else{
@@ -1969,7 +1969,7 @@ class ApiTransaction extends Controller
                 }
 
                 $result['detail']['detail_status'][] = [
-                    'text'  => 'Your order awaits confirmation payment',
+                    'text'  => 'Your order awaits payment confirmation',
                     'date'  => date('d F Y H:i', strtotime($list['created_at']))
                 ];
             }

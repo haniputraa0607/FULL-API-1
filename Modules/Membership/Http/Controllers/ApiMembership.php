@@ -435,7 +435,7 @@ class ApiMembership extends Controller
 											->sum('transaction_grandtotal');
 
 					$total_balance = LogBalance::where('id_user',$check['id'])
-											->whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point'])
+											->whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point', 'Referral Bonus'])
 											->where('balance', '>', 0)
 											->whereDate('created_at','>=',$date_start)
 											->whereDate('created_at','<=', date('Y-m-d', strtotime($check['retain_date'])))
@@ -565,7 +565,7 @@ class ApiMembership extends Controller
 
 					$total_balance = LogBalance::where('id_user',$check['id'])
 											->where('balance', '>', 0)
-											->whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point'])
+											->whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point', 'Referral Bonus'])
 											->sum('balance');
 
 					//update user count & subtotal transaction
@@ -618,7 +618,7 @@ class ApiMembership extends Controller
                                         ->whereNull('fraud_flag')
 										->sum('transaction_grandtotal');
 
-				$total_balance = LogBalance::whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal'])
+				$total_balance = LogBalance::whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point', 'Referral Bonus'])
 											->where('balance', '>', 0)
 											->where('id_user',$check['id'])->sum('balance');
 
@@ -842,7 +842,7 @@ class ApiMembership extends Controller
 									->sum('transaction_grandtotal');
 
 			$total_balance = LogBalance::where('id_user', $datauser->id)
-										->whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal'])
+										->whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point', 'Referral Bonus'])
 										->where('balance', '>', 0)
 										->sum('balance');
 

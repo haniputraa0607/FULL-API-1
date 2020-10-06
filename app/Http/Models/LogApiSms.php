@@ -11,6 +11,8 @@ class LogApiSms extends Model
 	    'request_body',
 	    'request_url',
 	    'response',
-	    'phone'
+	    'phone',
+	    'status',
+	    'status_response'
     ];
 }
