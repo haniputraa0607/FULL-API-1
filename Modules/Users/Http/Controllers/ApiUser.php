@@ -225,6 +225,7 @@ class ApiUser extends Controller
     function UserFilter($conditions = null, $order_field='id', $order_method='asc', $skip=0, $take=99999999999, $keyword=null,$columns=null,$objOnly=false){
         $prevResult = [];
         $finalResult = [];
+        $status_all_user = 0;
 
         if($conditions != null){
             $key = 0;
@@ -258,6 +259,11 @@ class ApiUser extends Controller
                     $arr_tmp_product = [];
                     $arr_tmp_outlet = [];
                     foreach($cond as $i => $condition){
+                        if($condition['subject'] == 'all_user'){
+                            $status_all_user = 1;
+                            break 2;
+                        }
+
                         if(stristr($condition['subject'], 'trx')) $scanTrx = true;
                         if(stristr($condition['subject'], 'trx_product')) $scanProd = true;
                         if(stristr($condition['subject'], 'trx_product_tag')) $scanTag = true;
@@ -407,6 +413,19 @@ class ApiUser extends Controller
                 'province_customs.province_name as province_custom_name',
                 DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
             );
+        }
+
+        if($status_all_user == 1){
+            $finalResult = User::leftJoin('cities','cities.id_city','=','users.id_city')
+                ->leftJoin('provinces','provinces.id_province','=','cities.id_province')
+                ->leftJoin('province_customs','province_customs.id_province_custom','=','users.id_province')
+                ->orderBy($order_field, $order_method)
+                ->select('users.*',
+                    'cities.*',
+                    'provinces.*',
+                    'province_customs.province_name as province_custom_name',
+                    DB::raw('YEAR(CURDATE()) - YEAR(users.birthday) AS age')
+                );
         }
 
         $resultCount = $finalResult->count(); // get total result
@@ -2006,9 +2025,9 @@ class ApiUser extends Controller
                     $dataupdate['name'] = $request->json('name');
                 }
                 if($request->json('email')){
-                    $dataupdate['email'] = $request->json('email');
+                    $dataupdate['email'] = strtolower($request->json('email'));
                     //when change email, update status email to unverified
-                    if($request->json('email') != $data[0]['email']){
+                    if(strtolower($request->json('email')) != strtolower($data[0]['email'])){
                         $dataupdate['email_verified'] = '0';
                     }
                 }

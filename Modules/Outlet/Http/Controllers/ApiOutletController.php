@@ -1243,45 +1243,95 @@ class ApiOutletController extends Controller
             }
             else{
             	$soon = env('OUTLET_OPEN_CLOSE_SOON_TIME', null);
-            	if ( $soon 
-            		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['open'])) )
-            		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['open']." -".$soon." minutes")) )
-            	) {
-            		$outlet['today']['status'] = 'opening soon';
-            		$outlet['today']['status_detail'] = 'Today open at '.$outlet['today']['open'];
-            	}
-            	elseif($outlet['today']['open'] && date('H:i:01') < date('H:i', strtotime($outlet['today']['open']))){
-                    $outlet['today']['status'] = 'closed';
-            		$outlet['today']['status_detail'] = 'Today open at '.$outlet['today']['open'];
-                }
-            	elseif ( $soon 
-            		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['close'])) )
-            		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['close']." -".$soon." minutes")) )
-            	) {
-            		$outlet['today']['status'] = 'closing soon';
-        			$outlet['today']['status_detail'] = 'Today until '.$outlet['today']['close'];
-            	}
-                elseif($outlet['today']['close'] && date('H:i') > date('H:i', strtotime('-'.$processing.' minutes', strtotime($outlet['today']['close'])))){
-                	$schedule = OutletSchedule::where('id_outlet', $outlet['id_outlet'])->get()->toArray();
-		            $new_days = $this->reorderDays($schedule, $outlet['today']['day']);
-		            $i = 0;
-		            foreach ($new_days as $key => $value) {
-		            	if ($value['is_closed'] != 1) {
-		            		$outlet['today']['day'] 	= $value['day'];
-		            		$outlet['today']['open'] 	= $value['open'];
-		            		$outlet['today']['close'] 	= $value['close'];
-		            		break;
-		            	}
-		            	$i++;
+            	if (date('H:i', strtotime($outlet['today']['close'])) > date('H:i', strtotime($outlet['today']['open']))) {
+	            	if ( $soon 
+	            		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['open'])) )
+	            		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['open']." -".$soon." minutes")) )
+	            	) {
+	            		$outlet['today']['status'] = 'opening soon';
+	            		$outlet['today']['status_detail'] = 'Today open at '.$outlet['today']['open'];
+	            	}
+	            	elseif($outlet['today']['open'] && date('H:i:01') < date('H:i', strtotime($outlet['today']['open']))){
+	                    $outlet['today']['status'] = 'closed';
+	            		$outlet['today']['status_detail'] = 'Today open at '.$outlet['today']['open'];
+	                }
+	            	elseif ( $soon 
+	            		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['close'])) )
+	            		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['close']." -".$soon." minutes")) )
+	            	) {
+	            		$outlet['today']['status'] = 'closing soon';
+	        			$outlet['today']['status_detail'] = 'Today until '.$outlet['today']['close'];
+	            	}
+	                elseif($outlet['today']['close'] && date('H:i') > date('H:i', strtotime('-'.$processing.' minutes', strtotime($outlet['today']['close'])))){
+	                	$schedule = OutletSchedule::where('id_outlet', $outlet['id_outlet'])->get()->toArray();
+			            $new_days = $this->reorderDays($schedule, $outlet['today']['day']);
+			            $i = 0;
+			            foreach ($new_days as $key => $value) {
+			            	if ($value['is_closed'] != 1) {
+			            		$outlet['today']['day'] 	= $value['day'];
+			            		$outlet['today']['open'] 	= $value['open'];
+			            		$outlet['today']['close'] 	= $value['close'];
+			            		break;
+			            	}
+			            	$i++;
+			            }
+		                $outlet['today']['status'] = 'closed';
+		                if ($i===0) {
+	                		$outlet['today']['status_detail'] = 'Tomorrow open at '.$outlet['today']['open'];
+		                }
+		                else{
+		                	$outlet['today']['status_detail'] = 'Open '.$outlet['today']['day'].' at '.$outlet['today']['open'];
+		                }
 		            }
-	                $outlet['today']['status'] = 'closed';
-	                if ($i===0) {
-                		$outlet['today']['status_detail'] = 'Tomorrow open at '.$outlet['today']['open'];
+            	}else{
+            		if ( $soon 
+	            		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['open'])) )
+	            		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['open']." -".$soon." minutes")) )
+	            	) {
+	            		$outlet['today']['status'] = 'opening soon';
+	            		$outlet['today']['status_detail'] = 'Today open at '.$outlet['today']['open'];
+	            	}
+	            	elseif(
+	            		$outlet['today']['open'] 
+	            		&& date('H:i:01') < date('H:i', strtotime($outlet['today']['open']))
+	            		&& date('H:i:01') > date('H:i', strtotime($outlet['today']['close']))
+	            	){
+	                    $outlet['today']['status'] = 'closed';
+	            		$outlet['today']['status_detail'] = 'Today open at '.$outlet['today']['open'];
 	                }
-	                else{
-	                	$outlet['today']['status_detail'] = 'Open '.$outlet['today']['day'].' at '.$outlet['today']['open'];
-	                }
-	            }
+	            	elseif ( $soon 
+	            		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['close'])) )
+	            		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['close']." -".$soon." minutes")) )
+	            	) {
+	            		$outlet['today']['status'] = 'closing soon';
+	        			$outlet['today']['status_detail'] = 'Today until '.$outlet['today']['close'];
+	            	}
+	                elseif(
+	                	$outlet['today']['close'] 
+	            		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['open'])) )
+	                	&& date('H:i') > date('H:i', strtotime('-'.$processing.' minutes', strtotime($outlet['today']['close'])))
+	                ){
+	                	$schedule = OutletSchedule::where('id_outlet', $outlet['id_outlet'])->get()->toArray();
+			            $new_days = $this->reorderDays($schedule, $outlet['today']['day']);
+			            $i = 0;
+			            foreach ($new_days as $key => $value) {
+			            	if ($value['is_closed'] != 1) {
+			            		$outlet['today']['day'] 	= $value['day'];
+			            		$outlet['today']['open'] 	= $value['open'];
+			            		$outlet['today']['close'] 	= $value['close'];
+			            		break;
+			            	}
+			            	$i++;
+			            }
+		                $outlet['today']['status'] = 'closed';
+		                if ($i===0) {
+	                		$outlet['today']['status_detail'] = 'Tomorrow open at '.$outlet['today']['open'];
+		                }
+		                else{
+		                	$outlet['today']['status_detail'] = 'Open '.$outlet['today']['day'].' at '.$outlet['today']['open'];
+		                }
+		            }
+            	}
             }
         }
 
@@ -1741,7 +1791,7 @@ class ApiOutletController extends Controller
                                     ]
                                 ]);
                             } else {
-                                $day = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                                $day = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
                                 foreach ($day as $val){
                                     $data = [
@@ -1751,15 +1801,18 @@ class ApiOutletController extends Controller
                                         'is_closed' => 0,
                                         'id_outlet' => $save['id_outlet']
                                     ];
-                                    $save = OutletSchedule::updateOrCreate(['id_outlet' => $save['id_outlet'], 'day' => $val], $data);
-                                    if (!$save) {
-                                        DB::rollBack();
-                                        return response()->json([
-                                            'status'    => 'fail',
-                                            'messages'      => [
-                                                'Add shedule failed.'
-                                            ]
-                                        ]);
+                                    $check = OutletSchedule::where('id_outlet', $save['id_outlet'])->where('day', $val)->select('day')->first();
+                                    if(!$check){
+                                        $save = OutletSchedule::updateOrCreate(['id_outlet' => $save['id_outlet'], 'day' => $val], $data);
+                                        if (!$save) {
+                                            DB::rollBack();
+                                            return response()->json([
+                                                'status'    => 'fail',
+                                                'messages'      => [
+                                                    'Add shedule failed.'
+                                                ]
+                                            ]);
+                                        }
                                     }
                                 }
                                 $countImport++;

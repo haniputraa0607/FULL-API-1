@@ -200,7 +200,11 @@ class SendPromotionJob implements ShouldQueue
 			$getSetting = Setting::where('key', 'LIKE', 'email%')->get()->toArray();
 			$setting = array();
 			foreach ($getSetting as $key => $value) {
-				$setting[$value['key']] = $value['value'];
+                if($value['key'] == 'email_setting_url'){
+                    $setting[$value['key']]  = (array)json_decode($value['value_text']);
+                }else{
+                    $setting[$value['key']] = $value['value'];
+                }
 			}
 
 			$hash = base64_encode($user['id'].'|'.$promotionContent['id_promotion_content'].'|'.$time);
