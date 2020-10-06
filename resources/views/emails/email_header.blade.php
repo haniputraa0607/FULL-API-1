@@ -443,7 +443,7 @@
     </style>
 </head>
 
-<table style="border-collapse:collapse;border-spacing:0;margin:0 auto;padding:0;background-color:#F6F6F6" width="800" cellspacing="0" cellpadding="0" border="0" align="center" >
+<table style="border-collapse:collapse;border-spacing:0;margin:0 auto;padding:0;background-color:#ffffff" width="800" cellspacing="0" cellpadding="0" border="0" align="center" >
     <tbody>
     <tr>
         <td style="border-collapse:collapse;border-spacing:0;color:#999;font-family:'Source Sans Pro',sans-serif;line-height:1.5;margin:0;padding:0" align="left">
