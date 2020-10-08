@@ -6,6 +6,7 @@
     "type": "project",
     "require": {
         "php": "^7.1.3",
+        "al-one/laravel-queue-file": "^1.5@beta",
         "arcanedev/log-viewer": "~4.7.0",
         "bogardo/mailgun": "^5.1",
         "brozot/laravel-fcm": "^1.2",
@@ -19,7 +20,6 @@
         "league/flysystem-aws-s3-v3": "^1.0",
         "maatwebsite/excel": "^3.1",
         "mpociot/laravel-apidoc-generator": "^3.12",
-        "mxl/laravel-queue-rate-limit": "^1.0",
         "nwidart/laravel-modules": "^5.0",
         "orangehill/iseed": "^2.6",
         "php-http/guzzle6-adapter": "^1.1",
