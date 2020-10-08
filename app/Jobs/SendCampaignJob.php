@@ -28,7 +28,7 @@ use App\Lib\PushNotificationHelper;
 use App\Lib\classMaskingJson;
 use App\Lib\classJatisSMS;
 use DB;
-use App\Lib\MailQueue as Mail;
+use Mail;
 
 class SendCampaignJob implements ShouldQueue
 {

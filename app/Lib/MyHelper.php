@@ -1515,6 +1515,8 @@ class MyHelper{
 			catch(Exception $e){
 				return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.']];
 			}
+		} catch (\Exception $e) {
+			return ['status' => 'fail', 'messages' => ['Something went wrong'], 'response_raw' => ''];
 		}
 	}
 

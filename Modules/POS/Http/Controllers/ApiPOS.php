@@ -50,7 +50,7 @@ use App\Http\Models\SyncTransactionFaileds;
 use App\Http\Models\SyncTransactionQueues;
 use Modules\UserRating\Entities\UserRatingLog;
 use App\Lib\MyHelper;
-use App\Lib\MailQueue as Mail;
+use Mail;
 
 use Modules\POS\Http\Requests\reqMember;
 use Modules\POS\Http\Requests\reqVoucher;
