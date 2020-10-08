@@ -17,7 +17,7 @@ use App\Lib\classMaskingJson;
 use Hash;
 use App\Lib\PushNotificationHelper;
 use DB;
-use App\Lib\MailQueue as Mail;
+use Mail;
 use File;
 
 use Modules\Enquiries\Http\Requests\Create;
