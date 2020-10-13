@@ -1993,7 +1993,7 @@ class ApiPromoCampaign extends Controller
 			if (!$pct->checkOutletRule($id_outlet, $query[$source]['is_all_outlet']??0,$query[$source][$source.'_outlets']??$query[$source]['outlets_active'])) {
 					return [
 	                'status'=>'fail',
-	                'messages'=>['Promo tidak berlaku di outlet ini']
+	                'messages'=>['Promo cannot be used at this outlet']
 	            ];
 			}
 		}
