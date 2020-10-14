@@ -38,7 +38,7 @@ class ApiTransactionOnlinePOS extends Controller
     public function listTransaction(Request $request) {
         $result = TransactionOnlinePOS::join('transactions', 'transactions.id_transaction', 'transactions_online_pos.id_transaction')
                     ->join('users', 'users.id', 'transactions.id_user')
-                    ->select('transactions_online_pos.*', 'transactions.transaction_receipt_number', 'users.name', 'users.phone');
+                    ->select('transactions_online_pos.*', 'transactions.transaction_date', 'transactions.transaction_receipt_number', 'users.name', 'users.phone');
 
         $countTotal = null;
 
