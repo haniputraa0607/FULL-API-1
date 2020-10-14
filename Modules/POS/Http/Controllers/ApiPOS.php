@@ -122,6 +122,19 @@ class ApiPOS extends Controller
             ->first();
 
         if ($check) {
+            $voucher = TransactionVoucher::where('id_transaction',$trxData->id_transaction)->first();
+            $appliedPromo = "";
+            $promoNumber = "";
+            if($check['id_promo_campaign_promo_code'] || $voucher){
+                $appliedPromo = 'MOBILE APPS PROMO';
+                // if($trxData->id_promo_campaign_promo_code){
+                //  $promoNumber = $trxData->promo_campaign_promo_code->promo_code;
+                // }else{
+                //  $voucher->load('deals_voucher');
+                //  $promoNumber = $voucher->deals_voucher->voucher_code;
+                // }
+                $promoNumber = '01198';
+            }
             $check = $check->toArray();
             $user = User::where('id', '=', $check['id_user'])->first()->toArray();
 
@@ -154,7 +167,7 @@ class ApiPOS extends Controller
             $header['subTotal'] = (float) $check['transaction_subtotal'];
             $header['tax'] = (float) $check['transaction_tax'];
             $header['notes'] = '';
-            $header['appliedPromo'] = $check['id_promo_campaign_promo_code'] ? 'MOBILE APPS PROMO' : '';
+            $header['appliedPromo'] = $appliedPromo;
             // $header['process_at'] = $check['pickup_type'] ?? '';
             // $header['process_date_time'] = $check['pickup_at'] ?? '';
             // $header['status_order'] = '';
@@ -244,7 +257,7 @@ class ApiPOS extends Controller
                         if ($ovo) {
                             $pay = [
                                 'number'            => $key + 1,
-                                'type'              => 'OVO',
+                                'type'              => 'OVOMOB',
                                 'amount'            => (float) $ovo['amount'],
                                 'changeAmount'     => 0,
                                 'cardNumber'       => $ovo['phone'],
@@ -271,7 +284,7 @@ class ApiPOS extends Controller
                         if ($ipay) {
                             $pay = [
                                 'number'            => $key + 1,
-                                'type'              => 'IPAY88',
+                                'type'              => 'IPAYMOB',
                                 'amount'            => (float) $ipay['amount'] / 100,
                                 'changeAmount'     => 0,
                                 'cardNumber'       => '',
@@ -285,7 +298,7 @@ class ApiPOS extends Controller
                         if ($shopeepay) {
                             $pay = [
                                 'number'            => $key + 1,
-                                'type'              => 'SHOPEEPAY',
+                                'type'              => 'SHOPEEMOB',
                                 'amount'            => (float) $shopeepay['amount']/100,
                                 'changeAmount'     => 0,
                                 'cardNumber'       => '',
@@ -323,8 +336,8 @@ class ApiPOS extends Controller
                     'size' => $menu['product_variants'][0]['product_variant_code'] == 'general_size' ? null : $menu['product_variants'][0]['product_variant_code'],
                     // 'promoNumber' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
                     'note' => $menu['pivot']['transaction_product_note'],
-                    'promoNumber' => '01198',
-                    'promoType' => $check['id_promo_campaign_promo_code'] ? '5' : null,
+                    'promoNumber' => $promoNumber,
+                    'promoType' => $appliedPromo?'5':'',
                     'status' => 'ACTIVE'
                     // 'amount' => (float) $menu['pivot']['transaction_product_subtotal']
                 ];
@@ -348,8 +361,8 @@ class ApiPOS extends Controller
                     'size' => null,
                     'note' => '',
                     // 'promoNumber' => $check['id_promo_campaign_promo_code'] ? $check['promo_campaign_promo_code']['promo_code'] : '',
-                    'promoNumber' => '01198',
-                    'promoType' => $check['id_promo_campaign_promo_code'] ? '5' : null,
+                    'promoNumber' => $promoNumber,
+                    'promoType' => $appliedPromo?'5':null,
                     'status' => 'ACTIVE'
                     // 'amount' => $modifier['transaction_product_modifier_price']
                 ];
