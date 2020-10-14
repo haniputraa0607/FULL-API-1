@@ -185,6 +185,7 @@ return [
         App\Providers\ValidatorServiceProvider::class,
         Stevebauman\Location\LocationServiceProvider::class,
         Arcanedev\LogViewer\LogViewerServiceProvider::class,
+        App\Providers\QueueServiceProvider::class,
     ],
 
     /*
