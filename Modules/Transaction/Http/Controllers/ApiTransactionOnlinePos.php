@@ -59,6 +59,8 @@ class ApiTransactionOnlinePOS extends Controller
             $columns = [
                 null,
                 null,
+                'transaction_date',
+                'order_id',
                 'transaction_receipt_number',
                 'users.name',
                 'users.phone',
