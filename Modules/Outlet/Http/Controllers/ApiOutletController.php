@@ -29,7 +29,7 @@ use Modules\Outlet\Http\Requests\Outlet\OutletListOrderNow;
 use Validator;
 use Hash;
 use DB;
-use Mail;
+use App\Lib\MailQueue as Mail;
 use Excel;
 use Storage;
 
@@ -696,9 +696,6 @@ class ApiOutletController extends Controller
                 $outlet[$key]['distance'] = number_format($jaraknya, 2, '.', ',')." km";
                 $outlet[$key]['dist']     = (float) $jaraknya;
 
-                if(isset($outlet[$key]['today']['time_zone'])){
-                    $outlet[$key]['today'] = $this->setTimezone($outlet[$key]['today']);
-                }
             }
             usort($outlet, function($a, $b) {
                 return $a['dist'] <=> $b['dist'];
@@ -723,6 +720,9 @@ class ApiOutletController extends Controller
 	            	$pagingOutlet['data'][$key]['today']['is_closed'] = 1;
 	            }
 	            $pagingOutlet['data'][$key] = $this->setAvailableOutlet($pagingOutlet['data'][$key], $processing);
+	            if(isset($pagingOutlet['data'][$key]['today']['time_zone'])){
+                    $pagingOutlet['data'][$key]['today'] = $this->setTimezone($pagingOutlet['data'][$key]['today']);
+                }
             }
 
             if (isset($pagingOutlet['data']) && count($pagingOutlet['data']) > 0) {
@@ -991,15 +991,6 @@ class ApiOutletController extends Controller
                     continue;
                 }
 
-                if(isset($outlet[$key]['today']['time_zone'])){
-                    $outlet[$key]['today'] = $this->setTimezone($outlet[$key]['today']);
-                }
-
-                unset($outlet[$key]['today']['id_outlet']);
-                // unset($outlet[$key]['today']['is_closed']);
-                unset($outlet[$key]['today']['time_zone_id']);
-                unset($outlet[$key]['today']['time_zone']);
-
                 if (isset($post['is_map']) && $post['is_map'] == 0) {
                     unset($outlet[$key]['outlet_latitude']);
                     unset($outlet[$key]['outlet_longitude']);
@@ -1046,6 +1037,14 @@ class ApiOutletController extends Controller
 	            	$pagingOutlet['data'][$key]['today']['is_closed'] = 1;
 	            }
 	            $pagingOutlet['data'][$key] = $this->setAvailableOutlet($pagingOutlet['data'][$key], $processing);
+	            if(isset($pagingOutlet['data'][$key]['today']['time_zone'])){
+                    $pagingOutlet['data'][$key]['today'] = $this->setTimezone($pagingOutlet['data'][$key]['today']);
+                }
+	            unset($outlet[$key]['today']['id_outlet']);
+                // unset($outlet[$key]['today']['is_closed']);
+                unset($outlet[$key]['today']['time_zone_id']);
+                unset($outlet[$key]['today']['time_zone']);
+
             }
 
             if (isset($pagingOutlet['data']) && count($pagingOutlet['data']) > 0) {
@@ -1072,6 +1071,9 @@ class ApiOutletController extends Controller
 	            	$urutan[$key]['today']['is_closed'] = 1;
 	            }
 	            $urutan[$key] = $this->setAvailableOutlet($urutan[$key], $processing);
+	            if(isset($urutan[$key]['today']['time_zone'])){
+                    $urutan[$key]['today'] = $this->setTimezone($urutan[$key]['today']);
+                }
             }
         }
         if(!$urutan){
@@ -1210,13 +1212,26 @@ class ApiOutletController extends Controller
     function setAvailableOutlet($outlet, $processing){
         $outlet['today']['status'] = 'open';
         $outlet['today']['status_detail'] = '';
+        $soon = env('OUTLET_OPEN_CLOSE_SOON_TIME', null);
+        $now = date('H:i');
+
+        $yesterday_schedule = $this->getYesterdaySchedule($outlet['id_outlet']);
+        if (date('H:i', strtotime($yesterday_schedule['close'])) < date('H:i', strtotime($yesterday_schedule['open']))
+        	&& $now < date('H:i', strtotime($yesterday_schedule['close']))
+    	) {
+    		$today_schedule = $outlet['today'];
+    		$outlet['today'] = $yesterday_schedule;
+        }
 
         if( !isset($outlet['today']['open']) || !isset($outlet['today']['close']) ){
             $outlet['today']['status'] = 'closed';
         }
         else
         {
-        	$outlet['today']['status_detail'] = 'Today until '.$outlet['today']['close'];
+	    	$close = $this->setTimezone($outlet['today'])['close'];
+	    	$open = $this->setTimezone($outlet['today'])['open'];
+        	$outlet['today']['status_detail'] = 'Today until '.$close;
+
             if($outlet['today']['is_closed'] == '1'){
 	        	$schedule = OutletSchedule::where('id_outlet', $outlet['id_outlet'])->get()->toArray();
 	            $new_days = $this->reorderDays($schedule, $outlet['today']['day']);
@@ -1233,23 +1248,24 @@ class ApiOutletController extends Controller
 	            	$i++;
 	            }
                 $outlet['today']['status'] = 'closed';
+                $open = $this->setTimezone($outlet['today'])['open'];
+                $close = $this->setTimezone($outlet['today'])['close'];
                 if ($i===0) {
-                	$outlet['today']['status_detail'] = 'Tomorrow open at '.$outlet['today']['open'];
+                	$outlet['today']['status_detail'] = 'Tomorrow open at '.$open;
                 }elseif ($found===0) {
                 	$outlet['today']['status_detail'] = 'Temporarily closed';
                 }else{
-                	$outlet['today']['status_detail'] = 'Open '.$outlet['today']['day'].' at '.$outlet['today']['open'];
+                	$outlet['today']['status_detail'] = 'Open '.$outlet['today']['day'].' at '.$open;
                 }
             }
             else{
-            	$soon = env('OUTLET_OPEN_CLOSE_SOON_TIME', null);
             	if (date('H:i', strtotime($outlet['today']['close'])) > date('H:i', strtotime($outlet['today']['open']))) {
 	            	if ( $soon 
 	            		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['open'])) )
 	            		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['open']." -".$soon." minutes")) )
 	            	) {
 	            		$outlet['today']['status'] = 'opening soon';
-	            		$outlet['today']['status_detail'] = 'Today open at '.$outlet['today']['open'];
+	            		$outlet['today']['status_detail'] = 'Today open at '.$open;
 	            	}
 	            	elseif($outlet['today']['open'] && date('H:i:01') < date('H:i', strtotime($outlet['today']['open']))){
 	                    $outlet['today']['status'] = 'closed';
@@ -1260,7 +1276,7 @@ class ApiOutletController extends Controller
 	            		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['close']." -".$soon." minutes")) )
 	            	) {
 	            		$outlet['today']['status'] = 'closing soon';
-	        			$outlet['today']['status_detail'] = 'Today until '.$outlet['today']['close'];
+	        			$outlet['today']['status_detail'] = 'Today until '.$close;
 	            	}
 	                elseif($outlet['today']['close'] && date('H:i') > date('H:i', strtotime('-'.$processing.' minutes', strtotime($outlet['today']['close'])))){
 	                	$schedule = OutletSchedule::where('id_outlet', $outlet['id_outlet'])->get()->toArray();
@@ -1276,20 +1292,78 @@ class ApiOutletController extends Controller
 			            	$i++;
 			            }
 		                $outlet['today']['status'] = 'closed';
+		                $open = $this->setTimezone($outlet['today'])['open'];
+                		$close = $this->setTimezone($outlet['today'])['close'];
 		                if ($i===0) {
-	                		$outlet['today']['status_detail'] = 'Tomorrow open at '.$outlet['today']['open'];
+	                		$outlet['today']['status_detail'] = 'Tomorrow open at '.$open;
 		                }
 		                else{
-		                	$outlet['today']['status_detail'] = 'Open '.$outlet['today']['day'].' at '.$outlet['today']['open'];
+		                	$outlet['today']['status_detail'] = 'Open '.$outlet['today']['day'].' at '.$open;
 		                }
 		            }
             	}else{
+            		if ($outlet['today']['day'] != $yesterday_schedule['day']) {
+            			if ( $soon 
+		            		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['open'])) )
+		            		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['open']." -".$soon." minutes")) )
+		            	) {
+		            		$outlet['today']['status'] = 'opening soon';
+		            		$outlet['today']['status_detail'] = 'Today open at '.$open;
+		            	}
+		            	elseif(
+		            		$outlet['today']['open'] 
+		            		&& date('H:i:01') < date('H:i', strtotime($outlet['today']['open']))
+		            	){
+		                    $outlet['today']['status'] = 'closed';
+		            		$outlet['today']['status_detail'] = 'Today open at '.$open;
+		                }
+		            	else{
+		        			$outlet['today']['status_detail'] = 'Tomorrow until '.$close;
+		            	}
+            		}
+            		else{
+            			if ( $soon 
+		            		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['close'])) )
+		            		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['close']." -".$soon." minutes")) )
+		            	) {
+		            		$outlet['today']['status'] = 'closing soon';
+		        			$outlet['today']['status_detail'] = 'Today until '.$close;
+		            	}
+		                elseif(
+		                	$outlet['today']['close'] 
+		            		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['open'])) )
+		                	&& date('H:i') > date('H:i', strtotime('-'.$processing.' minutes', strtotime($outlet['today']['close'])))
+		                ){
+		                	$schedule = OutletSchedule::where('id_outlet', $outlet['id_outlet'])->get()->toArray();
+				            $new_days = $this->reorderDays($schedule, $outlet['today']['day']);
+				            $i = 0;
+				            foreach ($new_days as $key => $value) {
+				            	if ($value['is_closed'] != 1) {
+				            		$outlet['today']['day'] 	= $value['day'];
+				            		$outlet['today']['open'] 	= $value['open'];
+				            		$outlet['today']['close'] 	= $value['close'];
+				            		break;
+				            	}
+				            	$i++;
+				            }
+			                $outlet['today']['status'] = 'closed';
+			                $open = $this->setTimezone($outlet['today'])['open'];
+	                		$close = $this->setTimezone($outlet['today'])['close'];
+			                if ($i===0) {
+		                		$outlet['today']['status_detail'] = 'Today open at '.$open;
+			                }
+			                else{
+			                	$outlet['today']['status_detail'] = 'Open '.$outlet['today']['day'].' at '.$open;
+			                }
+			            }	
+            		}
+            		/*
             		if ( $soon 
 	            		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['open'])) )
 	            		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['open']." -".$soon." minutes")) )
 	            	) {
 	            		$outlet['today']['status'] = 'opening soon';
-	            		$outlet['today']['status_detail'] = 'Today open at '.$outlet['today']['open'];
+	            		$outlet['today']['status_detail'] = 'Today open at '.$open;
 	            	}
 	            	elseif(
 	            		$outlet['today']['open'] 
@@ -1297,14 +1371,16 @@ class ApiOutletController extends Controller
 	            		&& date('H:i:01') > date('H:i', strtotime($outlet['today']['close']))
 	            	){
 	                    $outlet['today']['status'] = 'closed';
-	            		$outlet['today']['status_detail'] = 'Today open at '.$outlet['today']['open'];
+	            		$outlet['today']['status_detail'] = 'Today open at '.$open;
 	                }
 	            	elseif ( $soon 
 	            		&& ( date('H:i:01') < date('H:i', strtotime($outlet['today']['close'])) )
 	            		&& ( date('H:i:01') > date('H:i', strtotime($outlet['today']['close']." -".$soon." minutes")) )
 	            	) {
 	            		$outlet['today']['status'] = 'closing soon';
-	        			$outlet['today']['status_detail'] = 'Today until '.$outlet['today']['close'];
+	        			if ($outlet['today']['day'] == $yesterday_schedule['day']) {
+	        				$outlet['today']['status_detail'] = 'Today until '.$close;
+	        			}
 	            	}
 	                elseif(
 	                	$outlet['today']['close'] 
@@ -1324,13 +1400,20 @@ class ApiOutletController extends Controller
 			            	$i++;
 			            }
 		                $outlet['today']['status'] = 'closed';
+		                $open = $this->setTimezone($outlet['today'])['open'];
+                		$close = $this->setTimezone($outlet['today'])['close'];
 		                if ($i===0) {
-	                		$outlet['today']['status_detail'] = 'Tomorrow open at '.$outlet['today']['open'];
+	                		$outlet['today']['status_detail'] = 'Tomorrow open at '.$open;
 		                }
 		                else{
-		                	$outlet['today']['status_detail'] = 'Open '.$outlet['today']['day'].' at '.$outlet['today']['open'];
+		                	$outlet['today']['status_detail'] = 'Open '.$outlet['today']['day'].' at '.$open;
 		                }
 		            }
+		            else{
+		            	if ($outlet['today']['day'] == $yesterday_schedule['day']) {
+	        				$outlet['today']['status_detail'] = 'Today until '.$close;
+	        			}
+		            }*/
             	}
             }
         }
@@ -2124,6 +2207,7 @@ class ApiOutletController extends Controller
         }
 
         $outlet = $this->setAvailableOutlet($outlet, $processing);
+        $outlet['today'] = $this->setTimezone($outlet['today']);
         return MyHelper::checkGet($outlet);
     }
 
@@ -2396,5 +2480,49 @@ class ApiOutletController extends Controller
 		}
 
 		return $result;
+    }
+
+    function getYesterday(){
+    	$day = date ("D");
+
+		switch($day){
+			case 'Sun':
+				$yesterday = "Saturday";
+			break;
+
+			case 'Mon':
+				$yesterday = "Sunday";
+			break;
+
+			case 'Tue':
+				$yesterday = "Monday";
+			break;
+
+			case 'Wed':
+				$yesterday = "Tuesday";
+			break;
+
+			case 'Thu':
+				$yesterday = "Wednesday";
+			break;
+
+			case 'Fri':
+				$yesterday = "Thursday";
+			break;
+
+			default:
+				$yesterday = "Friday";
+			break;
+		}
+
+		return $yesterday;
+    }
+
+    function getYesterdaySchedule($id_outlet)
+    {
+    	$yesterday = $this->getYesterday();
+	    $outlet_schedule = OutletSchedule::where('id_outlet', $id_outlet)->where('day', $yesterday)->select('id_outlet', 'day', 'open', 'close', 'is_closed', 'time_zone')->first();
+
+	    return $outlet_schedule;
     }
 }

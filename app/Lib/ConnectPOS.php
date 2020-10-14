@@ -268,7 +268,7 @@ class ConnectPOS{
 						if ($ovo) {
 							$pay = [
 								'number'            => $key + 1,
-								'type'              => 'OVO',
+								'type'              => 'OVOMOB',
 								'amount'            => (float) $ovo['amount'],
 								'changeAmount'     => 0,
 								'cardNumber'       => $ovo['phone'], // nomor telepon ovo
@@ -295,7 +295,7 @@ class ConnectPOS{
 						if ($ipay) {
 							$pay = [
 								'number'            => $key + 1,
-								'type'              => 'IPAY88',
+								'type'              => 'IPAYMOB',
 								'amount'            => (float) $ipay['amount']/100,
 								'changeAmount'     => 0,
 								'cardNumber'       => '',
@@ -309,7 +309,7 @@ class ConnectPOS{
 						if ($shopeepay) {
 							$pay = [
 								'number'            => $key + 1,
-								'type'              => 'SHOPEEPAY',
+								'type'              => 'SHOPEEMOB',
 								'amount'            => (float) $shopeepay['amount']/100,
 								'changeAmount'     => 0,
 								'cardNumber'       => '',

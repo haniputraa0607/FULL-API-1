@@ -54,13 +54,19 @@
 				</td>
 				<td style="background:#f0f0f0;border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0" width="10"></td>
 				<td style="background:#f0f0f0;border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0" width="516" align="left">
-					<p style="color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;color: black">
-						Please do not inform your
-						<b>
-							Phone Number, Email or PIN
-						</b>
-						to anyone.
-					</p>
+					@if(isset($setting) && !empty($setting['email_disclaimer']))
+						<p style="color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;color: black">
+							{{$setting['email_disclaimer']}}
+						</p>
+					@else
+						<p style="color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0;color: black">
+							Please do not inform your
+							<b>
+								Phone Number, Email or PIN
+							</b>
+							to anyone.
+						</p>
+					@endif
 				</td>
 				<td style="background:#f0f0f0;border-collapse:collapse;border-spacing:0;color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0" width="15"></td>
 				<td width="5px"></td>
@@ -97,6 +103,14 @@
 								</p>
 								<p style="color:#999;font-family:\'Source Sans Pro\',sans-serif;line-height:1.5;margin:0;padding:0">
 								</p>
+							</td>
+						</tr>
+						<tr>
+							<td style="width: 10px"></td>
+							<td style="border-collapse:collapse;border-spacing:0;color:#0f0fa2;font-family:'Arial',sans-serif;line-height:1.5;margin:0;padding:0">
+								@if(isset($setting) && $setting['email_contact'] != null )
+									{{$setting['email_contact']}}
+								@endif
 							</td>
 						</tr>
 						<tr>

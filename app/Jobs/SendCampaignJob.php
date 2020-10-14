@@ -28,7 +28,7 @@ use App\Lib\PushNotificationHelper;
 use App\Lib\classMaskingJson;
 use App\Lib\classJatisSMS;
 use DB;
-use Mail;
+use App\Lib\MailQueue as Mail;
 
 class SendCampaignJob implements ShouldQueue
 {
@@ -369,7 +369,12 @@ class SendCampaignJob implements ShouldQueue
                                 $push['push_sent_content'] = $content;
                                 $push['push_sent_send_at'] = date('Y-m-d H:i:s', strtotime("+ 5 minutes"));
 
-                            $logs = CampaignPushSent::create($push);
+                                $logs = CampaignPushSent::create($push);
+                                DB::table('campaigns')
+                                    ->where('id_campaign', $campaign['id_campaign'])
+                                    ->update([
+                                        'campaign_push_count_sent' => DB::raw('campaign_push_count_sent + 1')
+                                    ]);
                             }
                         }
                     }

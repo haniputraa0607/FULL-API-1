@@ -38,14 +38,16 @@ class ApiTransactionOnlinePOS extends Controller
     public function listTransaction(Request $request) {
         $result = TransactionOnlinePOS::join('transactions', 'transactions.id_transaction', 'transactions_online_pos.id_transaction')
                     ->join('users', 'users.id', 'transactions.id_user')
-                    ->select('transactions_online_pos.*', 'transactions.transaction_receipt_number', 'users.name', 'users.phone');
+                    ->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
+                    ->select('transactions_online_pos.*', 'transactions.transaction_receipt_number', 'transaction_pickups.order_id', 'users.name', 'users.phone');
 
         $countTotal = null;
 
         if ($keyword = ($request->search['value']??false)) {
             $countTotal = $result->count();
             $result->where(function ($query) use ($keyword) {
-                $query->where('transactions.transaction_receipt_number', 'like', '%'.$keyword.'%');
+                $query->where('transactions.transaction_receipt_number', 'like', '%'.$keyword.'%')
+                    ->orWhere('order_id', 'like', '%'.$keyword.'%');
             });
         }
 
@@ -96,7 +98,7 @@ class ApiTransactionOnlinePOS extends Controller
             }
             $newRule[$var['subject']][]=$var1;
         }
-        $inner=['transaction_receipt_number', 'transaction_date', 'success_retry_status', 'id_outlet', 'name', 'phone'];
+        $inner=['transaction_receipt_number', 'transaction_date', 'success_retry_status', 'id_outlet', 'name', 'phone', 'order_id'];
         foreach ($inner as $col_name) {
             if($rules=$newRule[$col_name]??false){
                 foreach ($rules as $rul) {
