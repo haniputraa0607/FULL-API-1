@@ -122,7 +122,7 @@ class ApiPOS extends Controller
             ->first();
 
         if ($check) {
-            $voucher = TransactionVoucher::where('id_transaction',$trxData->id_transaction)->first();
+            $voucher = TransactionVoucher::where('id_transaction',$check->id_transaction)->first();
             $appliedPromo = "";
             $promoNumber = "";
             if($check['id_promo_campaign_promo_code'] || $voucher){
