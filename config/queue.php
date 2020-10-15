@@ -112,11 +112,11 @@ return [
 
     'rateLimits' => [
          'email_default' => [ // queue name
-            'allows' => 23, // 23 job
+            'allows' => 80, // 80 job
             'every' => 1 // per 1 seconds
          ],
          'email_priority' => [ // queue name
-            'allows' => 27, // 27 job
+            'allows' => 120, // 120 job
             'every' => 1 // per 1 seconds
          ]
     ]
