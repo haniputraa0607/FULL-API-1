@@ -39,7 +39,7 @@ class ApiTransactionOnlinePOS extends Controller
         $result = TransactionOnlinePOS::join('transactions', 'transactions.id_transaction', 'transactions_online_pos.id_transaction')
                     ->join('users', 'users.id', 'transactions.id_user')
                     ->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
-                    ->select('transactions_online_pos.*', 'transactions.transaction_receipt_number', 'transaction_pickups.order_id', 'users.name', 'users.phone');
+                    ->select('transactions_online_pos.*', 'transactions.transaction_date', 'transactions.transaction_receipt_number', 'transaction_pickups.order_id', 'users.name', 'users.phone');
 
         $countTotal = null;
 
@@ -59,6 +59,8 @@ class ApiTransactionOnlinePOS extends Controller
             $columns = [
                 null,
                 null,
+                'transaction_date',
+                'order_id',
                 'transaction_receipt_number',
                 'users.name',
                 'users.phone',
