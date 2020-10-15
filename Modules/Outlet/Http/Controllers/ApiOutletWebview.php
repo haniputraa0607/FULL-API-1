@@ -129,7 +129,7 @@ class ApiOutletWebview extends Controller
         if (isset($list['status']) && $list['status'] == 'success') {
             return view('outlet::webview.outlet_gofood_v2', ['outlet' => $list['result'], 'useragent'=> $useragent]);
         } elseif (isset($list['status']) && $list['status'] == 'fail') {
-            return view('outlet::webview.outlet_gofood_v2', ['outlet' => [], 'msg' => $list['messages'][0]]);
+            return view('outlet::webview.outlet_gofood_v2', ['outlet' => [], 'msg' => $list['messages'][0], 'useragent'=> $useragent]);
             // return view('error', ['msg' => 'Data failed']);
         } else {
             return view('error', ['msg' => 'Something went wrong, try again']);
