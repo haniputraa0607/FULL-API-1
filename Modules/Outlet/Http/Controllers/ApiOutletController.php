@@ -644,7 +644,13 @@ class ApiOutletController extends Controller
         if (!$post) {
             $outlet = Outlet::with(['outlet_ovo'])->get()->toArray();
         } else {
-            $update = OutletOvo::where('id_outlet', $post['id_outlet'])->updateWithUserstamps($post);
+            $check = OutletOvo::where('id_outlet', $post['id_outlet'])->first();
+            if(!$check){
+                $update = OutletOvo::create($post);
+            }else{
+                $update = OutletOvo::where('id_outlet', $post['id_outlet'])->updateWithUserstamps($post);
+            }
+
             if ($update) {
                 $outlet['updated'] = 1;
             }
