@@ -250,6 +250,9 @@ class IPay88
             		$amount = $model->amount / 100;
             	}
             	$trx = Transaction::with('user','outlet')->where('id_transaction',$id_transaction)->first();
+            	if ($trx->transaction_payment_status != 'Pending') {
+            		return 1;
+            	};
             	if (!$amount) {
             		$amount = $trx->transaction_grandtotal;
             	}
@@ -386,6 +389,9 @@ class IPay88
             	}
     			$deals_user = DealsUser::join('deals_vouchers', 'deals_vouchers.id_deals_voucher', '=', 'deals_users.id_deals_voucher')->with('userMid')->where('id_deals_user',$id_deals_user)->first();
     			$deals = Deal::where('id_deals',$deals_user->id_deals)->first();
+            	if ($deals_user->paid_status != 'Pending') {
+            		return 1;
+            	};
             	switch ($data['Status']) {
             		case '1':
             			if ($deals_user->paid_status == 'Completed') {
