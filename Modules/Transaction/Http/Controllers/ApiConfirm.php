@@ -692,6 +692,10 @@ class ApiConfirm extends Controller
             DB::commit();
 
         } else {
+            return response()->json([
+                'status'   => 'fail',
+                'messages' => ['Payment already in progress'],
+            ]);
             $insertPayOvo = $dataPay;
         }
 
