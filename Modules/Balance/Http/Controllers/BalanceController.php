@@ -2,6 +2,7 @@
 
 namespace Modules\Balance\Http\Controllers;
 
+use App\Jobs\FraudJob;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -130,6 +131,11 @@ class BalanceController extends Controller
         }
 
         DB::commit();
+
+        //insert to queue fraud point
+        if($source == 'Transaction' && $balance_nominal > 0){
+            FraudJob::dispatch($user, ['id_transaction' => $id_reference], 'point')->onConnection('fraudqueue');
+        }
 
         return $log_balance;
     }
