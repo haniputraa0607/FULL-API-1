@@ -36,7 +36,7 @@ return [
     'channels' => [
         'stack' => [
             'driver' => 'stack',
-            'channels' => ['daily'],
+            'channels' => ['daily',(env("TEAMS_NOTIF","OFF")=="ON"?"teams":"")],
             'ignore_exceptions' => false,
         ],
 
@@ -60,6 +60,14 @@ return [
             'emoji' => ':boom:',
             'level' => 'critical',
         ],
+
+		'teams' => [
+			'driver'    => 'custom',
+			'via'       => \MargaTampu\LaravelTeamsLogging\LoggerChannel::class,
+			'level'     => 'debug',
+			'url'       => env('TEAMS_WEBHOOK_URL'),
+			'style'     => 'simple',    // Available style is 'simple' and 'card', default is 'simple'
+		],
 
         'papertrail' => [
             'driver' => 'monolog',
