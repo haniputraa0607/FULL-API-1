@@ -186,6 +186,7 @@ return [
         Stevebauman\Location\LocationServiceProvider::class,
         Arcanedev\LogViewer\LogViewerServiceProvider::class,
         App\Providers\QueueServiceProvider::class,
+		MargaTampu\LaravelTeamsLogging\LoggerServiceProvider::class,
     ],
 
     /*
