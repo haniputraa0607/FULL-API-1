@@ -871,6 +871,22 @@ class ApiSetting extends Controller
         return response()->json(MyHelper::checkGet($setting));
     }
 
+    public function getMailerEmail(){
+        $settings = [];
+
+        $gets = Setting::where('key', 'like', 'mailer_%')->get();
+        foreach ($gets as $get) {
+            $settings[$get['key']] = $get['value'];
+        }
+        $required = ['host', 'port', 'encryption', 'username', 'password'];
+        foreach ($required as $column) {
+            if (!isset($settings['mailer_smtp_' . $column])) {
+                $settings['mailer_smtp_' . $column] = config('mail.' . $column);
+            }
+        }
+        return response()->json(MyHelper::checkGet($settings));
+    }
+
     public function appLogo(Request $request) {
 		$post = $request->json()->all();
 
