@@ -1284,13 +1284,6 @@ class ApiOnlineTransaction extends Controller
                     $save['type'] = 'no_topup';
                     \App\Lib\ConnectPOS::create()->sendTransaction($insertTransaction['id_transaction']);
                 }
-                
-                if($save['status'] == 'success'){
-                    $checkFraudPoint = app($this->setting_fraud)->fraudTrxPoint($sumBalance, $user, ['id_outlet' => $insertTransaction['id_outlet']]);
-                    if(isset($checkFraudPoint['status'])){
-                        return response()->json($checkFraudPoint);
-                    }
-                }
 
                 if ($post['transaction_payment_status'] == 'Completed' || $save['type'] == 'no_topup') {
 

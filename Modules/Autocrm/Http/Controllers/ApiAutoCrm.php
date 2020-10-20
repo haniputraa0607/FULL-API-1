@@ -205,7 +205,7 @@ class ApiAutoCrm extends Controller
 							'html_message' => $content,
 							'setting' => $setting
 						);
-						Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting, $autocrm_title,$variables)
+						Mail::send('emails.test', $data, function($message) use ($to,$subject,$name,$setting, $autocrm_title,$variables, $crm)
 						{
 							$message->to($to, $name)->subject($subject);
 							if(env('MAIL_DRIVER') == 'mailgun'){

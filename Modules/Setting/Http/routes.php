@@ -85,6 +85,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::post('email', 'ApiSetting@settingEmail');
     Route::any('email/update', 'ApiSetting@emailUpdate');
     Route::get('email', 'ApiSetting@getSettingEmail');
+    Route::get('mailer', 'ApiSetting@getMailerEmail');
     Route::post('/update', 'ApiSetting@settingUpdate');
     Route::post('/update2','ApiSetting@update');
 

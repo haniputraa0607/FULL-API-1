@@ -666,18 +666,21 @@ class ApiFraud extends Controller
                 'count_transaction_day' => $countTrxDay,
                 'fraud_detection_date'=> date('Y-m-d H:i:s', strtotime($dateTime)),
                 'fraud_setting_parameter_detail' => $fraudSetting['parameter_detail'],
+                'fraud_setting_parameter_detail_time' => $fraudSetting['parameter_detail_time'],
                 'fraud_setting_forward_admin_status' => $fraudSetting['forward_admin_status'],
                 'fraud_setting_auto_suspend_status' => $fraudSetting['auto_suspend_status'],
                 'fraud_setting_auto_suspend_value' => $fraudSetting['auto_suspend_value'],
-                'fraud_setting_auto_suspend_time_period' => $fraudSetting['suspend_time_period']
+                'fraud_setting_auto_suspend_time_period' => $fraudSetting['auto_suspend_time_period']
             ]);
 
             if($fraudSetting['auto_suspend_status'] == '1'){
                 $startDate = date('Y-m-d');
-                $endDate = date('Y-m-d', strtotime($startDate. ' - '.$fraudSetting['fraud_setting_auto_suspend_time_period'].' days'));
-                $getLogWithTimePeriod = FraudDetectionLogTransactionPoint::whereRaw("created_at BETWEEN ".$startDate.' AND '.$endDate)
+                $endDate = date('Y-m-d', strtotime($startDate. ' - '.$fraudSetting['auto_suspend_time_period'].' days'));
+                $getLogWithTimePeriod = FraudDetectionLogTransactionPoint::whereDate("created_at", '>=', $endDate)
+                    ->whereDate("created_at", '<=', $startDate)
                     ->where('id_user', $user['id'])
                     ->where('status', 'Active')->get();
+
                 $countLog = count($getLogWithTimePeriod);
                 if($countLog > (int)$fraudSetting['auto_suspend_value']){
                     $autoSuspend = 1;
@@ -900,21 +903,22 @@ class ApiFraud extends Controller
         }
 	}
 
-    function fraudTrxPoint($sumBalance, $user, $data){
+    function fraudTrxPoint($user, $data){
         $fraudTrxPoint = FraudSetting::where('parameter', 'LIKE', '%point%')->where('fraud_settings_status','Active')->first();
         if($fraudTrxPoint){
-            if($sumBalance > $fraudTrxPoint['parameter_detail']){
-                $countOutlet = Transaction::where('transaction_payment_status','Completed')->where('id_user', $user['id'])
-                    ->groupBy('id_outlet')->selectRaw('count(id_outlet) as "total_oultet", id_outlet')->orderBy('total_oultet', 'desc')->get()->toArray();
+            $endDate = date('Y-m-d', strtotime($data['transaction_date']));
+            $startDate = date('Y-m-d', strtotime($endDate. ' - '.$fraudTrxPoint['parameter_detail_time'].' days'));
 
-                if(!empty($countOutlet)){
-                    if($countOutlet[0]['id_outlet'] != $data['id_outlet']){
-                        DB::rollBack();
-                        $checkFraud = $this->checkFraud($fraudTrxPoint, $user, null, 0, 0, date('Y-m-d H:i:s'), 0,null,
-                            $sumBalance, $countOutlet[0]['id_outlet'], $data['id_outlet']);
-                        return ['status' => 'fail', 'messages' => ['Transaction failed. Point can not use in this outlet.']];
-                    }
-                }
+            $sum = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
+                ->whereNull('reject_at')
+                ->where('transaction_payment_status','Completed')
+                ->whereDate('transaction_date', '>=', $startDate)
+                ->whereDate('transaction_date', '<=', $endDate)
+                ->where('id_user', $user['id'])
+                ->where('id_outlet', $data['id_outlet'])->sum('transaction_cashback_earned');
+            if($sum > $fraudTrxPoint['parameter_detail']){
+                $checkFraud = $this->checkFraud($fraudTrxPoint, $user, null, 0, 0, date('Y-m-d H:i:s'), 0,null,
+                    $sum, $data['id_outlet'], $data['id_outlet']);
             }
         }
 
@@ -1155,6 +1159,11 @@ class ApiFraud extends Controller
                 ->whereRaw("DATE(fraud_detection_log_transaction_point.created_at) BETWEEN '".$date_start."' AND '".$date_end."'")
                 ->where('fraud_detection_log_transaction_point.status','Active')
                 ->orderBy('fraud_detection_log_transaction_point.created_at','desc')->with(['mostOutlet', 'atOutlet']);
+            if(isset($post['export']) && $post['export'] == 1){
+                $queryList->select('fraud_detection_log_transaction_point.*', 'users.name', 'users.phone', 'users.email', 'fraud_detection_log_transaction_point.created_at as log_date');
+            }else{
+                $queryList->select('users.email', 'users.name', 'users.phone','fraud_detection_log_transaction_point.*');
+            }
         }elseif($type == 'referral-user'){
             $table = 'fraud_detection_log_referral_users';
             $id = 'id_fraud_detection_log_referral_users';
@@ -1177,6 +1186,11 @@ class ApiFraud extends Controller
             $queryList = FraudDetectionLogCheckPromoCode::join('users', 'users.id', 'fraud_detection_log_check_promo_code.id_user')
                 ->whereRaw("DATE(fraud_detection_log_check_promo_code.created_at) BETWEEN '".$date_start."' AND '".$date_end."'")
                 ->select('fraud_detection_log_check_promo_code.*', 'users.name', 'users.phone', 'users.email');
+            if(isset($post['export']) && $post['export'] == 1){
+                $queryList->select('fraud_detection_log_check_promo_code.*', 'users.name', 'users.phone', 'users.email', 'fraud_detection_log_check_promo_code.created_at as log_date');
+            }else{
+                $queryList->select('users.name', 'users.phone', 'users.email','fraud_detection_log_check_promo_code.*');
+            }
         }
 
         if(isset($post['conditions']) && !empty($post['conditions'])){

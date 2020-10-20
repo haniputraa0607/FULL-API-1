@@ -181,7 +181,7 @@ class ApiPromo extends Controller
     	{
     		$source = 'promo_campaign';
     	}
-    	$cancel = $this->usePromo($source, $post['id_deals_user'], 'cancel');
+    	$cancel = $this->usePromo($source, ($post['id_deals_user']??null), 'cancel');
 
     	if ($cancel) {
     		return response()->json($cancel);

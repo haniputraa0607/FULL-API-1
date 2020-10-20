@@ -212,6 +212,11 @@ class FraudJob implements ShouldQueue
             app('Modules\SettingFraud\Http\Controllers\ApiFraud')->fraudCheckReferral($this->data);
         }elseif ($this->type == 'transaction_in_between'){
             app('Modules\SettingFraud\Http\Controllers\ApiFraud')->cronFraudInBetween($this->user);
+        }elseif ($this->type == 'point'){
+            $getTrx = Transaction::where('id_transaction', $this->data['id_transaction'])->first()->toArray();
+            if($getTrx){
+                app('Modules\SettingFraud\Http\Controllers\ApiFraud')->fraudTrxPoint($this->user, $getTrx);
+            }
         }
 
         return 'success';
