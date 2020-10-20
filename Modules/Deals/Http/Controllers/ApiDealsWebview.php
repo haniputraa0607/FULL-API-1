@@ -40,8 +40,16 @@ class ApiDealsWebview extends Controller
 		        	'deals_content.deals_content_details'
 		        ])
 		        ->where('id_deals', $request->id_deals)
-		        ->get()
-		        ->toArray()[0];
+		        ->get();
+
+		if ($deals->isEmpty()) {
+        	return [
+                'status' => 'fail',
+                'messages' => ['Deals is not found']
+            ];
+        }
+
+		$deals = $deals->toArray()[0];
 
         $deals['outlet_by_city'] = [];
 
