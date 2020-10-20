@@ -157,7 +157,7 @@ class ApiMembershipWebview extends Controller
 					$membershipUser['next_trx_text']	= str_replace(['%value%', '%membership%'], [MyHelper::requestNumber($subtotal_transaction - $nextTrx, '_CURRENCY'), $nextMembershipName], $result['user_membership']['membership']['next_level_text']);
 				}
 			}elseif($nextTrxType == 'balance'){
-				$total_balance = LogBalance::where('id_user', $post['id_user'])->whereNotIn('source', [ 'Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point'])->where('balance', '>', 0)->sum('balance');
+				$total_balance = LogBalance::where('id_user', $post['id_user'])->whereIn('source', [ 'Transaction'])->where('balance', '>', 0)->sum('balance');
 				$membershipUser['progress_now_text'] = MyHelper::requestNumber($total_balance,'_CURRENCY');
 				$membershipUser['progress_now'] = (int) $total_balance;
 				$membershipUser['progress_active'] = ($total_balance / $nextTrx) * 100;
@@ -185,7 +185,7 @@ class ApiMembershipWebview extends Controller
 				$membershipUser['progress_now_text'] = MyHelper::requestNumber($subtotal_transaction,'_CURRENCY');
 				$membershipUser['progress_now'] = (int) $subtotal_transaction;
 			}elseif($allMembership[0]['membership_type'] == 'balance'){
-				$total_balance = LogBalance::where('id_user', $post['id_user'])->whereNotIn('source', ['Rejected Order', 'Rejected Order Midtrans', 'Rejected Order Point', 'Reversal', 'Point Injection', 'Welcome Point'])->where('balance', '>', 0)->sum('balance');
+				$total_balance = LogBalance::where('id_user', $post['id_user'])->whereIn('source', ['Transaction'])->where('balance', '>', 0)->sum('balance');
 				$membershipUser['progress_now_text'] = MyHelper::requestNumber($total_balance,'_CURRENCY');
 				$membershipUser['progress_now'] = (int) $total_balance;
 			}
