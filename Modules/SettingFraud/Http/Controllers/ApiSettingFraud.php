@@ -67,6 +67,10 @@ class ApiSettingFraud extends Controller
             $post['forward_admin_status'] = 0;
         }
 
+        if(isset($post['parameter_detail'])){
+            $post['parameter_detail'] = str_replace(".","", $post['parameter_detail']);
+        }
+
         $update = FraudSetting::where('id_fraud_setting', $post['id_fraud_setting'])->updateWithUserstamps($post);
 
         return response()->json(MyHelper::checkUpdate($update));

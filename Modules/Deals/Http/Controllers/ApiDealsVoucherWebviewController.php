@@ -99,8 +99,17 @@ class ApiDealsVoucherWebviewController extends Controller
 				$q->where('outlet_status', 'Active'); 
 			}, 
 			'deals_voucher.deal.outlets.city'])
-        ->where('id_deals_user', $request->id_deals_user)->get()->toArray()[0];
+        ->where('id_deals_user', $request->id_deals_user)->get();
 
+        if ($voucher->isEmpty()) {
+        	return [
+                'status' => 'fail',
+                'messages' => ['Voucher is not found']
+            ];
+        }
+
+		$voucher = $voucher->toArray()[0];
+		
         if($voucher['deals_voucher']['deal']['is_all_outlet'] == 1){
             $outlets = Outlet::with('city')->where('outlet_status','Active')->get()->toArray();
             $voucher['deals_voucher']['deal']['outlets'] = $outlets;

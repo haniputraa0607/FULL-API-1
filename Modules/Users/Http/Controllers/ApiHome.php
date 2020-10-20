@@ -763,6 +763,9 @@ class ApiHome extends Controller
                     $query->where('brand_active',1);
                 });
             })
+            ->whereDoesntHave('deals.deals_user_limits', function($q) use ($request){
+            	$q->where('id_user',$request->user()->id);
+            })
             ->orderBy('order')
             ->where('start_date','<=',$now)
             ->where('end_date','>=',$now)
