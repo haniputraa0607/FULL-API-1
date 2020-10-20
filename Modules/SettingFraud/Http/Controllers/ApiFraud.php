@@ -666,10 +666,11 @@ class ApiFraud extends Controller
                 'count_transaction_day' => $countTrxDay,
                 'fraud_detection_date'=> date('Y-m-d H:i:s', strtotime($dateTime)),
                 'fraud_setting_parameter_detail' => $fraudSetting['parameter_detail'],
+                'fraud_setting_parameter_detail_time' => $fraudSetting['parameter_detail_time'],
                 'fraud_setting_forward_admin_status' => $fraudSetting['forward_admin_status'],
                 'fraud_setting_auto_suspend_status' => $fraudSetting['auto_suspend_status'],
                 'fraud_setting_auto_suspend_value' => $fraudSetting['auto_suspend_value'],
-                'fraud_setting_auto_suspend_time_period' => $fraudSetting['suspend_time_period']
+                'fraud_setting_auto_suspend_time_period' => $fraudSetting['auto_suspend_time_period']
             ]);
 
             if($fraudSetting['auto_suspend_status'] == '1'){
@@ -905,12 +906,16 @@ class ApiFraud extends Controller
     function fraudTrxPoint($user, $data){
         $fraudTrxPoint = FraudSetting::where('parameter', 'LIKE', '%point%')->where('fraud_settings_status','Active')->first();
         if($fraudTrxPoint){
+            $endDate = date('Y-m-d', strtotime($data['transaction_date']));
+            $startDate = date('Y-m-d', strtotime($endDate. ' - '.$fraudTrxPoint['parameter_detail_time'].' days'));
+
             $sum = Transaction::leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
                 ->whereNull('reject_at')
                 ->where('transaction_payment_status','Completed')
+                ->whereDate('transaction_date', '>=', $startDate)
+                ->whereDate('transaction_date', '<=', $endDate)
                 ->where('id_user', $user['id'])
                 ->where('id_outlet', $data['id_outlet'])->sum('transaction_cashback_earned');
-
             if($sum > $fraudTrxPoint['parameter_detail']){
                 $checkFraud = $this->checkFraud($fraudTrxPoint, $user, null, 0, 0, date('Y-m-d H:i:s'), 0,null,
                     $sum, $data['id_outlet'], $data['id_outlet']);

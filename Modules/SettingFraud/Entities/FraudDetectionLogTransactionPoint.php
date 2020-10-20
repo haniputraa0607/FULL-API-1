@@ -16,6 +16,7 @@ class FraudDetectionLogTransactionPoint extends Model
 		'most_outlet',
         'status',
 		'fraud_setting_parameter_detail',
+        'fraud_setting_parameter_detail_time',
 		'fraud_setting_forward_admin_status',
         'fraud_setting_auto_suspend_status',
         'fraud_setting_auto_suspend_value',
