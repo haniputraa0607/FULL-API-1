@@ -1019,11 +1019,17 @@ class ApiFraud extends Controller
     function fraudCheckReferralUser($data){
         $fraudSetting = FraudSetting::where('parameter', 'LIKE', '%referral user%')->where('fraud_settings_status','Active')->first();
         if($fraudSetting){
-            $chekFraudRefferalCode = PromoCampaignReferralTransaction::where('id_user', $data['id_user'])->count();
+            $chekFraudRefferalCode = PromoCampaignReferralTransaction::join('transactions', 'transactions.id_transaction', 'promo_campaign_referral_transactions.id_transaction')
+                    ->leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
+                    ->whereNull('reject_at')
+                    ->where('transaction_payment_status','Completed')
+                    ->where('promo_campaign_referral_transactions.id_user', $data['id_user'])->count();
+
             if($chekFraudRefferalCode > 1){
                 $data['fraud_setting_forward_admin_status'] = $fraudSetting['forward_admin_status'];
                 $data['fraud_setting_auto_suspend_status'] = $fraudSetting['forward_admin_status'];
                 FraudDetectionLogReferralUsers::create($data);
+                $sendNotif = $this->detailfraudReferral('referral user', $data);
             }
         }
         return true;
@@ -1038,20 +1044,22 @@ class ApiFraud extends Controller
             $start = date('Y-m-d', strtotime('-'.$paramaterTime.' day', strtotime($end)));
 
             $getDataTransaction = PromoCampaignPromoCode::join('promo_campaign_referral_transactions', 'promo_campaign_referral_transactions.id_promo_campaign_promo_code', 'promo_campaign_promo_codes.id_promo_campaign_promo_code')
+                                ->join('transactions', 'transactions.id_transaction', 'promo_campaign_referral_transactions.id_transaction')
+                                ->leftJoin('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
                                 ->whereRaw('DATE(promo_campaign_referral_transactions.created_at) BETWEEN "'.$start.'" AND "'.$end.'"')
+                                ->whereNull('reject_at')
+                                ->where('transaction_payment_status','Completed')
                                 ->where('promo_code', $data['referral_code'])
                                 ->select('promo_code', DB::raw('COUNT(promo_code) as count_data'))
                                 ->get()->toArray();
 
-            $sendNotif = $this->detailfraudReferral('referral', $data);
-            if($sendNotif){
-                if(isset($getDataTransaction[0]['count_data']) && $getDataTransaction[0]['count_data'] > $paramater){
-                    $data['fraud_setting_parameter_detail'] = $fraudSetting['parameter_detail'];
-                    $data['fraud_setting_parameter_detail_time'] = $fraudSetting['parameter_detail_time'];
-                    $data['fraud_setting_forward_admin_status'] = $fraudSetting['forward_admin_status'];
-                    $data['fraud_setting_auto_suspend_status'] = $fraudSetting['forward_admin_status'];
-                    FraudDetectionLogReferral::create($data);
-                }
+            if(isset($getDataTransaction[0]['count_data']) && $getDataTransaction[0]['count_data'] > $paramater){
+                $data['fraud_setting_parameter_detail'] = $fraudSetting['parameter_detail'];
+                $data['fraud_setting_parameter_detail_time'] = $fraudSetting['parameter_detail_time'];
+                $data['fraud_setting_forward_admin_status'] = $fraudSetting['forward_admin_status'];
+                $data['fraud_setting_auto_suspend_status'] = $fraudSetting['forward_admin_status'];
+                FraudDetectionLogReferral::create($data);
+                $sendNotif = $this->detailfraudReferral('referral', $data);
             }
         }
         return true;
