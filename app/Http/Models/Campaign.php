@@ -132,7 +132,8 @@ class Campaign extends Model
 		'campaign_inbox_link',
 		'campaign_inbox_id_reference',
 		'campaign_whatsapp_content',
-		'campaign_is_sent'
+		'campaign_is_sent',
+        'generate_recipient_status'
 	];
 
 	public function user()

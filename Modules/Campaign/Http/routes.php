@@ -17,4 +17,5 @@ Route::group(['middleware' => ['auth:api','log_activities', 'user_agent', 'scope
 	Route::post('push/outbox/detail', ['middleware' => 'feature_control:107', 'uses' =>'ApiCampaign@campaignPushOutboxDetail']);
     Route::post('whatsapp/outbox/list', 'ApiCampaign@campaignWhatsappOutboxList');
     Route::post('step2', ['middleware' => 'feature_control:99', 'uses' =>'ApiCampaign@ShowCampaignStep2']);
+    Route::post('delete', ['uses' =>'ApiCampaign@destroy']);
 });
