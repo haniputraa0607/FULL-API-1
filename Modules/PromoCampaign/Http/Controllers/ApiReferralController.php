@@ -146,7 +146,7 @@ class ApiReferralController extends Controller
                 $data = $data->paginate($perpage);
                 break;
             case 'trx-summary':
-                $data['data'] = PromoCampaignReferralTransaction::select(\DB::raw('count(*) as total,Date(created_at) as trx_date'))
+                $data['data'] = PromoCampaignReferralTransaction::join('transactions', 'promo_campaign_referral_transactions.id_transaction', 'transactions.id_transaction')->select(\DB::raw('count(*) as total,Date(promo_campaign_referral_transactions.created_at) as trx_date'))
                 ->groupBy(\DB::raw('trx_date'))
                 ->orderBy('trx_date');
                 $this->applyFilter($data['data'],$post);
@@ -291,5 +291,21 @@ class ApiReferralController extends Controller
         }
         \DB::commit();
         return MyHelper::checkUpdate($update);
+    }
+
+    public function triggerRecount(Request $request)
+    {
+        try {
+            \DB::beginTransaction();
+            $userReferralCodes = UserReferralCode::select('id_user', 'id_promo_campaign_promo_code');
+            foreach ($userReferralCodes->cursor() as $userReferralCode) {
+                $userReferralCode->refreshSummary();
+            }
+            \DB::commit();
+            return ['status' => 'success'];
+        } catch (\Exception $e) {
+            throw $e;
+            return ['status' => 'fail'];
+        }
     }
 }
