@@ -2266,9 +2266,13 @@ class ApiPromoCampaign extends Controller
                         $desc = 'You will get '.MyHelper::requestNumber($query[$source.'_referral']['referred_promo_value'],'_POINT').' points after transaction success';
                     break;
                     case 'Percent':
-                        $desc = 'You will get '.$query[$source.'_referral']['referred_promo_value'].'%'.' cashback from total transactions';
+                        /*$desc = 'You will get '.$query[$source.'_referral']['referred_promo_value'].'%'.' cashback from total transactions';
                         if($query[$source.'_referral']['referred_promo_value_max'] > 0){
                             $desc = $desc.' with a maximum cashback of '.MyHelper::requestNumber($query[$source.'_referral']['referred_promo_value_max'],'_POINT').'.';
+                        }*/
+                        $desc = 'Voucher Applied! You will receive '.$query[$source.'_referral']['referred_promo_value'].'% cashback on your transaction';
+                        if($query[$source.'_referral']['referred_promo_value_max'] > 0){
+                            $desc = $desc.' with maximum cashback value of '.MyHelper::requestNumber($query[$source.'_referral']['referred_promo_value_max'],'_POINT').' points.';
                         }
                     break;
                 }
