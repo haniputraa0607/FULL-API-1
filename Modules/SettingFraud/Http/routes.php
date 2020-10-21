@@ -23,7 +23,3 @@ Route::group(['middleware' => ['auth:api','log_activities', 'user_agent', 'scope
 
 });
 
-Route::group(['prefix' => 'api/fraud/cron', 'namespace' => 'Modules\SettingFraud\Http\Controllers'], function()
-{
-    Route::any('referral', ['uses' => 'ApiFraud@fraudCheckReferral']);
-});
