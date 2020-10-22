@@ -134,4 +134,15 @@ class ApiTransactionOnlinePOS extends Controller
             return response()->json(MyHelper::checkGet($getData));
         }
     }
+
+    public function sendEmail()
+    {
+        $log = MyHelper::logCron('Send Email Failed Send to POS');
+        try {
+            $send = \App\Lib\ConnectPOS::create()->sendMail();
+            $log->success();
+        } catch(\Exception $e) {
+            $log->fail($e->getMessage());
+        }
+    }
 }
