@@ -56,6 +56,7 @@ Route::group(['middleware' => ['auth:api','log_activities', 'scopes:apps'], 'pre
 
 // Referral
 Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:be','feature_control:228'], 'prefix' => 'referral'], function () {
+    Route::get('trigger-recount', 'ApiReferralController@triggerRecount');
     Route::get('setting', 'ApiReferralController@setting');
     Route::post('settingUpdate', 'ApiReferralController@settingUpdate');
     Route::post('report', 'ApiReferralController@report');

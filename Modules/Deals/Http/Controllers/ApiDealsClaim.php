@@ -46,6 +46,14 @@ class ApiDealsClaim extends Controller
         $dataDeals = $this->chekDealsData($request->json('id_deals'));
         $id_user = $request->user()->id;
 
+        if(isset($request->user()->email_verified) && $request->user()->email_verified != '1'){
+            return response()->json([
+                'status'    => 'fail',
+                'message_verfiy_email'=> 'Sorry your email has not yet been verified. Please verify your email.',
+                'messages'  => ['Sorry your email has not yet been verified. Please verify your email.']
+            ]);
+        }
+
         if (empty($dataDeals)) {
             return response()->json([
                 'status'   => 'fail',

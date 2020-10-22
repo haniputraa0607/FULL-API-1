@@ -1377,10 +1377,11 @@ class PromoCampaignTools{
         // apply cashback to referrer
         if ($use_referral){
             $referral_rule = PromoCampaignReferral::where('id_promo_campaign',$transaction['promo_campaign_promo_code']['id_promo_campaign'])->first();
-            $referrer = UserReferralCode::where('id_promo_campaign_promo_code',$transaction['id_promo_campaign_promo_code'])->pluck('id_user')->first();
-            if(!$referrer || !$referral_rule){
+            $referral_code = UserReferralCode::where('id_promo_campaign_promo_code',$transaction['id_promo_campaign_promo_code'])->first();
+            if(!$referral_code || !$referral_rule){
             	return false;
             }
+            $referrer = $referral_code->id_user;
             $referrer_cashback = 0;
             if($referral_rule->referrer_promo_unit == 'Percent'){
                 $referrer_discount_percent = $referral_rule->referrer_promo_value<=100?$referral_rule->referrer_promo_value:100;
@@ -1396,28 +1397,11 @@ class PromoCampaignTools{
                     return false;
                 }
                 PromoCampaignReferralTransaction::where('id_transaction',$transaction['id_transaction'])->update(['referrer_bonus'=>$referrer_cashback]);
-	            $referrer_total_cashback = UserReferralCode::where('id_user',$referrer)->first();
-	            if($referrer_total_cashback){
-	            	$upData = [
-	            		'cashback_earned'=>$referrer_total_cashback->cashback_earned+$referrer_cashback,
-	            		'number_transaction'=>$referrer_total_cashback->number_transaction+1
-	            	];
-	            	if(!$referrer_total_cashback->referral_code){
-	            		$upData['referral_code'] = PromoCampaignPromoCode::select('promo_code')->where('id_promo_campaign_promo_code',$transaction['id_promo_campaign_promo_code'])->pluck('promo_code')->first();
-	            	}
-	            	$up = $referrer_total_cashback->update($upData);
-	            }else{
-	            	$up = UserReferralCode::create([
-	            		'id_user' => $referrer,
-	            		'referral_code' => PromoCampaignPromoCode::select('promo_code')->where('id_promo_campaign_promo_code',$transaction['id_promo_campaign_promo_code'])->pluck('promo_code')->first(),
-	            		'number_transaction' => 1,
-	            		'cashback_earned' => $referrer_cashback
-	            	]);
-	            }
 	            if(!$up){
 	            	return false;
 	            }
             }
+            $referral_code->refreshSummary();
         }
         return true;
     }

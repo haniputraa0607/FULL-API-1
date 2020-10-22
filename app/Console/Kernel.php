@@ -166,6 +166,12 @@ class Kernel extends ConsoleKernel
          */
         $schedule->call('Modules\ShopeePay\Http\Controllers\ShopeePayController@cronCancelDeals')->cron('*/1 * * * *');
 
+        /**
+         * Send Email Failed Send to POS,
+         * Run every 7 minutes
+         */
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiTransactionOnlinePOS@sendEmail')->cron('*/7 * * * *');
+
     }
 
     /**
