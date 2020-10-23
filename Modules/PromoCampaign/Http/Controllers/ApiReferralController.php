@@ -15,6 +15,7 @@ use \Modules\PromoCampaign\Entities\PromoCampaignReferral;
 use \Modules\PromoCampaign\Entities\PromoCampaign;
 use \Modules\PromoCampaign\Entities\UserReferralCode;
 use Modules\PromoCampaign\Entities\PromoCampaignReferralTransaction;
+use App\Jobs\RecountReferralSummary;
 
 class ApiReferralController extends Controller
 {
@@ -293,15 +294,12 @@ class ApiReferralController extends Controller
         return MyHelper::checkUpdate($update);
     }
 
-    public function triggerRecount(Request $request)
+    public function triggerRecount()
     {
         try {
-            \DB::beginTransaction();
-            $userReferralCodes = UserReferralCode::select('id_user', 'id_promo_campaign_promo_code');
-            foreach ($userReferralCodes->cursor() as $userReferralCode) {
-                $userReferralCode->refreshSummary();
-            }
-            \DB::commit();
+            UserReferralCode::select('id_user', 'id_promo_campaign_promo_code')->chunk(1000, function($urcs) {
+                RecountReferralSummary::dispatch($urcs)->allOnConnection('database');
+            });
             return ['status' => 'success'];
         } catch (\Exception $e) {
             throw $e;
