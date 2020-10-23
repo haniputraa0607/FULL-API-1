@@ -12,7 +12,7 @@ class SendPOS implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     public $tries = 10; // 10x retry max
-    public $retryAfter = 600; // 10 minutes
+    public $retryAfter = 300; // 5 minutes
     protected $id_transactions;
     /**
      * Create a new job instance.

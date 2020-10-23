@@ -351,7 +351,8 @@ class ConnectPOS{
 						'request' => json_encode($sendData),
 						'response' => json_encode($response),
 						'count_retry'=>($top->count_retry+1),
-						'success_retry_status'=>0
+						'success_retry_status'=>0,
+						'send_email_status' => 0
 					]);
 				}else{
 					$top = TransactionOnlinePos::create([
@@ -397,7 +398,13 @@ class ConnectPOS{
 
 	public function sendMail()
 	{
-		$trxs = TransactionOnlinePos::join('transactions', 'transactions_online_pos.id_transaction', 'transactions.id_transaction')->where('success_retry_status',0)->where('send_email_status', 0)->join('users', 'users.id', 'transactions.id_user')->get();
+		$trxs = TransactionOnlinePos::select('id_transaction_online_pos', 'outlet_code', 'outlet_name', 'transaction_date', 'transaction_receipt_number', 'name', 'phone')
+			->join('transactions', 'transactions_online_pos.id_transaction', 'transactions.id_transaction')
+			->where('success_retry_status',0)
+			->where('send_email_status', 0)
+			->join('users', 'users.id', 'transactions.id_user')
+			->join('outlets', 'outlets.id_outlet', 'transactions.id_outlet')
+			->get();
 		if (!$trxs) {
 			return true;
 		}
@@ -406,7 +413,7 @@ class ConnectPOS{
 		];
 		if (app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Transaction Online Failed Pos', $trxs->pluck('phone')->first(), $variables,null,true)) {
 			if (\App\Http\Models\Autocrm::where('autocrm_title','=','Transaction Online Failed Pos')->where('autocrm_forward_toogle', '1')->exists()) {
-				TransactionOnlinePos::whereIn('id_transaction', $trxs->pluck('id_transaction'))->update(['send_email_status' => 1]);
+				TransactionOnlinePos::whereIn('id_transaction_online_pos', $trxs->pluck('id_transaction_online_pos'))->update(['send_email_status' => 1]);
 			}
 		}
 		return true;
