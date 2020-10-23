@@ -1396,7 +1396,7 @@ class PromoCampaignTools{
                 if (!$insertDataLogCash) {
                     return false;
                 }
-                PromoCampaignReferralTransaction::where('id_transaction',$transaction['id_transaction'])->update(['referrer_bonus'=>$referrer_cashback]);
+                $up = PromoCampaignReferralTransaction::where('id_transaction',$transaction['id_transaction'])->update(['referrer_bonus'=>$referrer_cashback]);
 	            if(!$up){
 	            	return false;
 	            }
