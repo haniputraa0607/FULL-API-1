@@ -293,7 +293,7 @@ class ApiReferralController extends Controller
         return MyHelper::checkUpdate($update);
     }
 
-    public function triggerRecount(Request $request)
+    public function triggerRecount()
     {
         try {
             \DB::beginTransaction();

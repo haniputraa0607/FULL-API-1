@@ -21,10 +21,10 @@ class UserReferralCode extends Model
 
     public function refreshSummary()
     {
-        \Log::debug($this->attributes);
-        $transaction = PromoCampaignReferralTransaction::select('id_promo_campaign_referral_transaction', 'promo_campaign_referral_transactions.id_transaction', 'referrer_bonus')->join('transactions', function($join) {
+        $transaction = PromoCampaignReferralTransaction::select(\DB::raw('count(*) as total_trx, sum(referrer_bonus) as total_bonus'))
+        ->join('transactions', function($join) {
             $join->on('transactions.id_promo_campaign_promo_code', 'promo_campaign_referral_transactions.id_promo_campaign_promo_code')
-                ->whereColumn('transactions.id_user', 'promo_campaign_referral_transactions.id_user');
+                ->whereColumn('transactions.id_transaction', 'promo_campaign_referral_transactions.id_transaction');
         })
         ->join('transaction_pickups', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
         ->where('transaction_payment_status', 'Completed')
@@ -33,11 +33,10 @@ class UserReferralCode extends Model
         })
         ->whereNull('transaction_pickups.reject_at')
         ->where('promo_campaign_referral_transactions.id_promo_campaign_promo_code', $this->id_promo_campaign_promo_code)
-        ->distinct()
-        ->get()->toArray();
+        ->first();
         $this->update([
-            'number_transaction' => count($transaction),
-            'cashback_earned' => array_sum(array_column($transaction, 'referrer_bonus'))
+            'number_transaction' => $transaction->total_trx,
+            'cashback_earned' => $transaction->total_bonus
         ]);
     }
 }
