@@ -140,14 +140,26 @@ class ApiReferralController extends Controller
             case 'trx':
                 $data = PromoCampaignReferralTransaction::select('promo_campaign_referral_transactions.*','transactions.id_transaction','transactions.transaction_receipt_number','transactions.trasaction_type','transactions.transaction_grandtotal','users.name','users.phone','referrer.name as referrer_name','referrer.phone as referrer_phone')
                 ->join('transactions','promo_campaign_referral_transactions.id_transaction','=','transactions.id_transaction')
-                ->join('users','users.id','=','transactions.id_user')
-                ->join('users as referrer','referrer.id','=','promo_campaign_referral_transactions.id_referrer')
+                ->join('transaction_pickups', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
+                ->where('transaction_payment_status', 'Completed')
+                ->where(function($q) {
+                    $q->whereNotNull('transaction_pickups.ready_at')->OrWhereNotNull('transaction_pickups.taken_by_system_at');
+                })
+                ->whereNull('transaction_pickups.reject_at')
+                ->leftJoin('users','users.id','=','transactions.id_user')
+                ->leftJoin('users as referrer','referrer.id','=','promo_campaign_referral_transactions.id_referrer')
                 ->orderBy(...$order);
                 $this->applyFilter($data,$post);
                 $data = $data->paginate($perpage);
                 break;
             case 'trx-summary':
                 $data['data'] = PromoCampaignReferralTransaction::join('transactions', 'promo_campaign_referral_transactions.id_transaction', 'transactions.id_transaction')->select(\DB::raw('count(*) as total,Date(promo_campaign_referral_transactions.created_at) as trx_date'))
+                ->join('transaction_pickups', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
+                ->where('transaction_payment_status', 'Completed')
+                ->where(function($q) {
+                    $q->whereNotNull('transaction_pickups.ready_at')->OrWhereNotNull('transaction_pickups.taken_by_system_at');
+                })
+                ->whereNull('transaction_pickups.reject_at')
                 ->groupBy(\DB::raw('trx_date'))
                 ->orderBy('trx_date');
                 $this->applyFilter($data['data'],$post);
@@ -155,11 +167,17 @@ class ApiReferralController extends Controller
                 break;
             case 'user':
                 $id_user = User::select('id')->where('phone',$post['phone'])->pluck('id')->first();
-                $data = PromoCampaignReferralTransaction::with(['user'=>function($query){
-                        $query->select(['id','name','phone']);
-                    },'transaction'=>function($query){
-                        $query->select(['id_transaction','transaction_receipt_number','trasaction_type','transaction_grandtotal']);
-                    }])->orderBy(...$order)->where('id_referrer',$id_user);
+                $data = PromoCampaignReferralTransaction::select('promo_campaign_referral_transactions.created_at', 'users.name', 'users.phone', 'trasaction_type', 'transactions.id_transaction', 'transactions.transaction_receipt_number', 'transaction_grandtotal', 'promo_campaign_referral_transactions.referrer_bonus')
+                    ->join('transactions', 'transactions.id_transaction', '=', 'promo_campaign_referral_transactions.id_transaction')
+                    ->join('transaction_pickups', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
+                    ->where('transaction_payment_status', 'Completed')
+                    ->where(function($q) {
+                        $q->whereNotNull('transaction_pickups.ready_at')->OrWhereNotNull('transaction_pickups.taken_by_system_at');
+                    })
+                    ->whereNull('transaction_pickups.reject_at')
+                    ->where('promo_campaign_referral_transactions.id_referrer', $id_user)
+                    ->leftJoin('users', 'users.id', 'transactions.id_user')
+                    ->orderBy(...$order);
                 $this->applyFilter($data,$post);
                 $data = $data->paginate($perpage);
                 break;
@@ -167,7 +185,12 @@ class ApiReferralController extends Controller
                 $id_user = User::select('id')->where('phone',$post['phone'])->pluck('id')->first();
                 $data['data'] = PromoCampaignReferralTransaction::select(\DB::raw('count(*) as total,Date(promo_campaign_referral_transactions.created_at) as trx_date'))
                     ->join('transactions','promo_campaign_referral_transactions.id_transaction','=','transactions.id_transaction')
-                    ->join('users','users.id','=','transactions.id_user')
+                    ->join('transaction_pickups', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
+                    ->where('transaction_payment_status', 'Completed')
+                    ->where(function($q) {
+                        $q->whereNotNull('transaction_pickups.ready_at')->OrWhereNotNull('transaction_pickups.taken_by_system_at');
+                    })
+                    ->whereNull('transaction_pickups.reject_at')
                     ->where('id_referrer',$id_user)
                     ->groupBy('trx_date');
                 $this->applyFilter($data['data'],$post);
