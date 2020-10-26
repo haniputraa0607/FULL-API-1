@@ -398,7 +398,26 @@ class ConnectPOS{
 
 	public function sendMail()
 	{
-		$trxs = TransactionOnlinePos::select('id_transaction_online_pos', 'outlet_code', 'outlet_name', 'transaction_date', 'transaction_receipt_number', 'name', 'phone')
+		$trxs = TransactionOnlinePos::select('id_transaction')
+			->where('success_retry_status',0)
+			->take(50)
+			->get();
+		if (!$trxs) {
+			return true;
+		}
+		$func = 'doSendTransaction';
+		if (count($trxs) > 20) {
+			$func = 'sendTransaction';
+		}
+
+		foreach($trxs as $trx) {
+	        $send = \App\Lib\ConnectPOS::create()->$func($trx->id_transaction);
+	        if(!$send){
+	            \Log::error('Failed send transaction to POS');
+	        }			
+		}
+        
+		$trxs = TransactionOnlinePos::select('id_transaction_online_pos', 'outlet_code', 'outlet_name', 'transaction_date', 'transaction_receipt_number', 'name', 'phone', 'transactions.id_transaction')
 			->join('transactions', 'transactions_online_pos.id_transaction', 'transactions.id_transaction')
 			->where('success_retry_status',0)
 			->where('send_email_status', 0)
@@ -409,18 +428,7 @@ class ConnectPOS{
 		if (!$trxs) {
 			return true;
 		}
-		$func = 'doSendTransaction';
-		if (count($trxs) > 10) {
-			$func = 'sendTransaction';
-		}
 
-		foreach($trxs as $trx) {
-	        $send = \App\Lib\ConnectPOS::create()->$func($trx->id_transactions);
-	        if(!$send){
-	            \Log::error('Failed send transaction to POS');
-	        }			
-		}
-        
 		$variables = [
 			'detail' => view('emails.send_pos_failed', compact('trxs'))->render()
 		];
