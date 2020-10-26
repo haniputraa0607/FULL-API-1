@@ -11,7 +11,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 class SendPOS implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-    public $tries = 10; // 10x retry max
+    public $tries = 1; // 10x retry max
     public $retryAfter = 300; // 5 minutes
     protected $id_transactions;
     /**
