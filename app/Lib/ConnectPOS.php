@@ -404,10 +404,23 @@ class ConnectPOS{
 			->where('send_email_status', 0)
 			->join('users', 'users.id', 'transactions.id_user')
 			->join('outlets', 'outlets.id_outlet', 'transactions.id_outlet')
+			->take(50)
 			->get();
 		if (!$trxs) {
 			return true;
 		}
+		$func = 'doSendTransaction';
+		if (count($trxs) > 10) {
+			$func = 'sendTransaction';
+		}
+
+		foreach($trxs as $trx) {
+	        $send = \App\Lib\ConnectPOS::create()->$func($trx->id_transactions);
+	        if(!$send){
+	            \Log::error('Failed send transaction to POS');
+	        }			
+		}
+        
 		$variables = [
 			'detail' => view('emails.send_pos_failed', compact('trxs'))->render()
 		];
