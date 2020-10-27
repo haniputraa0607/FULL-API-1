@@ -59,6 +59,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities','user_agent', 'scope
     Route::post('user', ['middleware' => 'feature_control:72', 'uses' => 'ApiDeals@listUserVoucher']);
     Route::post('voucher', ['middleware' => 'feature_control:72', 'uses' => 'ApiDeals@listVoucher']);
     Route::any('void/ovo', ['middleware' => 'feature_control:227', 'uses' => 'ApiDealsClaimPay@void']);
+    Route::post('detail-update', ['middleware' => 'feature_control:75', 'uses' => 'ApiDeals@detailUpdate']);
 
     /* MANUAL PAYMENT */
     Route::group(['prefix' => 'manualpayment'], function () {

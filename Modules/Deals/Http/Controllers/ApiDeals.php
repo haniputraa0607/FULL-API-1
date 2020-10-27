@@ -2429,4 +2429,37 @@ class ApiDeals extends Controller
 
         return $save;
     }
+
+    public function detailUpdate(Request $request)
+    {
+    	$post = $request->json()->all();
+    	$status = true;
+    	$check = $this->checkInputan($post);
+
+    	$deals = Deal::where('id_deals', $post['id_deals'])->first();
+    	if (!$deals) {
+    		return MyHelper::checkGet($deals);
+    	}
+
+        $data = [
+        	'deals_end' => $check['deals_end']??null,
+        	'deals_publish_end' => $check['deals_publish_end']??null,
+        	'is_all_outlet' => $check['is_all_outlet']
+        ];
+
+		$this->deleteOutlet($post['id_deals']);
+
+		if (isset($check['id_outlet']) && $check['is_all_outlet'] == 0) {
+
+            $save_outlet = $this->saveOutlet($deals, $check['id_outlet']);
+
+            if (!$save_outlet) {
+                return MyHelper::checkUpdate($save_outlet);
+            }
+        }
+
+        $save = Deal::where('id_deals', $post['id_deals'])->updateWithUserstamps($data);
+
+    	return MyHelper::checkUpdate($save);
+    }
 }

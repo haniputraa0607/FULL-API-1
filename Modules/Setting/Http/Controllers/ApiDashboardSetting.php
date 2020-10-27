@@ -365,14 +365,16 @@ class ApiDashboardSetting extends Controller
 			$dashboard[1]['dashboard_card'][0]['card_name'] = 'New Customer';
 			$dashboard[1]['dashboard_card'][1]['card_name'] = 'Total Customer Verified';
 			$dashboard[1]['dashboard_card'][2]['card_name'] = 'Total Customer Not Verified';
-			$dashboard[1]['dashboard_card'][3]['card_name'] = 'Total User';
-			$dashboard[1]['dashboard_card'][4]['card_name'] = 'Total Customer';
-			$dashboard[1]['dashboard_card'][5]['card_name'] = 'Total Admin';
-			$dashboard[1]['dashboard_card'][6]['card_name'] = 'Total Super Admin';
-			$dashboard[1]['dashboard_card'][7]['card_name'] = 'Total Male Customer';
-			$dashboard[1]['dashboard_card'][8]['card_name'] = 'Total Female Customer';
-			$dashboard[1]['dashboard_card'][9]['card_name'] = 'Total Android Customer';
-			$dashboard[1]['dashboard_card'][10]['card_name'] = 'Total IOS Customer';
+            $dashboard[1]['dashboard_card'][3]['card_name'] = 'Total Customer Email Verified';
+            $dashboard[1]['dashboard_card'][4]['card_name'] = 'Total Customer Email Not Verified';
+			$dashboard[1]['dashboard_card'][5]['card_name'] = 'Total User';
+			$dashboard[1]['dashboard_card'][6]['card_name'] = 'Total Customer';
+			$dashboard[1]['dashboard_card'][7]['card_name'] = 'Total Admin';
+			$dashboard[1]['dashboard_card'][8]['card_name'] = 'Total Super Admin';
+			$dashboard[1]['dashboard_card'][9]['card_name'] = 'Total Male Customer';
+			$dashboard[1]['dashboard_card'][10]['card_name'] = 'Total Female Customer';
+			$dashboard[1]['dashboard_card'][11]['card_name'] = 'Total Android Customer';
+			$dashboard[1]['dashboard_card'][12]['card_name'] = 'Total IOS Customer';
 		}
 		foreach($dashboard as $key => $dash){
 			foreach($dash['dashboard_card'] as $index => $card){
@@ -509,6 +511,14 @@ class ApiDashboardSetting extends Controller
 					if($card['card_name'] == 'Total Customer Not Verified'){
 						$value = $value->where('phone_verified', '=', '0')->where('level', 'Customer');
 					}
+
+                    if($card['card_name'] == 'Total Customer Email Verified'){
+                        $value = $value->where('email_verified', '=', '1')->where('level', 'Customer');
+                    }
+                    if($card['card_name'] == 'Total Customer Email Not Verified'){
+                        $value = $value->where('email_verified', '=', '0')->where('level', 'Customer');
+                    }
+
 					if(strpos($card['card_name'], 'Android') !== false){
 						$value = $value->where('android_device', '!=', '')->where('level', 'Customer');
 						if($url){

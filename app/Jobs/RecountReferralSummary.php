@@ -7,21 +7,21 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use \Modules\PromoCampaign\Entities\UserReferralCode;
 
-class SendPOS implements ShouldQueue
+class RecountReferralSummary implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-    public $tries = 1; // 10x retry max
-    public $retryAfter = 300; // 5 minutes
-    protected $id_transactions;
+    protected $urcs;
+
     /**
      * Create a new job instance.
      *
      * @return void
      */
-    public function __construct($id_transactions)
+    public function __construct($urcs)
     {
-        $this->id_transactions = $id_transactions;
+        $this->urcs = $urcs;
     }
 
     /**
@@ -31,10 +31,8 @@ class SendPOS implements ShouldQueue
      */
     public function handle()
     {
-        $send = \App\Lib\ConnectPOS::create()->doSendTransaction($this->id_transactions);
-        if(!$send){
-            throw new \Exception("Error send transaction", 1);
-        }
-        
+        $this->urcs->each(function($urc) {
+            $urc->refreshSummary();
+        });
     }
 }

@@ -1219,7 +1219,7 @@ Message :
                 'autocrm_forward_email' => NULL,
                 'autocrm_forward_email_subject' => NULL,
                 'autocrm_forward_email_content' => NULL,
-                'custom_text_replace'=>'%transaction_receipt_number%;%outlet_name%;%transaction_date%',
+                'custom_text_replace'=>'%detail%;',
                 'created_at' => '2018-03-12 13:53:17',
                 'updated_at' => '2018-05-03 15:02:20',
             ),
