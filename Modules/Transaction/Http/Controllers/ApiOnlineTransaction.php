@@ -1297,7 +1297,8 @@ class ApiOnlineTransaction extends Controller
 
                     //inset pickup_at when pickup_type = right now
                     if($insertPickup['pickup_type'] == 'right now'){
-                        $updatePickup = TransactionPickup::where('id_transaction', $insertTransaction['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s')]);
+                        $settingTime = MyHelper::setting('processing_time', 'value', 0);
+                        $updatePickup = TransactionPickup::where('id_transaction', $insertTransaction['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s', strtotime('+ '.$settingTime.'minutes')?:time())]);
                     }
 
                     $mid['order_id'] = $insertTransaction['transaction_receipt_number'];
