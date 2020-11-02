@@ -77,6 +77,7 @@ use Hash;
 use DB;
 use App\Lib\MailQueue as Mail;
 use Image;
+use Modules\UserRating\Entities\UserRating;
 
 class ApiTransaction extends Controller
 {
@@ -1801,6 +1802,7 @@ class ApiTransaction extends Controller
                 'transaction_cashback_earned'   => MyHelper::requestNumber($list['transaction_cashback_earned'],'_POINT'),
                 'trasaction_payment_type'       => $list['trasaction_payment_type'],
                 'transaction_payment_status'    => $list['transaction_payment_status'],
+                'rating_value'                  => UserRating::select('rating_value')->where('id_transaction', $list['id_transaction'])->pluck('rating_value')->first(),
                 'outlet'                        => [
                     'outlet_name'       => $list['outlet']['outlet_name'],
                     'outlet_address'    => $list['outlet']['outlet_address']
