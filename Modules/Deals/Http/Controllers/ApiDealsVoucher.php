@@ -572,7 +572,7 @@ class ApiDealsVoucher extends Controller
             $request->json('expired_end') ||
             $request->json('key_free')
         ){
-            $resultMessage = 'The voucher you are looking for is not available';
+            $resultMessage = 'Please look at our deals!';
         }else{
             $resultMessage = "You don't have any voucher";
         }
