@@ -692,7 +692,7 @@ class ApiDeals extends Controller
                 $request->json('id_city') ||
                 $request->json('key_free')
             ){
-                $resultMessage = 'Please look at our deals!';
+                $resultMessage = 'The Voucher You Are Looking For Is Not Available';
             }else{
                 $resultMessage = 'Deals Not Available Yet';
             }
