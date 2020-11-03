@@ -538,8 +538,12 @@ class ApiProductGroupController extends Controller
         }
 
         $result = [];
-        foreach ($data as $product) {
+        foreach ($data as $index => $product) {
             $product['product_stock_status'] = $this->checkAvailable($product['product_stock_status']);
+            if($product['product_stock_status'] == 'Sold Out'){
+                unset($data[$index]);
+                continue;
+            }
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],'point');
             $product['product_price_pretty'] = MyHelper::requestNumber($product['product_price'],'_CURRENCY');
             $id_product_category = $product['id_product_category'];
