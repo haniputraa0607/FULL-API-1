@@ -988,7 +988,7 @@ class ApiUser extends Controller
         }
 
         if(isset($data[0])){
-            if($data[0]['email'] == null || $data[0]['name'] == null){
+            if($data[0]['email'] == null || $data[0]['name'] == null || $data[0]['pin_changed'] == '0'){
                 $data[0]['phone_verified'] = '0';
             }
         }
@@ -1635,7 +1635,7 @@ class ApiUser extends Controller
                     $dateOtpTimeExpired = date("Y-m-d H:i:s", strtotime("+30 minutes"));
                 }
 
-                $update = User::where('id','=',$data[0]['id'])->update(['password' => $password, 'phone_verified' => '0', 'otp_valid_time' => $dateOtpTimeExpired]);
+                $update = User::where('id','=',$data[0]['id'])->update(['password' => $password, 'phone_verified' => '0', 'otp_valid_time' => $dateOtpTimeExpired, 'pin_changed' => '0']);
 
                 if(!empty($request->header('user-agent-view'))){
                     $useragent = $request->header('user-agent-view');

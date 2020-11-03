@@ -1171,15 +1171,28 @@ class ApiOnlineTransaction extends Controller
                 $pickupType = 'set time';
             }
 
+            $settingTime = Setting::where('key', 'processing_time')->first();
+            if(!isset($settingTime['value'])){
+                $settingTime['value'] = '15';
+            }
             if($pickupType == 'set time'){
-                $settingTime = Setting::where('key', 'processing_time')->first();
                 if (date('Y-m-d H:i:s', strtotime($post['pickup_at'])) <= date('Y-m-d H:i:s', strtotime('- '.$settingTime['value'].'minutes'))) {
-                    $pickup = date('Y-m-d H:i:s', strtotime('+ '.$settingTime['value'].'minutes'));
+                    // $pickup = date('Y-m-d H:i:s', strtotime('+ '.$settingTime['value'].'minutes'));
+                    DB::rollBack();
+                    return response()->json([
+                        'status'    => 'fail',
+                        'messages'  => ['Set pickup time min '.$settingTime['value'].' minutes from now']
+                    ]);
                 }
                 else {
                     if(isset($outlet['today']['close'])){
-                        if(date('Y-m-d H:i', strtotime($post['pickup_at'])) > date('Y-m-d').' '.date('H:i', strtotime($outlet['today']['close']))){
-                            $pickup =  date('Y-m-d').' '.date('H:i:s', strtotime($outlet['today']['close']));
+                        if(date('Y-m-d H:i', strtotime($post['pickup_at'])) > date('Y-m-d').' '.date('H:i', strtotime('+ '.$settingTime['value'].'minutes', strtotime($outlet['today']['close'])))){
+                            // $pickup =  date('Y-m-d').' '.date('H:i:s', strtotime($outlet['today']['close']));
+                            DB::rollBack();
+                            return response()->json([
+                                'status'    => 'fail',
+                                'messages'  => ['Set pickup time max '.$settingTime['value'].' before outlet close']
+                            ]);
                         }else{
                             $pickup = date('Y-m-d H:i:s', strtotime($post['pickup_at']));
                         }
