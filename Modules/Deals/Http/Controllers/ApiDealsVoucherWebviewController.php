@@ -138,16 +138,20 @@ class ApiDealsVoucherWebviewController extends Controller
             $voucher['deals_voucher']['deal']['outlet_by_city'] = $kota;
         }
 
-        usort($voucher['deals_voucher']['deal']['outlet_by_city'], function($a, $b) {
-            if(isset($a['city_name']) && isset($b['city_name'])){
-                return $a['city_name'] <=> $b['city_name'];
-            }
-        });
-
-        for ($i = 0; $i < count($voucher['deals_voucher']['deal']['outlet_by_city']); $i++) {
-            usort($voucher['deals_voucher']['deal']['outlet_by_city'][$i]['outlet'] ,function($a, $b) {
-                return $a['outlet_name'] <=> $b['outlet_name'];
+        if(isset($voucher['deals_voucher']['deal']['outlet_by_city'])){
+            usort($voucher['deals_voucher']['deal']['outlet_by_city'], function($a, $b) {
+                if(isset($a['city_name']) && isset($b['city_name'])){
+                    return $a['city_name'] <=> $b['city_name'];
+                }
             });
+        }
+
+        if(isset($voucher['deals_voucher']['deal']['outlet_by_city'])){
+            for ($i = 0; $i < count($voucher['deals_voucher']['deal']['outlet_by_city']); $i++) {
+                usort($voucher['deals_voucher']['deal']['outlet_by_city'][$i]['outlet'] ,function($a, $b) {
+                    return $a['outlet_name'] <=> $b['outlet_name'];
+                });
+            }
         }
 
         $voucher['deals_voucher']['deal']['deals_image'] = env('S3_URL_API') . $voucher['deals_voucher']['deal']['deals_image'];
@@ -248,6 +252,9 @@ class ApiDealsVoucherWebviewController extends Controller
         if($data['deals_voucher']['deal']['custom_outlet_text'] != null){
             $result['deals_content'][$i]['detail'][0]['data'][0] = $data['deals_voucher']['deal']['custom_outlet_text'];
         }else{
+            if(!isset($data['deals_voucher']['deal']['outlet_by_city'])){
+                $data['deals_voucher']['deal']['outlet_by_city'] = [];
+            }
             foreach ($data['deals_voucher']['deal']['outlet_by_city'] as $keyCity => $valueCity) {
                 if (isset($valueCity['city_name'])) {
                     $result['deals_content'][$i]['detail'][$keyCity]['city'] = $valueCity['city_name'];
