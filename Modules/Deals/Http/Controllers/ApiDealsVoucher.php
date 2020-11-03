@@ -565,16 +565,24 @@ class ApiDealsVoucher extends Controller
             }
         }
 
-        if(
-            $request->json('id_outlet') ||
-            $request->json('id_brand') ||
-            $request->json('expired_start') ||
-            $request->json('expired_end') ||
-            $request->json('key_free')
-        ){
+        $isPromo = 0;
+        if($request->json('is_use_promo')){
+            $isPromo = $request->json('is_use_promo');
+        }
+        if($isPromo == 1){
             $resultMessage = 'Please look at our deals!';
         }else{
-            $resultMessage = "You don't have any voucher";
+            if(
+                $request->json('id_outlet') ||
+                $request->json('id_brand') ||
+                $request->json('expired_start') ||
+                $request->json('expired_end') ||
+                $request->json('key_free')
+            ){
+                $resultMessage = 'The Voucher You Are Looking For Is Not Available';
+            }else{
+                $resultMessage = "You don't have any voucher";
+            }
         }
 
         return response()->json(MyHelper::checkGet($result, $resultMessage));
