@@ -484,6 +484,9 @@ class ApiProductGroupController extends Controller
     // list product group yang ada di suatu outlet dengan nama, gambar, harga, order berdasarkan kategori
     public function tree(Request $request) {
         $post = $request->json()->all();
+        if (!($post['id_outlet'] ?? false)) {
+            return MyHelper::checkGet([]);
+        }
         $data = ProductGroup::select(\DB::raw('product_groups.id_product_group,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,product_groups.id_product_category,GROUP_CONCAT(product_stock_status) as product_stock_status'))
                     ->join('products','products.id_product_group','=','product_groups.id_product_group')
                     // join product_price (product_outlet pivot and product price data)
@@ -538,8 +541,12 @@ class ApiProductGroupController extends Controller
         }
 
         $result = [];
-        foreach ($data as $product) {
+        foreach ($data as $index => $product) {
             $product['product_stock_status'] = $this->checkAvailable($product['product_stock_status']);
+            if($product['product_stock_status'] == 'Sold Out'){
+                unset($data[$index]);
+                continue;
+            }
             $product['product_price'] = MyHelper::requestNumber($product['product_price'],'point');
             $product['product_price_pretty'] = MyHelper::requestNumber($product['product_price'],'_CURRENCY');
             $id_product_category = $product['id_product_category'];

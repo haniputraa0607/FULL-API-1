@@ -699,7 +699,10 @@ class ApiAutoCrm extends Controller
 							$replaced = $replace['default_value'];
 						}
 					} else {
-						if($user[$replace['reference']] != ""){
+						if($replace['keyword'] == '%first_name%'){
+                            $firstName = explode(" ",$user['name']);
+                            $replaced = $firstName[0]??$user['name'];
+                        }else if($user[$replace['reference']] != ""){
 							if($replace['reference']== 'name'){
 								$replaced = ucwords($user[$replace['reference']]);
 							}else{
