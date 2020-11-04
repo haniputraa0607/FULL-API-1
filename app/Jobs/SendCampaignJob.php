@@ -63,7 +63,7 @@ class SendCampaignJob implements ShouldQueue
         switch ($type) {
             case 'email':
                 foreach($recipient as $key => $receipient){
-
+                    $receipient = trim($receipient);
                     $to = $receipient;
                     $em_arr = explode('@',$receipient);
                     $name = ucwords(str_replace("_"," ", str_replace("-"," ", str_replace("."," ", $em_arr[0]))));
