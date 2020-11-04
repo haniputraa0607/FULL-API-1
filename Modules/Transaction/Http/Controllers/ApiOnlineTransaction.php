@@ -751,7 +751,7 @@ class ApiOnlineTransaction extends Controller
         // add transaction voucher
         if($request->json('id_deals_user')){
         	$update_voucher = DealsUser::where('id_deals_user','=',$request->id_deals_user)->update(['used_at' => date('Y-m-d H:i:s'), 'id_outlet' => $request->json('id_outlet'), 'redeemed_at' => date('Y-m-d H:i:s')]);
-        	$update_deals = Deal::where('id_deals','=',$deals->dealVoucher['deals']['id_deals'])->update(['deals_total_used' => $deals->dealVoucher['deals']['deals_total_used']+1]);
+        	// $update_deals = Deal::where('id_deals','=',$deals->dealVoucher['deals']['id_deals'])->update(['deals_total_used' => $deals->dealVoucher['deals']['deals_total_used']+1]);
 
             $addTransactionVoucher = TransactionVoucher::create([
                 'id_deals_voucher' => $deals['id_deals_voucher'],
@@ -1780,11 +1780,23 @@ class ApiOnlineTransaction extends Controller
         }
         elseif($request->json('id_deals_user'))
         {
-        	$deals = app($this->promo_campaign)->checkVoucher($request->id_deals_user, 1, 1);
-			if($deals)
-			{
+	        $deals = DealsUser::whereIn('paid_status', ['Free', 'Completed'])->where('id_deals_user', $request->id_deals_user)->first();
+
+	        if (!$deals){
+	        	$error = ['Voucher is not found'];
+	        	$promo_error = app($this->promo_campaign)->promoError('transaction', $error);
+	        }elseif( !empty($deals['used_at']) ){
+	        	$error = ['Voucher already used'];
+	        	$promo_error = app($this->promo_campaign)->promoError('transaction', $error);
+	        }elseif( date('Y-m-d H:i:s', strtotime($deals['voucher_expired_at'])) < date('Y-m-d H:i:s') ){
+	        	$error = ['Voucher is expired'];
+	        	$promo_error = app($this->promo_campaign)->promoError('transaction', $error);
+	        }elseif( !empty($deals['voucher_active_at']) && date('Y-m-d H:i:s', strtotime($deals['voucher_active_at'])) > date('Y-m-d H:i:s') ){
+	        	$error = ['Voucher periode hasn\'t started'];
+	        	$promo_error = app($this->promo_campaign)->promoError('transaction', $error);
+	        }elseif($deals){
 				$validate_user = true;
-				$pct=new PromoCampaignTools();
+				$pct = new PromoCampaignTools();
 				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals', null, $error_product);
 
 				/*if ($discount_promo['is_free'] == 1) {

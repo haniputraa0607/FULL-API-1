@@ -240,9 +240,10 @@ class SendPromotionJob implements ShouldQueue
 				if(isset($setting['email_bcc'])){
 					$message->bcc($setting['email_bcc']);
 				}
-			});
-			$updateCountPromotion = PromotionContent::where('id_promotion_content', $promotionContent['id_promotion_content'])->update(['promotion_count_email_sent' => $promotionContent['promotion_count_email_sent']+1]);
-
+			}, 'email_default', [
+                'type' => 'send_promotion',
+                'data' => ['id_promotion_content' => $promotionContent['id_promotion_content']]
+            ]);
 			return ([
 				'status'  => 'success',
 				'result'  => 'Promotion Content Email Has Been Sent.'
