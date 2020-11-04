@@ -19,7 +19,8 @@ class LogActivitiesMiddleware
      */
     public function handle($request, Closure $next)
     {
-	$response = $next($request);
+        $response = $next($request);
+        return $response;
 
         $arrReq = $request->except('_token');
         if(!isset($arrReq['log_save']) || ($arrReq['log_save'] == true && $arrReq['log_save'] == 'true')){
