@@ -1466,6 +1466,10 @@ class ApiDeals extends Controller
 
         $deals = $deals->first();
 
+        if ($deals) {
+        	$deals['deals_total_used'] = DealsUser::join('deals_vouchers', 'deals_vouchers.id_deals_voucher','=','deals_users.id_deals_voucher')->where('deals_vouchers.id_deals','=',$post['id_deals'])->whereNotNull('used_at')->count();
+        }
+
         return $deals;
     }
 
