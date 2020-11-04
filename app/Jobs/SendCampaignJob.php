@@ -188,7 +188,10 @@ class SendCampaignJob implements ShouldQueue
                             if(!empty($setting['email_bcc']) && !empty($setting['email_bcc_name'])){
                                 $message->bcc($setting['email_bcc'], $setting['email_bcc_name']);
                             }
-                        });
+                        }, 'email_default', [
+                            'type' => 'send_campaign',
+                            'data' => ['id_campaign' => $campaign['id_campaign']]
+                        ]);
                         $outbox = [];
                         $outbox['id_campaign'] = $campaign['id_campaign'];
                         $outbox['email_sent_to'] = $receipient;
@@ -197,11 +200,6 @@ class SendCampaignJob implements ShouldQueue
                         $outbox['email_sent_send_at'] = date("Y-m-d H:i:s");
 
                         $logs = CampaignEmailSent::create($outbox);
-                        DB::table('campaigns')
-                           ->where('id_campaign', $campaign['id_campaign'])
-                           ->update([
-                               'campaign_email_count_sent' => DB::raw('campaign_email_count_sent + 1')
-                           ]);
                     }catch(\Exception $e){
                         print "Mail to $receipient not send\n";
                     }
