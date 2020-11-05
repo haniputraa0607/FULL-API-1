@@ -19,8 +19,11 @@ class LogActivitiesMiddleware
      */
     public function handle($request, Closure $next)
     {
-        $response = $next($request);
-        return $response;
+        if (env('DISABLE_LOG')) {
+            $response = $next($request);
+            return $response;
+        }
+    	$response = $next($request);
 
         $arrReq = $request->except('_token');
         if(!isset($arrReq['log_save']) || ($arrReq['log_save'] == true && $arrReq['log_save'] == 'true')){
