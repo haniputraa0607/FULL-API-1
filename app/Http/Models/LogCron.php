@@ -38,4 +38,26 @@ class LogCron extends Model
 		$this->description = $msg;
 		$this->save();
 	}
+
+	public function save(array $options = [])
+	{
+        if (env('DISABLE_LOG')) {
+            return optional(null);
+        }
+        return parent::save($options);
+	}
+
+    public static function __callStatic($method, $parameters)
+    {
+        if ($method == 'create' && count($parameters) == 1) {
+            if (env('DISABLE_LOG')) {
+                return optional(null);
+            }
+
+           return parent::create($parameters[0], true);
+        } elseif ($method == 'create') {
+            return (new static)->$method($parameters[0]);
+        }
+        return (new static)->$method(...$parameters);
+    }
 }
