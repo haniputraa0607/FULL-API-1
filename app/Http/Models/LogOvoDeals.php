@@ -11,7 +11,6 @@ class LogOvoDeals extends Model
 	 *
 	 * @var string
 	 */
-	protected $connection = 'mysql2';
 	
     /**
      * The table associated with the model.
