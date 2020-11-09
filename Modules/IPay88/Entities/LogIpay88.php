@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class LogIpay88 extends Model
 {
 	public $primaryKey = 'id_log_ipay88';
-	protected $connection = 'mysql2';
     protected $fillable = [
     	'type',
     	'id_reference',
