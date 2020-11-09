@@ -24,6 +24,7 @@ use Modules\Deals\Http\Controllers\ApiDealsVoucher;
 use Modules\Deals\Http\Requests\Deals\Voucher;
 
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Auth;
 
 use DB;
 
@@ -43,217 +44,227 @@ class ApiDealsClaim extends Controller
     /* CLAIM DEALS */
     function claim(Request $request) {
 
-        $dataDeals = $this->chekDealsData($request->json('id_deals'));
-        $id_user = $request->user()->id;
+    	try {
 
-        if(isset($request->user()->email_verified) && $request->user()->email_verified != '1'){
-            return response()->json([
-                'status'    => 'fail',
-                'message_verfiy_email'=> 'Sorry your email has not yet been verified. Please verify your email.',
-                'messages'  => ['Sorry your email has not yet been verified. Please verify your email.']
-            ]);
-        }
+	        $dataDeals = $this->chekDealsData($request->json('id_deals'));
+	        $id_user = $request->user()->id;
 
-        if (empty($dataDeals)) {
-            return response()->json([
-                'status'   => 'fail',
-                'messages' => ['Data deals not found']
-            ]);
-        }
-        else {
-            DB::beginTransaction();
-            // CEK VALID DATE
-            if ($this->checkValidDate($dataDeals)) {
-                // if (!empty($dataDeals->deals_voucher_price_cash) || $dataDeals->deals_promo_id_type == "nominal") {
-                if (!empty($dataDeals->deals_voucher_price_cash)) {
-                    return response()->json([
-                        'status' => 'fail',
-                        'messages' => ['You have to pay deals.']
-                    ]);
-                }
-                else {
-                    if ($this->checkDealsPoint($dataDeals, $request->user()->id)) {
-                        // CEK USER ALREADY CLAIMED
-                        if ($this->checkUserClaimed($request->user(), $dataDeals->id_deals)) {
+	        if(isset($request->user()->email_verified) && $request->user()->email_verified != '1'){
+	            return response()->json([
+	                'status'    => 'fail',
+	                'message_verfiy_email'=> 'Sorry your email has not yet been verified. Please verify your email.',
+	                'messages'  => ['Sorry your email has not yet been verified. Please verify your email.']
+	            ]);
+	        }
 
-                        if ($dataDeals->deals_type == "Subscription") {
-                            $id_deals = $dataDeals->id_deals;
+	        if (empty($dataDeals)) {
+	            return response()->json([
+	                'status'   => 'fail',
+	                'messages' => ['Data deals not found']
+	            ]);
+	        }
+	        else {
+	            // CEK VALID DATE
+	            if ($this->checkValidDate($dataDeals)) {
+	                // if (!empty($dataDeals->deals_voucher_price_cash) || $dataDeals->deals_promo_id_type == "nominal") {
+	                if (!empty($dataDeals->deals_voucher_price_cash)) {
+	                    return response()->json([
+	                        'status' => 'fail',
+	                        'messages' => ['You have to pay deals.']
+	                    ]);
+	                }
+	                else {
+	                    if ($this->checkDealsPoint($dataDeals, $request->user()->id)) {
+	                        // CEK USER ALREADY CLAIMED
+	                        if ($this->checkUserClaimed($request->user(), $dataDeals->id_deals)) {
 
-                            // count claimed deals by id_deals_subscription (how many times deals are claimed)
-                            $dealsVoucherSubs = DealsVoucher::where('id_deals', $id_deals)->count();
-                            $voucherClaimed = 0;
-                            if ($dealsVoucherSubs > 0) {
-                                $voucherClaimed = $dealsVoucherSubs / $dataDeals->total_voucher_subscription;
-                                if(is_float($voucherClaimed)){ // if miss calculate use deals_total_claimed
-                                    $voucherClaimed = $dataDeals->deals_total_claimed;
-                                }
-                            }
+	            				DB::beginTransaction();
+		                        if ($dataDeals->deals_type == "Subscription") {
+		                            $id_deals = $dataDeals->id_deals;
 
-                            // check available voucher
-                            if ($dataDeals->deals_total_voucher > $voucherClaimed || $dataDeals->deals_voucher_type == "Unlimited") {
-                                $deals_subs = $dataDeals->deals_subscriptions()->get();
+		                            // count claimed deals by id_deals_subscription (how many times deals are claimed)
+		                            $dealsVoucherSubs = DealsVoucher::where('id_deals', $id_deals)->count();
+		                            $voucherClaimed = 0;
+		                            if ($dealsVoucherSubs > 0) {
+		                                $voucherClaimed = $dealsVoucherSubs / $dataDeals->total_voucher_subscription;
+		                                if(is_float($voucherClaimed)){ // if miss calculate use deals_total_claimed
+		                                    $voucherClaimed = $dataDeals->deals_total_claimed;
+		                                }
+		                            }
 
-                                // create deals voucher and deals user x times
-                                $user_voucher_array = [];
-                                $apiDealsVoucher = new ApiDealsVoucher();
+		                            // check available voucher
+		                            if ($dataDeals->deals_total_voucher > $voucherClaimed || $dataDeals->deals_voucher_type == "Unlimited") {
+		                                $deals_subs = $dataDeals->deals_subscriptions()->get();
 
-                                foreach ($deals_subs as $key => $deals_sub) {
-                                    // deals subscription may have > 1 voucher
-                                    for ($i=1; $i <= $deals_sub->total_voucher; $i++) {
-                                        // generate voucher code
-                                        do {
-                                            $code = $apiDealsVoucher->generateCode($dataDeals->id_deals);
-                                            $voucherCode = DealsVoucher::where('id_deals', $id_deals)->where('voucher_code', $code)->first();
-                                        } while (!empty($voucherCode));
+		                                // create deals voucher and deals user x times
+		                                $user_voucher_array = [];
+		                                $apiDealsVoucher = new ApiDealsVoucher();
 
-                                        $deals_voucher = DealsVoucher::create([
-                                            'id_deals'             => $id_deals,
-                                            'id_deals_subscription'=> $deals_sub->id_deals_subscription,
-                                            'voucher_code'         => strtoupper($code),
-                                            'deals_voucher_status' => 'Sent',
-                                        ]);
-                                        if (!$deals_voucher) {
-                                            DB::rollBack();
-                                            return response()->json([
-                                                'status'   => 'fail',
-                                                'messages' => ['Failed to save data.']
-                                            ]);
-                                        }
+		                                foreach ($deals_subs as $key => $deals_sub) {
+		                                    // deals subscription may have > 1 voucher
+		                                    for ($i=1; $i <= $deals_sub->total_voucher; $i++) {
+		                                        // generate voucher code
+		                                        do {
+		                                            $code = $apiDealsVoucher->generateCode($dataDeals->id_deals);
+		                                            $voucherCode = DealsVoucher::where('id_deals', $id_deals)->where('voucher_code', $code)->first();
+		                                        } while (!empty($voucherCode));
 
-                                        // create user voucher
-                                        // give price to user voucher only if first voucher
-                                        if ($key==0 && $i==1) {
-                                            $user_voucher = $this->createVoucherUser($id_user, $deals_voucher->id_deals_voucher, $dataDeals, $deals_sub);
-                                            $voucher = $user_voucher;
-                                        }
-                                        else{
-                                            // price or point = null
-                                            $user_voucher = $this->createVoucherUser($id_user, $deals_voucher->id_deals_voucher, $dataDeals, $deals_sub, 0);
-                                        }
-                                        if (!$user_voucher) {
-                                            DB::rollBack();
-                                            return response()->json([
-                                                'status'   => 'fail',
-                                                'messages' => ['Failed to save data.']
-                                            ]);
-                                        }
-                                        // keep user voucher in order to return in response
-                                        array_push($user_voucher_array, $user_voucher);
+		                                        $deals_voucher = DealsVoucher::create([
+		                                            'id_deals'             => $id_deals,
+		                                            'id_deals_subscription'=> $deals_sub->id_deals_subscription,
+		                                            'voucher_code'         => strtoupper($code),
+		                                            'deals_voucher_status' => 'Sent',
+		                                        ]);
+		                                        if (!$deals_voucher) {
+		                                            DB::rollBack();
+		                                            return response()->json([
+		                                                'status'   => 'fail',
+		                                                'messages' => ['Failed to save data.']
+		                                            ]);
+		                                        }
 
-                                    }   // end of for
+		                                        // create user voucher
+		                                        // give price to user voucher only if first voucher
+		                                        if ($key==0 && $i==1) {
+		                                            $user_voucher = $this->createVoucherUser($id_user, $deals_voucher->id_deals_voucher, $dataDeals, $deals_sub);
+		                                            $voucher = $user_voucher;
+		                                        }
+		                                        else{
+		                                            // price or point = null
+		                                            $user_voucher = $this->createVoucherUser($id_user, $deals_voucher->id_deals_voucher, $dataDeals, $deals_sub, 0);
+		                                        }
+		                                        if (!$user_voucher) {
+		                                            DB::rollBack();
+		                                            return response()->json([
+		                                                'status'   => 'fail',
+		                                                'messages' => ['Failed to save data.']
+		                                            ]);
+		                                        }
+		                                        // keep user voucher in order to return in response
+		                                        array_push($user_voucher_array, $user_voucher);
 
-                                }   // end of foreach
+		                                    }   // end of for
 
-                                // update deals total claim
-                                $updateDeals = $this->updateDeals($dataDeals);
-                            }
-                            else {
-                                DB::rollBack();
-                                return response()->json([
-                                    'status'   => 'fail',
-                                    'messages' => ['Voucher is runs out.']
-                                ]);
-                            }
-                        }
-                        else{
-                            // CHECK TYPE VOUCHER
-                            // IF LIST VOUCHER, GET 1 FROM DEALS VOUCHER
-                            if ($dataDeals->deals_voucher_type == "List Vouchers") {
-                                $voucher = $this->getVoucherFromTable($request->user(), $dataDeals);
+		                                }   // end of foreach
 
-                                if (!$voucher) {
-                                    DB::rollBack();
-                                    return response()->json([
-                                        'status'   => 'fail',
-                                        'messages' => ['Voucher is runs out.']
-                                    ]);
-                                }
-                            }
-                            // GENERATE VOUCHER CODE & ASSIGN
-                            else {
-                                $voucher = $this->getVoucherGenerate($request->user(), $dataDeals);
+		                                // update deals total claim
+		                                $updateDeals = $this->updateDeals($dataDeals);
+		                            }
+		                            else {
+		                                DB::rollBack();
+		                                return response()->json([
+		                                    'status'   => 'fail',
+		                                    'messages' => ['Voucher is runs out.']
+		                                ]);
+		                            }
+		                        }
+		                        else{
+		                            // CHECK TYPE VOUCHER
+		                            // IF LIST VOUCHER, GET 1 FROM DEALS VOUCHER
+		                            if ($dataDeals->deals_voucher_type == "List Vouchers") {
+		                                $voucher = $this->getVoucherFromTable($request->user(), $dataDeals);
 
-                                if (!$voucher) {
-                                    DB::rollBack();
-                                    return response()->json([
-                                        'status'   => 'fail',
-                                        'messages' => ['Voucher is runs out.']
-                                    ]);
-                                }
-                            }
-                        }
+		                                if (!$voucher) {
+		                                    DB::rollBack();
+		                                    return response()->json([
+		                                        'status'   => 'fail',
+		                                        'messages' => ['Voucher is runs out.']
+		                                    ]);
+		                                }
+		                            }
+		                            // GENERATE VOUCHER CODE & ASSIGN
+		                            else {
+		                                $voucher = $this->getVoucherGenerate($request->user(), $dataDeals);
 
-                        // UPDATE POINT
-                        if (!$this->updatePoint($voucher)) {
-                            DB::rollBack();
-                            return response()->json([
-                                'status'   => 'fail',
-                                'messages' => ['Proses pengambilan voucher gagal, silakan mencoba kembali']
-                            ]);
-                        }
+		                                if (!$voucher) {
+		                                    DB::rollBack();
+		                                    return response()->json([
+		                                        'status'   => 'fail',
+		                                        'messages' => ['Voucher is runs out.']
+		                                    ]);
+		                                }
+		                            }
+		                        }
 
-                        // dd($user_voucher_array);
-                        DB::commit();
+		                        // UPDATE POINT
+		                        if (!$this->updatePoint($voucher)) {
+		                            DB::rollBack();
+		                            return response()->json([
+		                                'status'   => 'fail',
+		                                'messages' => ['Proses pengambilan voucher gagal, silakan mencoba kembali']
+		                            ]);
+		                        }
 
-                        // assign deals subscription vouchers to response
-                        if ($dataDeals->deals_type == "Subscription") {
-                            $voucher = $user_voucher_array;
-                        }
+		                        // dd($user_voucher_array);
+		                        DB::commit();
 
-                        // if(isset($voucher['deals_voucher']['id_deals'])){
-                        //     $voucher['deals'] = Deal::find($voucher['deals_voucher']['id_deals']);
-                        // }
-                        if(\Module::collections()->has('Autocrm')) {
-                            $phone=$request->user()->phone;
-                            $autocrm = app($this->autocrm)->SendAutoCRM('Claim Free Deals Success', $phone,
-                                [
-                                    'claimed_at'       => $voucher['claimed_at'],
-                                    'deals_title'      => $dataDeals->deals_title,
-                                    'id_deals_user'    => $voucher['id_deals_user'],
-                                    'id_deals'         => $dataDeals->id_deals,
-                                    'id_brand'         => $dataDeals->id_brand
-                                ]
-                            );
-                        }
-                        $return=[
-                            'id_deals_user'=>$voucher['id_deals_user'],
-                            'id_deals_voucher'=>$voucher['id_deals_voucher'],
-                            'paid_status'=>$voucher['paid_status'],
-                            'webview_later'=>env('API_URL').'api/webview/mydeals/'.$voucher['id_deals_user']
-                        ];
-                        return response()->json(MyHelper::checkCreate($return));
-                        }
-                        else {
-                            DB::rollBack();
-                            return response()->json([
-                                'status'   => 'fail',
-                                'messages' => ['You have participated.']
-                            ]);
-                        }
-                    }
-                    else {
-                        DB::rollBack();
-                        return response()->json([
-                            'status'   => 'fail',
-                            'messages' => ['Your point is not enough.']
-                        ]);
-                    }
-                }
-            }
-            else {
-                DB::rollBack();
-                return response()->json([
-                    'status' => 'fail',
-                    'messages' => ['Date valid '.date('d F Y', strtotime($dataDeals->deals_start)).' until '.date('d F Y', strtotime($dataDeals->deals_end))]
-                ]);
-            }
+		                        // assign deals subscription vouchers to response
+		                        if ($dataDeals->deals_type == "Subscription") {
+		                            $voucher = $user_voucher_array;
+		                        }
 
-        }
+		                        // if(isset($voucher['deals_voucher']['id_deals'])){
+		                        //     $voucher['deals'] = Deal::find($voucher['deals_voucher']['id_deals']);
+		                        // }
+		                        if(\Module::collections()->has('Autocrm')) {
+		                            $phone=$request->user()->phone;
+		                            $autocrm = app($this->autocrm)->SendAutoCRM('Claim Free Deals Success', $phone,
+		                                [
+		                                    'claimed_at'       => $voucher['claimed_at'],
+		                                    'deals_title'      => $dataDeals->deals_title,
+		                                    'id_deals_user'    => $voucher['id_deals_user'],
+		                                    'id_deals'         => $dataDeals->id_deals,
+		                                    'id_brand'         => $dataDeals->id_brand
+		                                ]
+		                            );
+		                        }
+		                        $return=[
+		                            'id_deals_user'=>$voucher['id_deals_user'],
+		                            'id_deals_voucher'=>$voucher['id_deals_voucher'],
+		                            'paid_status'=>$voucher['paid_status'],
+		                            'webview_later'=>env('API_URL').'api/webview/mydeals/'.$voucher['id_deals_user']
+		                        ];
+		                        return response()->json(MyHelper::checkCreate($return));
+	                        }
+	                        else {
+	                            DB::rollBack();
+	                            return response()->json([
+	                                'status'   => 'fail',
+	                                'messages' => ['You have participated.']
+	                            ]);
+	                        }
+	                    }
+	                    else {
+	                        DB::rollBack();
+	                        return response()->json([
+	                            'status'   => 'fail',
+	                            'messages' => ['Your point is not enough.']
+	                        ]);
+	                    }
+	                }
+	            }
+	            else {
+	                DB::rollBack();
+	                return response()->json([
+	                    'status' => 'fail',
+	                    'messages' => ['Date valid '.date('d F Y', strtotime($dataDeals->deals_start)).' until '.date('d F Y', strtotime($dataDeals->deals_end))]
+	                ]);
+	            }
+
+	        }
+    		
+    	} catch (\Exception $e) {
+    		\Log::info($e);
+    		return response()->json([
+	            'status'   => 'fail',
+	            'messages' => ['Deals claim failed.']
+	        ]);
+    	}
     }
 
     /* CHEK USER ALREADY CLAIMED */
     function checkUserClaimed($user, $id_deals, $deleteIfFalse = false) {
-        $claimed = DealsUser::join('deals_vouchers', 'deals_vouchers.id_deals_voucher', '=', 'deals_users.id_deals_voucher')->where('id_user', $user->id)->where('deals_vouchers.id_deals', $id_deals)->where('paid_status', '<>', 'Cancelled')->get();
+        $claimed = DealsUser::join('deals_vouchers', 'deals_vouchers.id_deals_voucher', '=', 'deals_users.id_deals_voucher')->where('id_user', $user->id)->where('deals_vouchers.id_deals', $id_deals)->where('paid_status', '<>', 'Cancelled')->count();
 
         $checkLimit = Deal::where('id_deals', $id_deals)->first();
         if (empty($checkLimit)) {
@@ -262,17 +273,9 @@ class ApiDealsClaim extends Controller
 
         if ($checkLimit['user_limit'] != 0) {
             if (!empty($claimed)) {
-                if (count($claimed) >= $checkLimit['user_limit']) {
+                if ($claimed >= $checkLimit['user_limit']) {
                     return false;
                 }
-
-            	if ( (count($claimed)+1) == $checkLimit['user_limit']) {
-            		$dataUserLimit = [
-            			'id_user' 	=> $user->id,
-            			'id_deals'	=> $id_deals
-            		];
-            		$saveDealsLimit = DealsUserLimit::create($dataUserLimit);
-            	}
             }
         } elseif ($deleteIfFalse) {
             $delete = DealsUserLimit::where([
@@ -348,7 +351,29 @@ class ApiDealsClaim extends Controller
 
     /* UPDATE DEALS */
     function updateDeals($dataDeals) {
-        $update = Deal::where('id_deals', $dataDeals->id_deals)->update(['deals_total_claimed' => $dataDeals->deals_total_claimed + 1]);
+    	$total_claimed = DealsVoucher::where('deals_vouchers.id_deals', $dataDeals->id_deals)
+	        			->join('deals_users', 'deals_users.id_deals_voucher','=','deals_vouchers.id_deals_voucher')
+	        			->where('paid_status', '!=', 'Cancelled')
+	        			->count();
+
+	    if ($dataDeals->user_limit != 0) {
+            if (!empty($total_claimed)) {
+                if ($total_claimed >= $dataDeals->user_limit) {
+                    return false;
+                }
+
+            	if (($total_claimed+1) == $dataDeals->user_limit) {
+            		$dataUserLimit = [
+            			'id_user' 	=> Auth::id(),
+            			'id_deals'	=> $dataDeals->id_deals
+            		];
+            		$saveDealsLimit = DealsUserLimit::create($dataUserLimit);
+            	}
+            }
+        }
+
+        $update = Deal::where('id_deals', $dataDeals->id_deals)->update(['deals_total_claimed' => $total_claimed + 1]);
+
         return $update;
 
     }
