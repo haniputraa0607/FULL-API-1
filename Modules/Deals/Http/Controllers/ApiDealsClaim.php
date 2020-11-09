@@ -353,7 +353,8 @@ class ApiDealsClaim extends Controller
     function updateDeals($dataDeals) {
     	$total_claimed = DealsVoucher::where('deals_vouchers.id_deals', $dataDeals->id_deals)
 	        			->join('deals_users', 'deals_users.id_deals_voucher','=','deals_vouchers.id_deals_voucher')
-	        			->where('paid_status', '!=', 'Cancelled')
+                        ->where('paid_status', '!=', 'Cancelled')
+                        ->where('id_user', Auth::id())
 	        			->count();
 
 	    if ($dataDeals->user_limit != 0) {
@@ -361,14 +362,15 @@ class ApiDealsClaim extends Controller
                 if ($total_claimed >= $dataDeals->user_limit) {
                     return false;
                 }
+            	
+            }
 
-            	if (($total_claimed+1) == $dataDeals->user_limit) {
-            		$dataUserLimit = [
-            			'id_user' 	=> Auth::id(),
-            			'id_deals'	=> $dataDeals->id_deals
-            		];
-            		$saveDealsLimit = DealsUserLimit::create($dataUserLimit);
-            	}
+            if (($total_claimed+1) == $dataDeals->user_limit) {
+                $dataUserLimit = [
+                    'id_user' 	=> Auth::id(),
+                    'id_deals'	=> $dataDeals->id_deals
+                ];
+                $saveDealsLimit = DealsUserLimit::create($dataUserLimit);
             }
         }
 
