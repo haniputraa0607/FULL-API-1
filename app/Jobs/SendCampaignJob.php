@@ -357,22 +357,26 @@ class SendCampaignJob implements ShouldQueue
 
                     if (!empty($deviceToken)) {
                         if (isset($deviceToken['token']) && !empty($deviceToken['token'])) {
-                            $push = PushNotificationHelper::sendPush($deviceToken['token'], $subject, $content, $image, $dataOptional);
+                            try{
+                                $push = PushNotificationHelper::sendPush($deviceToken['token'], $subject, $content, $image, $dataOptional);
 
-                            if (isset($push['success']) && $push['success'] > 0) {
-                                $push = [];
-                                $push['id_campaign'] = $campaign['id_campaign'];
-                                $push['push_sent_to'] = $receipient;
-                                $push['push_sent_subject'] = $subject;
-                                $push['push_sent_content'] = $content;
-                                $push['push_sent_send_at'] = date('Y-m-d H:i:s', strtotime("+ 5 minutes"));
+                                if (isset($push['success']) && $push['success'] > 0) {
+                                    $push = [];
+                                    $push['id_campaign'] = $campaign['id_campaign'];
+                                    $push['push_sent_to'] = $receipient;
+                                    $push['push_sent_subject'] = $subject;
+                                    $push['push_sent_content'] = $content;
+                                    $push['push_sent_send_at'] = date('Y-m-d H:i:s', strtotime("+ 5 minutes"));
 
-                                $logs = CampaignPushSent::create($push);
-                                DB::table('campaigns')
-                                    ->where('id_campaign', $campaign['id_campaign'])
-                                    ->update([
-                                        'campaign_push_count_sent' => DB::raw('campaign_push_count_sent + 1')
-                                    ]);
+                                    $logs = CampaignPushSent::create($push);
+                                    DB::table('campaigns')
+                                        ->where('id_campaign', $campaign['id_campaign'])
+                                        ->update([
+                                            'campaign_push_count_sent' => DB::raw('campaign_push_count_sent + 1')
+                                        ]);
+                                }
+                            }catch(\Exception $e){
+                                \Log::error($e);
                             }
                         }
                     }
