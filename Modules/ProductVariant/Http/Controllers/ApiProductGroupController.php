@@ -571,6 +571,7 @@ class ApiProductGroupController extends Controller
             }
             unset($product['id_product_category']);
             unset($product['products']);
+            $result[$id_product_category]['products'][] = $product;
             foreach ($product['promo_category'] as $key => $value) {
                 $id_product_promo_category = $value['id_product_promo_category'];
                 if(!isset($result['promo'.$id_product_promo_category]['product_category_name'])){
@@ -584,7 +585,6 @@ class ApiProductGroupController extends Controller
                 $product['position'] = $value['pivot']['position'];
                 $result['promo'.$id_product_promo_category]['products'][] = $product;
             }
-            $result[$id_product_category]['products'][] = $product;
         }
         foreach ($result as $key => $value) {
             usort($result[$key]['products'],function($a,$b){
