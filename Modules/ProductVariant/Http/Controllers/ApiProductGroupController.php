@@ -487,7 +487,7 @@ class ApiProductGroupController extends Controller
         if (!($post['id_outlet'] ?? false)) {
             return MyHelper::checkGet([]);
         }
-        $q1 = ProductGroup::select(\DB::raw('product_groups.id_product_group,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,product_groups.id_product_category,GROUP_CONCAT(product_stock_status) as product_stock_status'))
+        $q1 = ProductGroup::select(\DB::raw('product_groups.id_product_group, product_groups.product_group_position as position,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,product_groups.id_product_category,GROUP_CONCAT(product_stock_status) as product_stock_status'))
                     ->join('products','products.id_product_group','=','product_groups.id_product_group')
                     // join product_price (product_outlet pivot and product price data)
                     ->join('product_prices','product_prices.id_product','=','products.id_product')
@@ -504,16 +504,12 @@ class ApiProductGroupController extends Controller
                     ->where('product_prices.product_status','=','Active')
                     ->whereNotNull('product_prices.product_price')
                     ->whereNotNull('product_groups.id_product_category')
-                    // order by position
-                    ->orderByRaw('product_groups.product_group_position = 0')
-                    ->orderBy('product_groups.product_group_position')
-                    ->orderBy('product_groups.id_product_group')
                     // group by product_groups
                     ->groupBy('product_groups.id_product_group')
                     ->with(['promo_category'=>function($query){
                         $query->select('product_group_product_promo_categories.id_product_promo_category');
                     }]);
-        $q2 = ProductGroup::select(\DB::raw('product_groups.id_product_group,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,product_groups.id_product_category,GROUP_CONCAT(product_stock_status) as product_stock_status'))
+        $q2 = ProductGroup::select(\DB::raw('product_groups.id_product_group, product_groups.product_group_position as position,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,product_groups.id_product_category,GROUP_CONCAT(product_stock_status) as product_stock_status'))
                     ->join('products','products.id_product_group','=','product_groups.id_product_group')
                     // join product_price (product_outlet pivot and product price data)
                     ->join('product_prices','product_prices.id_product','=','products.id_product')
@@ -531,10 +527,6 @@ class ApiProductGroupController extends Controller
                     ->where('product_prices.product_status','=','Active')
                     ->whereNotNull('product_prices.product_price')
                     ->whereNotNull('product_groups.id_product_category')
-                    // order by position
-                    ->orderByRaw('product_groups.product_group_position = 0')
-                    ->orderBy('product_groups.product_group_position')
-                    ->orderBy('product_groups.id_product_group')
                     // group by product_groups
                     ->groupBy('product_groups.id_product_group')
                     ->with(['promo_category'=>function($query){
@@ -595,11 +587,9 @@ class ApiProductGroupController extends Controller
             $result[$id_product_category]['products'][] = $product;
         }
         foreach ($result as $key => $value) {
-            if(!is_numeric($key)){
-                usort($result[$key]['products'],function($a,$b){
-                    return $a['position'] <=> $b['position'];
-                });
-            }
+            usort($result[$key]['products'],function($a,$b){
+                return (($a['position'] ?: 999) <=> ($b['position'] ?: 999)) ? : $a['id_product_group'] <=> $b['id_product_group'];
+            });
         }
         usort($result, function($a,$b){
             return ($b['product_category_order']*-1) <=> ($a['product_category_order']*-1);
