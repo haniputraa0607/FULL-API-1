@@ -211,7 +211,7 @@ class ApiDealsClaimPay extends Controller
 	                                DB::rollBack();
 	                                return response()->json([
 	                                    'status'   => 'fail',
-	                                    'messages' => ['Voucher is runs out.']
+	                                    'messages' => ['This voucher is no longer available.']
 	                                ]);
 	                            }
 	                        }
@@ -225,7 +225,7 @@ class ApiDealsClaimPay extends Controller
 	                                    DB::rollBack();
 	                                    return response()->json([
 	                                        'status'   => 'fail',
-	                                        'messages' => ['Voucher is runs out.']
+	                                        'messages' => ['This voucher is no longer available.']
 	                                    ]);
 	                                }
 	                            }
@@ -237,7 +237,7 @@ class ApiDealsClaimPay extends Controller
 	                                    DB::rollBack();
 	                                    return response()->json([
 	                                        'status'   => 'fail',
-	                                        'messages' => ['Voucher is runs out.']
+	                                        'messages' => ['This voucher is no longer available.']
 	                                    ]);
 	                                }
 	                            }
