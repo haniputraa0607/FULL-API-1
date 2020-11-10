@@ -487,7 +487,7 @@ class ApiProductGroupController extends Controller
         if (!($post['id_outlet'] ?? false)) {
             return MyHelper::checkGet([]);
         }
-        $data = ProductGroup::select(\DB::raw('product_groups.id_product_group,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,product_groups.id_product_category,GROUP_CONCAT(product_stock_status) as product_stock_status'))
+        $q1 = ProductGroup::select(\DB::raw('product_groups.id_product_group, product_groups.product_group_position as position,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,product_groups.id_product_category,GROUP_CONCAT(product_stock_status) as product_stock_status'))
                     ->join('products','products.id_product_group','=','product_groups.id_product_group')
                     // join product_price (product_outlet pivot and product price data)
                     ->join('product_prices','product_prices.id_product','=','products.id_product')
@@ -500,25 +500,39 @@ class ApiProductGroupController extends Controller
                     ->where('brand_outlet.id_outlet','=',$post['id_outlet'])
                     ->join('brand_outlet','brand_outlet.id_brand','=','brand_product.id_brand')
                     // where active
-                    ->where(function($query){
-                        $query->where('product_prices.product_visibility','=','Visible')
-                                ->orWhere(function($q){
-                                    $q->whereNull('product_prices.product_visibility')
-                                    ->where('products.product_visibility', 'Visible');
-                                });
-                    })
+                    ->where('product_prices.product_visibility','=','Visible')
                     ->where('product_prices.product_status','=','Active')
                     ->whereNotNull('product_prices.product_price')
                     ->whereNotNull('product_groups.id_product_category')
-                    // order by position
-                    ->orderByRaw('product_groups.product_group_position = 0')
-                    ->orderBy('product_groups.product_group_position')
-                    ->orderBy('product_groups.id_product_group')
                     // group by product_groups
                     ->groupBy('product_groups.id_product_group')
                     ->with(['promo_category'=>function($query){
                         $query->select('product_group_product_promo_categories.id_product_promo_category');
                     }]);
+        $q2 = ProductGroup::select(\DB::raw('product_groups.id_product_group, product_groups.product_group_position as position,product_groups.product_group_code,product_groups.product_group_name,product_groups.product_group_description,product_groups.product_group_photo,min(product_price) as product_price,product_groups.id_product_category,GROUP_CONCAT(product_stock_status) as product_stock_status'))
+                    ->join('products','products.id_product_group','=','product_groups.id_product_group')
+                    // join product_price (product_outlet pivot and product price data)
+                    ->join('product_prices','product_prices.id_product','=','products.id_product')
+                    ->where('product_prices.id_outlet','=',$post['id_outlet']) // filter outlet
+                    ->join('product_product_variants','products.id_product','=','product_product_variants.id_product')
+                    ->join('product_variants','product_variants.id_product_variant','=','product_product_variants.id_product_variant')
+                    ->join('product_variants as parents','product_variants.parent','=','parents.id_product_variant')
+                    ->join('brand_product','brand_product.id_product','=','product_product_variants.id_product')
+                    // brand produk ada di outlet
+                    ->where('brand_outlet.id_outlet','=',$post['id_outlet'])
+                    ->join('brand_outlet','brand_outlet.id_brand','=','brand_product.id_brand')
+                    // where active
+                    ->whereNull('product_prices.product_visibility')
+                    ->where('products.product_visibility', 'Visible')
+                    ->where('product_prices.product_status','=','Active')
+                    ->whereNotNull('product_prices.product_price')
+                    ->whereNotNull('product_groups.id_product_category')
+                    // group by product_groups
+                    ->groupBy('product_groups.id_product_group')
+                    ->with(['promo_category'=>function($query){
+                        $query->select('product_group_product_promo_categories.id_product_promo_category');
+                    }]);
+        $data = $q1->unionAll($q2);
                     // ->get();
         if (isset($post['promo_code']) || isset($post['id_deals_user'])) {
         	$data = $data->with('products');
@@ -557,6 +571,7 @@ class ApiProductGroupController extends Controller
             }
             unset($product['id_product_category']);
             unset($product['products']);
+            $result[$id_product_category]['products'][] = $product;
             foreach ($product['promo_category'] as $key => $value) {
                 $id_product_promo_category = $value['id_product_promo_category'];
                 if(!isset($result['promo'.$id_product_promo_category]['product_category_name'])){
@@ -570,14 +585,11 @@ class ApiProductGroupController extends Controller
                 $product['position'] = $value['pivot']['position'];
                 $result['promo'.$id_product_promo_category]['products'][] = $product;
             }
-            $result[$id_product_category]['products'][] = $product;
         }
         foreach ($result as $key => $value) {
-            if(!is_numeric($key)){
-                usort($result[$key]['products'],function($a,$b){
-                    return $a['position'] <=> $b['position'];
-                });
-            }
+            usort($result[$key]['products'],function($a,$b){
+                return (($a['position'] ?: 999) <=> ($b['position'] ?: 999)) ? : $a['id_product_group'] <=> $b['id_product_group'];
+            });
         }
         usort($result, function($a,$b){
             return ($b['product_category_order']*-1) <=> ($a['product_category_order']*-1);

@@ -154,7 +154,7 @@ class ApiDealsClaim extends Controller
 		                                DB::rollBack();
 		                                return response()->json([
 		                                    'status'   => 'fail',
-		                                    'messages' => ['Voucher is runs out.']
+		                                    'messages' => ['This voucher is no longer available.']
 		                                ]);
 		                            }
 		                        }
@@ -168,7 +168,7 @@ class ApiDealsClaim extends Controller
 		                                    DB::rollBack();
 		                                    return response()->json([
 		                                        'status'   => 'fail',
-		                                        'messages' => ['Voucher is runs out.']
+		                                        'messages' => ['This voucher is no longer available.']
 		                                    ]);
 		                                }
 		                            }
@@ -180,7 +180,7 @@ class ApiDealsClaim extends Controller
 		                                    DB::rollBack();
 		                                    return response()->json([
 		                                        'status'   => 'fail',
-		                                        'messages' => ['Voucher is runs out.']
+		                                        'messages' => ['This voucher is no longer available.']
 		                                    ]);
 		                                }
 		                            }
@@ -374,7 +374,12 @@ class ApiDealsClaim extends Controller
             }
         }
 
-        $update = Deal::where('id_deals', $dataDeals->id_deals)->update(['deals_total_claimed' => $total_claimed + 1]);
+        $total_claimed_deals = DealsVoucher::where('deals_vouchers.id_deals', $dataDeals->id_deals)
+	        			->join('deals_users', 'deals_users.id_deals_voucher','=','deals_vouchers.id_deals_voucher')
+                        ->where('paid_status', '!=', 'Cancelled')
+	        			->count();
+
+        $update = Deal::where('id_deals', $dataDeals->id_deals)->update(['deals_total_claimed' => $total_claimed_deals + 1]);
 
         return $update;
 
