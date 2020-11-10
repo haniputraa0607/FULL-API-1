@@ -393,7 +393,7 @@ class ApiFraud extends Controller
                     $dt = [
                         'id_user' => $user['id'],
                         'device_id' => $device['device_id'],
-                        'device_type' => $device['device_type'],
+                        'device_type' => (strtolower($device['device_type']) == 'ios' ? 'IOS' : $device['device_type']),
                         'fraud_setting_parameter_detail' => $fraudSetting['parameter_detail'],
                         'fraud_setting_forward_admin_status' => $fraudSetting['forward_admin_status'],
                         'fraud_setting_auto_suspend_status' => $fraudSetting['auto_suspend_status'],
