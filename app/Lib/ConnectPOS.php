@@ -181,7 +181,7 @@ class ConnectPOS{
 			foreach ($trxData->products as $key => $product) {
 				// $tax = (10/100) * $product->pivot->transaction_product_subtotal;
 				$tax = 0;
-				$grossAmount = $product->pivot->transaction_product_subtotal - $product->pivot->transaction_modifier_subtotal;
+				$grossAmount = $product->pivot->transaction_product_subtotal - ($product->pivot->transaction_modifier_subtotal * $product->pivot->transaction_product_qty);
 				$body['item'][] = [
 					"number"=> $key+1, // key+1
 					"menuId"=> $product->product_group->product_group_code, // product code
@@ -204,6 +204,9 @@ class ConnectPOS{
 				if ($trx_modifier[$product->pivot->id_transaction_product] ?? false) {
 					foreach ($trx_modifier[$product->pivot->id_transaction_product] as $modifier) {
 						$modifier['number'] = $key+1;
+						$modifier['qty'] = $modifier['qty'] * $product->pivot->transaction_product_qty;
+						$modifier['grossAmount'] = $modifier['grossAmount'] * $product->pivot->transaction_product_qty;
+						$modifier['netAmount'] = $modifier['netAmount'] * $product->pivot->transaction_product_qty;
 						$body['item'][] = $modifier;
 						$last = $key+1;
 					}
