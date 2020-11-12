@@ -156,34 +156,11 @@ class ConnectPOS{
 				'item' => []
 			];
 			$last = 0;
-			foreach ($trxData->products as $key => $product) {
-				// $tax = (10/100) * $product->pivot->transaction_product_subtotal;
-				$tax = 0;
-				$body['item'][] = [
-					"number"=> $key+1, // key+1
-					"menuId"=> $product->product_group->product_group_code, // product code
-					"sapMatnr"=> $product->product_code, // product code
-					"categoryId"=> $product->category_id_pos, // ga ada / 0
-					"qty"=> $product->pivot->transaction_product_qty, // qty
-					"price"=> $product->pivot->transaction_product_price, // item price/ item
-					"discount"=> $product->pivot->transaction_product_discount, // udah * qty
-					"grossAmount"=> $product->pivot->transaction_product_subtotal - $product->pivot->transaction_modifier_subtotal, //grsndtotal /item
-					"netAmount"=> $product->pivot->transaction_product_subtotal - $tax, // potong tAX 10%
-					"tax"=> $tax, //10%
-					"type"=> $product->product_variants[1]->product_variant_code == 'general_type'?null:$product->product_variants[1]->product_variant_code, //code variant /null
-					"size"=> $product->product_variants[0]->product_variant_code == 'general_size'?null:$product->product_variants[0]->product_variant_code, // code variant /null
-					'note' => $product->pivot->transaction_product_note,
-					"promoNumber"=> $promoNumber, //kode voucher //null
-					"promoType"=> $appliedPromo?"5":"", //hardcode //null
-					"status"=> "ACTIVE" // hardcode
-				];
-				$last = $key+1;
-			}
+			$trx_modifier = [];
 			foreach ($trxData->modifiers as $key => $modifier) {
 				// $tax = (10/100) * $product->pivot->transaction_product_subtotal;
 				$tax = 0;
-				$body['item'][] = [
-					"number"=> $key+1+$last, // key+1
+				$trx_modifier[$modifier->id_transaction_product][] = [
 					"menuId"=> $modifier->product_modifier->menu_id_pos, // product code
 					"sapMatnr"=> $modifier->code, // product code
 					"categoryId"=> $modifier->product_modifier->category_id_pos, // ga ada / 0
@@ -200,6 +177,37 @@ class ConnectPOS{
 					"promoType"=> $appliedPromo?"5":null, //hardcode //null
 					"status"=> "ACTIVE" // hardcode
 				];
+			}
+			foreach ($trxData->products as $key => $product) {
+				// $tax = (10/100) * $product->pivot->transaction_product_subtotal;
+				$tax = 0;
+				$grossAmount = $product->pivot->transaction_product_subtotal - $product->pivot->transaction_modifier_subtotal;
+				$body['item'][] = [
+					"number"=> $key+1, // key+1
+					"menuId"=> $product->product_group->product_group_code, // product code
+					"sapMatnr"=> $product->product_code, // product code
+					"categoryId"=> $product->category_id_pos, // ga ada / 0
+					"qty"=> $product->pivot->transaction_product_qty, // qty
+					"price"=> $product->pivot->transaction_product_price, // item price/ item
+					"discount"=> $product->pivot->transaction_product_discount, // udah * qty
+					"grossAmount"=> $grossAmount, //grsndtotal /item
+					"netAmount"=> $grossAmount - $tax, // potong tAX 10%
+					"tax"=> $tax, //10%
+					"type"=> $product->product_variants[1]->product_variant_code == 'general_type'?null:$product->product_variants[1]->product_variant_code, //code variant /null
+					"size"=> $product->product_variants[0]->product_variant_code == 'general_size'?null:$product->product_variants[0]->product_variant_code, // code variant /null
+					'note' => $product->pivot->transaction_product_note,
+					"promoNumber"=> $promoNumber, //kode voucher //null
+					"promoType"=> $appliedPromo?"5":"", //hardcode //null
+					"status"=> "ACTIVE" // hardcode
+				];
+				$last = $key+1;
+				if ($trx_modifier[$product->pivot->id_transaction_product] ?? false) {
+					foreach ($trx_modifier[$product->pivot->id_transaction_product] as $modifier) {
+						$modifier['number'] = $key+1;
+						$body['item'][] = $modifier;
+						$last = $key+1;
+					}
+				}
 			}
 			$payment = [];
 		        //cek di multi payment
