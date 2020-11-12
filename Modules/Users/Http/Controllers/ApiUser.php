@@ -74,7 +74,7 @@ class ApiUser extends Controller
             $order_field_apps = $order_field;
             $order_field_be = $order_field;
         }
-
+        try {
         $queryUser = DB::table(env('DB_DATABASE').'.users as t_users')->select('t_users.name', 't_users.phone', 't_users.email');
         $queryApps = DB::table(env('DB2_DATABASE').'.log_activities_apps as t_log_activities')
             ->select('t_log_activities.*');
@@ -198,7 +198,12 @@ class ApiUser extends Controller
             $resultApps = [];
             $resultBe = [];
         }
-
+        } catch (\Exception $e) {
+            $resultCountApps = 0;
+            $resultCountBe = 0;
+            $resultApps = [];
+            $resultBe = [];
+        }
         if($resultApps || $resultBe){
             $response = ['status'	=> 'success',
                 'result'	=> [
@@ -2569,83 +2574,88 @@ class ApiUser extends Controller
             $rule = 'and';
         }
 
+        try {
 
-        $queryApps = LogActivitiesApps::where('phone','=',$post['phone'])
-            ->orderBy('id_log_activities_apps','desc')
-            ->select('id_log_activities_apps', 'response_status', 'ip', 'created_at', 'subject', 'useragent', 'module');
-        $queryBE = LogActivitiesBE::where('phone','=',$post['phone'])
-            ->orderBy('id_log_activities_be','desc')
-            ->select('id_log_activities_be', 'response_status', 'ip', 'created_at', 'subject', 'useragent', 'module');
+            $queryApps = LogActivitiesApps::where('phone','=',$post['phone'])
+                ->orderBy('id_log_activities_apps','desc')
+                ->select('id_log_activities_apps', 'response_status', 'ip', 'created_at', 'subject', 'useragent', 'module');
+            $queryBE = LogActivitiesBE::where('phone','=',$post['phone'])
+                ->orderBy('id_log_activities_be','desc')
+                ->select('id_log_activities_be', 'response_status', 'ip', 'created_at', 'subject', 'useragent', 'module');
 
-        if(isset($post['date_start'])){
-            $queryApps = $queryApps->where('created_at', '>=', date('Y-m-d H:i:00', strtotime($post['date_start'])));
-            $queryBE = $queryBE->where('created_at', '>=', date('Y-m-d H:i:00', strtotime($post['date_start'])));
-        }
-        if(isset($post['date_end'])){
-            $queryApps = $queryApps->where('created_at', '<=', date('Y-m-d H:i:00', strtotime($post['date_end'])));
-            $queryBE = $queryBE->where('created_at', '<=', date('Y-m-d H:i:00', strtotime($post['date_end'])));
-        }
-        if(isset($post['conditions'])){
-            $data = ['post' => $post, 'rule' => $rule];
-            $queryApps->where(function ($query) use ($data) {
-                foreach($data['post']['conditions'] as $condition){
-                    if(isset($condition['subject'])){
-                        if($condition['operator'] != '=' && $condition['operator'] != 'like'){
-                            $condition['parameter'] = $condition['operator'];
-                        }
-
-                        if($condition['operator'] == 'like'){
-                            if($data['rule'] == 'and'){
-                                $query = $query->where($condition['subject'],'LIKE','%'.$condition['parameter'].'%');
-                            } else {
-                                $query = $query->orWhere($condition['subject'],'LIKE', '%'.$condition['parameter'].'%');
+            if(isset($post['date_start'])){
+                $queryApps = $queryApps->where('created_at', '>=', date('Y-m-d H:i:00', strtotime($post['date_start'])));
+                $queryBE = $queryBE->where('created_at', '>=', date('Y-m-d H:i:00', strtotime($post['date_start'])));
+            }
+            if(isset($post['date_end'])){
+                $queryApps = $queryApps->where('created_at', '<=', date('Y-m-d H:i:00', strtotime($post['date_end'])));
+                $queryBE = $queryBE->where('created_at', '<=', date('Y-m-d H:i:00', strtotime($post['date_end'])));
+            }
+            if(isset($post['conditions'])){
+                $data = ['post' => $post, 'rule' => $rule];
+                $queryApps->where(function ($query) use ($data) {
+                    foreach($data['post']['conditions'] as $condition){
+                        if(isset($condition['subject'])){
+                            if($condition['operator'] != '=' && $condition['operator'] != 'like'){
+                                $condition['parameter'] = $condition['operator'];
                             }
-                        }else{
-                            if($data['rule'] == 'and'){
-                                $query = $query->where($condition['subject'],'=',$condition['parameter']);
-                            } else {
-                                $query = $query->orWhere($condition['subject'],'=',$condition['parameter']);
-                            }
-                        }
-                    }
-                }
-            });
 
-            $queryBE->where(function ($query) use ($data) {
-                foreach($data['post']['conditions'] as $condition){
-                    if(isset($condition['subject'])){
-                        if($condition['operator'] != '=' && $condition['operator'] != 'like'){
-                            $condition['parameter'] = $condition['operator'];
-                        }
-
-                        if($condition['operator'] == 'like'){
-                            if($data['rule'] == 'and'){
-                                $query = $query->where($condition['subject'],'LIKE','%'.$condition['parameter'].'%');
-                            } else {
-                                $query = $query->orWhere($condition['subject'],'LIKE', '%'.$condition['parameter'].'%');
-                            }
-                        }else{
-                            if($data['rule'] == 'and'){
-                                $query = $query->where($condition['subject'],'=',$condition['parameter']);
-                            } else {
-                                $query = $query->orWhere($condition['subject'],'=',$condition['parameter']);
+                            if($condition['operator'] == 'like'){
+                                if($data['rule'] == 'and'){
+                                    $query = $query->where($condition['subject'],'LIKE','%'.$condition['parameter'].'%');
+                                } else {
+                                    $query = $query->orWhere($condition['subject'],'LIKE', '%'.$condition['parameter'].'%');
+                                }
+                            }else{
+                                if($data['rule'] == 'and'){
+                                    $query = $query->where($condition['subject'],'=',$condition['parameter']);
+                                } else {
+                                    $query = $query->orWhere($condition['subject'],'=',$condition['parameter']);
+                                }
                             }
                         }
                     }
-                }
-            });
-        }
+                });
 
-        if(isset($post['pagination'])){
-            $queryApps = $queryApps->paginate($post['take']);
-            $queryBE = $queryBE->paginate($post['take']);
-        }else{
-            $queryApps = $queryApps->skip($skip)->take($take)
-                ->get()
-                ->toArray();
-            $queryBE = $queryBE->skip($skip)->take($take)
-                ->get()
-                ->toArray();
+                $queryBE->where(function ($query) use ($data) {
+                    foreach($data['post']['conditions'] as $condition){
+                        if(isset($condition['subject'])){
+                            if($condition['operator'] != '=' && $condition['operator'] != 'like'){
+                                $condition['parameter'] = $condition['operator'];
+                            }
+
+                            if($condition['operator'] == 'like'){
+                                if($data['rule'] == 'and'){
+                                    $query = $query->where($condition['subject'],'LIKE','%'.$condition['parameter'].'%');
+                                } else {
+                                    $query = $query->orWhere($condition['subject'],'LIKE', '%'.$condition['parameter'].'%');
+                                }
+                            }else{
+                                if($data['rule'] == 'and'){
+                                    $query = $query->where($condition['subject'],'=',$condition['parameter']);
+                                } else {
+                                    $query = $query->orWhere($condition['subject'],'=',$condition['parameter']);
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            if(isset($post['pagination'])){
+                $queryApps = $queryApps->paginate($post['take']);
+                $queryBE = $queryBE->paginate($post['take']);
+            }else{
+                $queryApps = $queryApps->skip($skip)->take($take)
+                    ->get()
+                    ->toArray();
+                $queryBE = $queryBE->skip($skip)->take($take)
+                    ->get()
+                    ->toArray();
+            }
+        } catch (\Exception $e){
+            $queryApps = [];
+            $queryBE = [];
         }
 
         if($queryApps || $queryBE){
@@ -2665,13 +2675,15 @@ class ApiUser extends Controller
     }
 
     public function detailLog($id, $log_type, Request $request){
-
-        if($log_type == 'apps'){
-            $log = LogActivitiesApps::where('id_log_activities_apps', $id)->first();
-        }else{
-            $log = LogActivitiesBE::where('id_log_activities_be', $id)->first();
+        try {
+            if($log_type == 'apps'){
+                $log = LogActivitiesApps::where('id_log_activities_apps', $id)->first();
+            }else{
+                $log = LogActivitiesBE::where('id_log_activities_be', $id)->first();
+            }            
+        } catch (\Exception $e) {
+            $log = [];
         }
-
         if($log){
             $log->user      = MyHelper::decrypt2019($log->user);
             $log->request   = MyHelper::decrypt2019($log->request);
