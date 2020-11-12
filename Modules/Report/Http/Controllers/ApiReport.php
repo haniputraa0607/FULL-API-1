@@ -263,7 +263,11 @@ class ApiReport extends Controller
         $log = [];
         $user = User::with('city.province', 'memberships')->where('phone', $id)->first();
         if($type == 'log'){
-            $dataType = LogActivitiesApps::where('phone', $id)->orderBy('id_log_activities_apps', 'DESC')->paginate(10)->toArray();
+            try {
+                $dataType = LogActivitiesApps::where('phone', $id)->orderBy('id_log_activities_apps', 'DESC')->paginate(10)->toArray();
+            } catch (\Exception $e) {
+                $dataType = [];
+            }
         }elseif($type == 'transactions'){
             $dataType = Transaction::where('id_user', $user->id)->orderBy('transaction_date', 'DESC')->paginate(10)->toArray();
         }elseif($type == 'point'){
