@@ -182,6 +182,13 @@ class ConnectPOS{
 				// $tax = (10/100) * $product->pivot->transaction_product_subtotal;
 				$tax = 0;
 				$grossAmount = $product->pivot->transaction_product_subtotal - ($product->pivot->transaction_modifier_subtotal * $product->pivot->transaction_product_qty);
+				$discountTotal = $product->pivot->transaction_product_discount;
+				
+				$modifierRatio = ($product->pivot->transaction_modifier_subtotal * $product->pivot->transaction_product_qty) / $product->pivot->transaction_product_subtotal;
+
+				$discountModifier = (int) ($modifierRatio * $discountTotal);
+				$discountProduct = $discountTotal - $discountModifier;
+
 				$body['item'][] = [
 					"number"=> $key+1, // key+1
 					"menuId"=> $product->product_group->product_group_code, // product code
@@ -189,7 +196,7 @@ class ConnectPOS{
 					"categoryId"=> $product->category_id_pos, // ga ada / 0
 					"qty"=> $product->pivot->transaction_product_qty, // qty
 					"price"=> $product->pivot->transaction_product_price, // item price/ item
-					"discount"=> $product->pivot->transaction_product_discount, // udah * qty
+					"discount"=> $discountProduct, // udah * qty
 					"grossAmount"=> $grossAmount, //grsndtotal /item
 					"netAmount"=> $grossAmount - $tax, // potong tAX 10%
 					"tax"=> $tax, //10%
@@ -202,8 +209,17 @@ class ConnectPOS{
 				];
 				$last = $key+1;
 				if ($trx_modifier[$product->pivot->id_transaction_product] ?? false) {
-					foreach ($trx_modifier[$product->pivot->id_transaction_product] as $modifier) {
+					$remainingDiscount = $discountModifier;
+					foreach ($trx_modifier[$product->pivot->id_transaction_product] as $index => $modifier) {
+						if ($index == count($trx_modifier[$product->pivot->id_transaction_product]) - 1) { //last
+							$appliedDiscount = $remainingDiscount;
+						} else {
+							$discountRatio = $modifier['grossAmount'] / $product->pivot->transaction_modifier_subtotal;
+							$appliedDiscount = (int) ($discountRatio * $discountModifier);
+							$remainingDiscount -= $appliedDiscount;
+						}
 						$modifier['number'] = $key+1;
+						$modifier['discount'] = $appliedDiscount;
 						$modifier['qty'] = $modifier['qty'] * $product->pivot->transaction_product_qty;
 						$modifier['grossAmount'] = $modifier['grossAmount'] * $product->pivot->transaction_product_qty;
 						$modifier['netAmount'] = $modifier['netAmount'] * $product->pivot->transaction_product_qty;
