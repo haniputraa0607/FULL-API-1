@@ -192,7 +192,7 @@ class ConnectPOS{
 				$grossAmount -= $discountProduct;
 
 				$body['item'][] = [
-					"number"=> $key+1, // key+1
+					"number"=> $last+1, // key+1
 					"menuId"=> $product->product_group->product_group_code, // product code
 					"sapMatnr"=> $product->product_code, // product code
 					"categoryId"=> $product->category_id_pos, // ga ada / 0
@@ -209,7 +209,7 @@ class ConnectPOS{
 					"promoType"=> $appliedPromo?"5":"", //hardcode //null
 					"status"=> "ACTIVE" // hardcode
 				];
-				$last = $key+1;
+				$last++;
 				if ($trx_modifier[$product->pivot->id_transaction_product] ?? false) {
 					$remainingDiscount = $discountModifier;
 					foreach ($trx_modifier[$product->pivot->id_transaction_product] as $index => $modifier) {
@@ -224,13 +224,13 @@ class ConnectPOS{
 						$grossAmountMod = $modifier['grossAmount'] * $product->pivot->transaction_product_qty;
 						$grossAmountMod -= $appliedDiscount;
 
-						$modifier['number'] = $key+1;
+						$modifier['number'] = $last+1;
 						$modifier['discount'] = $appliedDiscount;
 						$modifier['qty'] = $modifier['qty'] * $product->pivot->transaction_product_qty;
 						$modifier['grossAmount'] = $grossAmountMod;
 						$modifier['netAmount'] = $grossAmountMod;
 						$body['item'][] = $modifier;
-						$last = $key+1;
+						$last++;
 					}
 				}
 			}
