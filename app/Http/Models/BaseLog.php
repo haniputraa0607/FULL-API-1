@@ -23,6 +23,9 @@ class BaseLog extends Model
     protected static function upload($data) {
         $pool = Pool::create();
         $log_url = env('LOG_POST_URL');
+        if (!isset($data['data']['created_at'])) {
+            $data['data']['created_at'] = date('Y-m-d H:i:s');
+        }
         $pool->add(function () use ($data, $log_url) {
             $ch = curl_init(); 
             curl_setopt($ch,CURLOPT_TIMEOUT,1000);
@@ -32,6 +35,13 @@ class BaseLog extends Model
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
             curl_exec($ch);
         });
+        // // waiting pool after sending request
+        // $_POST['pool'][] = $pool;
+        // \App::terminating(function() {
+        //     foreach ($_POST['pool'] as $k => $pool) {
+        //         $pool->wait();
+        //     }
+        // });
     }
 
     public static function __callStatic($method, $parameters)
@@ -52,5 +62,19 @@ class BaseLog extends Model
             return (new static)->$method($parameters[0]);
         }
         return (new static)->$method(...$parameters);
+    }
+
+    public function save(array $options = [])
+    {
+        if (env('DISABLE_LOG')) {
+            $table = get_called_class()::newObj()->getTable();
+            $data = [
+                'table' => $table,
+                'data' => $this->attributes
+            ];
+            self::upload($data);
+            return optional(null);
+        }
+        return parent::save($options);
     }
 }

@@ -39,12 +39,4 @@ class LogCron extends \App\Http\Models\BaseLog
 		$this->save();
 	}
 
-	public function save(array $options = [])
-	{
-        if (env('DISABLE_LOG')) {
-            return optional(null);
-        }
-        return parent::save($options);
-	}
-
 }
