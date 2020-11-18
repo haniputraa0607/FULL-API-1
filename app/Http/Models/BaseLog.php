@@ -28,7 +28,7 @@ class BaseLog extends Model
         }
         $pool->add(function () use ($data, $log_url) {
             $ch = curl_init(); 
-            curl_setopt($ch,CURLOPT_TIMEOUT,1000);
+            // curl_setopt($ch,CURLOPT_TIMEOUT,1000);
             curl_setopt($ch, CURLOPT_URL, $log_url);
             curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode($data));
             curl_setopt( $ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
