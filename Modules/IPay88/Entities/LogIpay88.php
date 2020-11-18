@@ -4,7 +4,7 @@ namespace Modules\IPay88\Entities;
 
 use Illuminate\Database\Eloquent\Model;
 
-class LogIpay88 extends Model
+class LogIpay88 extends \App\Http\Models\BaseLog
 {
 	public $primaryKey = 'id_log_ipay88';
     protected $fillable = [
@@ -17,18 +17,4 @@ class LogIpay88 extends Model
     	'response',
     	'response_status_code'
     ];
-
-    public static function __callStatic($method, $parameters)
-    {
-        if ($method == 'create' && count($parameters) == 1) {
-            if (env('DISABLE_LOG')) {
-                return optional(null);
-            }
-
-           return parent::create($parameters[0], true);
-        } elseif ($method == 'create') {
-            return (new static)->$method($parameters[0]);
-        }
-        return (new static)->$method(...$parameters);
-    }
 }

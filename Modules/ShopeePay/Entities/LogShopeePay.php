@@ -4,7 +4,7 @@ namespace Modules\ShopeePay\Entities;
 
 use Illuminate\Database\Eloquent\Model;
 
-class LogShopeePay extends Model
+class LogShopeePay extends \App\Http\Models\BaseLog
 {
 	public $primaryKey = 'id_log_shopee_pay';
     protected $fillable = [
@@ -18,17 +18,4 @@ class LogShopeePay extends Model
     	'response_status_code'
     ];
 
-    public static function __callStatic($method, $parameters)
-    {
-        if ($method == 'create' && count($parameters) == 1) {
-            if (env('DISABLE_LOG')) {
-                return optional(null);
-            }
-
-           return parent::create($parameters[0], true);
-        } elseif ($method == 'create') {
-            return (new static)->$method($parameters[0]);
-        }
-        return (new static)->$method(...$parameters);
-    }
 }
