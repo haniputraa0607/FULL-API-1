@@ -135,7 +135,7 @@ class ConnectPOS{
 					'pax'=> count($trxData->products), // total item
 					'orderType'=> 'take away', //take away
 					'grandTotal'=> $trxData->transaction_grandtotal, //grandtotal
-					'subTotal'=> $trxData->transaction_subtotal, //subtotal
+					'subTotal'=> $trxData->transaction_grandtotal - $trxData->transaction_tax, //subtotal
 					'tax'=> $trxData->transaction_tax, // transaction tax, ikut tabel
 					'notes'=> '', // “”
 					'appliedPromo'=> $appliedPromo, // kalau pakai prromo / “”
@@ -156,41 +156,18 @@ class ConnectPOS{
 				'item' => []
 			];
 			$last = 0;
-			foreach ($trxData->products as $key => $product) {
-				// $tax = (10/100) * $product->pivot->transaction_product_subtotal;
-				$tax = 0;
-				$body['item'][] = [
-					"number"=> $key+1, // key+1
-					"menuId"=> $product->product_group->product_group_code, // product code
-					"sapMatnr"=> $product->product_code, // product code
-					"categoryId"=> $product->category_id_pos, // ga ada / 0
-					"qty"=> $product->pivot->transaction_product_qty, // qty
-					"price"=> $product->pivot->transaction_product_price, // item price/ item
-					"discount"=> $product->pivot->transaction_product_discount, // udah * qty
-					"grossAmount"=> $product->pivot->transaction_product_subtotal - $product->pivot->transaction_modifier_subtotal, //grsndtotal /item
-					"netAmount"=> $product->pivot->transaction_product_subtotal - $tax, // potong tAX 10%
-					"tax"=> $tax, //10%
-					"type"=> $product->product_variants[1]->product_variant_code == 'general_type'?null:$product->product_variants[1]->product_variant_code, //code variant /null
-					"size"=> $product->product_variants[0]->product_variant_code == 'general_size'?null:$product->product_variants[0]->product_variant_code, // code variant /null
-					'note' => $product->pivot->transaction_product_note,
-					"promoNumber"=> $promoNumber, //kode voucher //null
-					"promoType"=> $appliedPromo?"5":"", //hardcode //null
-					"status"=> "ACTIVE" // hardcode
-				];
-				$last = $key+1;
-			}
+			$trx_modifier = [];
 			foreach ($trxData->modifiers as $key => $modifier) {
 				// $tax = (10/100) * $product->pivot->transaction_product_subtotal;
 				$tax = 0;
-				$body['item'][] = [
-					"number"=> $key+1+$last, // key+1
+				$trx_modifier[$modifier->id_transaction_product][] = [
 					"menuId"=> $modifier->product_modifier->menu_id_pos, // product code
 					"sapMatnr"=> $modifier->code, // product code
 					"categoryId"=> $modifier->product_modifier->category_id_pos, // ga ada / 0
 					"qty"=> $modifier->qty, // qty
 					"price"=> (float) $modifier->transaction_product_modifier_price / $modifier->qty, // item price/ item
 					"discount"=> 0, // udah * qty
-					"grossAmount"=> $modifier->transaction_product_modifier_price, //grsndtotal /item
+					"grossAmount"=> $modifier->transaction_product_modifier_price, //grsndtotal
 					"netAmount"=> $modifier->transaction_product_modifier_price - $tax, // potong tAX 10%
 					"tax"=> $tax, //10%
 					"type"=> null, //code variant /null
@@ -200,6 +177,62 @@ class ConnectPOS{
 					"promoType"=> $appliedPromo?"5":null, //hardcode //null
 					"status"=> "ACTIVE" // hardcode
 				];
+			}
+			foreach ($trxData->products as $key => $product) {
+				// $tax = (10/100) * $product->pivot->transaction_product_subtotal;
+				$tax = 0;
+				$grossAmount = $product->pivot->transaction_product_subtotal - ($product->pivot->transaction_modifier_subtotal * $product->pivot->transaction_product_qty);
+				$discountTotal = $product->pivot->transaction_product_discount;
+				
+				$modifierRatio = ($product->pivot->transaction_modifier_subtotal * $product->pivot->transaction_product_qty) / $product->pivot->transaction_product_subtotal;
+
+				$discountModifier = (int) ($modifierRatio * $discountTotal);
+				$discountProduct = $discountTotal - $discountModifier;
+
+				$grossAmount -= $discountProduct;
+
+				$body['item'][] = [
+					"number"=> $last+1, // key+1
+					"menuId"=> $product->product_group->product_group_code, // product code
+					"sapMatnr"=> $product->product_code, // product code
+					"categoryId"=> $product->category_id_pos, // ga ada / 0
+					"qty"=> $product->pivot->transaction_product_qty, // qty
+					"price"=> $product->pivot->transaction_product_price, // item price/ item
+					"discount"=> $discountProduct, // udah * qty
+					"grossAmount"=> $grossAmount, //grsndtotal
+					"netAmount"=> $grossAmount - $tax, // potong tAX 10%
+					"tax"=> $tax, //10%
+					"type"=> $product->product_variants[1]->product_variant_code == 'general_type'?null:$product->product_variants[1]->product_variant_code, //code variant /null
+					"size"=> $product->product_variants[0]->product_variant_code == 'general_size'?null:$product->product_variants[0]->product_variant_code, // code variant /null
+					'note' => $product->pivot->transaction_product_note,
+					"promoNumber"=> $promoNumber, //kode voucher //null
+					"promoType"=> $appliedPromo?"5":"", //hardcode //null
+					"status"=> "ACTIVE" // hardcode
+				];
+				$last++;
+				if ($trx_modifier[$product->pivot->id_transaction_product] ?? false) {
+					$remainingDiscount = $discountModifier;
+					foreach ($trx_modifier[$product->pivot->id_transaction_product] as $index => $modifier) {
+						if ($index == count($trx_modifier[$product->pivot->id_transaction_product]) - 1) { //last
+							$appliedDiscount = $remainingDiscount;
+						} else {
+							$discountRatio = $modifier['grossAmount'] / $product->pivot->transaction_modifier_subtotal;
+							$appliedDiscount = (int) ($discountRatio * $discountModifier);
+							$remainingDiscount -= $appliedDiscount;
+						}
+
+						$grossAmountMod = $modifier['grossAmount'] * $product->pivot->transaction_product_qty;
+						$grossAmountMod -= $appliedDiscount;
+
+						$modifier['number'] = $last+1;
+						$modifier['discount'] = $appliedDiscount;
+						$modifier['qty'] = $modifier['qty'] * $product->pivot->transaction_product_qty;
+						$modifier['grossAmount'] = $grossAmountMod;
+						$modifier['netAmount'] = $grossAmountMod;
+						$body['item'][] = $modifier;
+						$last++;
+					}
+				}
 			}
 			$payment = [];
 		        //cek di multi payment
