@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $updated_at
  * @property User $user
  */
-class LogCallOutletApp extends Model
+class LogCallOutletApp extends \App\Http\Models\BaseLog
 {
 	/**
 	 * The database name used by the model.
@@ -35,18 +35,4 @@ class LogCallOutletApp extends Model
      */
     protected $fillable = ['id_log_call_outlet_app', 'outlet_code', 'outlet', 'phone', 'user', 'request', 'response_status', 'response', 'ip', 'useragent', 'created_at', 'updated_at'];
 
-
-    public static function __callStatic($method, $parameters)
-    {
-        if ($method == 'create' && count($parameters) == 1) {
-            if (env('DISABLE_LOG')) {
-                return optional(null);
-            }
-
-           return parent::create($parameters[0], true);
-        } elseif ($method == 'create') {
-            return (new static)->$method($parameters[0]);
-        }
-        return (new static)->$method(...$parameters);
-    }
 }

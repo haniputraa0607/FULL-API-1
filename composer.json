@@ -26,6 +26,7 @@
         "php-http/guzzle6-adapter": "^1.1",
         "smartins/passport-multiauth": "^4.1",
         "spatie/array-to-xml": "^2.14",
+        "spatie/async": "^1.5",
         "spatie/laravel-backup": "^6.7",
         "stevebauman/location": "^5.1",
         "timehunter/laravel-google-recaptcha-v2": "^1.0",

@@ -5,7 +5,7 @@ namespace App\Http\Models;
 use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\Debug\Exception\FlattenException;
 
-class LogBackendError extends Model
+class LogBackendError extends \App\Http\Models\BaseLog
 {
 	protected $connection = 'mysql2';
 	protected $table = 'log_backend_errors';
@@ -76,18 +76,4 @@ class LogBackendError extends Model
 			}
 		}
 	}
-
-    public static function __callStatic($method, $parameters)
-    {
-        if ($method == 'create' && count($parameters) == 1) {
-            if (env('DISABLE_LOG')) {
-                return optional(null);
-            }
-
-           return parent::create($parameters[0], true);
-        } elseif ($method == 'create') {
-            return (new static)->$method($parameters[0]);
-        }
-        return (new static)->$method(...$parameters);
-    }
 }
