@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $updated_at
  * @property User $user
  */
-class LogActivitiesApps extends Model
+class LogActivitiesApps extends \App\Http\Models\BaseLog
 {
 	/**
 	 * The database name used by the model.
@@ -48,18 +48,4 @@ class LogActivitiesApps extends Model
         'created_at', 
         'updated_at'
     ];
-
-    public static function __callStatic($method, $parameters)
-    {
-        if ($method == 'create' && count($parameters) == 1) {
-            if (env('DISABLE_LOG')) {
-                return optional(null);
-            }
-
-           return parent::create($parameters[0], true);
-        } elseif ($method == 'create') {
-            return (new static)->$method($parameters[0]);
-        }
-        return (new static)->$method(...$parameters);
-    }
 }
