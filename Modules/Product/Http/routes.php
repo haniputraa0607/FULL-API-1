@@ -83,6 +83,7 @@ Route::group(['prefix' => 'api/product','middleware' => ['log_activities','auth:
 
     /* PRICES */
     Route::post('prices', 'ApiProductController@productPrices');
+    Route::any('trigger-sync', 'ApiSyncProductController@triggerSyncCron');
 	   
 
     /* tag */
