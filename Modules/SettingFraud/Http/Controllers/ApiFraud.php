@@ -772,17 +772,17 @@ class ApiFraud extends Controller
                         ->orderBy('last_login','desc')->get()->pluck('id_user');
                     $delToken = OauthAccessToken::join('oauth_access_token_providers', 'oauth_access_tokens.id', 'oauth_access_token_providers.oauth_access_token_id')
                         ->whereIn('oauth_access_tokens.user_id', $getAllUser)->where('oauth_access_token_providers.provider', 'users')->delete();
-                    $updateUser = User::whereIn('id',$getAllUser)->whereRaw('level != "Super Admin"')->update(['is_suspended' => 1]);
+                    $updateUser = User::whereIn('id',$getAllUser)->whereRaw('level != "Super Admin"')->update(['is_suspended' => 1, 'suspended_date' => date('Y-m-d H:i:s')]);
                 }elseif($fraudSetting['auto_suspend_value'] == 'last_account'){
                     $getAllUser = UsersDeviceLogin::where('device_id',$deviceUser['device_id'])
                         ->orderBy('last_login','desc')->get()->pluck('id_user');
                     $delToken = OauthAccessToken::join('oauth_access_token_providers', 'oauth_access_tokens.id', 'oauth_access_token_providers.oauth_access_token_id')
                         ->where('oauth_access_tokens.user_id', $getAllUser[0]['id_user'])->where('oauth_access_token_providers.provider', 'users')->delete();
-                    $updateUser = User::where('id',$getAllUser[0]['id_user'])->whereRaw('level != "Super Admin"')->update(['is_suspended' => 1]);
+                    $updateUser = User::where('id',$getAllUser[0]['id_user'])->whereRaw('level != "Super Admin"')->update(['is_suspended' => 1, 'suspended_date' => date('Y-m-d H:i:s')]);
                 }else{
                     $delToken = OauthAccessToken::join('oauth_access_token_providers', 'oauth_access_tokens.id', 'oauth_access_token_providers.oauth_access_token_id')
                         ->where('oauth_access_tokens.user_id', $user['id'])->where('oauth_access_token_providers.provider', 'users')->delete();
-                    $updateUser = User::where('id',$user['id'])->whereRaw('level != "Super Admin"')->update(['is_suspended' => 1]);
+                    $updateUser = User::where('id',$user['id'])->whereRaw('level != "Super Admin"')->update(['is_suspended' => 1, 'suspended_date' => date('Y-m-d H:i:s')]);
                 }
             }
         }
