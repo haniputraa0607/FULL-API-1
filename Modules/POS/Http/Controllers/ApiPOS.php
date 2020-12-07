@@ -1236,7 +1236,7 @@ class ApiPOS extends Controller
         $insert = DB::connection('mysql')->table('outlet_product_price_periode_temps')->insert($dataJob);   
         
         if ($dataJob && $insert) {
-            SyncProductPrice2::dispatch(array_keys($dataOutlet))->allOnConnection('database');
+            SyncProductPrice2::dispatch(array_keys($dataOutlet))->allOnConnection('database')->onQueue('sync_product');
         } else {
             return [
                 'status' => 'fail',
