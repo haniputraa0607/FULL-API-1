@@ -2956,8 +2956,13 @@ class ApiUser extends Controller
             ];
             return response()->json($result);
         }
-
-        $update = User::where('phone',$post['phone'])->updateWithUserstamps(['is_suspended' => $post['is_suspended']]);
+        $suspendData = [
+            'is_suspended' => $post['is_suspended']
+        ];
+        if($post['is_suspended'] == 1){
+            $suspendData['suspended_date'] = date('Y-m-d H:i:s');
+        }
+        $update = User::where('phone',$post['phone'])->updateWithUserstamps($suspendData);
 
         $data = User::where('phone',$post['phone'])->get();
 
