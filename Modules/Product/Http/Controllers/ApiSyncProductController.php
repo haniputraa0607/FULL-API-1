@@ -103,8 +103,7 @@ class ApiSyncProductController extends Controller
 
         $result = app('Modules\POS\Http\Controllers\ApiPOS')->cronProductPrice();
         return [
-            'status' => 'success',
-            'result' => $result,
+            'status' => 'success'
         ];
     }
 }
