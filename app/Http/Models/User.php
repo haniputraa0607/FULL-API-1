@@ -74,6 +74,7 @@ class User extends Authenticatable
 		'ios_apps_version',
 		'android_apps_version',
 		'is_suspended',
+        'suspended_date',
 		'remember_token',
 		'count_transaction_day',
 		'count_transaction_week',

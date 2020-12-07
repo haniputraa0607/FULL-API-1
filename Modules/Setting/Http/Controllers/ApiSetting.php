@@ -1006,7 +1006,7 @@ class ApiSetting extends Controller
             $upload = MyHelper::uploadPhotoStrict($post['default_home_splash_screen'], $this->saveImage, 1080, 1920,'splash');
 
             if (isset($upload['status']) && $upload['status'] == "success") {
-                $post['default_home_splash_screen'] = $upload['path'];
+                $post['default_home_splash_screen'] = $upload['path']."?update=".time();
             }
             else {
                 $result = [
