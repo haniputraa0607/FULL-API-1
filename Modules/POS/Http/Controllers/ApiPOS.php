@@ -1558,7 +1558,7 @@ class ApiPOS extends Controller
                 continue;
             }
             if (isset($dataJob[$keyMenu]['price_detail'])) {
-                SyncAddOnPrice::dispatch(json_encode($dataJob[$keyMenu]));
+                SyncAddOnPrice::dispatch(json_encode($dataJob[$keyMenu]))->onQueue('sync_product');
             }
         }
 
