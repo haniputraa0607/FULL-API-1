@@ -102,12 +102,17 @@ class ApiTransactionOnlinePOS extends Controller
             }
             $newRule[$var['subject']][]=$var1;
         }
-        $inner=['transaction_receipt_number', 'transaction_date', 'success_retry_status', 'id_outlet', 'name', 'phone', 'order_id'];
+        $inner=['transaction_receipt_number', 'success_retry_status', 'id_outlet', 'name', 'phone', 'order_id'];
         foreach ($inner as $col_name) {
             if($rules=$newRule[$col_name]??false){
                 foreach ($rules as $rul) {
                     $model->$where($col_name,$rul['operator'],$rul['parameter']);
                 }
+            }
+        }
+        if($rules = ($newRule['transaction_date'] ?? false)) {
+            foreach ($rules as $rul) {
+                $model->{$where.'Date'}('transaction_date',$rul['operator'],$rul['parameter']);
             }
         }
     }
