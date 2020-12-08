@@ -435,6 +435,7 @@ class ConnectPOS{
 			->where('success_retry_status',0)
 			->take(50)
 			->get();
+		TransactionOnlinePos::whereIn('id_transaction', $trxs->pluck('id_transaction'))->update(['success_retry_status' => 2]); // success_retry_status == 2 : job masih jalan
 		if (!$trxs) {
 			return true;
 		}
