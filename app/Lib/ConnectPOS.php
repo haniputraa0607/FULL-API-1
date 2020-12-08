@@ -67,7 +67,17 @@ class ConnectPOS{
 	 */
 	public function sendTransaction(...$id_transactions)
 	{
-        SendPOS::dispatch($id_transactions)->allOnConnection('send_pos_jobs');
+		foreach ($id_transactions as $id_transaction) {
+			$transaction = Transaction::select('transactions_online_pos.id_transaction', 'transaction_date', 'count_retry')->leftJoin('transactions_online_pos', 'transactions_online_pos.id_transaction', 'transactions.id_transaction')->where('transactions.id_transaction', $id_transaction)->first();
+			if (!$transaction) {
+				continue;
+			}
+			$queue = 'send_pos_jobs';
+			if (($transaction->count_retry ?: 0) < 3 && (date('Y-m-d', strtotime($transaction->transaction_date)) == date('Y-m-d'))) {
+				$queue = 'high';
+			}
+	        SendPOS::dispatch($id_transactions)->allOnConnection('send_pos_jobs')->onQueue($queue);
+		}
         return true;
 	}
 	/**
