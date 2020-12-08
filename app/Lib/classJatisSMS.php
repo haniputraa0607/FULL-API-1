@@ -74,7 +74,7 @@ class classJatisSMS {
 		$logModel = MyHelper::logApiSMS($log);
 		parse_str($logModel->response, $resultSms);
 		if ($resultSms['Status'] == 1) {
-			CheckSmsStatus::dispatch($logModel, $resultSms)->delay(now()->addHours(24))->allOnConnection('database');
+			CheckSmsStatus::dispatch($logModel, $resultSms)->delay(now()->addHours(24))->allOnConnection('check_sms');
             MyHelper::addCountRequestOtp($phone);
 		}
 		return $hasil;

@@ -40,7 +40,7 @@ class CheckSmsStatus implements ShouldQueue
 
         $this->logModel->update(['status' => $deliveryStatus, 'status_response' => $status['response_raw']]);
         if (($report['DeliveryStatus']??'77') == '77') {
-            CheckSmsStatus::dispatch($this->logModel, $this->result)->delay(now()->addHours(24))->allOnConnection('database');
+            CheckSmsStatus::dispatch($this->logModel, $this->result)->delay(now()->addHours(24))->allOnConnection('check_sms');
         }
     }
 }
