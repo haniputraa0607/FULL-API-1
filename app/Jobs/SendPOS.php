@@ -33,7 +33,7 @@ class SendPOS implements ShouldQueue
      */
     public function handle()
     {
-        $send = \App\Lib\ConnectPOS::create()->doSendTransaction($this->id_transactions);
+        $send = \App\Lib\ConnectPOS::create()->doSendTransaction(...$this->id_transactions);
         if(!$send){
             throw new \Exception("Error send transaction", 1);
         }
