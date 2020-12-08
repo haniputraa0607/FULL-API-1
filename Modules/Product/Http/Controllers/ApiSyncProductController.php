@@ -90,4 +90,20 @@ class ApiSyncProductController extends Controller
 
         return $data;
     }
+
+    public function triggerSyncCron()
+    {
+        $exists = \DB::table('jobs')->where('queue', 'sync_product')->exists();
+        if ($exists) {
+            return [
+                'status' => 'fail',
+                'messages' => ['Syncron price process is still running']
+            ];
+        }
+
+        $result = app('Modules\POS\Http\Controllers\ApiPOS')->cronProductPrice();
+        return [
+            'status' => 'success'
+        ];
+    }
 }
