@@ -49,16 +49,8 @@ class SendPOS implements ShouldQueue
     public function failed(Throwable $exception)
     {
         foreach ($this->id_transactions as $id_transaction) {
-            $top = TransactionOnlinePos::where('id_transaction', $id_transaction)->first();
-            if ($top) {
-                $top->update([
-                    'request' => '{}',
-                    'response' => json_encode([$exception->getMessage()]),
-                    'count_retry'=>($top->count_retry+1),
-                    'success_retry_status'=>0,
-                    'send_email_status' => 0
-                ]);
-            } else {
+            $top = TransactionOnlinePos::where('id_transaction', $id_transaction)->exists();
+            if (!$top) {
                 $top = TransactionOnlinePos::create([
                     'request' => '{}',
                     'response' => json_encode([$exception->getMessage()]),
