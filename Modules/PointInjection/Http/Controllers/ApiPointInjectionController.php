@@ -35,10 +35,11 @@ class ApiPointInjectionController extends Controller
 
     function generateDate($date)
     {
-        $datetimearr    = explode(' - ', $date);
-        $datearr        = explode(' ', $datetimearr[0]);
-        $date           = date("Y-m-d", strtotime($datearr[2] . ", " . $datearr[1] . " " . $datearr[0]));
-        return $date . " " . $datetimearr[1] . ":00";
+//        $datetimearr    = explode(' - ', $date);
+//        $datearr        = explode(' ', $datetimearr[0]);
+//        $date           = date("Y-m-d", strtotime($datearr[2] . ", " . $datearr[1] . " " . $datearr[0]));
+        $date = date('Y-m-d H:i:s', strtotime(str_replace('-', '', $date)));
+        return $date;
     }
 
     /**
