@@ -872,6 +872,7 @@ class ApiHome extends Controller
         $codeSG = config('countrycode.country_code.SG.code');
         $codeID = config('countrycode.country_code.ID.code');
 
+            return response()->json( ['status' => 'success']);
         if(isset($post['latitude']) && !empty($post['latitude']) &&
             isset($post['longitude']) && !empty($post['longitude']) &&
             isset($post['country_code']) && !empty($post['country_code'])){
@@ -916,7 +917,6 @@ class ApiHome extends Controller
                 ]);
             }
 
-            return response()->json( ['status' => 'success']);
 
         }else{
             return response()->json( [
