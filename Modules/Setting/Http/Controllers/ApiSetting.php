@@ -999,14 +999,14 @@ class ApiSetting extends Controller
 		if (isset($post['default_home_splash_screen'])) {
             $image = Setting::where('key', 'default_home_splash_screen')->first();
 
-            if(isset($image['value']) && file_exists($image['value'])){
-                unlink($image['value']);
+            if(isset($image['value'])){
+                MyHelper::deletePhoto($image['value']);
             }
             // base64 image,path,h,w,name,ext
-            $upload = MyHelper::uploadPhotoStrict($post['default_home_splash_screen'], $this->saveImage, 1080, 1920,'splash');
+            $upload = MyHelper::uploadPhotoStrict($post['default_home_splash_screen'], $this->saveImage, 1080, 1920,'splash_'.time());
 
             if (isset($upload['status']) && $upload['status'] == "success") {
-                $post['default_home_splash_screen'] = $upload['path']."?update=".time();
+                $post['default_home_splash_screen'] = $upload['path'];
             }
             else {
                 $result = [
