@@ -5,7 +5,6 @@ namespace App\Http\Models;
 use Illuminate\Database\Eloquent\Model;
 use File;
 use Storage;
-use Spatie\Async\Pool;
 use App\Lib\MyHelper;
 
 class BaseLog extends Model
@@ -21,27 +20,14 @@ class BaseLog extends Model
     }
 
     protected static function upload($data) {
-        $pool = Pool::create();
-        $log_url = env('LOG_POST_URL');
+        $table = str_replace(' ', '',ucwords(str_replace('_', ' ',$data['table'])));
+        $log_url = env('LOG_POST_URL').'/'.$table;
         if (!isset($data['data']['created_at'])) {
             $data['data']['created_at'] = date('Y-m-d H:i:s');
         }
-        $pool->add(function () use ($data, $log_url) {
-            $ch = curl_init(); 
-            // curl_setopt($ch,CURLOPT_TIMEOUT,1000);
-            curl_setopt($ch, CURLOPT_URL, $log_url);
-            curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode($data));
-            curl_setopt( $ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-            curl_exec($ch);
-        });
-        // // waiting pool after sending request
-        // $_POST['pool'][] = $pool;
-        // \App::terminating(function() {
-        //     foreach ($_POST['pool'] as $k => $pool) {
-        //         $pool->wait();
-        //     }
-        // });
+        $data_send = json_encode($data['data']);
+        $command = "curl --location --request POST '$log_url' --header 'Content-Type: application/json' --data-raw '$data_send' > /dev/null &";
+        exec($command);
     }
 
     public static function __callStatic($method, $parameters)
