@@ -25,8 +25,13 @@ class BaseLog extends Model
         if (!isset($data['data']['created_at'])) {
             $data['data']['created_at'] = date('Y-m-d H:i:s');
         }
-        $data_send = str_replace('\'', "'\\''", json_encode($data['data']));
-        $command = "curl --location --request POST '$log_url' --header 'Content-Type: application/json' --data-raw '$data_send' > /dev/null &";
+        $data_send = json_encode($data['data']);
+        $path = tempnam(sys_get_temp_dir(), 'FORCURL');;
+        $temp = fopen($path, 'w');
+        fwrite($temp, $data_send);
+        fclose($temp);
+        $command = "(curl --location --request POST '$log_url' --header 'Content-Type: application/json' -d @$path; rm $path) > /dev/null &";
+        // print $command; die();
         exec($command);
     }
 
@@ -37,7 +42,7 @@ class BaseLog extends Model
                 $table = get_called_class()::newObj()->getTable();
                 $data = [
                     'table' => $table,
-                    'data' => $parameters
+                    'data' => $parameters[0]
                 ];
                 self::upload($data);
                 return optional(null);
