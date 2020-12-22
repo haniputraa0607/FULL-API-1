@@ -11,8 +11,7 @@ class LogActivitiesBE extends \App\Http\Models\BaseLog
 	 *
 	 * @var string
 	 */
-    protected $connection = 'mysql2';
-    public $timestamps = FALSE;
+	protected $connection = 'mysql2';
 	
     /**
      * The table associated with the model.
