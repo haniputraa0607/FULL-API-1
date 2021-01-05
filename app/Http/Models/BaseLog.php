@@ -24,12 +24,17 @@ class BaseLog extends Model
         $log_url = env('LOG_POST_URL').'/'.$table;
         if (!isset($data['data']['created_at'])) {
             $data['data']['created_at'] = date('Y-m-d H:i:s');
-        }
+        }   
         $data_send = json_encode($data['data']);
-        $path = tempnam(sys_get_temp_dir(), 'FORCURL');;
+        $logAppsPath = storage_path('tmp');
+        if (!file_exists($logAppsPath)) {
+               mkdir($logAppsPath, 0777, true);
+        }
+        $path = tempnam($logAppsPath, 'FORCURL');;
         $temp = fopen($path, 'w');
         fwrite($temp, $data_send);
         fclose($temp);
+        chmod($path, 0777);
         $command = "(curl --location --request POST '$log_url' --header 'Content-Type: application/json' -d @$path; rm $path) > /dev/null &";
         // print $command; die();
         exec($command);
