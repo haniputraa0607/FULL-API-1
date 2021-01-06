@@ -101,15 +101,19 @@ class LogActivitiesPOSMiddleware
                 }
 
                 if(stristr($url, 'pos/check/member')) { $subject = 'POS Check Member'; }
-                if(stristr($url, 'pos/check/voucher')) { $subject = 'POS Check Voucher'; }
-                if(stristr($url, 'pos/voucher/void')) $subject = 'POS Void Voucher';
-                if(stristr($url, 'pos/menu')) $subject = 'POS Menu Sync Return';
-                if(stristr($url, 'pos/outlet')) $subject = 'POS Outlet Sync';
-                if(stristr($url, 'pos/outlet/menu')) $subject = 'POS Menu Outlet Sync';
-                if(stristr($url, 'pos/menu/sync')) $subject = 'POS Menu Sync';
-                if(stristr($url, 'pos/transaction/detail')) $subject = 'Fetch Pre Order';
-                if(stristr($url, 'pos/transaction/refund')) $subject = 'POS Transaction Refund';
-                if(stristr($url, 'pos/brand')) $subject = 'POS Brand Sync';
+                elseif(stristr($url, 'pos/check/voucher')) { $subject = 'POS Check Voucher'; }
+                elseif(stristr($url, 'pos/voucher/void')) $subject = 'POS Void Voucher';
+                elseif(stristr($url, 'pos/menu')) $subject = 'POS Menu Sync Return';
+                elseif(stristr($url, 'pos/outlet')) $subject = 'POS Outlet Sync';
+                elseif(stristr($url, 'pos/outlet/menu')) $subject = 'POS Menu Outlet Sync';
+                elseif(stristr($url, 'pos/menu/sync')) $subject = 'POS Menu Sync';
+                elseif(stristr($url, 'pos/transaction/detail')) $subject = 'Fetch Pre Order';
+                elseif(stristr($url, 'pos/transaction/refund')) $subject = 'POS Transaction Refund';
+                elseif(stristr($url, 'pos/brand')) $subject = 'POS Brand Sync';
+                elseif(stristr($url, 'pos/order/accept')) $subject = 'POS Order Accept';
+                elseif(stristr($url, 'pos/order/ready')) $subject = 'POS Order Ready';
+                elseif(stristr($url, 'pos/order/taken')) $subject = 'POS Order Taken';
+                elseif(stristr($url, 'pos/order/reject')) $subject = 'POS Order Reject';
 
                 if(!empty($request->header('ip-address-view'))){
                     $ip = $request->header('ip-address-view');
