@@ -110,10 +110,10 @@ class LogActivitiesPOSMiddleware
                 elseif(stristr($url, 'pos/transaction/detail')) $subject = 'Fetch Pre Order';
                 elseif(stristr($url, 'pos/transaction/refund')) $subject = 'POS Transaction Refund';
                 elseif(stristr($url, 'pos/brand')) $subject = 'POS Brand Sync';
-                elseif(stristr($url, 'pos/order/accept')) $subject = 'POS Order Ready';
+                elseif(stristr($url, 'pos/order/accept')) $subject = 'POS Order Accept';
                 elseif(stristr($url, 'pos/order/ready')) $subject = 'POS Order Ready';
-                elseif(stristr($url, 'pos/order/taken')) $subject = 'POS Order Ready';
-                elseif(stristr($url, 'pos/order/reject')) $subject = 'POS Order Ready';
+                elseif(stristr($url, 'pos/order/taken')) $subject = 'POS Order Taken';
+                elseif(stristr($url, 'pos/order/reject')) $subject = 'POS Order Reject';
 
                 if(!empty($request->header('ip-address-view'))){
                     $ip = $request->header('ip-address-view');
