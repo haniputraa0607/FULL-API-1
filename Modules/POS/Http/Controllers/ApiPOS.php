@@ -2398,7 +2398,7 @@ class ApiPOS extends Controller
                             $data = [
                                 'outlet_code' => $post['store_code'],
                                 'request' => json_encode($trx),
-                                'message_failed' => $insertTrx['messages'],
+                                'message_failed' => json_encode($insertTrx['messages']),
                                 'created_at' => date('Y-m-d H:i:s'),
                                 'updated_at' => date('Y-m-d H:i:s')
                             ];
