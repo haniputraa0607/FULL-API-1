@@ -12,11 +12,13 @@ class BaseLog extends Model
     public static $obj = null;
 
     public static function newObj() {
-        if(!get_called_class()::$obj){
-            $className = get_called_class();
-            get_called_class()::$obj = new $className;
-        }
-        return get_called_class()::$obj;
+        $className = get_called_class();
+        return (new $className);
+        // if(!get_called_class()::$obj){
+        //     $className = get_called_class();
+        //     get_called_class()::$obj = new $className;
+        // }
+        // return get_called_class()::$obj;
     }
 
     protected static function upload($data) {
