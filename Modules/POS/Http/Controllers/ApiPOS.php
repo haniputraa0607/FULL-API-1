@@ -2523,10 +2523,14 @@ class ApiPOS extends Controller
 
                     if (empty($user)) {
                         $user['id'] = null;
+                        DB::rollBack();
+                        return ['status' => 'fail', 'messages' => 'User not found'];
                     } elseif (isset($user['is_suspended']) && $user['is_suspended'] == '1') {
                         $user['id'] = null;
                         $dataTrx['membership_level']    = null;
                         $dataTrx['membership_promo_id'] = null;
+                        DB::rollBack();
+                        return ['status' => 'fail', 'messages' => 'User suspended'];
                     } else {
                         if($config['fraud_use_queue'] == 1){
                             FraudJob::dispatch($user, $trx, 'transaction')->onConnection('fraudqueue');
