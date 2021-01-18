@@ -93,7 +93,7 @@ class ApiReportExport extends Controller
         }elseif($action == 'deleted'){
             $data = ExportQueue::where('id_export_queue', $id_export_queue)->first();
             $file = public_path().'/'.$data['url_export'];
-            if(config('configs.STORAGE') == 'local'){
+            if(env('STORAGE', 'local') == 'local'){
                 $delete = File::delete($file);
             }else{
                 $delete = MyHelper::deleteFile($file);

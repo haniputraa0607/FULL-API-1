@@ -76,7 +76,7 @@ class ExportJob implements ShouldQueue
                 $directory = $folder1.'/'.$folder2.'/'.$folder3.'/'.$fileName.'-'.mt_rand(0, 1000).''.time().''.'.xlsx';
                 $store = (new FastExcel($generateExcel))->export(public_path().'/'.$directory);
 
-                if(config('configs.STORAGE') != 'local'){
+                if(env('STORAGE', 'local') != 'local'){
                     $contents = File::get(public_path().'/'.$directory);
                     $store = Storage::disk(env('STORAGE', 'local'))->put($directory,$contents, 'public');
                     if($store){

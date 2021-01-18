@@ -151,12 +151,12 @@ class ApiDealsTransaction extends Controller
         	
         	$val = $val->toArray();
         	
-        	$deals = DealsVoucher::where('id_deals_voucher', $val['id_deals_voucher'])->with('deal')->first()->toArray() ?? [];
+        	$deals = DealsVoucher::where('id_deals_voucher', $val['id_deals_voucher'])->with('deal')->get()->toArray() ?? [];
         	$user = User::select('id', 'name', 'phone')->where('id', $val['id_user'])->first()->toArray() ?? [];
 
         	yield [
-	            'Deals'		=> $deals['deal']['deals_title'],
-                'Code'		=> $deals['voucher_code'],
+	            'Deals'		=> $deals[0]['deal']['deals_title'] ?? null,
+                'Code'		=> $deals[0]['voucher_code'] ?? null,
                 'User'		=> $user['name'],
                 'Phone'		=> $user['phone'],
                 'Claim'		=> (empty($val['claimed_at'])) ? '-' : date('d-M-y', strtotime($val['claimed_at'])),
