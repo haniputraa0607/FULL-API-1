@@ -252,7 +252,13 @@ class ShopeePayController extends Controller
                 // ->where('transaction_date', '<=', $expired)
                 ->where('transaction_date', '<=', $check_success)
                 ->whereIn('trasaction_payment_type', ['Shopeepay', 'Balance'])
+                ->where(function ($query) {
+                    $query->whereNull('latest_reversal_process')
+                        ->orWhere('latest_reversal_process', '<', date('Y-m-d H:i:s', strtotime('- 5 minutes')));
+                })
                 ->get();
+
+            Transaction::fillLatestReversalProcess($getTrx);
 
             $count = 0;
             foreach ($getTrx as $key => $singleTrx) {

@@ -89,7 +89,8 @@ class Transaction extends Model
 		'longitude',
 		'membership_promo_id',
 		'completed_at',
-		'show_rate_popup'
+		'show_rate_popup',
+		'latest_reversal_process'
 	];
 
 	public function user()
@@ -215,5 +216,10 @@ class Transaction extends Model
     public function promo_campaign_referral_transaction()
 	{
 		return $this->hasOne(\Modules\PromoCampaign\Entities\PromoCampaignReferralTransaction::class, 'id_transaction');
+	}
+
+	public static function fillLatestReversalProcess($trxs, $date = null)
+	{
+		Transaction::whereIn('id_transaction', $trxs->pluck('id_transaction'))->update(['latest_reversal_process' => $date ?: date('Y-m-d H:i:s')]);
 	}
 }
