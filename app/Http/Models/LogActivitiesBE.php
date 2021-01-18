@@ -4,14 +4,15 @@ namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class LogActivitiesBE extends Model
+class LogActivitiesBE extends \App\Http\Models\BaseLog
 {
     /**
 	 * The database name used by the model.
 	 *
 	 * @var string
 	 */
-	protected $connection = 'mysql2';
+    protected $connection = 'mysql2';
+    public $timestamps = FALSE;
 	
     /**
      * The table associated with the model.
@@ -39,17 +40,4 @@ class LogActivitiesBE extends Model
         'updated_at'
     ];
 
-    public static function __callStatic($method, $parameters)
-    {
-        if ($method == 'create' && count($parameters) == 1) {
-            if (env('DISABLE_LOG')) {
-                return optional(null);
-            }
-
-           return parent::create($parameters[0], true);
-        } elseif ($method == 'create') {
-            return (new static)->$method($parameters[0]);
-        }
-        return (new static)->$method(...$parameters);
-    }
 }

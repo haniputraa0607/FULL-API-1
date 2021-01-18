@@ -39,7 +39,7 @@ class LogOvo extends Model
     public static function __callStatic($method, $parameters)
     {
         if ($method == 'create' && count($parameters) == 1) {
-            if (env('DISABLE_LOG')) {
+            if (env('DISABLE_LOG_PAYMENT')) {
                 return optional(null);
             }
 
