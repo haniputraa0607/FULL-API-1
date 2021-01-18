@@ -39,6 +39,7 @@ class ApiDealsTransaction extends Controller
     function listTrx(Request $request) {
         $post = $request->json()->all();
 
+        /*
         $trx = DealsUser::select('deals_users.*')
         ->leftJoin('users', 'users.id', '=', 'deals_users.id_user')
         ->leftJoin('deals_vouchers', 'deals_vouchers.id_deals_voucher', '=', 'deals_users.id_deals_voucher')
@@ -85,6 +86,9 @@ class ApiDealsTransaction extends Controller
             $trx->where('id_deals_user', $post['id_deals_user']);
         }
         $trx = $trx->orderBy('claimed_at', 'DESC');
+        */
+
+        $trx = $this->listTrxFilter($post);
         // $trx = $trx->get()->toArray();
         $trx = $trx->paginate(10);
 
@@ -123,9 +127,9 @@ class ApiDealsTransaction extends Controller
             $trx->where('paid_status', $post['paid_status']);
         }
 
-        if (isset($post['id_user'])) {
+        /*if (isset($post['id_user'])) {
             $trx->where('id_user', $post['id_user']);
-        }
+        }*/
 
         if (isset($post['phone'])) {
             $trx->where('phone', $post['phone']);
