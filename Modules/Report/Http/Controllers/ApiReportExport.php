@@ -56,7 +56,8 @@ class ApiReportExport extends Controller
 
         $create = ExportQueue::create($insertToQueue);
         if($create){
-            ExportJob::dispatch($create)->allOnConnection('database');
+            // ExportJob::dispatch($create)->onQueue('high')->allOnConnection('database');
+            ExportJob::dispatch($create)->allOnConnection('export_queue');
         }
         return response()->json(MyHelper::checkCreate($create));
     }

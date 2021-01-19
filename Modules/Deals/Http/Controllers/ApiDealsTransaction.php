@@ -16,6 +16,7 @@ use App\Http\Models\DealsPaymentMidtran;
 use App\Http\Models\DealsUser;
 use App\Http\Models\DealsVoucher;
 use App\Http\Models\User;
+use App\Http\Models\TransactionVoucher;
 
 use DB;
 
@@ -153,20 +154,22 @@ class ApiDealsTransaction extends Controller
         
         foreach ($data->cursor() as $val) {
         	
+        	$val->load('user', 'outlet', 'dealVoucher.transaction_voucher.transaction', 'dealVoucher.deal');
         	$val = $val->toArray();
-        	
-        	$deals = DealsVoucher::where('id_deals_voucher', $val['id_deals_voucher'])->with('deal')->get()->toArray() ?? [];
-        	$user = User::select('id', 'name', 'phone')->where('id', $val['id_user'])->first()->toArray() ?? [];
 
         	yield [
-	            'Deals'		=> $deals[0]['deal']['deals_title'] ?? null,
-                'Code'		=> $deals[0]['voucher_code'] ?? null,
-                'User'		=> $user['name'],
-                'Phone'		=> $user['phone'],
+	            'Deals'		=> $val['deal_voucher']['deal']['deals_title'] ?? null,
+                'Code'		=> $val['deal_voucher']['voucher_code'] ?? null,
+                'User'		=> $val['user']['name'] ?? null,
+                'Phone'		=> $val['user']['phone'] ?? null,
                 'Claim'		=> (empty($val['claimed_at'])) ? '-' : date('d-M-y', strtotime($val['claimed_at'])),
                 'Redeem'	=> (empty($val['redeemed_at'])) ? '-' : date('d-M-y', strtotime($val['redeemed_at'])),
                 'Used'		=> (empty($val['used_at'])) ? '-' : date('d-M-y', strtotime($val['used_at'])),
-                'Expiry'	=> (empty($val['voucher_expired_at'])) ? '-' : date('d-M-y', strtotime($val['voucher_expired_at']))
+                'Expiry'	=> (empty($val['voucher_expired_at'])) ? '-' : date('d-M-y', strtotime($val['voucher_expired_at'])),
+                'Receipt Number'=> $val['deal_voucher']['transaction_voucher']['transaction']['transaction_receipt_number'] ?? null,
+                'Outlet Code'	=> $val['outlet']['outlet_code'] ?? null,
+                'Outlet Name'	=> $val['outlet']['outlet_name'] ?? null,
+                'Grandtotal'	=> $val['deal_voucher']['transaction_voucher']['transaction']['transaction_grandtotal'] ?? null
             ];
         }
     }
