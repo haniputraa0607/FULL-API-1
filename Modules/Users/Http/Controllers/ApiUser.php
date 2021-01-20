@@ -492,7 +492,7 @@ class ApiUser extends Controller
 
                     if($condition['subject'] == 'gender' || $condition['subject'] == 'is_suspended' || $condition['subject'] == 'email_verified' || $condition['subject'] == 'phone_verified' || $condition['subject'] == 'email_unsubscribed' || $condition['subject'] == 'provider' || $condition['subject'] == 'city_name' || $condition['subject'] == 'city_postal_code' || $condition['subject'] == 'province_name' || $condition['subject'] == 'level'){
                         if($condition['subject'] == 'city_name' || $condition['subject'] == 'city_postal_code') $var = "cities.".$condition['subject'];
-                        else if($condition['subject'] == 'province_name') $var = "provinces.".$condition['subject'];
+                        else if($condition['subject'] == 'province_name') $var = "province_customs.".$condition['subject'];
                         else $var = "users.".$condition['subject'];
 
                         if(isset($conditionParameter))$query = $query->where($var,'=',$conditionParameter);
@@ -666,7 +666,7 @@ class ApiUser extends Controller
 
                     if($condition['subject'] == 'gender' || $condition['subject'] == 'is_suspended' || $condition['subject'] == 'email_verified' || $condition['subject'] == 'phone_verified' || $condition['subject'] == 'email_unsubscribed' || $condition['subject'] == 'provider' || $condition['subject'] == 'city_name' || $condition['subject'] == 'city_postal_code' || $condition['subject'] == 'province_name' || $condition['subject'] == 'level'){
                         if($condition['subject'] == 'city_name' || $condition['subject'] == 'city_postal_code') $var = "cities.".$condition['subject'];
-                        else if($condition['subject'] == 'province_name') $var = "provinces.".$condition['subject'];
+                        else if($condition['subject'] == 'province_name') $var = "province_customs.".$condition['subject'];
                         else $var = "users.".$condition['subject'];
 
                         if(isset($conditionParameter))$query = $query->orWhere($var,'=',$conditionParameter);
