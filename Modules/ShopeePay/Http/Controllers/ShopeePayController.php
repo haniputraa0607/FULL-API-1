@@ -266,17 +266,20 @@ class ShopeePayController extends Controller
 
                 $productTrx = TransactionProduct::where('id_transaction', $singleTrx->id_transaction)->get();
                 if (empty($productTrx)) {
+                    $singleTrx->clearLatestReversalProcess();
                     continue;
                 }
 
                 $user = User::where('id', $singleTrx->id_user)->first();
                 if (empty($user)) {
+                    $singleTrx->clearLatestReversalProcess();
                     continue;
                 }
 
                 // get status from shopeepay
                 $status = $this->checkStatus($singleTrx, 'trx', $errors);
                 if (!$status) {
+                    $singleTrx->clearLatestReversalProcess();
                     \Log::error('Failed get shopeepay status transaction ' . $singleTrx->transaction_receipt_number . ': ', $errors);
                     continue;
                 }
@@ -289,6 +292,7 @@ class ShopeePayController extends Controller
                         $void              = $this->void($singleTrx, 'trx', $errors, $void_reference_id);
                         if (!$void) {
                             \Log::error('Failed void transaction ' . $singleTrx->transaction_receipt_number . ': ', $errors);
+                            $singleTrx->clearLatestReversalProcess();
                             continue;
                         }
                         DB::begintransaction();
@@ -339,6 +343,7 @@ class ShopeePayController extends Controller
 
                 // hanya cancel yang sudah expired
                 if ($singleTrx['transaction_date'] > $expired) {
+                    $singleTrx->clearLatestReversalProcess();
                     continue;
                 }
 
@@ -347,10 +352,11 @@ class ShopeePayController extends Controller
 
                 $singleTrx->transaction_payment_status = 'Cancelled';
                 $singleTrx->void_date                  = $now;
-                $singleTrx->save();
+                $save = $singleTrx->save();
 
-                if (!$singleTrx) {
+                if (!$save) {
                     DB::rollBack();
+                    $singleTrx->clearLatestReversalProcess();
                     continue;
                 }
 
@@ -360,6 +366,7 @@ class ShopeePayController extends Controller
                     $reversal = app($this->balance)->addLogBalance($singleTrx->id_user, abs($logB['balance']), $singleTrx->id_transaction, 'Reversal', $singleTrx->transaction_grandtotal);
                     if (!$reversal) {
                         DB::rollBack();
+                        $singleTrx->clearLatestReversalProcess();
                         continue;
                     }
                     $usere = User::where('id', $singleTrx->id_user)->first();
@@ -379,6 +386,7 @@ class ShopeePayController extends Controller
                     $update_promo_report = app($this->promo_campaign)->deleteReport($singleTrx->id_transaction, $singleTrx->id_promo_campaign_promo_code);
                     if (!$update_promo_report) {
                         DB::rollBack();
+                        $singleTrx->clearLatestReversalProcess();
                         continue;
                     }
                 }
@@ -387,6 +395,7 @@ class ShopeePayController extends Controller
                 $update_voucher = app($this->voucher)->returnVoucher($singleTrx->id_transaction);
                 if (!$update_voucher) {
                     DB::rollBack();
+                    $singleTrx->clearLatestReversalProcess();
                     continue;
                 }
                 $count++;
