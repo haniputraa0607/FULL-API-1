@@ -222,4 +222,9 @@ class Transaction extends Model
 	{
 		Transaction::whereIn('id_transaction', $trxs->pluck('id_transaction'))->update(['latest_reversal_process' => $date ?: date('Y-m-d H:i:s')]);
 	}
+
+	public function clearLatestReversalProcess()
+	{
+		$update = Transaction::where('id_transaction', $this->id_transaction)->update(['latest_reversal_process' => null]);
+	}
 }
