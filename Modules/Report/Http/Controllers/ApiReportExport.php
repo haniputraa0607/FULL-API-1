@@ -97,7 +97,7 @@ class ApiReportExport extends Controller
             if(env('STORAGE', 'local') == 'local'){
                 $delete = File::delete($file);
             }else{
-                $delete = MyHelper::deleteFile($file);
+                $delete = MyHelper::deleteFile($data['url_export']);
             }
 
             if($delete){
