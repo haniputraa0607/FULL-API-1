@@ -58,7 +58,15 @@ class ApiCronTrxController extends Controller
             $now       = date('Y-m-d H:i:s');
             $expired   = date('Y-m-d H:i:s',strtotime('- 5minutes'));
 
-            $getTrx = Transaction::where('transaction_payment_status', 'Pending')->where('transaction_date', '<=', $expired)->get();
+            $getTrx = Transaction::where('transaction_payment_status', 'Pending')
+                ->where('transaction_date', '<=', $expired)
+                ->where(function ($query) {
+                    $query->whereNull('latest_reversal_process')
+                        ->orWhere('latest_reversal_process', '<', date('Y-m-d H:i:s', strtotime('- 5 minutes')));
+                })
+                ->get();
+
+            Transaction::fillLatestReversalProcess($getTrx);
 
             if (empty($getTrx)) {
                 $log->success('empty');
@@ -70,11 +78,13 @@ class ApiCronTrxController extends Controller
 
                 $productTrx = TransactionProduct::where('id_transaction', $singleTrx->id_transaction)->get();
                 if (empty($productTrx)) {
+                    $singleTrx->clearLatestReversalProcess();
                     continue;
                 }
 
                 $user = User::where('id', $singleTrx->id_user)->first();
                 if (empty($user)) {
+                    $singleTrx->clearLatestReversalProcess();
                     continue;
                 }
                 if($singleTrx->trasaction_payment_type == 'Midtrans') {
@@ -83,6 +93,7 @@ class ApiCronTrxController extends Controller
                     $trx_ipay = TransactionPaymentIpay88::where('id_transaction',$singleTrx->id_transaction)->first();
 
                     if ($trx_ipay && strtolower($trx_ipay->payment_method) == 'credit card' && $singleTrx->transaction_date > date('Y-m-d H:i:s', strtotime('- 15minutes'))) {
+                        $singleTrx->clearLatestReversalProcess();
                         continue;
                     }
 
@@ -106,10 +117,11 @@ class ApiCronTrxController extends Controller
 
                 $singleTrx->transaction_payment_status = 'Cancelled';
                 $singleTrx->void_date = $now;
-                $singleTrx->save();
+                $update = $singleTrx->save();
 
-                if (!$singleTrx) {
+                if (!$update) {
                     DB::rollBack();
+                    $singleTrx->clearLatestReversalProcess();
                     continue;
                 }
 
@@ -119,6 +131,7 @@ class ApiCronTrxController extends Controller
                     $reversal = app($this->balance)->addLogBalance( $singleTrx->id_user, abs($logB['balance']), $singleTrx->id_transaction, 'Reversal', $singleTrx->transaction_grandtotal);
     	            if (!$reversal) {
     	            	DB::rollBack();
+                        $singleTrx->clearLatestReversalProcess();
     	            	continue;
     	            }
                     $usere= User::where('id',$singleTrx->id_user)->first();

@@ -24,6 +24,7 @@
         "nwidart/laravel-modules": "^5.0",
         "orangehill/iseed": "^2.6",
         "php-http/guzzle6-adapter": "^1.1",
+        "rap2hpoutre/fast-excel": "^2.3",
         "smartins/passport-multiauth": "^4.1",
         "spatie/array-to-xml": "^2.14",
         "spatie/async": "^1.5",
