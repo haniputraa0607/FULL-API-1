@@ -553,7 +553,6 @@ class ApiCampaign extends Controller
 		if($campaign->campaign_generate_receipient=='Now'){
 			GenerateCampaignRecipient::dispatch($post)->allOnConnection('database');
 		}
-		\Log::info($campaign);
 		if($campaign->campaign_send_at&&$campaign->campaign_send_at<date('Y-m-d H:i:s')){
 			$post['campaign_send_at']=date('Y-m-d H:i:s');
 		}
