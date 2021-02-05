@@ -1705,7 +1705,10 @@ class ApiPOS extends Controller
                     ->whereColumn('product_prices.id_outlet', '=', 'outlet_product_price_periodes.id_outlet');
             })
             ->where('product_status', 'Inactive')
-            ->update([
+            ->where([
+                ['start_date', '<=', date('Y-m-d')],
+                ['end_date', '>=', date('Y-m-d')],
+            ])->update([
                 'product_status' => 'Active'
             ]);
 
