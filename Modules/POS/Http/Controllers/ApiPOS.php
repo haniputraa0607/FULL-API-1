@@ -1700,6 +1700,15 @@ class ApiPOS extends Controller
                 \DB::connection('mysql')->table('product_prices')->insert(array_values($toCreate));
             }
 
+            ProductPrice::join('outlet_product_price_periodes', function($join) {
+                $join->on('product_prices.id_product', '=', 'outlet_product_price_periodes.id_product')
+                    ->whereColumn('product_prices.id_outlet', '=', 'outlet_product_price_periodes.id_outlet');
+            })
+            ->where('product_status', 'Inactive')
+            ->update([
+                'product_status' => 'Active'
+            ]);
+
             $log->success(['update'=>$update,'create'=>count($toCreate)]);
         } catch (\Exception $e) {
             $log->fail($e->getMessage());
