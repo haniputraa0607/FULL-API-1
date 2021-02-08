@@ -2861,4 +2861,48 @@ class MyHelper{
         // print $command; die();
         exec($command);
     }
+
+    public static function getDeliveries(array $origin, array $destination, $options = []) {
+        $availableDelivery = config('delivery_method');
+    	if ($provider) {
+    		$provider = strtolower(preg_replace('/[^a-zA-Z]/', '', $provider));
+    		if (!in_array($provider, array_keys($availableDelivery))) {
+    			return false;
+    		}
+    	}
+
+        $setting  = json_decode(MyHelper::setting('active_delivery_methods', 'value_text', '[]'), true) ?? [];
+        $deliveries = [];
+
+        foreach ($setting as $value) {
+            $delivery = $availableDelivery[$value['code'] ?? ''] ?? false;
+            if (!$delivery || !($delivery['status'] ?? false) || (!$show_inactive && !($value['status'] ?? false))) {
+                unset($availableDelivery[$value['code']]);
+                continue;
+            }
+            $deliveries[] = [
+            	'code'	   => $value['code'],
+		        'type'     => $delivery['type'],
+		        'text'     => $delivery['text'],
+		        'logo'     => $delivery['logo'],
+		        'status'   => (int) $value['status'] ?? 0,
+            ];
+            unset($availableDelivery[$value['code']]);
+        }
+        if ($show_inactive) {
+            foreach ($availableDelivery as $code => $delivery) {
+                if (!$delivery['status']) {
+                    continue;
+                }
+                $deliveries[] = [
+                    'code'     => $code,
+			        'type'     => $delivery['type'],
+			        'text'     => $delivery['text'],
+			        'logo'     => $delivery['logo'],
+			        'status'   => 0,
+                ];
+            }
+        }
+        return MyHelper::checkGet($deliveries);
+    }
 }
