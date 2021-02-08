@@ -2293,43 +2293,50 @@ class ApiTransaction extends Controller
             ]);
         }
 
-        $address = UserAddress::select('id_user_address','name','short_address','address','type','latitude','longitude','description')->where('id_user', $id)->orderBy('id_user_address', 'DESC');
-        if(is_numeric($request->json('favorite'))){
-            $address->where('favorite',$request->json('favorite'));
-            if(!$request->json('favorite')){
-                $address->whereNull('type');
-            }
-        }
-        $address = $address->get()->toArray();
+        $address = UserAddress::select('id_user_address','name','short_address','address','type','latitude','longitude','description', 'favorite', 'last_used', 'updated_at')->where('id_user', $id)->orderBy('last_used', 'DESC')->orderBy('updated_at', 'DESC')->get()->toArray();
         $result = [
+            'favorite' => [
+                'home' => null,
+                'work' => null,
+                'others' => [],
+            ],
+            'recently' => [],
         ];
-        $misc = [];
-        foreach ($address as $key => $adr) {
-            switch (strtolower($adr['type'])) {
-                case 'home':
-                    $adr['position'] = 1;
-                    $result[] = $adr;
-                    break;
+        foreach ($address as $key => &$adr) {
+            if ($adr['favorite']) {
+                switch (strtolower($adr['type'])) {
+                    case 'home':
+                        $result['favorite']['home'] = &$adr;
+                        break;
 
-                case 'work':
-                    $adr['position'] = 2;
-                    $result[] = $adr;
-                    break;
+                    case 'work':
+                        $result['favorite']['work'] = &$adr;
+                        break;
 
-                case 'other':
-                    $adr['position'] = 3;
-                    $result[] = $adr;
-                    break;
-
-                default:
-                    $adr['position'] = $key+3;
-                    $result[] = $adr;
-                    break;
+                    default:
+                        $result['favorite']['others'][] = &$adr;
+                        break;
+                }                
+            }
+            if (($adr['last_used'] || !$adr['favorite'])) {
+                $result['recently'][] = &$adr;
             }
         }
-        usort($result, function ($a, $b){
-            return $a['position'] <=> $b['position'];
+
+        usort($result['favorite']['others'], function($a, $b) {
+            return $a['id_user_address'] <=> $b['id_user_address'];
         });
+
+        usort($result['recently'], function($a, $b) {
+            return ($a['last_used'] ?? $a['updated_at']) <=> ($b['last_used'] ?? $b['updated_at']);
+        });
+
+        foreach ($address as &$adres) {
+            unset($adres['last_used']);
+            unset($adres['updated_at']);
+        }
+        $result['recently'] = array_splice($result['recently'], 0, 3);
+
         return response()->json(MyHelper::checkGet($result));
     }
 
