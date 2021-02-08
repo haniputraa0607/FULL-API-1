@@ -2340,6 +2340,23 @@ class ApiTransaction extends Controller
         return response()->json(MyHelper::checkGet($result));
     }
 
+    public function getRecentlyAddress(Request $request)
+    {
+        $id = $request->user()->id;
+        $address = UserAddress::select('id_user_address','name','short_address','address','type','latitude','longitude','description', 'favorite', 'last_used', 'updated_at')
+            ->where('id_user', $id)
+            ->orderBy('last_used', 'DESC')
+            ->orderBy('updated_at', 'DESC');
+
+        if ($request->page) {
+            $address = $address->paginate();
+        } else {
+            $address = $address->get();
+        }
+
+        return MyHelper::checkGet($address);
+    }
+
     public function getNearbyAddress(GetNearbyAddress $request) {
         $id = $request->user()->id;
         $distance = Setting::select('value')->where('key','history_address_max_distance')->pluck('value')->first()?:50;
