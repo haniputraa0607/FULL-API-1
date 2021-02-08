@@ -2293,7 +2293,7 @@ class ApiTransaction extends Controller
             ]);
         }
 
-        $address = UserAddress::select('id_user_address','name','short_address','address','type')->where('id_user', $id)->orderBy('id_user_address', 'DESC');
+        $address = UserAddress::select('id_user_address','name','short_address','address','type','latitude','longitude','description')->where('id_user', $id)->orderBy('id_user_address', 'DESC');
         if(is_numeric($request->json('favorite'))){
             $address->where('favorite',$request->json('favorite'));
             if(!$request->json('favorite')){
@@ -2310,17 +2310,17 @@ class ApiTransaction extends Controller
                     $adr['position'] = 1;
                     $result[] = $adr;
                     break;
-                
+
                 case 'work':
                     $adr['position'] = 2;
                     $result[] = $adr;
                     break;
-                
+
                 case 'other':
                     $adr['position'] = 3;
                     $result[] = $adr;
                     break;
-                
+
                 default:
                     $adr['position'] = $key+3;
                     $result[] = $adr;
@@ -2358,24 +2358,13 @@ class ApiTransaction extends Controller
 
         if($gmaps['status'] === 'OK'){
             $gmaps = $gmaps['results'];
+            MyHelper::sendGmapsData($gmaps);
         }else{
             $gmaps = [];
         };
 
-        foreach ($gmaps as &$gmap){
-            $gmap = [
-                'id_user_address' => null,
-                'short_address' => $gmap['name'],
-                'address' => $gmap['vicinity'],
-                'type' => null,
-                'latitude' => $gmap['geometry']['location']['lat'],
-                'longitude' => $gmap['geometry']['location']['lng'],
-                'description' => ''
-            ];
-        }
-
         $maxmin = MyHelper::getRadius($latitude,$longitude,$distance);
-        $user_address = UserAddress::select('id_user_address','short_address','address','type','latitude','longitude','description')->where('id_user',$id)
+        $user_address = UserAddress::select('id_user_address','short_address','address','latitude','longitude','description','favorite')->where('id_user',$id)
             ->whereBetween('latitude',[$maxmin['latitude']['min'],$maxmin['latitude']['max']])
             ->whereBetween('longitude',[$maxmin['longitude']['min'],$maxmin['longitude']['max']])
             ->take(10);
@@ -2408,14 +2397,13 @@ class ApiTransaction extends Controller
             $gmap = [
                 'id_user_address' => 0,
                 'short_address' => $gmap['name'],
-                'address' => $gmap['vicinity'],
+                'address' => $gmap['vicinity']??'',
                 'latitude' => $coor['latitude'],
                 'longitude' => $coor['longitude'],
-                'description' => ''
+                'description' => '',
+                'favorite' => 0
             ];
         }
-
-        $selected_address = $user_address[0]??null;
 
         // mix history and gmaps
         $user_address = array_merge($user_address,$gmaps);
@@ -2445,7 +2433,7 @@ class ApiTransaction extends Controller
         }
         // apply limit;
         // $max_item = Setting::select('value')->where('key','history_address_max_item')->pluck('value')->first()?:10;
-        // $user_address = array_splice($user_address,0,$max_item); 
+        // $user_address = array_splice($user_address,0,$max_item);
         $result = [];
         if($user_address){
             $result = [
@@ -2498,11 +2486,16 @@ class ApiTransaction extends Controller
 
             if($gmaps['status'] === 'OK'){
                 $gmaps = $gmaps['results'];
+                MyHelper::sendGmapsData($gmaps);
             }else{
                 return MyHelper::checkGet([]);
             };
 
             foreach ($gmaps as $key => &$gmap){
+                $coor = [
+                    'latitude' => number_format($gmap['geometry']['location']['lat'],8),
+                    'longitude' => number_format($gmap['geometry']['location']['lng'],8)
+                ];
                 $gmap = [
                     'id_user_address' => 0,
                     'short_address' => $gmap['name'],
