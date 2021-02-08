@@ -151,7 +151,12 @@ class ApiPOS extends Controller
             $trx_start_time = $check['pickup_at']?:$check['completed_at'];
 
             $timestamp = strtotime('+' . $expired . ' minutes');
-            $memberUid = MyHelper::createQRV2($timestamp, $user['id']);
+            // $memberUid = MyHelper::createQRV2($timestamp, $user['id']);
+            $memberUid = $check['id_user'];
+			if(strlen((string)$memberUid) < 8){
+                $memberUid = "00000000".$memberUid;
+                $memberUid = substr($memberUid, -8);
+            }
             $header['orderNumber'] = $check['transaction_receipt_number'];
             $header['outletId'] = $outlet['outlet_code'];
             // $header['order_id'] = $check['order_id'];
