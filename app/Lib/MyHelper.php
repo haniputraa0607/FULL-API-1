@@ -2864,12 +2864,7 @@ class MyHelper{
 
     public static function getDeliveries(array $origin, array $destination, $options = []) {
         $availableDelivery = config('delivery_method');
-    	if ($provider) {
-    		$provider = strtolower(preg_replace('/[^a-zA-Z]/', '', $provider));
-    		if (!in_array($provider, array_keys($availableDelivery))) {
-    			return false;
-    		}
-    	}
+        $show_inactive = $option['show_inactive'] ?? false;
 
         $setting  = json_decode(MyHelper::setting('active_delivery_methods', 'value_text', '[]'), true) ?? [];
         $deliveries = [];
@@ -2880,13 +2875,20 @@ class MyHelper{
                 unset($availableDelivery[$value['code']]);
                 continue;
             }
-            $deliveries[] = [
+            $delivery = [
             	'code'	   => $value['code'],
 		        'type'     => $delivery['type'],
 		        'text'     => $delivery['text'],
 		        'logo'     => $delivery['logo'],
 		        'status'   => (int) $value['status'] ?? 0,
+		        'price'	   => $delivery['driver']::calculatePrice($origin, $destination),
             ];
+            if (($options['code'] ?? false) && $options['code'] != $value['code']) {
+            	continue;
+            } else {
+            	return $delivery;
+            }
+            $deliveries[] = $delivery;
             unset($availableDelivery[$value['code']]);
         }
         if ($show_inactive) {
@@ -2900,9 +2902,10 @@ class MyHelper{
 			        'text'     => $delivery['text'],
 			        'logo'     => $delivery['logo'],
 			        'status'   => 0,
+			        'price'    => 0,
                 ];
             }
         }
-        return MyHelper::checkGet($deliveries);
+        return $deliveries;
     }
 }

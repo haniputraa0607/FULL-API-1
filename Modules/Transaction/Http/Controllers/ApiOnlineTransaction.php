@@ -668,15 +668,40 @@ class ApiOnlineTransaction extends Controller
 
         $type = $post['type'];
         $isFree = '0';
-        $shippingGoSend = null;
+        $shippingGoSend = 0;
 
-        if($post['type'] == 'GO-SEND'){
-            $type = 'Pickup Order';
-            $shippingGoSend = $post['shipping_go_send'];
-            //cek free delivery
-            if($post['is_free'] == 'yes'){
-                $isFree = '1';
+        if ($post['type'] == 'GO-SEND') {
+            if(!($outlet['outlet_latitude']&&$outlet['outlet_longitude']&&$outlet['outlet_phone']&&$outlet['outlet_address'])){
+                app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
+                $outlet->notify_admin = 1;
+                $outlet->save();
+                return [
+                    'status' => 'fail',
+                    'messages' => ['Tidak dapat melakukan pengiriman dari outlet ini']
+                ];
             }
+            $coor_origin = [
+                'latitude' => number_format($outlet['outlet_latitude'],8),
+                'longitude' => number_format($outlet['outlet_longitude'],8)
+            ];
+            $coor_destination = [
+                'latitude' => number_format($post['destination']['latitude'],8),
+                'longitude' => number_format($post['destination']['longitude'],8)
+            ];
+            $type = 'Pickup Order';
+            $shippingGoSendx = GoSend::getPrice($coor_origin,$coor_destination);
+            $shippingGoSend = $shippingGoSendx[GoSend::getShipmentMethod()]['price']['total_price']??null;
+            if($shippingGoSend === null){
+                return [
+                    'status' => 'fail',
+                    'messages' => array_column($shippingGoSendx[GoSend::getShipmentMethod()]['errors']??[],'message')?:['Gagal menghitung ongkos kirim']
+                ];
+            }
+            //cek free delivery
+            // if($post['is_free'] == 'yes'){
+            //     $isFree = '1';
+            // }
+            $isFree = 0;
         }
 
         if ($post['grandTotal'] < 0 || $post['subtotal'] < 0) {
@@ -2678,6 +2703,49 @@ class ApiOnlineTransaction extends Controller
             ];
         }
         $update = Setting::updateOrCreate(['key' => 'active_payment_methods'], ['value_text' => json_encode($payments)]);
+        return MyHelper::checkUpdate($update);
+    }
+
+    public function availableShipment(Request $request)
+    {
+        $origin = [
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
+        ];
+
+        $outlet = Outlet::find($request->id_outlet);
+        if (!$outlet) {
+            return [
+                'status' => 'fail',
+                'messages' => ['Outlet not found']
+            ];
+        }
+
+        $destination = [
+            'latitude' => $outlet->outlet_latitude,
+            'longitude' => $request->outlet_longitude,
+        ];
+
+        $availableShipment = MyHelper::getDeliveries($origin, $destination, ['show_inactive' => $request->show_all]);
+
+        return MyHelper::checkGet($availableShipment);
+    }
+
+    public function availableShipmentUpdate(Request $request)
+    {
+        $availabledelivery = config('delivery_method');
+        foreach ($request->deliveries as $key => $value) {
+            $delivery = $availabledelivery[$value['code'] ?? ''] ?? false;
+            if (!$delivery || !($delivery['status'] ?? false)) {
+                continue;
+            }
+            $deliveries[] = [
+                'code'     => $value['code'],
+                'status'   => $value['status'] ?? 0,
+                'position' => $key + 1,
+            ];
+        }
+        $update = Setting::updateOrCreate(['key' => 'active_delivery_methods'], ['value_text' => json_encode($deliveries)]);
         return MyHelper::checkUpdate($update);
     }
 
