@@ -1349,7 +1349,15 @@ class ApiOnlineTransaction extends Controller
                 }else{
                     $save['status'] = 'success'; 
                     $save['type'] = 'no_topup';
-                    \App\Lib\ConnectPOS::create()->sendTransaction($insertTransaction['id_transaction']);
+
+                    $pickup = TransactionPickup::where('id_transaction', $insertTransaction['id_transaction'])->first();
+                    if ($pickup) {
+                        if ($pickup->pickup_by == 'Customer') {
+                            \App\Lib\ConnectPOS::create()->sendTransaction($insertTransaction['id_transaction']);
+                        } else {
+                            $pickup->bookDelivery();
+                        }
+                    }
                 }
 
                 if ($post['transaction_payment_status'] == 'Completed' || $save['type'] == 'no_topup') {

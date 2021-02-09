@@ -515,7 +515,16 @@ class IPay88
 		];
 		$up = $model->update($forUpdate);
         DB::commit();
-        $sendPOS = ($trx['id_transaction']??false)?\App\Lib\ConnectPOS::create()->sendTransaction([$trx['id_transaction']]):null;
+        if ($trx['id_transaction']??false) {
+	        $pickup = TransactionPickup::where('id_transaction', $trx['id_transaction'])->first();
+	        if ($pickup) {
+	            if ($pickup->pickup_by == 'Customer') {
+	                \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
+	            } else {
+	                $pickup->bookDelivery();
+	            }
+	        }
+        }
         return $up;
 	}
     function getHtml($trx, $item, $name, $phone, $date, $outlet, $receipt)

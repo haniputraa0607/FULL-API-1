@@ -660,7 +660,16 @@ Detail: ".$link['short'],
                         if (!$upTrx) {
                             return false;
                         }
-                        \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
+
+                        $pickup = TransactionPickup::where('id_transaction', $trx['id_transaction'])->first();
+                        if ($pickup) {
+                            if ($pickup->pickup_by == 'Customer') {
+                                \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
+                            } else {
+                                $pickup->bookDelivery();
+                            }
+                        }
+
                         $fraud = $this->checkFraud($trx);
                         if ($fraud == false) {
                             return false;
@@ -862,7 +871,16 @@ Detail: ".$link['short'],
                 if (!$check) {
                     return false;
                 }
-                \App\Lib\ConnectPOS::create()->sendTransaction($trx->id_transaction);
+
+                $pickup = TransactionPickup::where('id_transaction', $trx->id_transaction)->first();
+                if ($pickup) {
+                    if ($pickup->pickup_by == 'Customer') {
+                        \App\Lib\ConnectPOS::create()->sendTransaction($trx->id_transaction);
+                    } else {
+                        $pickup->bookDelivery();
+                    }
+                }
+
                 $fraud = $this->checkFraud($trx);
                 if (!$fraud) {
                     return false;
