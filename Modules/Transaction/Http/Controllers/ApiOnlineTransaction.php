@@ -621,14 +621,14 @@ class ApiOnlineTransaction extends Controller
                 $dataAddressKeys = ['id_user_address'=>$dataAddress['id_user_address']];
             }else{
                 $dataAddressKeys = [
-                    'latitude' => $dataAddress['latitude'],
-                    'longitude' => $dataAddress['longitude']
+                    'latitude' => number_format($dataAddress['latitude'],8),
+                    'longitude' => number_format($dataAddress['longitude'],8)
                 ];
             }
             $dataAddressKeys['id_user'] = $user['id'];
             $addressx = UserAddress::where($dataAddressKeys)->first();
             if(!$addressx){
-                UserAddress::create($dataAddressKeys+$dataAddress);
+                $addressx = UserAddress::create($dataAddressKeys+$dataAddress);
             }elseif(!$addressx->favorite){
                 $addressx->update($dataAddress);
             }
@@ -648,8 +648,8 @@ class ApiOnlineTransaction extends Controller
                 ],
             ];
             $dataShipping = [
-                'name'        => $post['destination']['name'],
-                'phone'       => $user['destination']['phone'],
+                'name'        => $user['name'],
+                'phone'       => $user['phone'],
                 'address'     => $post['destination']['address']
             ];
         }
@@ -1167,14 +1167,14 @@ class ApiOnlineTransaction extends Controller
             if($configAdminOutlet && $configAdminOutlet['is_active'] == '1'){
                 $totalAdmin = $adminOutlet->where('pickup_order', 1)->first();
                 if (empty($totalAdmin)) {
-                    DB::rollBack();
+                    DB::rollback();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Admin outlet is empty']
                     ]);
                 }
 
-                $link = env('APP_URL').'/transaction/admin/'.$insertTransaction['transaction_receipt_number'].'/'.$totalAdmin['phone'];
+                $link = config('url.app_url').'/transaction/admin/'.$insertTransaction['transaction_receipt_number'].'/'.$totalAdmin['phone'];
             }
             $order_id = MyHelper::createrandom(4, 'Besar Angka');
 
@@ -1185,6 +1185,22 @@ class ApiOnlineTransaction extends Controller
                                             ->whereDate('transaction_date', date('Y-m-d'))
                                             ->first();
             while($cekOrderId){
+                $order_id = MyHelper::createrandom(4, 'Besar Angka');
+
+                $cekOrderId = TransactionPickup::join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
+                                                ->where('id_outlet', $insertTransaction['id_outlet'])
+                                                ->where('order_id', $order_id)
+                                                ->whereDate('transaction_date', date('Y-m-d'))
+                                                ->first();
+            }
+
+            //cek unique order id today
+            $cekOrderId = TransactionPickup::join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
+                                            ->where('id_outlet', $insertTransaction['id_outlet'])
+                                            ->where('order_id', $order_id)
+                                            ->whereDate('transaction_date', date('Y-m-d'))
+                                            ->first();
+            while ($cekOrderId) {
                 $order_id = MyHelper::createrandom(4, 'Besar Angka');
 
                 $cekOrderId = TransactionPickup::join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
@@ -1214,28 +1230,15 @@ class ApiOnlineTransaction extends Controller
                 $pickupType = 'set time';
             }
 
-            $settingTime = Setting::where('key', 'processing_time')->first();
-            if(!isset($settingTime['value'])){
-                $settingTime['value'] = '15';
-            }
             if($pickupType == 'set time'){
+                $settingTime = Setting::where('key', 'processing_time')->first();
                 if (date('Y-m-d H:i:s', strtotime($post['pickup_at'])) <= date('Y-m-d H:i:s', strtotime('- '.$settingTime['value'].'minutes'))) {
-                    // $pickup = date('Y-m-d H:i:s', strtotime('+ '.$settingTime['value'].'minutes'));
-                    DB::rollBack();
-                    return response()->json([
-                        'status'    => 'fail',
-                        'messages'  => ['Set pickup time min '.$settingTime['value'].' minutes from now']
-                    ]);
+                    $pickup = date('Y-m-d H:i:s', strtotime('+ '.$settingTime['value'].'minutes'));
                 }
                 else {
                     if(isset($outlet['today']['close'])){
-                        if(date('Y-m-d H:i', strtotime($post['pickup_at'])) > date('Y-m-d').' '.date('H:i', strtotime('+ '.$settingTime['value'].'minutes', strtotime($outlet['today']['close'])))){
-                            // $pickup =  date('Y-m-d').' '.date('H:i:s', strtotime($outlet['today']['close']));
-                            DB::rollBack();
-                            return response()->json([
-                                'status'    => 'fail',
-                                'messages'  => ['Set pickup time max '.$settingTime['value'].' before outlet close']
-                            ]);
+                        if(date('Y-m-d H:i', strtotime($post['pickup_at'])) > date('Y-m-d').' '.date('H:i', strtotime($outlet['today']['close']))){
+                            $pickup =  date('Y-m-d').' '.date('H:i:s', strtotime($outlet['today']['close']));
                         }else{
                             $pickup = date('Y-m-d H:i:s', strtotime($post['pickup_at']));
                         }
@@ -1250,7 +1253,7 @@ class ApiOnlineTransaction extends Controller
             $dataPickup = [
                 'id_transaction'          => $insertTransaction['id_transaction'],
                 'order_id'                => $order_id,
-                'short_link'              => env('APP_URL').'/transaction/'.$order_id.'/status',
+                'short_link'              => config('url.app_url').'/transaction/'.$order_id.'/status',
                 'pickup_type'             => $pickupType,
                 'pickup_at'               => $pickup,
                 'receive_at'              => $post['receive_at'],
@@ -1269,35 +1272,43 @@ class ApiOnlineTransaction extends Controller
             $insertPickup = TransactionPickup::create($dataPickup);
 
             if (!$insertPickup) {
-                DB::rollBack();
+                DB::rollback();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Insert Pickup Order Transaction Failed']
                 ]);
             }
-
+            if($dataPickup['taken_at']){
+                Transaction::where('id_transaction',$dataPickup['id_transaction'])->update(['show_rate_popup'=>1]);
+            }
             //insert pickup go-send
             if($post['type'] == 'GO-SEND'){
+                if (!($post['destination']['short_address']??false)) {
+                    $post['destination']['short_address'] = $post['destination']['address'];
+                }
+
                 $dataGoSend['id_transaction_pickup'] = $insertPickup['id_transaction_pickup'];
                 $dataGoSend['origin_name']           = $outlet['outlet_name'];
                 $dataGoSend['origin_phone']          = $outlet['outlet_phone'];
                 $dataGoSend['origin_address']        = $outlet['outlet_address'];
                 $dataGoSend['origin_latitude']       = $outlet['outlet_latitude'];
                 $dataGoSend['origin_longitude']      = $outlet['outlet_longitude'];
-                $dataGoSend['origin_note']           = '';
-                $dataGoSend['destination_name']      = $post['destination']['name'];
-                $dataGoSend['destination_phone']     = $post['destination']['phone'];
+                $dataGoSend['origin_note']           = "NOTE: bila ada pertanyaan, mohon hubungi penerima terlebih dahulu untuk informasi. \nPickup Code $order_id";
+                $dataGoSend['destination_name']      = $user['name'];
+                $dataGoSend['destination_phone']     = $user['phone'];
                 $dataGoSend['destination_address']   = $post['destination']['address'];
+                $dataGoSend['destination_short_address'] = $post['destination']['short_address'];
+                $dataGoSend['destination_address_name']   = $addressx->name;
                 $dataGoSend['destination_latitude']  = $post['destination']['latitude'];
                 $dataGoSend['destination_longitude'] = $post['destination']['longitude'];
 
-                if(isset($post['destination_note'])){
-                    $dataGoSend['destination_note'] = $post['destination']['note'];
+                if(isset($post['destination']['description'])){
+                    $dataGoSend['destination_note'] = $post['destination']['description'];
                 }
 
                 $gosend = TransactionPickupGoSend::create($dataGoSend);
                 if (!$gosend) {
-                    DB::rollBack();
+                    DB::rollback();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Insert Transaction GO-SEND Failed']
@@ -1745,6 +1756,8 @@ class ApiOnlineTransaction extends Controller
             $shippingGoSend = $shippingGoSendx[GoSend::getShipmentMethod()]['price']['total_price']??null;
             if($shippingGoSend === null){
                 $error_msg += array_column($shippingGoSendx[GoSend::getShipmentMethod()]['errors']??[],'message')?:['Gagal menghitung ongkos kirim'];
+            } else {
+                $post['shipping'] = $shippingGoSend;
             }
             //cek free delivery
             // if($post['is_free'] == 'yes'){

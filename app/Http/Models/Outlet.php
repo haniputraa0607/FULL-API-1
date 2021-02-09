@@ -83,7 +83,7 @@ class Outlet extends Authenticatable
 		'outlet_status',
 		'deep_link_gojek',
 		'deep_link_grab',
-		'is_24h'
+		'is_24h',
 		'delivery_order',
 		// 'outlet_open_hours',
 		// 'outlet_close_hours'
