@@ -6,7 +6,7 @@ return [
         'text'     => 'GoSend',
         'logo'     => env('STORAGE_URL_API').'default_image/delivery_method/gosend.png',
         'helper'   => \App\Lib\GoSend::class,
-        'status'   => 0,
+        'status'   => 1,
     ],
     'grab' => [
         'type'     => 'Grab',
@@ -21,6 +21,6 @@ return [
         'logo'     => env('STORAGE_URL_API').'default_image/delivery_method/outlet.png',
         'nolimit'  => true,
         'helper'   => \App\Lib\OutletDelivery::class,
-        'status'   => 0,
+        'status'   => 1,
     ],
 ];

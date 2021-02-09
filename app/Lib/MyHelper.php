@@ -2889,12 +2889,14 @@ class MyHelper{
 		        'text'     => $delivery['text'],
 		        'logo'     => $delivery['logo'],
 		        'status'   => (int) $value['status'] ?? 0,
-		        'price'	   => $delivery['driver']::calculatePrice($origin, $destination),
+		        'price'	   => $delivery['helper']::calculatePrice($origin, $destination) ?? 0,
             ];
-            if (($options['code'] ?? false) && $options['code'] != $value['code']) {
-            	continue;
-            } else {
-            	return $delivery;
+            if (($options['code'] ?? false)) {
+            	if ($options['code'] != $value['code']) {
+	            	continue;
+            	}  else {
+	            	return $delivery;
+	            }
             }
             $deliveries[] = $delivery;
             unset($availableDelivery[$value['code']]);

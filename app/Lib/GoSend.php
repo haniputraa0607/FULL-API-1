@@ -13,6 +13,9 @@ use App\Http\Models\User;
 
 class GoSend
 {
+    static function calculatePrice(array $origin, array $destination) {
+        return 10000;
+    }
 
     public function __construct()
     {

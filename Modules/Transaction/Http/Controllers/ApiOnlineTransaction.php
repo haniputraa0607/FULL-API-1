@@ -2786,6 +2786,7 @@ class ApiOnlineTransaction extends Controller
     public function availableShipmentUpdate(Request $request)
     {
         $availabledelivery = config('delivery_method');
+        $deliveries = [];
         foreach ($request->deliveries as $key => $value) {
             $delivery = $availabledelivery[$value['code'] ?? ''] ?? false;
             if (!$delivery || !($delivery['status'] ?? false)) {

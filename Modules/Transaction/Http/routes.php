@@ -3,7 +3,7 @@ Route::group(['middleware' => ['auth:api'],'prefix' => 'api/transaction', 'names
     Route::any('available-payment', 'ApiOnlineTransaction@availablePayment');
     Route::any('available-payment/update', 'ApiOnlineTransaction@availablePaymentUpdate')->middleware('scopes:be');
     Route::any('available-shipment', 'ApiOnlineTransaction@availableShipment');
-    Route::any('available-shipment/update', 'ApiOnlineTransaction@availableShipment')->middleware('scopes:be');
+    Route::any('available-shipment/update', 'ApiOnlineTransaction@availableShipmentUpdate')->middleware('scopes:be');
 });
 
 Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scopes:be'], 'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
