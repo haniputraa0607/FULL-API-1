@@ -1452,7 +1452,7 @@ class ApiTransaction extends Controller
             if($request->json('admin')){
                 $list = Transaction::where(['transactions.id_transaction' => $id])->with('user');
             }else{
-                $list = Transaction::where(['transactions.id_transaction' => $id, 'id_user' => $request->user()->id]);
+                $list = Transaction::join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')->where(['transactions.id_transaction' => $id, 'id_user' => $request->user()->id]);
             }
             if($use_product_variant){
                 $list = $list->with(
@@ -1467,6 +1467,7 @@ class ApiTransaction extends Controller
                     'transaction_vouchers.deals_voucher.deal',
                     'promo_campaign_promo_code.promo_campaign',
                     'promo_campaign_referral_transaction',
+                    'transaction_pickup_go_send.transaction_pickup_update',
                     'outlet.city')->first();
             }else{
                 $list = $list->with(
@@ -1968,6 +1969,99 @@ class ApiTransaction extends Controller
                             'text'  => 'Your order has been received',
                             'date'  => date('d F Y H:i', strtotime($list['detail']['receive_at']))
                         ];
+                    }
+                    if ($list['detail']['pickup_by'] == 'GO-SEND' && $list['transaction_pickup_go_send'] && !$list['detail']['reject_at']) {
+                        // $result['transaction_status'] = 5;
+                        $result['delivery_info'] = [
+                            'driver' => null,
+                            'delivery_status' => '',
+                            'delivery_address' => $list['transaction_pickup_go_send']['destination_address']?:'',
+                            'delivery_address_note' => $list['transaction_pickup_go_send']['destination_note'] ?: '',
+                            'booking_status' => 0,
+                            'cancelable' => 1,
+                            'go_send_order_no' => $list['transaction_pickup_go_send']['go_send_order_no']?:'',
+                            'live_tracking_url' => $list['transaction_pickup_go_send']['live_tracking_url']?:''
+                        ];
+                        if($list['transaction_pickup_go_send']['go_send_id']){
+                            $result['delivery_info']['booking_status'] = 1;
+                        }
+                        switch (strtolower($list['transaction_pickup_go_send']['latest_status'])) {
+                            case 'finding driver':
+                            case 'confirmed':
+                                $result['delivery_info']['delivery_status'] = 'Sedang mencari driver';
+                                $result['transaction_status_text']          = 'PESANAN SUDAH SIAP DAN MENUNGGU PICK UP';
+                                break;
+                            case 'driver allocated':
+                            case 'allocated':
+                                $result['delivery_info']['delivery_status'] = 'Driver ditemukan';
+                                $result['transaction_status_text']          = 'DRIVER DITEMUKAN DAN SEDANG MENUJU OUTLET';
+                                $result['delivery_info']['driver']          = [
+                                    'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
+                                    'driver_name'       => $list['transaction_pickup_go_send']['driver_name']?:'',
+                                    'driver_phone'      => $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_whatsapp'   => env('URL_WA') . $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_photo'      => $list['transaction_pickup_go_send']['driver_photo']?:'',
+                                    'vehicle_number'    => $list['transaction_pickup_go_send']['vehicle_number']?:'',
+                                ];
+                                break;
+                            case 'enroute pickup':
+                            case 'out_for_pickup':
+                                $result['delivery_info']['delivery_status'] = 'Driver dalam perjalanan menuju Outlet';
+                                $result['transaction_status_text']          = 'DRIVER SEDANG MENUJU OUTLET';
+                                $result['delivery_info']['driver']          = [
+                                    'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
+                                    'driver_name'       => $list['transaction_pickup_go_send']['driver_name']?:'',
+                                    'driver_phone'      => $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_whatsapp'   => env('URL_WA') . $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_photo'      => $list['transaction_pickup_go_send']['driver_photo']?:'',
+                                    'vehicle_number'    => $list['transaction_pickup_go_send']['vehicle_number']?:'',
+                                ];
+                                $result['delivery_info']['cancelable'] = 1;
+                                break;
+                            case 'enroute drop':
+                            case 'out_for_delivery':
+                                $result['delivery_info']['delivery_status'] = 'Driver mengantarkan pesanan';
+                                $result['transaction_status_text']          = 'PESANAN SUDAH DI PICK UP OLEH DRIVER DAN SEDANG MENUJU LOKASI #TEMANSEJIWA';
+                                $result['transaction_status']               = 3;
+                                $result['delivery_info']['driver']          = [
+                                    'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
+                                    'driver_name'       => $list['transaction_pickup_go_send']['driver_name']?:'',
+                                    'driver_phone'      => $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_whatsapp'   => env('URL_WA') . $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_photo'      => $list['transaction_pickup_go_send']['driver_photo']?:'',
+                                    'vehicle_number'    => $list['transaction_pickup_go_send']['vehicle_number']?:'',
+                                ];
+                                $result['delivery_info']['cancelable'] = 0;
+                                break;
+                            case 'completed':
+                            case 'delivered':
+                                $result['transaction_status'] = 2;
+                                $result['transaction_status_text']          = 'PESANAN TELAH SELESAI DAN DITERIMA';
+                                $result['delivery_info']['delivery_status'] = 'Pesanan sudah diterima Customer';
+                                $result['delivery_info']['driver']          = [
+                                    'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
+                                    'driver_name'       => $list['transaction_pickup_go_send']['driver_name']?:'',
+                                    'driver_phone'      => $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_whatsapp'   => env('URL_WA') . $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_photo'      => $list['transaction_pickup_go_send']['driver_photo']?:'',
+                                    'vehicle_number'    => $list['transaction_pickup_go_send']['vehicle_number']?:'',
+                                ];
+                                $result['delivery_info']['cancelable'] = 0;
+                                break;
+                            case 'cancelled':
+                                $result['delivery_info']['booking_status'] = 0;
+                                $result['transaction_status_text']         = 'PENGANTARAN PESANAN TELAH DIBATALKAN';
+                                $result['delivery_info']['delivery_status'] = 'Pengantaran dibatalkan';
+                                $result['delivery_info']['cancelable']     = 0;
+                                break;
+                            case 'driver not found':
+                            case 'no_driver':
+                                $result['delivery_info']['booking_status']  = 0;
+                                $result['transaction_status_text']          = 'DRIVER TIDAK DITEMUKAN';
+                                $result['delivery_info']['delivery_status'] = 'Driver tidak ditemukan';
+                                $result['delivery_info']['cancelable']      = 0;
+                                break;
+                        }
                     }
                 }
 

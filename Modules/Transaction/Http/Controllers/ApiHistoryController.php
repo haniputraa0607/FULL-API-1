@@ -644,6 +644,7 @@ class ApiHistoryController extends Controller
             $dataList['date']    = date('d M Y H:i', strtotime($value['transaction_date']));
             $dataList['outlet'] = $value['outlet']['outlet_name'];
             $dataList['outlet_code'] = $value['outlet']['outlet_code'];
+            $dataList['pickup_by'] = $value['pickup_by'];
             $dataList['amount'] = MyHelper::requestNumber($value['transaction_grandtotal'],'_CURRENCY');
 
             if ($value['ready_at'] != null) {
