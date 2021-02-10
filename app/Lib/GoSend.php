@@ -275,7 +275,7 @@ class GoSend
                 'confirmed'             => 'Pesanan nomor ('.$dataUpdate['go_send_order_no'].') sudah diterima dan sedang diproses oleh outlet',
                 'out_for_pickup'        => 'Tunggu sebentar ya, driver mu sedang menuju ke outlet',
                 'out_for_delivery'      => 'Menu favoritmu sedang diantar oleh driver',
-                'cancelled'             => 'Maaf, pesananmu tidak dapat diambil oleh driver',
+                'cancelled'             => 'Maaf, pesananmu tidak dapat diambil oleh outlet',
                 'delivered'             => 'Pesananmu sudah sampai! Selamat menikmati',
                 'no_driver'             => 'Belum berhasil menemukan driver',
             ];

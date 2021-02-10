@@ -6,6 +6,7 @@ Route::group(['middleware' => ['auth:api'],'prefix' => 'api/transaction', 'names
     Route::any('available-shipment/update', 'ApiOnlineTransaction@availableShipmentUpdate')->middleware('scopes:be');
 });
 
+Route::any('api/transaction/update-gosend', 'Modules\Transaction\Http\Controllers\ApiGosendController@updateStatus');
 Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scopes:be'], 'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
     Route::post('/outlet', 'ApiNotification@adminOutlet');
     Route::post('/admin/confirm', 'ApiNotification@adminOutletComfirm');
