@@ -1737,7 +1737,7 @@ class ApiOnlineTransaction extends Controller
 
         $error_msg=[];
 
-        if($post['type'] != 'Pickup' && !$outlet->delivery_order) {
+        if(($post['type'] ?? null) == 'GO-SEND' && !$outlet->delivery_order) {
             $error_msg[] = 'Maaf, Outlet ini tidak support untuk delivery order';
         }
 

@@ -2,9 +2,7 @@
 
 namespace App\Http\Models;
 
-use Illuminate\Database\Eloquent\Model;
-
-class LogApiGosend extends Model
+class LogApiGosend extends \App\Http\Models\BaseLog
 {
 	public $primaryKey = 'id_log_api_gosend';
 	protected $connection = 'mysql2';

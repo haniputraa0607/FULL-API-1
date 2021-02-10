@@ -11,7 +11,7 @@ class CheckTransaction extends FormRequest
     public function rules()
     {
         return [
-            'type'                                    => 'required|in:Pickup Order,GO-SEND,Grab',
+            'type'                                    => 'sometimes|in:Pickup Order,GO-SEND,Grab',
             'payment_type'                            => 'nullable|in:Midtrans,Manual,Balance,Ovo,Ipay88,Shopeepay,Xendit',
             'destination.id_user_address'             => 'nullable|sometimes',
             'destination.short_address'               => 'nullable|sometimes',

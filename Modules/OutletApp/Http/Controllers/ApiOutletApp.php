@@ -46,6 +46,12 @@ class ApiOutletApp extends Controller
         $this->trx    = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
     }
 
+    // this function does nothing
+    public function outletNotif(...$args)
+    {
+        return true;
+    }
+
     public function deleteToken(DeleteToken $request)
     {
         $post = $request->json()->all();
