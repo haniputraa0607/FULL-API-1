@@ -62,7 +62,7 @@ class TransactionPickup extends Model
 			case 'GO-SEND':
 				$pickup_go_send = TransactionPickupGoSend::where('id_transaction_pickup', $this->id_transaction_pickup)->first();
 				if ($pickup_go_send) {
-					$book = $pickup_go_send->book($errors);
+					$book = $pickup_go_send->book(false, $errors);
 					if (!$book) {
 						$this->load(['transaction', 'transaction.outlet']);
 						$trx = $this->transaction;

@@ -273,14 +273,14 @@ class ApiGosendController extends Controller
     {
         $log = MyHelper::logCron('Check Status Gosend');
         try {
-            $gosends = TransactionPickupGoSend::select('id_transaction')->join('transaction_pickups', 'transaction_pickups.id_transaction_pickup', 'transaction_pickup_go_sends.id_transaction_pickup')
+            $gosends = TransactionPickupGoSend::join('transaction_pickups', 'transaction_pickups.id_transaction_pickup', 'transaction_pickup_go_sends.id_transaction_pickup')
                 ->whereNotIn('latest_status', ['delivered', 'cancelled', 'rejected', 'no_driver'])
                 ->whereDate('transaction_pickup_go_sends.created_at', date('Y-m-d'))
                 ->where('transaction_pickup_go_sends.updated_at', '<', date('Y-m-d H:i:s', time() - (5 * 60)))
                 ->get();
             foreach ($gosends as $gosend) {
                 // update status
-                app('Modules\OutletApp\Http\Controllers\ApiOutletApp')->refreshDeliveryStatus(new Request(['id_transaction' => $gosend->id_transaction, 'type' => 'gosend']));
+                $gosend->refreshDeliveryStatus();
             }
             $log->success(['checked' => count($gosends)]);
             return response()->json(['success']);
