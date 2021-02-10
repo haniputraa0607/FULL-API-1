@@ -272,10 +272,10 @@ class GoSend
             $delivery_status = ($ref_status2[$dataUpdate['status']] ?? $dataUpdate['status']);
 
             $replacer = [
-                'confirmed'             => 'Pesanan nomor ('.$dataUpdate['go_send_order_no'].') sudah diterima dan sedang diproses oleh jilid',
-                'out_for_pickup'        => 'Tunggu sebentar ya, driver mu sedang menuju ke jilid',
+                'confirmed'             => 'Pesanan nomor ('.$dataUpdate['go_send_order_no'].') sudah diterima dan sedang diproses oleh outlet',
+                'out_for_pickup'        => 'Tunggu sebentar ya, driver mu sedang menuju ke outlet',
                 'out_for_delivery'      => 'Menu favoritmu sedang diantar oleh driver',
-                'cancelled'             => 'Maaf, pesananmu tidak dapat diambil oleh jilid',
+                'cancelled'             => 'Maaf, pesananmu tidak dapat diambil oleh driver',
                 'delivered'             => 'Pesananmu sudah sampai! Selamat menikmati',
                 'no_driver'             => 'Belum berhasil menemukan driver',
             ];
