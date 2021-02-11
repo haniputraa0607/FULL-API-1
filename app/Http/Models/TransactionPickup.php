@@ -64,10 +64,11 @@ class TransactionPickup extends Model
 				if ($pickup_go_send) {
 					$book = $pickup_go_send->book(false, $errors);
 					if (!$book) {
-						$this->load(['transaction', 'transaction.outlet']);
+						$this->load(['transaction', 'transaction.outlet', 'transaction.user']);
 						$trx = $this->transaction;
 						$outlet = $trx->outlet;
-		                $autocrm = app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Delivery Status Update', $phone,
+						$user = $trx->user;
+		                $autocrm = app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Delivery Status Update', $user->phone,
 		                    [
 		                        'id_reference'    => $trx->id_transaction,
 		                        'receipt_number'  => $trx->transaction_receipt_number,

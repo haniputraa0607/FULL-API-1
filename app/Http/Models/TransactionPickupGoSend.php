@@ -65,6 +65,11 @@ class TransactionPickupGoSend extends Model
 
 	public function book($fromRetry = false, &$errors = []) {
 		$trx = Transaction::join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')->where('id_transaction_pickup', $this->id_transaction_pickup)->with('outlet')->first();
+
+        if ($this->latest_status && !in_array($this->latest_status, ['cancelled', 'rejected', 'no_driver'])) {
+            $errors[] = 'Unable book gosend. Latest status: '.$this->latest_status;
+            return false;
+        }
         //create booking GO-SEND
         $origin['name']      = $trx['outlet']['outlet_name'];
         $origin['phone']     = $trx['outlet']['outlet_phone'];
@@ -97,13 +102,13 @@ class TransactionPickupGoSend extends Model
 
         $booking = GoSend::booking($origin, $destination, $packageDetail, $trx['transaction_receipt_number']);
         if (isset($booking['status']) && $booking['status'] == 'fail') {
-            $errors = array_merge($errors, $booking['messages']);
+            $errors = array_merge($errors??[], $booking['messages']);
             // send notification here
             return false;
         }
 
         if (!isset($booking['id'])) {
-            $errors = array_merge($errors, $booking['messages'] ?? ['failed booking GO-SEND']);
+            $errors = array_merge($errors??[], $booking['messages'] ?? ['failed booking GO-SEND']);
             return false;
         }
         $ref_status = [

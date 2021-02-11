@@ -2849,4 +2849,47 @@ class ApiOnlineTransaction extends Controller
 
         return $new_items;
     }
+
+    public function bookDelivery(Request $request)
+    {
+        $post = $request->all();
+        $trx = TransactionPickup::where('id_transaction', $request->id_transaction)->first();
+
+        if (!$trx) {
+            return [
+                'status' => 'fail',
+                'messages' => ['Transaction not found']
+            ];
+        }
+
+        switch ($trx->pickup_by) {
+            case 'GO-SEND':
+                $trx_pickup_go_send = TransactionPickupGoSend::where('id_transaction_pickup', $trx->id_transaction_pickup)->first();
+                if (!$trx_pickup_go_send) {
+                    return [
+                        'status' => 'fail',
+                        'messages' => 'Pickup Go Send data Not found'
+                    ];
+                }
+                $book = $trx_pickup_go_send->book(false, $errors);
+                if (!$book) {
+                    return [
+                        'status' => 'fail',
+                        'messages' => $errors ?: ['Something went wrong']
+                    ];
+                }
+
+                return [
+                    'status' => 'success',
+                ];
+
+                break;
+
+            default:
+                return [
+                    'status' => 'fail',
+                    'messages' => ['Transaction pickup by '.$trx->pickup_by]
+                ];
+        }
+    }
 }
