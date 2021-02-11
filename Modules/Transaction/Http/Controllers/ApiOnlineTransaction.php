@@ -2682,8 +2682,14 @@ class ApiOnlineTransaction extends Controller
     {
         $id_transaction = $request->id;
         $trx = Transaction::where('id_transaction', $id_transaction)->first();
-        if(!$trx || $trx->transaction_payment_status != 'Pending'){
-            return MyHelper::checkGet([],'Transaction cannot be canceled');
+        if (!$trx) {
+            return [
+                'status' => 'fail',
+                'messages' => 'Transaction Not Found'
+            ];
+        }
+        if($trx->transaction_payment_status != 'Pending'){
+            return $this->cancelDriverNotFound($request, $trx);
         }
         $errors = '';
 
@@ -2696,6 +2702,53 @@ class ApiOnlineTransaction extends Controller
             'status'=>'fail',
             'messages' => $errors?:['Something went wrong']
         ];
+    }
+
+    public function cancelDriverNotFound(Request $request, $trx = null)
+    {
+        $id_transaction = $request->id;
+        if (!$trx) {
+            $trx = Transaction::where('id_transaction', $id_transaction)->first();
+            if (!$trx) {
+                return [
+                    'status' => 'fail',
+                    'messages' => 'Transaction Not Found'
+                ];
+            }
+        }
+        $trx_pickup = TransactionPickup::where('id_transaction', $id_transaction)->first();
+        if (!$trx_pickup) {
+            return [
+                'status' => 'fail',
+                'messages' => 'Transaction Not Found'
+            ];
+        }
+        switch ($trx_pickup->pickup_by) {
+            case 'GO-SEND':
+                $trx_pickup_go_send = TransactionPickupGoSend::where('id_transaction_pickup', $trx_pickup->id_transaction_pickup)->first();
+                if (!$trx_pickup_go_send) {
+                    return [
+                        'status' => 'fail',
+                        'messages' => 'Pickup Go Send data not found'
+                    ];
+                }
+                if ($trx_pickup_go_send->latest_status && !in_array($trx_pickup_go_send->latest_status, ['cancelled', 'rejected', 'no_driver'])) {
+                    return [
+                        'status' => 'fail',
+                        'messages' => 'Cannot cancel transaction. Delivery service has been ordered'
+                    ];
+                }
+                $cancel = $trx->cancelOrder('User cancel', $errors);
+                if (!$cancel) {
+                    return [
+                        'status' => 'fail',
+                        'messages' => $errors ?: ['Something went wrong']
+                    ];
+                }
+                return ['status' => 'success'];
+                break;
+        }
+        return MyHelper::checkGet([],'Transaction cannot be canceled');
     }
 
     public function availablePayment(Request $request)
