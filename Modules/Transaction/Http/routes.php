@@ -2,8 +2,11 @@
 Route::group(['middleware' => ['auth:api'],'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
     Route::any('available-payment', 'ApiOnlineTransaction@availablePayment');
     Route::any('available-payment/update', 'ApiOnlineTransaction@availablePaymentUpdate')->middleware('scopes:be');
+    Route::any('available-shipment', 'ApiOnlineTransaction@availableShipment');
+    Route::any('available-shipment/update', 'ApiOnlineTransaction@availableShipmentUpdate')->middleware('scopes:be');
 });
 
+Route::any('api/transaction/update-gosend', 'Modules\Transaction\Http\Controllers\ApiGosendController@updateStatus');
 Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scopes:be'], 'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
     Route::post('/outlet', 'ApiNotification@adminOutlet');
     Route::post('/admin/confirm', 'ApiNotification@adminOutletComfirm');
@@ -74,7 +77,11 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'pr
     Route::post('history-balance/{mode?}', 'ApiHistoryController@historyBalance');
 
     Route::post('/shipping', 'ApiTransaction@getShippingFee');
-    Route::get('/address', 'ApiTransaction@getAddress');
+    Route::any('/address', 'ApiTransaction@getAddress');
+    Route::post('/address/nearby', 'ApiTransaction@getNearbyAddress');
+    Route::post('/address/recently', 'ApiTransaction@getRecentlyAddress');
+    Route::post('/address/default', 'ApiTransaction@getDefaultAddress');
+    Route::post('/address/detail', 'ApiTransaction@detailAddress');
     Route::post('/address/add', 'ApiTransaction@addAddress');
     Route::post('/address/update', 'ApiTransaction@updateAddress');
     Route::post('/address/delete', 'ApiTransaction@deleteAddress');
@@ -84,6 +91,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'pr
     Route::post('/new', 'ApiOnlineTransaction@newTransaction');
     Route::post('/confirm', 'ApiConfirm@confirmTransaction');
     Route::post('/cancel', 'ApiOnlineTransaction@cancelTransaction');
+    Route::post('/book-delivery', 'ApiOnlineTransaction@bookDelivery');
     Route::post('/prod/confirm', 'ApiTransactionProductionController@confirmTransaction2');
     Route::get('/{key}', 'ApiTransaction@transactionList');
 });

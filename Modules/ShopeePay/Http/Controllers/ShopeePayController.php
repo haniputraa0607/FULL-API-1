@@ -168,7 +168,17 @@ class ShopeePayController extends Controller
 
             $status_code = 200;
             $response    = ['status' => 'success'];
-            $sendPOS     = \App\Lib\ConnectPOS::create()->sendTransaction([$trx['id_transaction']]);
+
+            if ($trx['id_transaction']??false) {
+                $pickup = TransactionPickup::where('id_transaction', $trx['id_transaction'])->first();
+                if ($pickup) {
+                    if ($pickup->pickup_by == 'Customer') {
+                        \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
+                    } else {
+                        $pickup->bookDelivery();
+                    }
+                }
+            }
         } else {
             $deals_payment = DealsPaymentShopeePay::where('order_id', $post['payment_reference_id'])->join('deals', 'deals.id_deals', '=', 'deals_payment_shopee_pays.id_deals')->first();
 
@@ -345,7 +355,16 @@ class ShopeePayController extends Controller
                     ];
                     $send = app($this->notif)->notification($mid, $singleTrx);
 
-                    $sendPOS     = \App\Lib\ConnectPOS::create()->sendTransaction([$singleTrx['id_transaction']]);
+                    if ($singleTrx['id_transaction']??false) {
+                        $pickup = TransactionPickup::where('id_transaction', $singleTrx['id_transaction'])->first();
+                        if ($pickup) {
+                            if ($pickup->pickup_by == 'Customer') {
+                                \App\Lib\ConnectPOS::create()->sendTransaction($singleTrx['id_transaction']);
+                            } else {
+                                $pickup->bookDelivery();
+                            }
+                        }
+                    }
                     continue;
                 }
 

@@ -50,4 +50,42 @@ class TransactionPickup extends Model
 	{
 		return $this->belongsTo(UserOutlet::class, 'id_admin_outlet_taken', 'id_user_outlet');
 	}
+
+	public function bookDelivery(&$errors = [])
+	{
+		switch ($this->pickup_by) {
+			case 'Customer':
+				$errors[] = 'Transaction pickup by Customer';
+				return false;
+				break;
+			
+			case 'GO-SEND':
+				$pickup_go_send = TransactionPickupGoSend::where('id_transaction_pickup', $this->id_transaction_pickup)->first();
+				if ($pickup_go_send) {
+					$book = $pickup_go_send->book(false, $errors);
+					if (!$book) {
+						$this->load(['transaction', 'transaction.outlet', 'transaction.user']);
+						$trx = $this->transaction;
+						$outlet = $trx->outlet;
+						$user = $trx->user;
+		                $autocrm = app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Delivery Status Update', $user->phone,
+		                    [
+		                        'id_reference'    => $trx->id_transaction,
+		                        'receipt_number'  => $trx->transaction_receipt_number,
+		                        'outlet_code'     => $outlet->outlet_code,
+		                        'outlet_name'     => $outlet->outlet_name,
+		                        'delivery_status' => 'Belum berhasil menemukan driver',
+		                        'order_id'        => $this->order_id,
+		                    ]
+		                );                
+					}
+					return $book;
+				}
+				break;
+			
+			default:
+				# code...
+				break;
+		}
+	}
 }

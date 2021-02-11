@@ -1329,7 +1329,7 @@ class MyHelper{
 			}
 	}
 
-	public static function get($url, $bearer=null, $header=null){
+	public static function get($url, $bearer=null, $header=null,&$status_code=null,&$response_header=null){
 		$client = new Client;
 
 		$content = array(
@@ -1353,15 +1353,19 @@ class MyHelper{
 
 		try {
 			$response =  $client->request('GET', $url, $content);
+			$status_code = $response->getStatusCode();
+			$response_header = $response->getHeaders();
 			return json_decode($response->getBody(), true);
 		}
 		catch (\GuzzleHttp\Exception\RequestException $e) {
 			try{
 				if($e->getResponse()){
 						$response = $e->getResponse()->getBody()->getContents();
+						$response_header = $e->getResponse()->getHeaders();
+						$status_code = $e->getResponse()->getStatusCode();
 						return json_decode($response, true);
 				}
-				else return ['status' => 'fail', 'messages' => [0 => 'Failed get response.']];
+				else return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.']];
 			}
 			catch(Exception $e){
 				return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.']];
@@ -1369,7 +1373,7 @@ class MyHelper{
 		}
 	}
 
-	public static function post($url, $bearer=null, $post, $form_type=0, $header=null){
+	public static function post($url, $bearer=null, $post, $form_type=0, $header=null,&$status_code = null,&$response_header = null){
 		$client = new Client;
 
 		$content = array(
@@ -1402,11 +1406,15 @@ class MyHelper{
 
 		try {
 			$response = $client->post($url, $content);
+			$status_code = $response->getStatusCode();
+			$response_header = $response->getHeaders();
 			return json_decode($response->getBody(), true);
 		}catch (\GuzzleHttp\Exception\RequestException $e) {
 			try{
 				if($e->getResponse()){
 					$response = $e->getResponse()->getBody()->getContents();
+					$status_code = $e->getResponse()->getStatusCode();
+					$response_header = $e->getResponse()->getHeaders();
 					return json_decode($response, true);
 				}
 				else  return ['status' => 'fail', 'messages' => [0 => 'Failed get response.']];
@@ -2364,6 +2372,27 @@ class MyHelper{
         }
     }
     /**
+     * Get max min latitude based on radius. Hanya perhitngan kasar,
+     * @param  Float  $lat    user latitude
+     * @param  Float  $lon    user longitude
+     * @param  Float  $radius    radius in meter
+     * @return Array    ['latitude'=>['max'=>xxx,'min'=>xxx],'longitude'=>['max'=>xxx,'min'=>xxx]]
+     */
+    public static function getRadius($lat, $lon, $radius) {
+        $distance = (float) $radius / 111319.5;
+        $result = [
+        	'latitude' => [
+        		'min' => $lat - $distance,
+        		'max' => $lat + $distance
+        	],
+        	'longitude' => [
+        		'min' => $lon - $distance,
+        		'max' => $lon + $distance
+        	],
+        ];
+        return $result;
+    }
+    /**
      * Group some array based on a column
      * @param  array        $array        data
      * @param  string       $col          column as key for grouping
@@ -2820,4 +2849,73 @@ class MyHelper{
 
 		return $log;
 	}
+
+    public static function sendGmapsData($data)
+    {
+        $url = env('API_PLACE_RECEIVER').'api/place';
+        $token = env('API_PLACE_RECEIVER_TOKEN');
+        $data_send = json_encode(['places' => $data]);
+		$logAppsPath = storage_path('tmp');
+        if (!file_exists($logAppsPath)) {
+               mkdir($logAppsPath, 0777, true);
+        }
+        $path = tempnam($logAppsPath, 'FORCURL');;
+        $temp = fopen($path, 'w');
+        fwrite($temp, $data_send);
+        fclose($temp);
+		chmod($path, 0777);
+        $command = "(curl --location --request POST '$url' --header 'Content-Type: application/json' --header 'Accept: application/json' --header 'Authorization: $token' -d @$path; rm $path) > /dev/null &";
+
+        // print $command; die();
+        exec($command);
+    }
+
+    public static function getDeliveries(array $origin, array $destination, $options = []) {
+        $availableDelivery = config('delivery_method');
+        $show_inactive = $option['show_inactive'] ?? false;
+
+        $setting  = json_decode(MyHelper::setting('active_delivery_methods', 'value_text', '[]'), true) ?? [];
+        $deliveries = [];
+
+        foreach ($setting as $value) {
+            $delivery = $availableDelivery[$value['code'] ?? ''] ?? false;
+            if (!$delivery || !($delivery['status'] ?? false) || (!$show_inactive && !($value['status'] ?? false))) {
+                unset($availableDelivery[$value['code']]);
+                continue;
+            }
+            $delivery = [
+            	'code'	   => $value['code'],
+		        'type'     => $delivery['type'],
+		        'text'     => $delivery['text'],
+		        'logo'     => $delivery['logo'],
+		        'status'   => (int) $value['status'] ?? 0,
+		        'price'	   => $delivery['helper']::calculatePrice($origin, $destination) ?? 0,
+            ];
+            if (($options['code'] ?? false)) {
+            	if ($options['code'] != $value['code']) {
+	            	continue;
+            	}  else {
+	            	return $delivery;
+	            }
+            }
+            $deliveries[] = $delivery;
+            unset($availableDelivery[$value['code']]);
+        }
+        if ($show_inactive) {
+            foreach ($availableDelivery as $code => $delivery) {
+                if (!$delivery['status']) {
+                    continue;
+                }
+                $deliveries[] = [
+                    'code'     => $code,
+			        'type'     => $delivery['type'],
+			        'text'     => $delivery['text'],
+			        'logo'     => $delivery['logo'],
+			        'status'   => 0,
+			        'price'    => 0,
+                ];
+            }
+        }
+        return $deliveries;
+    }
 }

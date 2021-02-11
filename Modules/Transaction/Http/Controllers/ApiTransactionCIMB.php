@@ -107,8 +107,15 @@ class ApiTransactionCIMB extends Controller
 
                 return view('transaction::webview.detail_transaction_pickup')->with(compact('data'));
             }
-            
-            \App\Lib\ConnectPOS::create()->sendTransaction($transaction->id_transaction);
+
+            $pickup = TransactionPickup::where('id_transaction', $transaction->id_transaction)->first();
+            if ($pickup) {
+                if ($pickup->pickup_by == 'Customer') {
+                    \App\Lib\ConnectPOS::create()->sendTransaction($transaction->id_transaction);
+                } else {
+                    $pickup->bookDelivery();
+                }
+            }
 
             // // apply cashback to referrer
             // \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($transaction);

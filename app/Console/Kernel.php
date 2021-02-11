@@ -172,6 +172,12 @@ class Kernel extends ConsoleKernel
          */
         $schedule->call('Modules\Transaction\Http\Controllers\ApiTransactionOnlinePOS@sendEmail')->cron('*/7 * * * *');
 
+        /**
+         * Check the status of Gosend which is not updated after 5 minutes
+         * run every 3 minutes
+         */
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiGosendController@cronCheckStatus')->cron('*/3 * * * *');
+
     }
 
     /**
