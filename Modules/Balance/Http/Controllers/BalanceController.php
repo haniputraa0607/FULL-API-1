@@ -17,6 +17,7 @@ use App\Http\Models\LogTopup;
 use App\Http\Models\UsersMembership;
 use App\Http\Models\Setting;
 use App\Http\Models\Transaction;
+use App\Http\Models\TransactionPickup;
 use App\Http\Models\LogTopupMidtrans;
 use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\TransactionMultiplePayment;
@@ -277,7 +278,14 @@ class BalanceController extends Controller
                         ];
                     }
 
-                    \App\Lib\ConnectPOS::create()->sendTransaction($dataTrx['id_transaction']);
+                    $pickup = TransactionPickup::where('id_transaction', $dataTrx['id_transaction'])->first();
+                    if ($pickup) {
+                        if ($pickup->pickup_by == 'Customer') {
+                            \App\Lib\ConnectPOS::create()->sendTransaction($dataTrx['id_transaction']);
+                        } else {
+                            $pickup->bookDelivery();
+                        }
+                    }
                     return [
                         'status'   => 'success',
                         'type'     => 'no_topup',

@@ -510,6 +510,7 @@ class ApiHistoryController extends Controller
     {
         $transaction = Transaction::select(\DB::raw('*,sum(transaction_products.transaction_product_qty) as sum_qty'))->distinct('transactions.*')
             ->join('outlets', 'transactions.id_outlet', '=', 'outlets.id_outlet')
+            ->join('transaction_pickups', 'transactions.id_transaction', '=', 'transaction_pickups.id_transaction')
             ->join('brand_outlet', 'outlets.id_outlet', '=', 'brand_outlet.id_outlet')
             ->leftJoin('transaction_products', 'transactions.id_transaction', '=', 'transaction_products.id_transaction')
             ->where('transactions.id_user', $id)
@@ -598,6 +599,7 @@ class ApiHistoryController extends Controller
             $dataList['id_outlet'] = $value['outlet']['id_outlet'];
             $dataList['outlet_code'] = $value['outlet']['outlet_code'];
             $dataList['outlet'] = $value['outlet']['outlet_name'];
+            $dataList['pickup_by'] = $value['pickup_by'];
             $dataList['amount'] = MyHelper::requestNumber($value['transaction_grandtotal'], '_CURRENCY');
 
             $dataList['cashback'] = MyHelper::requestNumber($value['transaction_cashback_earned'],'_POINT');
@@ -642,6 +644,7 @@ class ApiHistoryController extends Controller
             $dataList['date']    = date('d M Y H:i', strtotime($value['transaction_date']));
             $dataList['outlet'] = $value['outlet']['outlet_name'];
             $dataList['outlet_code'] = $value['outlet']['outlet_code'];
+            $dataList['pickup_by'] = $value['pickup_by'];
             $dataList['amount'] = MyHelper::requestNumber($value['transaction_grandtotal'],'_CURRENCY');
 
             if ($value['ready_at'] != null) {

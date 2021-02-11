@@ -130,13 +130,13 @@ class ApiNotification extends Controller {
                         $settingTime = MyHelper::setting('processing_time', 'value', 0);
                         $updatePickup = TransactionPickup::where('id_transaction', $newTrx['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s', strtotime('+ '.$settingTime.'minutes')?:time())]);
                     }
-
-                    if ($newTrx['detail']['pickup_by'] == 'GO-SEND') {
-                        $booking = $this->bookGoSend($newTrx);
-                        if (isset($booking['status'])) {
-                            return response()->json($booking);
-                        }
-                    }
+                    // book gosend after outlet receive order only
+                    // if ($newTrx['detail']['pickup_by'] == 'GO-SEND') {
+                    //     $booking = $this->bookGoSend($newTrx);
+                    //     if (isset($booking['status'])) {
+                    //         return response()->json($booking);
+                    //     }
+                    // }
                 } else {
                     DB::rollBack();
                     return response()->json([
@@ -660,7 +660,16 @@ Detail: ".$link['short'],
                         if (!$upTrx) {
                             return false;
                         }
-                        \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
+
+                        $pickup = TransactionPickup::where('id_transaction', $trx['id_transaction'])->first();
+                        if ($pickup) {
+                            if ($pickup->pickup_by == 'Customer') {
+                                \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
+                            } else {
+                                $pickup->bookDelivery();
+                            }
+                        }
+
                         $fraud = $this->checkFraud($trx);
                         if ($fraud == false) {
                             return false;
@@ -862,7 +871,16 @@ Detail: ".$link['short'],
                 if (!$check) {
                     return false;
                 }
-                \App\Lib\ConnectPOS::create()->sendTransaction($trx->id_transaction);
+
+                $pickup = TransactionPickup::where('id_transaction', $trx->id_transaction)->first();
+                if ($pickup) {
+                    if ($pickup->pickup_by == 'Customer') {
+                        \App\Lib\ConnectPOS::create()->sendTransaction($trx->id_transaction);
+                    } else {
+                        $pickup->bookDelivery();
+                    }
+                }
+
                 $fraud = $this->checkFraud($trx);
                 if (!$fraud) {
                     return false;
@@ -1114,7 +1132,7 @@ Detail: ".$link['short'],
         if($packageDetail){
             $packageDetail = str_replace('%order_id%', $trx['detail']['order_id'], $packageDetail['value']);
         }else{
-            $packageDetail = "";
+            $packageDetail = "Order ".$trx['detail']['order_id'];
         }
 
         $booking = GoSend::booking($origin, $destination, $packageDetail, $trx['transaction_receipt_number']);
@@ -1123,7 +1141,7 @@ Detail: ".$link['short'],
         }
 
         if(!isset($booking['id'])){
-            return ['status' => 'fail', 'messages' => ['failed booking GO-SEND']];
+            return ['status' => 'fail', 'messages' => $booking['messages']??['failed booking GO-SEND']];
         }
         //update id from go-send
         $updateGoSend = TransactionPickupGoSend::find($trx['detail']['transaction_pickup_go_send']['id_transaction_pickup_go_send']);

@@ -46,6 +46,12 @@ class ApiOutletApp extends Controller
         $this->trx    = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
     }
 
+    // this function does nothing
+    public function outletNotif(...$args)
+    {
+        return true;
+    }
+
     public function deleteToken(DeleteToken $request)
     {
         $post = $request->json()->all();
@@ -723,26 +729,20 @@ class ApiOutletApp extends Controller
             ]);
         }
 
-        // DB::beginTransaction();
+        DB::beginTransaction();
         $pickup = TransactionPickup::where('id_transaction', $order->id_transaction)->update(['ready_at' => date('Y-m-d H:i:s')]);
         // dd($pickup);
         if($pickup){
             //send notif to customer
             $user = User::find($order->id_user);
-            $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Reject');
-            $send = app($this->autocrm)->SendAutoCRM('Order Ready', $user['phone'], [
-                "outlet_name" => $outlet['outlet_name'],
-                'id_transaction' => $order->id_transaction,
-                "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
-                "transaction_date" => $order->transaction_date,
-                'detail' => $detail
-            ]);
-            if($send != true){
-                // DB::rollBack();
-                return response()->json([
-                        'status' => 'fail',
-                        'messages' => ['Failed Send notification to customer']
-                    ]);
+            $trx = $order->toArray();
+            $trx['detail'] = TransactionPickup::with('transaction_pickup_go_send')->where('id_transaction', $order->id_transaction)->first();
+            if ($trx['detail']['pickup_by'] == 'GO-SEND') {
+                $booking = (new \Modules\Transaction\Http\Controllers\ApiNotification())->bookGoSend($trx);
+                if (isset($booking['status'])) {
+                    DB::rollback();
+                    return response()->json($booking);
+                }
             }
 
             $newTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction', 'transaction_vouchers')->where('id_transaction', $order->id_transaction)->first();
@@ -780,7 +780,20 @@ class ApiOutletApp extends Controller
             }
 
             $checkMembership = app($this->membership)->calculateMembership($user['phone']);
-
+            DB::commit();
+            $send = app($this->autocrm)->SendAutoCRM('Order Ready', $user['phone'], [
+                "outlet_name" => $outlet['outlet_name'],
+                'id_transaction' => $order->id_transaction,
+                "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
+                "transaction_date" => $order->transaction_date
+            ]);
+            if($send != true){
+                // DB::rollback();
+                return response()->json([
+                        'status' => 'fail',
+                        'messages' => ['Failed Send notification to customer']
+                    ]);
+            }
         }
         DB::commit();
         // return  $pickup = TransactionPickup::where('id_transaction', $order->id_transaction)->first();

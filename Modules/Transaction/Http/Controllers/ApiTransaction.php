@@ -56,6 +56,7 @@ use Modules\Transaction\Http\Requests\GetProvince;
 use Modules\Transaction\Http\Requests\GetCity;
 use Modules\Transaction\Http\Requests\GetSub;
 use Modules\Transaction\Http\Requests\GetAddress;
+use Modules\Transaction\Http\Requests\GetNearbyAddress;
 use Modules\Transaction\Http\Requests\AddAddress;
 use Modules\Transaction\Http\Requests\UpdateAddress;
 use Modules\Transaction\Http\Requests\DeleteAddress;
@@ -1451,7 +1452,7 @@ class ApiTransaction extends Controller
             if($request->json('admin')){
                 $list = Transaction::where(['transactions.id_transaction' => $id])->with('user');
             }else{
-                $list = Transaction::where(['transactions.id_transaction' => $id, 'id_user' => $request->user()->id]);
+                $list = Transaction::join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')->where(['transactions.id_transaction' => $id, 'id_user' => $request->user()->id]);
             }
             if($use_product_variant){
                 $list = $list->with(
@@ -1466,6 +1467,7 @@ class ApiTransaction extends Controller
                     'transaction_vouchers.deals_voucher.deal',
                     'promo_campaign_promo_code.promo_campaign',
                     'promo_campaign_referral_transaction',
+                    'transaction_pickup_go_send.transaction_pickup_update',
                     'outlet.city')->first();
             }else{
                 $list = $list->with(
@@ -1968,6 +1970,99 @@ class ApiTransaction extends Controller
                             'date'  => date('d F Y H:i', strtotime($list['detail']['receive_at']))
                         ];
                     }
+                    if ($list['detail']['pickup_by'] == 'GO-SEND' && $list['transaction_pickup_go_send'] && !$list['detail']['reject_at']) {
+                        // $result['transaction_status'] = 5;
+                        $result['delivery_info'] = [
+                            'driver' => null,
+                            'delivery_status' => '',
+                            'delivery_address' => $list['transaction_pickup_go_send']['destination_address']?:'',
+                            'delivery_address_note' => $list['transaction_pickup_go_send']['destination_note'] ?: '',
+                            'booking_status' => 0,
+                            'cancelable' => 1,
+                            'go_send_order_no' => $list['transaction_pickup_go_send']['go_send_order_no']?:'',
+                            'live_tracking_url' => $list['transaction_pickup_go_send']['live_tracking_url']?:''
+                        ];
+                        if($list['transaction_pickup_go_send']['go_send_id']){
+                            $result['delivery_info']['booking_status'] = 1;
+                        }
+                        switch (strtolower($list['transaction_pickup_go_send']['latest_status'])) {
+                            case 'finding driver':
+                            case 'confirmed':
+                                $result['delivery_info']['delivery_status'] = 'Sedang mencari driver';
+                                $result['transaction_status_text']          = 'PESANAN SUDAH SIAP DAN MENUNGGU PICK UP';
+                                break;
+                            case 'driver allocated':
+                            case 'allocated':
+                                $result['delivery_info']['delivery_status'] = 'Driver ditemukan';
+                                $result['transaction_status_text']          = 'DRIVER DITEMUKAN DAN SEDANG MENUJU OUTLET';
+                                $result['delivery_info']['driver']          = [
+                                    'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
+                                    'driver_name'       => $list['transaction_pickup_go_send']['driver_name']?:'',
+                                    'driver_phone'      => $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_whatsapp'   => env('URL_WA') . $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_photo'      => $list['transaction_pickup_go_send']['driver_photo']?:'',
+                                    'vehicle_number'    => $list['transaction_pickup_go_send']['vehicle_number']?:'',
+                                ];
+                                break;
+                            case 'enroute pickup':
+                            case 'out_for_pickup':
+                                $result['delivery_info']['delivery_status'] = 'Driver dalam perjalanan menuju Outlet';
+                                $result['transaction_status_text']          = 'DRIVER SEDANG MENUJU OUTLET';
+                                $result['delivery_info']['driver']          = [
+                                    'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
+                                    'driver_name'       => $list['transaction_pickup_go_send']['driver_name']?:'',
+                                    'driver_phone'      => $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_whatsapp'   => env('URL_WA') . $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_photo'      => $list['transaction_pickup_go_send']['driver_photo']?:'',
+                                    'vehicle_number'    => $list['transaction_pickup_go_send']['vehicle_number']?:'',
+                                ];
+                                $result['delivery_info']['cancelable'] = 1;
+                                break;
+                            case 'enroute drop':
+                            case 'out_for_delivery':
+                                $result['delivery_info']['delivery_status'] = 'Driver mengantarkan pesanan';
+                                $result['transaction_status_text']          = 'PESANAN SUDAH DI PICK UP OLEH DRIVER DAN SEDANG MENUJU LOKASI #TEMANSEJIWA';
+                                $result['transaction_status']               = 3;
+                                $result['delivery_info']['driver']          = [
+                                    'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
+                                    'driver_name'       => $list['transaction_pickup_go_send']['driver_name']?:'',
+                                    'driver_phone'      => $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_whatsapp'   => env('URL_WA') . $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_photo'      => $list['transaction_pickup_go_send']['driver_photo']?:'',
+                                    'vehicle_number'    => $list['transaction_pickup_go_send']['vehicle_number']?:'',
+                                ];
+                                $result['delivery_info']['cancelable'] = 0;
+                                break;
+                            case 'completed':
+                            case 'delivered':
+                                $result['transaction_status'] = 2;
+                                $result['transaction_status_text']          = 'PESANAN TELAH SELESAI DAN DITERIMA';
+                                $result['delivery_info']['delivery_status'] = 'Pesanan sudah diterima Customer';
+                                $result['delivery_info']['driver']          = [
+                                    'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
+                                    'driver_name'       => $list['transaction_pickup_go_send']['driver_name']?:'',
+                                    'driver_phone'      => $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_whatsapp'   => env('URL_WA') . $list['transaction_pickup_go_send']['driver_phone']?:'',
+                                    'driver_photo'      => $list['transaction_pickup_go_send']['driver_photo']?:'',
+                                    'vehicle_number'    => $list['transaction_pickup_go_send']['vehicle_number']?:'',
+                                ];
+                                $result['delivery_info']['cancelable'] = 0;
+                                break;
+                            case 'cancelled':
+                                $result['delivery_info']['booking_status'] = 0;
+                                $result['transaction_status_text']         = 'PENGANTARAN PESANAN TELAH DIBATALKAN';
+                                $result['delivery_info']['delivery_status'] = 'Pengantaran dibatalkan';
+                                $result['delivery_info']['cancelable']     = 0;
+                                break;
+                            case 'driver not found':
+                            case 'no_driver':
+                                $result['delivery_info']['booking_status']  = 0;
+                                $result['transaction_status_text']          = 'DRIVER TIDAK DITEMUKAN';
+                                $result['delivery_info']['delivery_status'] = 'Driver tidak ditemukan';
+                                $result['delivery_info']['cancelable']      = 0;
+                                break;
+                        }
+                    }
                 }
 
                 $result['detail']['detail_status'][] = [
@@ -2292,7 +2387,218 @@ class ApiTransaction extends Controller
             ]);
         }
 
-        $address = UserAddress::where('id_user', $id)->with('user', 'city.province', 'user.city.province')->orderBy('primary', 'DESC')->get()->toArray();
+        $address = UserAddress::select('id_user_address','name','short_address','address','type','latitude','longitude','description', 'favorite', 'last_used', 'updated_at')->where('id_user', $id)->orderBy('last_used', 'DESC')->orderBy('updated_at', 'DESC')->get()->toArray();
+        $result = [
+            'favorite' => [
+                'home' => null,
+                'work' => null,
+                'others' => [],
+            ],
+            'recently' => [],
+        ];
+        foreach ($address as $key => &$adr) {
+            if ($adr['favorite']) {
+                switch (strtolower($adr['type'])) {
+                    case 'home':
+                        $result['favorite']['home'] = &$adr;
+                        break;
+
+                    case 'work':
+                        $result['favorite']['work'] = &$adr;
+                        break;
+
+                    default:
+                        $result['favorite']['others'][] = &$adr;
+                        break;
+                }                
+            }
+            if (($adr['last_used'] || !$adr['favorite'])) {
+                $result['recently'][] = &$adr;
+            }
+        }
+
+        usort($result['favorite']['others'], function($a, $b) {
+            return $a['id_user_address'] <=> $b['id_user_address'];
+        });
+
+        usort($result['recently'], function($a, $b) {
+            return ($a['last_used'] ?? $a['updated_at']) <=> ($b['last_used'] ?? $b['updated_at']);
+        });
+
+        foreach ($address as &$adres) {
+            unset($adres['last_used']);
+            unset($adres['updated_at']);
+        }
+        $result['recently'] = array_splice($result['recently'], 0, 3);
+
+        return response()->json(MyHelper::checkGet($result));
+    }
+
+    public function getRecentlyAddress(Request $request)
+    {
+        $id = $request->user()->id;
+        $address = UserAddress::select('id_user_address','name','short_address','address','type','latitude','longitude','description', 'favorite', 'last_used', 'updated_at')
+            ->where('id_user', $id)
+            ->orderBy('last_used', 'DESC')
+            ->orderBy('updated_at', 'DESC');
+
+        if ($request->page) {
+            $address = $address->paginate();
+        } else {
+            $address = $address->get();
+        }
+
+        return MyHelper::checkGet($address);
+    }
+
+    public function getNearbyAddress(GetNearbyAddress $request) {
+        $id = $request->user()->id;
+        $distance = Setting::select('value')->where('key','history_address_max_distance')->pluck('value')->first()?:50;
+        $maxmin = MyHelper::getRadius($request->json('latitude'),$request->json('longitude'),$distance);
+        $latitude = $request->json('latitude');
+        $longitude = $request->json('longitude');
+
+        // get place from google maps . max 20
+        $key_maps = env('GMAPS_PLACE_KEY');
+        if (env('GMAPS_PLACE_KEY_TOTAL')) {
+            $weekNow = date('W') % env('GMAPS_PLACE_KEY_TOTAL');
+            $key_maps = env('GMAPS_PLACE_KEY'.$weekNow, $key_maps);
+        }
+        $param = [
+            'key'=>$key_maps,
+            'location'=>sprintf('%s,%s',$request->json('latitude'),$request->json('longitude')),
+            'rankby'=>'distance'
+        ];
+        if($request->json('keyword')){
+            $param['keyword'] = $request->json('keyword');
+        }
+        $gmaps = MyHelper::get('https://maps.googleapis.com/maps/api/place/nearbysearch/json?'.http_build_query($param));
+
+        if($gmaps['status'] === 'OK'){
+            $gmaps = $gmaps['results'];
+            MyHelper::sendGmapsData($gmaps);
+        }else{
+            $gmaps = [];
+        };
+
+        $maxmin = MyHelper::getRadius($latitude,$longitude,$distance);
+        $user_address = UserAddress::select('id_user_address','short_address','address','latitude','longitude','description','favorite')->where('id_user',$id)
+            ->whereBetween('latitude',[$maxmin['latitude']['min'],$maxmin['latitude']['max']])
+            ->whereBetween('longitude',[$maxmin['longitude']['min'],$maxmin['longitude']['max']])
+            ->take(10);
+
+        if($keyword = $request->json('keyword')){
+            $user_address->where(function($query) use ($keyword) {
+                $query->where('name',$keyword);
+                $query->orWhere('address',$keyword);
+                $query->orWhere('short_address',$keyword);
+            });
+        }
+
+        $user_address = $user_address->get()->toArray();
+
+        $saved = array_map(function($i){
+            return [
+                'latitude' => $i['latitude'],
+                'longitude' => $i['longitude']
+            ];
+        },$user_address);
+
+        foreach ($gmaps as $key => &$gmap){
+            $coor = [
+                'latitude' => number_format($gmap['geometry']['location']['lat'],8),
+                'longitude' => number_format($gmap['geometry']['location']['lng'],8)
+            ];
+            if(in_array($coor, $saved)){
+                unset($gmaps[$key]);
+            }
+            $gmap = [
+                'id_user_address' => 0,
+                'short_address' => $gmap['name'],
+                'address' => $gmap['vicinity']??'',
+                'latitude' => $coor['latitude'],
+                'longitude' => $coor['longitude'],
+                'description' => '',
+                'favorite' => 0
+            ];
+        }
+
+        // mix history and gmaps
+        $user_address = array_merge($user_address,$gmaps);
+
+        // reorder based on distance
+        usort($user_address,function(&$a,&$b) use ($latitude,$longitude){
+            return MyHelper::count_distance($latitude,$longitude,$a['latitude'],$a['longitude']) <=> MyHelper::count_distance($latitude,$longitude,$b['latitude'],$b['longitude']);
+        });
+
+        $selected_address = null;
+        foreach ($user_address as $key => $addr) {
+            if ($addr['favorite']) {
+                $selected_address = $addr;
+                break;
+            }
+            if ($addr['id_user_address']) {
+                $selected_address = $addr;
+                continue;
+            }
+            if ($key == 0) {
+                $selected_address = $addr;
+            }
+        }
+
+        if(!$selected_address){
+            $selected_address = $user_address[0]??null;
+        }
+        // apply limit;
+        // $max_item = Setting::select('value')->where('key','history_address_max_item')->pluck('value')->first()?:10;
+        // $user_address = array_splice($user_address,0,$max_item);
+        $result = [];
+        if($user_address){
+            $result = [
+                'default' => $selected_address,
+                'nearby' => $user_address
+            ];
+        }
+        return response()->json(MyHelper::checkGet($result));
+    }
+
+    public function getDefaultAddress (GetNearbyAddress $request) {
+        $id = $request->user()->id;
+        $distance = Setting::select('value')->where('key','history_address_max_distance')->pluck('value')->first()?:50;
+        $maxmin = MyHelper::getRadius($request->json('latitude'),$request->json('longitude'),$distance);
+        $latitude = (float) $request->json('latitude');
+        $longitude = (float) $request->json('longitude');
+
+        $maxmin = MyHelper::getRadius($latitude,$longitude,$distance);
+        $user_address = UserAddress::select('id_user_address','short_address','address','latitude','longitude','description','favorite')
+            ->where('id_user',$id)
+            ->whereNotNull('last_used')
+            ->orderBy('last_used', 'desc')
+            ->first();
+
+        if (!$user_address) {
+            $user_address = UserAddress::select('id_user_address','short_address','address','latitude','longitude','description','favorite')
+                ->where('id_user',$id)
+                ->orderByRaw("POW(latitude - $latitude, 2) + POW(longitude - $longitude, 2)")
+                ->first();
+        }
+
+        // apply limit;
+        // $max_item = Setting::select('value')->where('key','history_address_max_item')->pluck('value')->first()?:10;
+        // $user_address = array_splice($user_address,0,$max_item);
+        $result = [];
+        if($user_address){
+            $result = [
+                'default' => $user_address
+            ];
+        }
+        return response()->json(MyHelper::checkGet($result));
+    }
+
+    public function detailAddress(GetAddress $request) {
+        $id = $request->user()->id;
+
+        $address = UserAddress::where(['id_user'=> $id,'id_user_address'=>$request->id_user_address])->orderBy('id_user_address', 'DESC')->get()->toArray();
         return response()->json(MyHelper::checkGet($address));
     }
 
@@ -2300,41 +2606,49 @@ class ApiTransaction extends Controller
         $post = $request->json()->all();
 
         $data['id_user'] = $request->user()->id;
-
-        if (empty($data['id_user'])) {
-            return response()->json([
-                'status'    => 'fail',
-                'messages'  => ['User not found']
-            ]);
-        }
-
-        if ($post['primary'] == 1) {
-            $data['primary'] = '1';
-            $select = UserAddress::where('id_user', $data['id_user'])->where('primary', '1')->first();
-            if (!empty($select)) {
-                $select->primary = '0';
-                $select->save();
-
-                if (!$select) {
-                    return response()->json([
-                        'status' => 'fail',
-                        'messages'  => ['Failed']
-                    ]);
-                }
-            }
-        } else {
-            $data['primary'] = '0';
-        }
-
-        $data['name']        = isset($post['name']) ? $post['name'] : null;
-        $data['phone']       = isset($post['phone']) ? $post['phone'] : null;
+        $data['name']        = isset($post['name']) ? $post['name'] : $post['short_address'];
+        $data['short_address'] = $post['short_address'] ?? null;
         $data['address']     = isset($post['address']) ? $post['address'] : null;
-        $data['id_city']     = isset($post['id_city']) ? $post['id_city'] : null;
-        $data['postal_code'] = isset($post['postal_code']) ? $post['postal_code'] : null;
         $data['description'] = isset($post['description']) ? $post['description'] : null;
+        $data['latitude'] = number_format($post['latitude'],8);
+        $data['longitude'] = number_format($post['longitude'],8);
+        $type = ucfirst($post['type'] ?? 'Other');
+        $data['name'] = $type != 'Other'?$type:$data['name'];
+        $exists = UserAddress::where('id_user',$request->user()->id)
+            ->where('name',$data['name'])
+            ->where('favorite',1)
+            ->where(function($q) use ($type){
+                $q->where('type',$type);
+                if($type == 'Other'){
+                    $q->orWhereNull('type');
+                }
+            })
+            ->exists();
+        if($exists){
+            return ['status'=>'fail','messages'=>['Alamat dengan nama yang sama sudah ada']];
+        }
+        if(in_array($type, ['Home','Work'])){
+            UserAddress::where('type',$type)->delete();
+        }
+        $toMatch = $data;
+        unset($toMatch['name']);
+        $found = UserAddress::where($toMatch+['type'=>$type])->first();
+        if($found){
+            if($found->favorite){
+                return ['status'=>'fail','messages'=>['Alamat sudah disimpan sebagai '.(in_array($found->type,['Work','Home'])?$found->type:$found->name)]];
+            }
+            $found->update([
+                'name' => $data['name'],
+                'type' => $type?:$found->type,
+                'favorite' => 1,
+            ]);
+        }else{
+            $data['type'] = $type;
+            $data['favorite'] = 1;
+            $found = UserAddress::create($data);
+        }
 
-        $insert = UserAddress::create($data);
-        return response()->json(MyHelper::checkCreate($insert));
+        return response()->json(MyHelper::checkCreate($found));
     }
 
     public function updateAddress (UpdateAddress $request) {
@@ -2348,30 +2662,18 @@ class ApiTransaction extends Controller
             ]);
         }
 
-        if ($post['primary'] == 1) {
-            $data['primary'] = '1';
-            $select = UserAddress::where('id_user', $data['id_user'])->where('primary', '1')->first();
-            if (!empty($select)) {
-                $select->primary = '0';
-                $select->save();
-
-                if (!$select) {
-                    return response()->json([
-                        'status' => 'fail',
-                        'messages'  => ['Failed']
-                    ]);
-                }
-            }
-        } else {
-            $data['primary'] = '0';
-        }
-
         $data['name']        = isset($post['name']) ? $post['name'] : null;
-        $data['phone']       = isset($post['phone']) ? $post['phone'] : null;
         $data['address']     = isset($post['address']) ? $post['address'] : null;
-        $data['id_city']     = isset($post['id_city']) ? $post['id_city'] : null;
-        $data['postal_code'] = isset($post['postal_code']) ? $post['postal_code'] : null;
+        $data['short_address'] = $post['short_address'] ?? null;
         $data['description'] = isset($post['description']) ? $post['description'] : null;
+        $data['latitude'] = $post['latitude']??null;
+        $data['longitude'] = $post['longitude']??null;
+        $type = ($post['type']??null)?ucfirst($post['type']):null;
+        if($type){
+            UserAddress::where('type',$type)->update(['type'=>null]);
+        }
+        $data['type'] = $type;
+        $data['favorite'] = 1;
 
         $update = UserAddress::where('id_user_address', $post['id_user_address'])->update($data);
         return response()->json(MyHelper::checkUpdate($update));
