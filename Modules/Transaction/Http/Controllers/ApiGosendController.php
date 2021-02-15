@@ -230,7 +230,7 @@ class ApiGosendController extends Controller
                         'go_send_order_no'              => $post['booking_id']
                     ];
                     GoSend::saveUpdate($dataSave);
-                    app($this->outlet_app)->bookGoSend($trx, true);
+                    $tpg->book(true);
                 }else{
                     $dataSave       = [
                         'id_transaction'                => $id_transaction,

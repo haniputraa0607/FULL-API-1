@@ -1058,6 +1058,18 @@ class ApiHistoryController extends Controller
                 $dataList['amount'] = '+ ' . MyHelper::requestNumber($value['balance'], '_POINT');
 
                 $listBalance[$key] = $dataList;
+            } elseif (strpos($value['source'], 'Rejected Order') !== false) {
+                $dataList['type']   = 'balance';
+                $dataList['id']      = $value['id_log_balance'];
+                $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
+                $dataList['outlet'] = 'Reversal';
+                if ($value['balance'] < 0) {
+                    $dataList['amount'] = '- ' . ltrim(MyHelper::requestNumber($value['balance'], '_POINT'), '-');
+                } else {
+                    $dataList['amount'] = '+ ' . MyHelper::requestNumber($value['balance'], '_POINT');
+                }
+
+                $listBalance[$key] = $dataList;
             } else {
                 // return 'a';
                 $dataList['type']   = 'profile';
