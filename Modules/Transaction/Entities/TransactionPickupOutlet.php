@@ -10,7 +10,7 @@ class TransactionPickupOutlet extends Model
     protected $primaryKey = 'id_transaction_pickup_outlet';
 
     protected $fillable = [
-            'id_transaction_outlet',
+            'id_transaction_pickup',
             'id_transaction',
             'id_user_address',
             'destination_address',

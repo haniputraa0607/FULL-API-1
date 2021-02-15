@@ -30,6 +30,8 @@ class CreateTransactionPickupOutletsTable extends Migration
             $table->foreign('id_transaction','fk_id_trx_trx_pickup_outlets')->references('id_transaction')->on('transactions')->onDelete('CASCADE');
             $table->foreign('id_transaction_pickup')->references('id_transaction_pickup')->on('transaction_pickups')->onUpdate('CASCADE')->onDelete('CASCADE');
         });
+
+        DB::statement("ALTER TABLE `transaction_pickups` CHANGE COLUMN `pickup_by` `pickup_by` ENUM('Customer', 'GO-SEND', 'Outlet') NOT NULL DEFAULT 'Customer'");
     }
 
     /**
@@ -39,6 +41,7 @@ class CreateTransactionPickupOutletsTable extends Migration
      */
     public function down()
     {
+        DB::statement("ALTER TABLE `transaction_pickups` CHANGE COLUMN `pickup_by` `pickup_by` ENUM('Customer', 'GO-SEND') NOT NULL DEFAULT 'Customer'");
         Schema::dropIfExists('transaction_pickup_outlets');
     }
 }
