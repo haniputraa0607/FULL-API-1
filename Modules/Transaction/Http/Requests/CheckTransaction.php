@@ -11,13 +11,13 @@ class CheckTransaction extends FormRequest
     public function rules()
     {
         return [
-            'type'                                    => 'sometimes|in:Pickup Order,GO-SEND,Grab',
+            'type'                                    => 'sometimes|in:Pickup Order,GO-SEND,Grab,Outlet Delivery',
             'payment_type'                            => 'nullable|in:Midtrans,Manual,Balance,Ovo,Ipay88,Shopeepay,Xendit',
             'destination.id_user_address'             => 'nullable|sometimes',
             'destination.short_address'               => 'nullable|sometimes',
-            'destination.address'                     => 'required_if:type,GO-SEND,Grab',
-            'destination.latitude'                    => 'required_if:type,GO-SEND,Grab',
-            'destination.longitude'                   => 'required_if:type,GO-SEND,Grab',
+            'destination.address'                     => 'required_if:type,GO-SEND,Grab,Outlet Delivery',
+            'destination.latitude'                    => 'required_if:type,GO-SEND,Grab,Outlet Delivery',
+            'destination.longitude'                   => 'required_if:type,GO-SEND,Grab,Outlet Delivery',
             'destination.notes'                       => 'nullable|sometimes',
             'id_outlet'                               => 'required|numeric',
             'pickup_at'                               => 'nullable|date_format:H:i',

@@ -17,7 +17,7 @@ return [
     ],
     'outlet' => [
         'type'     => 'Outlet Delivery',
-        'text'     => 'Outlet Delivery',
+        'text'     => 'Internal Delivery',
         'logo'     => env('STORAGE_URL_API').'default_image/delivery_method/outlet.png',
         'nolimit'  => true,
         'helper'   => \App\Lib\OutletDelivery::class,

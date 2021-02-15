@@ -702,6 +702,23 @@ class ApiOnlineTransaction extends Controller
             //     $isFree = '1';
             // }
             $isFree = 0;
+        } elseif (($post['type']??null) == 'Outlet Delivery') {
+            $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
+            $coor_origin = [
+                'latitude' => number_format($outlet['outlet_latitude'],8),
+                'longitude' => number_format($outlet['outlet_longitude'],8)
+            ];
+            $coor_destination = [
+                'latitude' => number_format($post['destination']['latitude'],8),
+                'longitude' => number_format($post['destination']['longitude'],8)
+            ];
+            $distance = MyHelper::count_distance($coor_origin['latitude'], $coor_origin['longitude'], $coor_destination['latitude'], $coor_destination['longitude'], 'M');
+            if ($distance > $max_distance) {
+                return [
+                    'status' => 'fail',
+                    'messages' => ["Maaf, jarak maksimal untuk menggunakan delivery internal adalah $max_distance meter"],
+                ];
+            }
         }
 
         if ($post['grandTotal'] < 0 || $post['subtotal'] < 0) {
@@ -1737,7 +1754,7 @@ class ApiOnlineTransaction extends Controller
 
         $error_msg=[];
 
-        if(($post['type'] ?? null) == 'GO-SEND' && !$outlet->delivery_order) {
+        if(($post['type'] ?? 'Pickup Order') != 'Pickup Order' && !$outlet->delivery_order) {
             $error_msg[] = 'Maaf, Outlet ini tidak support untuk delivery order';
         }
 
@@ -1772,6 +1789,20 @@ class ApiOnlineTransaction extends Controller
             //     $isFree = '1';
             // }
             $isFree = 0;
+        } elseif (($post['type']??null) == 'Outlet Delivery') {
+            $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
+            $coor_origin = [
+                'latitude' => number_format($outlet['outlet_latitude'],8),
+                'longitude' => number_format($outlet['outlet_longitude'],8)
+            ];
+            $coor_destination = [
+                'latitude' => number_format($post['destination']['latitude'],8),
+                'longitude' => number_format($post['destination']['longitude'],8)
+            ];
+            $distance = MyHelper::count_distance($coor_origin['latitude'], $coor_origin['longitude'], $coor_destination['latitude'], $coor_destination['longitude'], 'M');
+            if ($distance > $max_distance) {
+                $error_msg[] = "Maaf, jarak maksimal untuk menggunakan delivery internal adalah $max_distance meter";
+            }
         }
 
         if (!isset($post['subtotal'])) {
@@ -2836,7 +2867,7 @@ class ApiOnlineTransaction extends Controller
 
         $destination = [
             'latitude' => $outlet->outlet_latitude,
-            'longitude' => $request->outlet_longitude,
+            'longitude' => $outlet->outlet_longitude,
         ];
 
         $availableShipment = MyHelper::getDeliveries($origin, $destination, ['show_inactive' => $request->show_all]);
