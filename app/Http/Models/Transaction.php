@@ -93,6 +93,11 @@ class Transaction extends Model
 		'latest_reversal_process'
 	];
 
+	protected $balance = 'Modules\Balance\Http\Controllers\BalanceController';
+	protected $autocrm = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
+    protected $voucher  = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
+    protected $promo_campaign = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+
 	public function user()
 	{
 		return $this->belongsTo(\App\Http\Models\User::class, 'id_user');
@@ -232,5 +237,172 @@ class Transaction extends Model
 	public function clearLatestReversalProcess()
 	{
 		$update = Transaction::where('id_transaction', $this->id_transaction)->update(['latest_reversal_process' => null]);
+	}
+
+	public function cancelOrder($reason, &$errors = [])
+	{
+		if ($this->transaction_payment_status != 'Completed') {
+			$errors[] = 'Transaction payment not complete';
+			return false;
+		}
+		if (!$this->transaction_pickup) {
+			$this->load('transaction_pickup');
+		}
+		if (!$this->outlet) {
+			$this->load('outlet');
+		}
+		if (!$this->user) {
+			$this->load('user');
+		}
+		$pickup = $this->transaction_pickup;
+		if ($pickup->receive_at || $pickup->ready_at || $pickup->reject_at || $pickup->taken_at || $pickup->taken_by_system_at) {
+			$errors[] = 'Order already processed';
+			return false;
+		}
+
+        $rejectBalance = false;
+        $point = 0;
+
+        \DB::beginTransaction();
+        $multiple = TransactionMultiplePayment::where('id_transaction', $this->id_transaction)->get()->toArray();
+        foreach ($multiple as $pay) {
+            if ($pay['type'] == 'Balance') {
+                $payBalance = TransactionPaymentBalance::find($pay['id_payment']);
+                if ($payBalance) {
+                    $refund = app($this->balance)->addLogBalance($this->id_user, $point = $payBalance['balance_nominal'], $this->id_transaction, 'Rejected Order Point', $this->transaction_grandtotal);
+                    if ($refund == false) {
+                        DB::rollback();
+                        $errors[] = 'Failed refund balance';
+                        return false;
+                    }
+                    $rejectBalance = true;
+                }
+            } elseif ($pay['type'] == 'Ovo') {
+                $payOvo = TransactionPaymentOvo::find($pay['id_payment']);
+                if ($payOvo) {
+                    if(Configs::select('is_active')->where('config_name','refund ovo')->pluck('is_active')->first()){
+                        $point = 0;
+                        $transaction = TransactionPaymentOvo::where('transaction_payment_ovos.id_transaction', $post['id_transaction'])
+                            ->join('transactions','transactions.id_transaction','=','transaction_payment_ovos.id_transaction')
+                            ->first();
+                        $refund = Ovo::Void($transaction);
+                        $reject_type = 'refund';
+                        if ($refund['status_code'] != '200') {
+	                        DB::rollback();
+	                        $errors[] = 'Failed refund ovo';
+	                        return false;
+                        }
+                    }else{
+                        $refund = app($this->balance)->addLogBalance($this->id_user, $point = $payOvo['amount'], $this->id_transaction, 'Rejected Order Ovo', $this->transaction_grandtotal);
+                        if ($refund == false) {
+	                        DB::rollback();
+	                        $errors[] = 'Failed refund Ovo to balance';
+	                        return false;
+                        }
+                        $rejectBalance = true;
+                    }
+                }
+            } elseif (strtolower($pay['type']) == 'ipay88') {
+                $point = 0;
+                $payIpay = TransactionPaymentIpay88::find($pay['id_payment']);
+                if ($payIpay) {
+                    if(strtolower($payIpay['payment_method']) == 'ovo' && MyHelper::setting('refund_ipay88')){
+                        $refund = \Modules\IPay88\Lib\IPay88::create()->void($payIpay);
+                        $reject_type = 'refund';
+                        if (!$refund) {
+	                        DB::rollback();
+	                        $errors[] = 'Failed refund ipay88';
+	                        return false;
+                        }
+                    }else{
+                        $refund = app($this->balance)->addLogBalance($this->id_user, $point = ($payIpay['amount']/100), $this->id_transaction, 'Rejected Order', $this->transaction_grandtotal);
+                        if ($refund == false) {
+	                        DB::rollback();
+	                        $errors[] = 'Failed refund ipay to balance';
+	                        return false;
+                        }
+                        $rejectBalance = true;
+                    }
+                }
+            } elseif (strtolower($pay['type']) == 'shopeepay') {
+                $point = 0;
+                $payShopeepay = TransactionPaymentShopeePay::find($pay['id_payment']);
+                if ($payShopeepay) {
+                    if(MyHelper::setting('refund_shopeepay')) {
+                        $refund = app($this->shopeepay)->void($payShopeepay['id_transaction'], 'trx', $errors);
+                        $reject_type = 'refund';
+                        if (!$refund) {
+	                        DB::rollback();
+	                        $errors[] = 'Failed refund shopeepay';
+	                        return false;
+                        }
+                    }else{
+                        $refund = app($this->balance)->addLogBalance($this->id_user, $point = ($payShopeepay['amount']/100), $this->id_transaction, 'Rejected Order', $this->transaction_grandtotal);
+                        if ($refund == false) {
+	                        DB::rollback();
+	                        $errors[] = 'Failed refund shopeepay to balance';
+	                        return false;
+                        }
+                        $rejectBalance = true;
+                    }
+                }
+            } else {
+                $point = 0;
+                $payMidtrans = TransactionPaymentMidtran::find($pay['id_payment']);
+                if ($payMidtrans) {
+                    if(MyHelper::setting('refund_midtrans')){
+                        $refund = Midtrans::refund($payMidtrans['vt_transaction_id'],['reason' => $post['reason']??'']);
+                        $reject_type = 'refund';
+                        if ($refund['status'] != 'success') {
+	                        DB::rollback();
+	                        $errors[] = 'Failed refund midtrans';
+	                        return false;
+                        }
+                    } else {
+                        $refund = app($this->balance)->addLogBalance( $this->id_user, $point = $payMidtrans['gross_amount'], $this->id_transaction, 'Rejected Order Midtrans', $this->transaction_grandtotal);
+                        if ($refund == false) {
+	                        DB::rollback();
+	                        $errors[] = 'Failed refund midtrans to balance';
+	                        return false;
+                        }
+                        $rejectBalance = true;
+                    }
+                }
+            }
+        }
+
+        //reversal balance
+        $logBalance = LogBalance::where('id_reference', $this->id_transaction)->where('source', 'Transaction')->where('balance', '<', 0)->get();
+        foreach($logBalance as $logB){
+        	$point += abs($logB['balance']);
+        	$rejectBalance = true;
+            $reversal = app($this->balance)->addLogBalance( $this->id_user, abs($logB['balance']), $this->id_transaction, 'Reversal', $this->transaction_grandtotal);
+            if (!$reversal) {
+                DB::rollback();
+                $errors[] = 'Failed refund midtrans to balance';
+                return false;
+            }
+        }
+        $pickup->update(['reject_at' => date('Y-m-d H:i:s'), 'reject_reason' => $reason]);
+        \DB::commit();
+        if ($rejectBalance) {
+            $usere= User::where('id',$this->id_user)->first();
+            $send = app($this->autocrm)->SendAutoCRM('Transaction Failed Point Refund', $usere->phone,
+                [
+                    "outlet_name"       => $this->outlet_name->outlet_name,
+                    "transaction_date"  => $this->transaction_date,
+                    'id_transaction'    => $this->id_transaction,
+                    'receipt_number'    => $this->transaction_receipt_number,
+                    'received_point'    => (string) $point
+                ]
+            );
+		}
+
+        // delete promo campaign report
+    	$update_promo_report = app($this->promo_campaign)->deleteReport($this->id_transaction, $this->id_promo_campaign_promo_code);
+
+        // return voucher
+        $update_voucher = app($this->voucher)->returnVoucher($this->id_transaction);
+        return true;
 	}
 }
