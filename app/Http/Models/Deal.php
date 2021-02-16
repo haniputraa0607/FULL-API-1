@@ -111,7 +111,9 @@ class Deal extends Model
 		'product_type',
 		'deals_warning_image',
 		'custom_outlet_text',
-        'is_all_outlet'
+        'is_all_outlet',
+        'min_basket_size',
+		'is_all_shipment'
 	];
 
 	protected $appends  = ['url_deals_image', 'deals_status', 'deals_voucher_price_type', 'deals_voucher_price_pretty', 'url_webview', 'url_deals_warning_image'];
@@ -265,4 +267,14 @@ class Deal extends Model
     {
         return $this->hasMany(\Modules\Deals\Entities\DealsUserLimit::class, 'id_deals', 'id_deals');
     }
+
+    public function deals_shipment_method()
+    {
+        return $this->hasMany(\Modules\Deals\Entities\DealsShipmentMethod::class, 'id_deals', 'id_deals');
+    }
+
+    public function deals_discount_delivery_rules()
+	{
+		return $this->hasOne(\Modules\Deals\Entities\DealsDiscountDeliveryRule::class, 'id_deals');
+	}
 }
