@@ -45,6 +45,7 @@ use Modules\PromoCampaign\Entities\PromoCampaignReferral;
 use Modules\PromoCampaign\Entities\PromoCampaignReferralTransaction;
 use Modules\PromoCampaign\Entities\UserReferralCode;
 use Modules\PromoCampaign\Entities\PromoCampaignReport;
+use Modules\Transaction\Entities\TransactionPickupOutlet;
 
 use Modules\Balance\Http\Controllers\NewTopupController;
 use Modules\PromoCampaign\Lib\PromoCampaignTools;
@@ -612,7 +613,7 @@ class ApiOnlineTransaction extends Controller
                     'phone'       => $user['phone']
                 ],
             ];
-        } elseif($post['type'] == 'GO-SEND'){
+        } elseif($post['type'] != 'Pickup Order'){
             //check key GO-SEND
             $dataAddress = $post['destination'];
             $dataAddress['latitude'] = number_format($dataAddress['latitude'],8);
@@ -702,6 +703,23 @@ class ApiOnlineTransaction extends Controller
             //     $isFree = '1';
             // }
             $isFree = 0;
+        } elseif (($post['type']??null) == 'Outlet Delivery') {
+            $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
+            $coor_origin = [
+                'latitude' => number_format($outlet['outlet_latitude'],8),
+                'longitude' => number_format($outlet['outlet_longitude'],8)
+            ];
+            $coor_destination = [
+                'latitude' => number_format($post['destination']['latitude'],8),
+                'longitude' => number_format($post['destination']['longitude'],8)
+            ];
+            $distance = MyHelper::count_distance($coor_origin['latitude'], $coor_origin['longitude'], $coor_destination['latitude'], $coor_destination['longitude'], 'M');
+            if ($distance > $max_distance) {
+                return [
+                    'status' => 'fail',
+                    'messages' => ["Maaf, jarak maksimal untuk menggunakan delivery internal adalah $max_distance meter"],
+                ];
+            }
         }
 
         if ($post['grandTotal'] < 0 || $post['subtotal'] < 0) {
@@ -1162,7 +1180,7 @@ class ApiOnlineTransaction extends Controller
                     'messages'  => ['Insert Shipment Transaction Failed']
                 ]);
             }
-        } elseif ($post['type'] == 'Pickup Order' || $post['type'] == 'GO-SEND') {
+        } else {
             $link = '';
             if($configAdminOutlet && $configAdminOutlet['is_active'] == '1'){
                 $totalAdmin = $adminOutlet->where('pickup_order', 1)->first();
@@ -1226,6 +1244,8 @@ class ApiOnlineTransaction extends Controller
                 $pickupType = $post['pickup_type'];
             }elseif($post['type'] == 'GO-SEND'){
                 $pickupType = 'right now';
+            }elseif($post['type'] == 'Outlet Delivery'){
+                $pickupType = 'right now';
             }else{
                 $pickupType = 'set time';
             }
@@ -1263,8 +1283,10 @@ class ApiOnlineTransaction extends Controller
                 'short_link'              => $link
             ];
 
-            if($post['type'] == 'GO-SEND'){
+            if ($post['type'] == 'GO-SEND') {
                 $dataPickup['pickup_by'] = 'GO-SEND';
+            } elseif ($post['type'] == 'Outlet Delivery') {
+                $dataPickup['pickup_by'] = 'Outlet';
             }else{
                 $dataPickup['pickup_by'] = 'Customer';
             }
@@ -1316,6 +1338,32 @@ class ApiOnlineTransaction extends Controller
                 }
 
                 $id_pickup_go_send = $gosend->id_transaction_pickup_go_send;
+            } elseif ($post['type'] == 'Outlet Delivery') {
+                if (!($post['destination']['short_address']??false)) {
+                    $post['destination']['short_address'] = $post['destination']['address'];
+                }
+
+                $dataGoSend['id_transaction_pickup'] = $insertPickup['id_transaction_pickup'];
+                $dataGoSend['id_transaction'] = $insertPickup['id_transaction'];
+                $dataGoSend['destination_address']   = $post['destination']['address'];
+                $dataGoSend['destination_short_address'] = $post['destination']['short_address'];
+                $dataGoSend['destination_address_name']   = $addressx->name;
+                $dataGoSend['destination_latitude']  = $post['destination']['latitude'];
+                $dataGoSend['destination_longitude'] = $post['destination']['longitude'];
+
+                if(isset($post['destination']['description'])){
+                    $dataGoSend['destination_note'] = $post['destination']['description'];
+                }
+
+                $gosend = TransactionPickupOutlet::create($dataGoSend);
+                if (!$gosend) {
+                    DB::rollback();
+                    return response()->json([
+                        'status'    => 'fail',
+                        'messages'  => ['Insert Transaction Pickup Outlet Failed']
+                    ]);
+                }
+
             }
         }
 
@@ -1737,7 +1785,7 @@ class ApiOnlineTransaction extends Controller
 
         $error_msg=[];
 
-        if(($post['type'] ?? null) == 'GO-SEND' && !$outlet->delivery_order) {
+        if(($post['type'] ?? 'Pickup Order') != 'Pickup Order' && !$outlet->delivery_order) {
             $error_msg[] = 'Maaf, Outlet ini tidak support untuk delivery order';
         }
 
@@ -1772,6 +1820,20 @@ class ApiOnlineTransaction extends Controller
             //     $isFree = '1';
             // }
             $isFree = 0;
+        } elseif (($post['type']??null) == 'Outlet Delivery') {
+            $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
+            $coor_origin = [
+                'latitude' => number_format($outlet['outlet_latitude'],8),
+                'longitude' => number_format($outlet['outlet_longitude'],8)
+            ];
+            $coor_destination = [
+                'latitude' => number_format($post['destination']['latitude'],8),
+                'longitude' => number_format($post['destination']['longitude'],8)
+            ];
+            $distance = MyHelper::count_distance($coor_origin['latitude'], $coor_origin['longitude'], $coor_destination['latitude'], $coor_destination['longitude'], 'M');
+            if ($distance > $max_distance) {
+                $error_msg[] = "Maaf, jarak maksimal untuk menggunakan delivery internal adalah $max_distance meter";
+            }
         }
 
         if (!isset($post['subtotal'])) {
@@ -2836,7 +2898,7 @@ class ApiOnlineTransaction extends Controller
 
         $destination = [
             'latitude' => $outlet->outlet_latitude,
-            'longitude' => $request->outlet_longitude,
+            'longitude' => $outlet->outlet_longitude,
         ];
 
         $availableShipment = MyHelper::getDeliveries($origin, $destination, ['show_inactive' => $request->show_all]);

@@ -2359,6 +2359,8 @@ class MyHelper{
 
         if ($unit == "K") {
             $hasil = ($miles * 1.609344);
+        } else if ($unit == 'M') {
+            $hasil = ($miles * 1609.344);
         } else if ($unit == "N") {
             $hasil = ($miles * 0.8684);
         } else {
@@ -2883,6 +2885,16 @@ class MyHelper{
                 unset($availableDelivery[$value['code']]);
                 continue;
             }
+
+            if ($value['code'] == 'outlet') {
+	            $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
+	            $distance = MyHelper::count_distance($origin['latitude'], $origin['longitude'], $destination['latitude'], $destination['longitude'], 'M');
+
+	            if ($distance > $max_distance) {
+	                continue;
+	            }
+            }
+
             $delivery = [
             	'code'	   => $value['code'],
 		        'type'     => $delivery['type'],
