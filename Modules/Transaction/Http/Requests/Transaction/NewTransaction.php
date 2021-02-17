@@ -31,7 +31,7 @@ class NewTransaction extends FormRequest
             
             'destination.id_user_address'             => 'nullable|sometimes',
             'destination.short_address'               => 'nullable|sometimes',
-            'destination.name'                        => 'required_if:type,GO-SEND,Grab,Outlet Delivery',
+            'destination.name'                        => 'nullable|sometimes',
             'destination.address'                     => 'required_if:type,GO-SEND,Grab,Outlet Delivery',
             'destination.latitude'                    => 'required_if:type,GO-SEND,Grab,Outlet Delivery',
             'destination.longitude'                   => 'required_if:type,GO-SEND,Grab,Outlet Delivery',
