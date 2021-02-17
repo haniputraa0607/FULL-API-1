@@ -2577,7 +2577,7 @@ class ApiTransaction extends Controller
             ->first();
 
         if (!$user_address) {
-            $user_address = UserAddress::select('id_user_address','short_address','address','latitude','longitude','description','favorite')
+            $user_address = UserAddress::select('name', 'id_user_address','short_address','address','latitude','longitude','description','favorite')
                 ->where('id_user',$id)
                 ->orderByRaw("POW(latitude - $latitude, 2) + POW(longitude - $longitude, 2)")
                 ->first();
