@@ -448,6 +448,13 @@ class ApiDeals extends Controller
             });
         }
 
+        if ($request->json('promo_type') == 'delivery') {
+        	$deals->where('promo_type', 'Discount delivery');
+        }
+
+        if ($request->json('promo_type') == 'discount') {
+        	$deals->where('promo_type', '!=','Discount delivery');
+        }
 
         /* ========================= TYPE ========================= */
         $deals->where(function ($query) use ($request) {

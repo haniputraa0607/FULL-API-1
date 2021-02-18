@@ -35,7 +35,7 @@ class PromoCampaignTools{
 	 * @param  	array 		$error     	error message
 	 * @return 	array/boolean     modified array of trxs if can, otherwise false
 	 */
-	public function validatePromo($id_promo, $id_outlet, $trxs, &$errors, $source='promo_campaign', $payment_type=null, &$errorProduct=0){
+	public function validatePromo($id_promo, $id_outlet, $trxs, &$errors, $source='promo_campaign', $payment_type=null, &$errorProduct=0, $request=null, $delivery_fee=0){
 		/**
 		 $trxs=[
 			{
@@ -83,6 +83,39 @@ class PromoCampaignTools{
 			$errors[]='Promo cannot be used at this outlet';
 			return false;
 		}
+
+		if (isset($request['type'])) {
+			if ($promo->promo_type == 'Discount delivery') {
+
+				$available_delivery = config('delivery_method');
+				$shipment_method = $promo->{$source.'_shipment_method'}->pluck('shipment_method');
+				$promo_shipment = [];
+
+				foreach ($shipment_method as $value) {
+					if ($value == 'Pickup Order') {
+						$promo_shipment = $value;
+					}
+		            if (isset($available_delivery[$value])) {
+		            	$promo_shipment[] = $available_delivery[$value]['type'];
+		            }
+		        }
+
+				if ($request->type == 'Pickup Order') {
+					$errors[]='Promo cannot be used for Pickup Order';
+					return false;
+				}
+				if (count($promo_shipment) == 1 && $promo_shipment[0] == 'Pickup Order') {
+					$promo->is_all_shipment = 1;
+				}
+				$check_shipment = $this->checkShipmentRule($promo->is_all_shipment??0, $request->type, $promo_shipment);
+
+				if(!$check_shipment){
+					$errors[]='Promo cannot be used for this order type';
+					return false;
+				}
+			}
+		}
+
 		if( (!empty($promo->date_start) && !empty($promo->date_end)) && (strtotime($promo->date_start)>time()||strtotime($promo->date_end)<time())){
 			$errors[]='Promo is not valid';
 			return false;
@@ -790,6 +823,31 @@ class PromoCampaignTools{
 					'is_free'			=> $is_free
 				];
 			}
+
+			case 'Discount delivery':
+				// load required relationship
+				$promo->load($source.'_discount_delivery_rules');
+				$promo_rules = $promo[$source.'_discount_delivery_rules'];
+
+				if ($promo_rules) {
+					$discount_delivery = $this->discountDelivery(
+						$delivery_fee, 
+						$promo_rules->discount_type,
+						$promo_rules->discount_value,
+						$promo_rules->max_percent_discount
+					);
+				}
+
+				if ($promo_rules->discount_type == 'Percent') {
+	        		$discount_benefit = ($promo_rules['discount_value']??0).'%';
+	        	}else{
+	        		$discount_benefit = 'IDR '.number_format(($promo_rules['discount_value']??0),0,',','.');
+	        	}
+
+	        	$promo_detail_message = 'Discount Delivery costs '.$discount_benefit;
+	        	$new_description = 'You get discount Delivery costs '.number_format($discount_delivery,0,',','.');
+
+				break;
 		}
 		// discount?
 		// if($discount<=0){
@@ -801,7 +859,8 @@ class PromoCampaignTools{
 			'discount'			=> $discount,
 			'new_description'	=> $new_description??'',
 			'promo_detail'		=> $promo_detail_message,
-			'is_free'			=> $is_free
+			'is_free'			=> $is_free,
+			'discount_delivery' => $discount_delivery ?? 0
 		];
 	}
 
@@ -1430,6 +1489,160 @@ class PromoCampaignTools{
     	}
     	
     	return $name;
+    }
+
+    public function checkShipmentRule($all_shipment, $shipment_method, $promo_shipment_list)
+    {
+    	if (!is_array($promo_shipment_list)) {
+    		$promo_shipment_list = $promo_shipment_list->toArray();
+    	}
+
+    	if ($all_shipment) {
+    		return true;
+    	}
+
+    	if (in_array($shipment_method, $promo_shipment_list)) {
+    		return true;
+    	}else{
+    		return false;
+    	}
+    }
+
+    public function discountDelivery($delivery_fee, $discount_type, $discount_value, $discount_max)
+    {
+    	$discount = 0;
+    	if($discount_type == 'Percent'){
+			$discount = ($delivery_fee * $discount_value)/100;
+			if(!empty($discount_max) && $discount > $discount_max){
+				$discount = $discount_max;
+			}
+		}else{
+			if($discount_value < $delivery_fee){
+				$discount = $discount_value;
+			}else{
+				$discount = $delivery_fee;
+			}
+		}
+
+		return $discount;
+    }
+
+    public function validateDelivery($request, $result, &$promo_delivery_error)
+    {
+    	if (!$request->promo_code_delivery && !$request->id_deals_user_delivery) {
+    		return null;
+    	}
+
+    	$promo_error = null;
+    	$post = $request->json()->all();
+    	$promo_delivery = null;
+    	$min_basket_size = null;
+
+    	if($request->promo_code_delivery)
+        {
+        	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code_delivery, 1, 1);
+            if ($code)
+            {
+	        	if ($code['promo_campaign']['date_end'] < date('Y-m-d H:i:s')) {
+	        		$error = ['Promo campaign is ended'];
+            		$promo_error = $error;
+	        	}
+	        	else
+	        	{
+		            $validate_user = $this->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
+
+		            if ($validate_user) {
+			            $discount_promo = $this->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'] ?? null, $error_product, $request, $result['shipping']);
+
+			            if ($discount_promo) {
+				            $min_basket_size = $code->min_basket_size;
+				            $promo_delivery = [
+				            	'description'	=> $discount_promo['new_description'],
+					            'detail' 		=> $discount_promo['promo_detail'],
+					            'value' 		=> $discount_promo['discount_delivery'],
+					            'is_free' 		=> $discount_promo['is_free'],
+					            'type' 			=> 'discount_delivery',
+					            'id_promo_code' => $code->id_promo_campaign_promo_code,
+					            'id_promo_campaign' => $code->id_promo_campaign
+				            ];
+			            }else{
+			            	$promo_error = $errors;
+			            }
+
+		            }else{
+		            	if(!empty($errore)){
+		            		$promo_error = $errore;
+		            	}
+		            }
+	        	}
+            }
+            else
+            {
+            	$error = ['Promo code invalid'];
+            	$promo_error = $error;
+            }
+        }
+        elseif($request->id_deals_user_delivery)
+        {
+	        $deals = DealsUser::whereIn('paid_status', ['Free', 'Completed'])->where('id_deals_user', $request->id_deals_user_delivery)->first();
+
+	        if (!$deals){
+	        	$error = ['Voucher is not found'];
+	        	$promo_error = $error;
+	        }elseif( !empty($deals['used_at']) ){
+	        	$error = ['Voucher already used'];
+	        	$promo_error = $error;
+	        }elseif( date('Y-m-d H:i:s', strtotime($deals['voucher_expired_at'])) < date('Y-m-d H:i:s') ){
+	        	$error = ['Voucher is expired'];
+	        	$promo_error = $error;
+	        }elseif( !empty($deals['voucher_active_at']) && date('Y-m-d H:i:s', strtotime($deals['voucher_active_at'])) > date('Y-m-d H:i:s') ){
+	        	$error = ['Voucher periode hasn\'t started'];
+	        	$promo_error = $error;
+	        }elseif($deals){
+				$validate_user = true;
+				
+				$discount_promo=$this->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals', null, $error_product, $request, $result['shipping']);
+
+				if ($discount_promo) {
+		            $min_basket_size = $deals->dealVoucher->min_basket_size;
+		            $promo_delivery = [
+		            	'description'	=> $discount_promo['new_description'],
+			            'detail' 		=> $discount_promo['promo_detail'],
+			            'value' 		=> $discount_promo['discount_delivery'],
+			            'is_free' 		=> $discount_promo['is_free'],
+			            'type' 			=> 'discount_delivery',
+			            'id_deals_voucher' => $deals->id_deals_voucher
+		            ];
+	            }else{
+	            	$promo_error = $errors;
+	            }
+	        }
+	        else
+	        {
+	        	$error = ['Voucher is not valid'];
+	        	$promo_error = $error;
+	        }
+        }
+
+        // check minimum basket size
+        if (!$promo_error) {
+        	$subtotal = $result['subtotal'] - abs($result['discount'] ?? 0);
+	        if ($min_basket_size > $subtotal) {
+    			$promo_error = ['your total order is less than '.number_format($min_basket_size,0,',','.')];
+    			$promo_delivery = null;
+	        }
+        }
+
+        if ($promo_error) {
+        	$promo_delivery_error = [
+        		'title' => 'Delivery Promo Can\'t use',
+        		'subtitle' => 'Promo Can\'t Use',
+        		'messages' => $promo_error
+        		
+        	];
+        }
+
+        return $promo_delivery;
     }
 }
 ?>

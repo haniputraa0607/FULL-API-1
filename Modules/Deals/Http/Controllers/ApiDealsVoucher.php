@@ -353,6 +353,25 @@ class ApiDealsVoucher extends Controller
             $voucher->where('deals.id_brand',$post['id_brand']);
         }
 
+        // filter promo type
+        if( isset($post['promo_type']) ){
+        	
+            if(!MyHelper::isJoined($voucher,'deals_vouchers')){
+                $voucher->leftJoin('deals_vouchers', 'deals_users.id_deals_voucher', 'deals_vouchers.id_deals_voucher');
+            }
+
+            if(!MyHelper::isJoined($voucher,'deals')){
+                $voucher->leftJoin('deals', 'deals.id_deals', 'deals_vouchers.id_deals');
+            }
+
+        	if ($post['promo_type'] == 'delivery') {
+	            $voucher->where('deals.promo_type','Discount delivery');
+        	}
+        	elseif( $post['promo_type'] == 'discount' ) {
+        		$voucher->where('deals.promo_type', '!=', 'Discount delivery');
+        	}
+        }
+
         // $voucher->orderBy('voucher_expired_at', 'asc');
         if (isset($post['oldest']) && ($post['oldest'] == 1 || $post['oldest'] == '1')) {
                 $voucher = $voucher->orderBy('deals_users.claimed_at', 'asc');

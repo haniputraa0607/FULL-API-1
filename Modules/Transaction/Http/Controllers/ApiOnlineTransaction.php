@@ -526,6 +526,10 @@ class ApiOnlineTransaction extends Controller
             $post['discount'] = 0;
         }
 
+        if (!isset($post['discount_delivery'])) {
+            $post['discount_delivery'] = 0;
+        }
+
         if (!isset($post['service'])) {
             $post['service'] = 0;
         }
@@ -728,11 +732,31 @@ class ApiOnlineTransaction extends Controller
                 'messages' => ['Invalid transaction']
             ];
         }
+
+        // check promo delivery
+        $promo_delivery = null;
+        $promo_delivery_error = null;
+        if ( ($post['type']??null) != 'Pickup Order' ) {
+        	$promo_post = $post;
+        	$promo_post['shipping'] = $post['shipping'] + $shippingGoSend;
+        	$promo_delivery = $pct->validateDelivery($request, $promo_post, $promo_delivery_error);
+			if ($promo_delivery_error) {
+	            return [
+	                'status' => 'fail',
+	                'messages' => $promo_delivery_error['messages']
+	            ];
+	        }
+
+	        $post['discount_delivery'] = - abs($promo_delivery['value']);
+	        $post['grandTotal'] = $post['grandTotal'] - abs($post['discount_delivery']);
+        }
+
         DB::beginTransaction();
         $transaction = [
             'id_outlet'                   => $post['id_outlet'],
             'id_user'                     => $id,
-            'id_promo_campaign_promo_code'           => $post['id_promo_campaign_promo_code']??null,
+            'id_promo_campaign_promo_code'	=> $post['id_promo_campaign_promo_code'] ?? null,
+            'id_promo_campaign_promo_code_delivery'	=> $promo_delivery['id_promo_code'] ?? null,
             'transaction_date'            => $post['transaction_date'],
             'transaction_receipt_number'  => 'TRX-'.date('ymd').MyHelper::createrandom(6,'Besar'),
             'trasaction_type'             => $type,
@@ -743,6 +767,7 @@ class ApiOnlineTransaction extends Controller
             'transaction_is_free'         => $isFree,
             'transaction_service'         => $post['service'],
             'transaction_discount'        => $post['discount'],
+            'transaction_discount_delivery'	=> $post['discount_delivery'],
             'transaction_tax'             => $post['tax'],
             'transaction_grandtotal'      => $post['grandTotal'] + $shippingGoSend,
             'transaction_point_earned'    => $post['point'],
@@ -848,6 +873,48 @@ class ApiOnlineTransaction extends Controller
                 ]);
         	}
         }
+
+        // add promo campaign delivery report
+        if($promo_delivery)
+        {
+        	if( $request->json('id_deals_user_delivery') ) {
+	        	$update_voucher = DealsUser::where('id_deals_user','=',$request->id_deals_user_delivery)->update(['used_at' => date('Y-m-d H:i:s'), 'id_outlet' => $request->json('id_outlet'), 'redeemed_at' => date('Y-m-d H:i:s')]);
+
+	            $addTransactionVoucher = TransactionVoucher::create([
+	                'id_deals_voucher' => $promo_delivery['id_deals_voucher'],
+	                'id_user' => $insertTransaction['id_user'],
+	                'id_transaction' => $insertTransaction['id_transaction']
+	            ]);
+
+	            if(!$addTransactionVoucher){
+	                DB::rollBack();
+	                return response()->json([
+	                    'status'    => 'fail',
+	                    'messages'  => ['Insert Transaction Failed']
+	                ]);
+	            }
+
+	        } elseif ( $request->json('promo_code_delivery') ) {
+
+	        	$promo_campaign_report = app($this->promo_campaign)->addReport(
+					$promo_delivery['id_promo_campaign'],
+					$promo_delivery['id_promo_code'],
+					$insertTransaction['id_transaction'],
+					$insertTransaction['id_outlet'],
+					$request->device_id?:'',
+					$request->device_type?:''
+				);
+
+	        	if (!$promo_campaign_report) {
+	        		DB::rollBack();
+	                return response()->json([
+	                    'status'    => 'fail',
+	                    'messages'  => ['Insert Transaction Failed']
+	                ]);
+	        	}
+	        }
+        }
+
         //update receipt
         // $receipt = 'TRX-'.MyHelper::createrandom(6,'Angka').time().MyHelper::createrandom(3,'Angka').$insertTransaction['id_outlet'].MyHelper::createrandom(3,'Angka');
         // $updateReceiptNumber = Transaction::where('id_transaction', $insertTransaction['id_transaction'])->update([
@@ -1429,6 +1496,7 @@ class ApiOnlineTransaction extends Controller
 
                     $insertTransaction = Transaction::with('user.memberships', 'outlet', 'productTransaction')->where('transaction_receipt_number', $insertTransaction['transaction_receipt_number'])->first();
 
+                    // double check voucher
                     if($request->json('id_deals_user') && !$request->json('promo_code'))
 			        {
 			        	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $deals['id_deals_voucher'])->where('status','success')->count();
@@ -1443,6 +1511,20 @@ class ApiOnlineTransaction extends Controller
 				        }
 			        }
 
+			        // double check voucher delivery
+			        if(isset($promo_delivery['id_deals_voucher']))
+			        {
+			        	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $promo_delivery['id_deals_voucher'])->where('status','success')->count();
+
+						if(($check_trx_voucher??false) > 1)
+						{
+							DB::rollBack();
+				            return [
+				                'status'=>'fail',
+				                'messages'=>['Voucher is not valid']
+				            ];
+				        }
+			        }
 
                     if ($configAdminOutlet && $configAdminOutlet['is_active'] == '1') {
                         $sendAdmin = app($this->notif)->sendNotif($insertTransaction);
@@ -1571,6 +1653,7 @@ class ApiOnlineTransaction extends Controller
         //    $savelocation = $this->saveLocation($post['latitude'], $post['longitude'], $insertTransaction['id_user'], $insertTransaction['id_transaction']);
         // }
 
+        // double check voucher
         if($request->json('id_deals_user') && !$request->json('promo_code'))
         {
         	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $deals['id_deals_voucher'])->where('status','success')->count();
@@ -1584,6 +1667,22 @@ class ApiOnlineTransaction extends Controller
 	            ];
 	        }
         }
+
+        // double check voucher delivery
+        if(isset($promo_delivery['id_deals_voucher']))
+        {
+        	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $promo_delivery['id_deals_voucher'])->where('status','success')->count();
+
+			if(($check_trx_voucher??false) > 1)
+			{
+				DB::rollBack();
+	            return [
+	                'status'=>'fail',
+	                'messages'=>['Voucher is not valid']
+	            ];
+	        }
+        }
+
         if (!empty($data_autocrm_cashback)) {
 	        $send   = app($this->autocrm)->SendAutoCRM('Transaction Point Achievement', $usere->phone,$data_autocrm_cashback);
 	        if($send != true){
@@ -1876,6 +1975,8 @@ class ApiOnlineTransaction extends Controller
         $promo['value']=0;
         $promo['discount']=0;
         $promo_source = null;
+        $promo_delivery = null;
+
         if($request->json('promo_code'))
         {
         	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1, 1);
@@ -2401,6 +2502,14 @@ class ApiOnlineTransaction extends Controller
 
         $result['total_payment_pretty'] = MyHelper::requestNumber(($grandtotal-$used_point),'_CURRENCY');
         $result['total_payment'] = MyHelper::requestNumber(($grandtotal-$used_point),$rn);
+
+        $promo_delivery_error = null;
+        $promo_delivery = $pct->validateDelivery($request, $result, $promo_delivery_error);
+        // return $promo_delivery;
+        $result['promo'] = $promo;
+        $result['promo_error'] = $promo_error;
+        $result['promo_delivery'] = $promo_delivery;
+        $result['promo_delivery_error'] = $promo_delivery_error;
 
         return MyHelper::checkGet($result)+['messages'=>$error_msg, 'promo_error'=>$promo_error, 'promo'=>$promo, 'clear_cart'=>$clear_cart];
     }

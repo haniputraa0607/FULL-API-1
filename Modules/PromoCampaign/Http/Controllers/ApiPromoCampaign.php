@@ -2128,7 +2128,8 @@ class ApiPromoCampaign extends Controller
 						'promo_campaign.promo_campaign_product_discount_rules',
 						'promo_campaign.promo_campaign_tier_discount_rules',
                         'promo_campaign.promo_campaign_buyxgety_rules',
-                        'promo_campaign.promo_campaign_referral'
+                        'promo_campaign.promo_campaign_referral',
+                        'promo_campaign.promo_campaign_discount_delivery_rules'
 					])
 	                ->first();
 
@@ -2193,7 +2194,8 @@ class ApiPromoCampaign extends Controller
 						},
                         'dealVoucher.deals.deals_product_discount_rules',
                         'dealVoucher.deals.deals_tier_discount_rules',
-                        'dealVoucher.deals.deals_buyxgety_rules'
+                        'dealVoucher.deals.deals_buyxgety_rules',
+                        'dealVoucher.deals.deals_discount_delivery_rules'
                     ])
         			->first();
 
@@ -2309,7 +2311,7 @@ class ApiPromoCampaign extends Controller
         }
 
         if ($source == 'deals') {
-        	$change_used_voucher = app($this->promo)->usePromo($source, $request->id_deals_user);
+        	$change_used_voucher = app($this->promo)->usePromo($source, $request->id_deals_user, $query);
         	if (($change_used_voucher['status']??false) == 'success') {
 	        	$result['result']['webview_url'] = $change_used_voucher['webview_url'];
 	        	$result['result']['webview_url_v2'] = $change_used_voucher['webview_url_v2'];
@@ -2320,7 +2322,7 @@ class ApiPromoCampaign extends Controller
 	            ];
         	}
         }else{
-        	$change_used_voucher = app($this->promo)->usePromo($source, $query['id_promo_campaign_promo_code']);
+        	$change_used_voucher = app($this->promo)->usePromo($source, $query['id_promo_campaign_promo_code'], $query);
         	if (!$change_used_voucher) {
         		return [
 	                'status'=>'fail',
@@ -2526,6 +2528,29 @@ class ApiPromoCampaign extends Controller
                 }
             }
     	}
+    	elseif ($query['promo_type'] == 'Discount delivery')
+        {
+        	if ($product == 'All Product') {
+        		$product = 'this item';
+        	}
+        	elseif ($product == 'specified product') {
+        		$product = 'these products';
+        	}else {
+        		$product = 'purchasing "'.$product.'"';
+        	}
+
+        	$discount = $query[$source.'_discount_delivery_rules']['discount_type']??'Nominal';
+
+        	if ($discount == 'Percent') {
+        		$discount = ( $query[$source.'_discount_delivery_rules']['discount_value']??0).'%';
+        	}else{
+        		$discount = 'IDR '.number_format( ($query[$source.'_discount_delivery_rules']['discount_value']??0),0,',','.');
+        	}
+
+			$desc = 'You are entitled to a %discount% discount on delivery costs';
+
+			$desc = MyHelper::simpleReplace($desc,['discount'=>$discount]);
+    	}
     	else
     	{
     		$key = null;
@@ -2566,7 +2591,8 @@ class ApiPromoCampaign extends Controller
 					'promo_campaign.promo_campaign_product_discount_rules',
 					'promo_campaign.promo_campaign_tier_discount_rules',
                     'promo_campaign.promo_campaign_buyxgety_rules',
-                    'promo_campaign.promo_campaign_referral'
+                    'promo_campaign.promo_campaign_referral',
+                    'promo_campaign.promo_campaign_discount_delivery_rules'
 				]);
 	    }
 
@@ -2611,7 +2637,8 @@ class ApiPromoCampaign extends Controller
                     'dealVoucher.deals.deals_buyxgety_product_requirement',
                     'dealVoucher.deals.deals_product_discount_rules',
                     'dealVoucher.deals.deals_tier_discount_rules',
-                    'dealVoucher.deals.deals_buyxgety_rules'
+                    'dealVoucher.deals.deals_buyxgety_rules',
+                    'dealVoucher.deals.deals_discount_delivery_rules'
                 ]);
 	    }
 
