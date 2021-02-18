@@ -1981,6 +1981,7 @@ class ApiTransaction extends Controller
                         ];
                     }
                     if ($list['detail']['pickup_by'] == 'GO-SEND' && $list['transaction_pickup_go_send'] && !$list['detail']['reject_at']) {
+                        $result['trasaction_type'] = 'GO-SEND';
                         // $result['transaction_status'] = 5;
                         $result['delivery_info'] = [
                             'driver' => null,
