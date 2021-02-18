@@ -151,7 +151,7 @@ class ApiPromo extends Controller
     	}
 
     	// delivery
-    	if (!$promo && !$promo_delivery) {
+    	if ( ($user_promo && !$promo) && ($user_promo_delivery && !$promo_delivery) ) {
     		return response()->json(['status' => 'fail']);
     	}
 

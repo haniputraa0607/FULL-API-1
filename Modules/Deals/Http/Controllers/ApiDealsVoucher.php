@@ -733,10 +733,10 @@ class ApiDealsVoucher extends Controller
 
     public function returnVoucher($id_transaction)
     {
-    	$getVoucher = TransactionVoucher::where('id_transaction','=',$id_transaction)->with('deals_voucher.deals')->first();
+    	$getVouchers = TransactionVoucher::where('id_transaction','=',$id_transaction)->with('deals_voucher.deals')->get();
+    	// if ($getVoucher)
+    	foreach ($getVouchers ?? [] as $key => $getVoucher) {
 
-    	if ($getVoucher)
-    	{
     		$update = [
     			'used_at' 		=> null,
     			'id_outlet' 	=> null,
@@ -754,17 +754,18 @@ class ApiDealsVoucher extends Controller
 
 	    			if ($update)
 		    		{
-		    			return true;
+		    			// return true;
+		    			continue;
 		    		}
 		    		else
 		    		{
-		    			return false;
+		    			continue;
 		    		}
 	    		}
 	    	}
 	    	else
 	    	{
-	    		return false;
+	    		continue;
 	    	}
         }
 
