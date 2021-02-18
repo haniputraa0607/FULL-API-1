@@ -2726,30 +2726,31 @@ class ApiPromoCampaign extends Controller
     	return true;
     }
 
-    public function deleteReport($id_transaction, $id_promo_campaign_promo_code)
+    public function deleteReport($id_transaction, $id_promo_campaign_promo_code = null)
     {
-    	$getReport = PromoCampaignReport::with('promo_campaign')
-						->where('id_promo_campaign_promo_code', $id_promo_campaign_promo_code)
+    	$getReports = PromoCampaignReport::with('promo_campaign')
+						// ->where('id_promo_campaign_promo_code', $id_promo_campaign_promo_code)
 						->where('id_transaction','=',$id_transaction)
-						->first();
+						->get();
 
-    	if ($getReport)
+    	// if ($getReport)
+		foreach ($getReports ?? [] as $key => $getReport) 
     	{
 	    	$delete = PromoCampaignReport::where('id_transaction', '=', $id_transaction)
-	    				->where('id_promo_campaign_promo_code', $id_promo_campaign_promo_code)
+	    				->where('id_promo_campaign_promo_code', $getReport->id_promo_campaign_promo_code)
 	    				->delete();
 
 	    	if ($delete)
 	    	{
-	    		$get_code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $id_promo_campaign_promo_code)->first();
-	    		$update = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $id_promo_campaign_promo_code)->update(['usage' => $get_code->usage-1]);
+	    		$get_code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $getReport->id_promo_campaign_promo_code)->first();
+	    		$update = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $getReport->id_promo_campaign_promo_code)->update(['usage' => $get_code->usage-1]);
 
 	    		if ($update) {
 		    		$update = PromoCampaign::where('id_promo_campaign', '=', $getReport['id_promo_campaign'])->update(['used_code' => $getReport->promo_campaign->used_code-1]);
 
 		    		if ($update)
 		    		{
-			    		return true;
+			    		continue;
 		    		}
 		    		else
 		    		{
