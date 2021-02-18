@@ -2509,13 +2509,23 @@ class ApiOnlineTransaction extends Controller
         $result['total_payment_pretty'] = MyHelper::requestNumber(($grandtotal-$used_point),'_CURRENCY');
         $result['total_payment'] = MyHelper::requestNumber(($grandtotal-$used_point),$rn);
 
-        $promo_delivery_error = null;
-        $promo_delivery = $pct->validateDelivery($request, $result, $promo_delivery_error);
-        // return $promo_delivery;
         $result['promo'] = $promo;
         $result['promo_error'] = $promo_error;
+        $result['allow_pickup'] = 1;
+        $result['allow_delivery'] = $outlet['delivery_order'];
+        $result['available_delivery'] = [];
+
+        // check promo delivery 
+        $promo_delivery_error = null;
+        $promo_delivery = $pct->validateDelivery($request, $result, $promo_delivery_error);
         $result['promo_delivery'] = $promo_delivery;
         $result['promo_delivery_error'] = $promo_delivery_error;
+        if ($promo_delivery) {
+	        $result['allow_pickup'] = $promo_delivery['allow_pickup'] ?? $result['allow_pickup'];
+	        $result['allow_delivery'] = $promo_delivery['allow_delivery'] ?? $result['allow_delivery'];
+		    $result['available_delivery'] = $promo_delivery['available_delivery'] ?? [];
+        	unset($result['promo_delivery']['available_delivery'], $result['promo_delivery']['allow_delivery'], $result['promo_delivery']['allow_pickup']);
+        }
 
         return MyHelper::checkGet($result)+['messages'=>$error_msg, 'promo_error'=>$promo_error, 'promo'=>$promo, 'clear_cart'=>$clear_cart];
     }

@@ -1555,6 +1555,8 @@ class PromoCampaignTools{
 			            $discount_promo = $this->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'] ?? null, $error_product, $request, $result['shipping']);
 
 			            if ($discount_promo) {
+			            	$promo = $code->promo_campaign;
+			            	$promo_shipment = $code->promo_campaign->promo_campaign_shipment_method->pluck('shipment_method');
 				            $min_basket_size = $code->min_basket_size;
 				            $promo_delivery = [
 				            	'description'	=> $discount_promo['new_description'],
@@ -1600,6 +1602,8 @@ class PromoCampaignTools{
 	        	$promo_error = $error;
 	        }elseif($deals){
 				$validate_user = true;
+				$promo = $deals->dealVoucher->deals;
+				$promo_shipment = $deals->dealVoucher->deals->deals_shipment_method->pluck('shipment_method');
 				
 				$discount_promo=$this->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals', null, $error_product, $request, $result['shipping']);
 
@@ -1624,13 +1628,45 @@ class PromoCampaignTools{
 	        }
         }
 
-        // check minimum basket size
         if (!$promo_error) {
+        	// check minimum basket size
         	$subtotal = $result['subtotal'] - abs($result['discount'] ?? 0);
 	        if ($min_basket_size > $subtotal) {
     			$promo_error = ['your total order is less than '.number_format($min_basket_size,0,',','.')];
     			$promo_delivery = null;
 	        }
+
+	        // check available shipment
+	        if ( !empty($result['allow_delivery']) ) {
+
+        		$available_delivery = [];
+	        	$availableDelivery = config('delivery_method');
+
+		        $setting  = json_decode(MyHelper::setting('active_delivery_methods', 'value_text', '[]'), true) ?? [];
+		        $deliveries = [];
+
+		        foreach ($setting as $value) {
+
+		            $delivery = $availableDelivery[$value['code'] ?? ''] ?? false;
+
+		            if ( !$delivery || !($delivery['status'] ?? false) ) {
+		                unset($availableDelivery[$value['code']]);
+		                continue;
+		            }
+
+			    	if ($this->checkShipmentRule($promo->is_all_shipment, $value['code'], $promo_shipment)) {
+			    		$available_delivery[] = $value['code'];
+			    	}
+		        }
+
+		        $promo_delivery['available_delivery'] = $available_delivery;
+		    	if(empty($available_delivery)) {
+		    		$promo_delivery['allow_delivery'] = 0;
+		    	}else{
+		    		$promo_delivery['allow_pickup'] = 0;
+		    		$promo_delivery['allow_delivery'] = 1;
+		    	}
+	    	}
         }
 
         if ($promo_error) {
