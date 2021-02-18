@@ -1563,6 +1563,7 @@ class PromoCampaignTools{
 					            'detail' 		=> $discount_promo['promo_detail'],
 					            'value' 		=> $discount_promo['discount_delivery'],
 					            'is_free' 		=> $discount_promo['is_free'],
+					            'shipping_value'=> $result['shipping'],
 					            'type' 			=> 'discount_delivery',
 					            'id_promo_code' => $code->id_promo_campaign_promo_code,
 					            'id_promo_campaign' => $code->id_promo_campaign
@@ -1614,6 +1615,7 @@ class PromoCampaignTools{
 			            'detail' 		=> $discount_promo['promo_detail'],
 			            'value' 		=> $discount_promo['discount_delivery'],
 			            'is_free' 		=> $discount_promo['is_free'],
+			            'shipping_value'=> $result['shipping'],
 			            'type' 			=> 'discount_delivery',
 			            'id_deals_voucher' => $deals->id_deals_voucher
 		            ];
@@ -1628,15 +1630,17 @@ class PromoCampaignTools{
 	        }
         }
 
+        // check minimum basket size
         if (!$promo_error) {
-        	// check minimum basket size
         	$subtotal = $result['subtotal'] - abs($result['discount'] ?? 0);
 	        if ($min_basket_size > $subtotal) {
     			$promo_error = ['your total order is less than '.number_format($min_basket_size,0,',','.')];
     			$promo_delivery = null;
 	        }
+	    }
 
-	        // check available shipment
+	    // check available shipment
+        if (!$promo_error) {
 	        if ( !empty($result['allow_delivery']) ) {
 
         		$available_delivery = [];

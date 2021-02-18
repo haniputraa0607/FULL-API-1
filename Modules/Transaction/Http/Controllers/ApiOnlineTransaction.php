@@ -2470,11 +2470,13 @@ class ApiOnlineTransaction extends Controller
         $result['subtotal_pretty'] = MyHelper::requestNumber($subtotal,'_CURRENCY');
         $result['shipping_pretty'] = MyHelper::requestNumber($post['shipping'],'_CURRENCY');
         $result['discount_pretty'] = MyHelper::requestNumber($post['discount'],'_CURRENCY');
+        $result['discount_delivery_pretty'] = 0;
         $result['service_pretty'] = MyHelper::requestNumber($post['service'],'_CURRENCY');
         $result['tax_pretty'] = MyHelper::requestNumber($post['tax'],'_CURRENCY');
         $result['subtotal'] = MyHelper::requestNumber($subtotal,$rn);
         $result['shipping'] = MyHelper::requestNumber($post['shipping'],$rn);
         $result['discount'] = MyHelper::requestNumber($post['discount'],$rn);
+        $result['discount_delivery'] = 0;
         $result['service'] = MyHelper::requestNumber($post['service'],$rn);
         $result['tax'] = MyHelper::requestNumber($post['tax'],$rn);
         $grandtotal = $post['subtotal'] + (-$post['discount']) + $post['service'] + $post['tax'] + $post['shipping'];
@@ -2520,12 +2522,19 @@ class ApiOnlineTransaction extends Controller
         $promo_delivery = $pct->validateDelivery($request, $result, $promo_delivery_error);
         $result['promo_delivery'] = $promo_delivery;
         $result['promo_delivery_error'] = $promo_delivery_error;
+
         if ($promo_delivery) {
 	        $result['allow_pickup'] = $promo_delivery['allow_pickup'] ?? $result['allow_pickup'];
 	        $result['allow_delivery'] = $promo_delivery['allow_delivery'] ?? $result['allow_delivery'];
 		    $result['available_delivery'] = $promo_delivery['available_delivery'] ?? [];
+		    $result['discount_delivery'] = abs($promo_delivery['value']);
+		    $result['grandtotal'] = $result['grandtotal'] - $promo_delivery['value'];
+		    $result['grandtotal_pretty'] = MyHelper::requestNumber($result['grandtotal'],'_CURRENCY');
         	unset($result['promo_delivery']['available_delivery'], $result['promo_delivery']['allow_delivery'], $result['promo_delivery']['allow_pickup']);
         }
+
+        // payment detail
+        $result['payment_detail'] = $this->getTransactionPaymentDetail($request, $result);
 
         return MyHelper::checkGet($result)+['messages'=>$error_msg, 'promo_error'=>$promo_error, 'promo'=>$promo, 'clear_cart'=>$clear_cart];
     }
@@ -3131,5 +3140,55 @@ class ApiOnlineTransaction extends Controller
                     'messages' => ['Transaction pickup by '.$trx->pickup_by]
                 ];
         }
+    }
+
+    public function getTransactionPaymentDetail($request, $result)
+    {
+    	$payment_detail = [];
+    	$payment_detail[] = [
+            'name'          => 'Subtotal',
+            "is_discount"   => 0,
+            'amount'        => MyHelper::requestNumber($result['subtotal'],'_CURRENCY')
+        ];
+
+        //discount product / bill
+        if($result['discount'] > 0){
+            $payment_detail[] = [
+                'name'          => 'Diskon',
+                "is_discount"   => 1,
+                'amount'        => '-'.MyHelper::requestNumber($result['discount'],'_CURRENCY')
+            ];
+        }
+
+        //delivery gosend
+        if($result['shipping'] > 0){
+            $payment_detail[] = [
+                'name'          => 'Delivery',
+                "is_discount"   => 0,
+                'amount'        => MyHelper::requestNumber($result['shipping'],'_CURRENCY')
+            ];
+        }
+
+        //discount delivery
+        if($result['discount_delivery'] > 0){
+            $payment_detail[] = [
+                'name'          => 'Diskon (Delivery)',
+                "is_discount"   => 1,
+                'amount'        => '-'.MyHelper::requestNumber($result['discount_delivery'],'_CURRENCY')
+            ];
+        }
+
+        /*
+        //add tax
+        if($result['tax'] > 0){
+            $payment_detail[] = [
+                'name'          => 'Tax',
+                "is_discount"   => 0,
+                'amount'        => MyHelper::requestNumber($result['tax'],'_CURRENCY')
+            ];
+        }
+        */
+
+        return $payment_detail;
     }
 }
