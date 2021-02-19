@@ -2893,7 +2893,7 @@ class ApiOnlineTransaction extends Controller
 
     public function availableShipment(Request $request)
     {
-        $origin = [
+        $destination = [
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
         ];
@@ -2906,12 +2906,16 @@ class ApiOnlineTransaction extends Controller
             ];
         }
 
-        $destination = [
+        $origin = [
             'latitude' => $outlet->outlet_latitude,
             'longitude' => $outlet->outlet_longitude,
         ];
 
-        $availableShipment = MyHelper::getDeliveries($origin, $destination, ['show_inactive' => $request->show_all, 'calculate_price' => $request->latitude && $request->longitude]);
+        $availableShipment = MyHelper::getDeliveries($origin, $destination, [
+            'show_inactive' => $request->show_all,
+            'calculate_price' => $request->latitude && $request->longitude,
+            'available' => $outlet->available_delivery
+        ]);
 
         return MyHelper::checkGet($availableShipment);
     }
