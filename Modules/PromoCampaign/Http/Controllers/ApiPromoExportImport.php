@@ -18,7 +18,9 @@ use Modules\PromoCampaign\Entities\PromoCampaignHaveTag;
 use Modules\PromoCampaign\Entities\PromoCampaignTag;
 use Modules\PromoCampaign\Entities\PromoCampaignReport;
 use Modules\PromoCampaign\Entities\UserReferralCode;
-use Modules\PromoCampaign\Entities\UserPromo;;
+use Modules\PromoCampaign\Entities\UserPromo;
+use Modules\PromoCampaign\Entities\PromoCampaignDiscountDeliveryRule;
+use Modules\PromoCampaign\Entities\PromoCampaignShipmentMethod;
 
 use Modules\Deals\Entities\DealsProductDiscount;
 use Modules\Deals\Entities\DealsProductDiscountRule;
@@ -26,6 +28,8 @@ use Modules\Deals\Entities\DealsTierDiscountProduct;
 use Modules\Deals\Entities\DealsTierDiscountRule;
 use Modules\Deals\Entities\DealsBuyxgetyProductRequirement;
 use Modules\Deals\Entities\DealsBuyxgetyRule;
+use Modules\Deals\Entities\DealsDiscountDeliveryRule;
+use Modules\Deals\Entities\DealsShipmentMethod;
 
 use Modules\ProductVariant\Entities\ProductGroup;
 
@@ -75,6 +79,7 @@ class ApiPromoExportImport extends Controller
     		'deals_publish_end' 		=> 'deals publish end',
     		'url_deals_image' 			=> 'deals image',
     		'is_all_outlet' 			=> 'all outlet',
+    		'is_all_shipment' 			=> 'all shipment',
     		'custom_outlet_text' 		=> 'custom outlet text',
     		'deals_price_type' 			=> 'price type',
     		'deals_price_value' 		=> 'price value',
@@ -98,6 +103,11 @@ class ApiPromoExportImport extends Controller
     		'tier_discount_product_name' 	=> 'online tier discount product name',
     		'buy_x_get_y_discount_product_code' => 'online buy x get y discount product code',
     		'buy_x_get_y_discount_product_name' => 'online buy x get y discount product name',
+
+    		'discount_delivery_type' 	=> 'online discount delivery type',
+    		'discount_delivery_value' 	=> 'online discount delivery value',
+    		'discount_delivery_max_discount' => 'online discount delivery max discount',
+    		'min_basket_size' => 'min basket size',
     	];
         $this->promo_campaign_key 	= [
     		'campaign_name' 			=> 'promo campaign name',
@@ -113,6 +123,7 @@ class ApiPromoExportImport extends Controller
     		'prefix_code' 				=> 'prefix code',
     		'number_last_code' 			=> 'digit random',
     		'is_all_outlet' 			=> 'all outlet',
+    		'is_all_shipment' 			=> 'all shipment',
     		'user_type'					=> 'user type',
     		'specific_user' 			=> 'specific user',
     		'url_promo_campaign_warning_image' 	=> 'promo campaign warning image',
@@ -126,6 +137,11 @@ class ApiPromoExportImport extends Controller
     		'tier_discount_product_name' 	=> 'tier discount product name',
     		'buy_x_get_y_discount_product_code' => 'buy x get y discount product code',
     		'buy_x_get_y_discount_product_name' => 'buy x get y discount product name',
+
+    		'discount_delivery_type' 	=> 'discount delivery type',
+    		'discount_delivery_value' 	=> 'discount delivery value',
+    		'discount_delivery_max_discount' => 'discount delivery max discount',
+    		'min_basket_size' => 'min basket size',
     	];    	
     }
 
@@ -134,6 +150,7 @@ class ApiPromoExportImport extends Controller
         $post = $request->json()->all();
         $user = $request->user();
 
+        // get all data
         $promo = PromoCampaign::with(
                             'promo_campaign_have_tags.promo_campaign_tag',
                             'promo_campaign_product_discount_rules',
@@ -142,7 +159,9 @@ class ApiPromoExportImport extends Controller
                             'promo_campaign_tier_discount_product',
                             'promo_campaign_buyxgety_rules.product',
                             'promo_campaign_buyxgety_product_requirement',
-                            'outlets'
+                            'outlets',
+                            'promo_campaign_shipment_method',
+                            'promo_campaign_discount_delivery_rules'
                         )
                         ->where('id_promo_campaign', '=', $post['id_promo_campaign'])
                         ->first();
@@ -160,6 +179,7 @@ class ApiPromoExportImport extends Controller
 
         $data['rule'] = [];
         $data['outlet'] = [];
+        $data['order type'] = [];
         if ($promo) 
         {
         	if ( !empty($promo['promo_campaign_promo_codes'][0]['promo_code']) ) {
@@ -177,6 +197,16 @@ class ApiPromoExportImport extends Controller
 	        	unset($data['outlet']);
 	        }
 
+	        $data['order type'] = [];
+	        foreach ($promo['promo_campaign_shipment_method'] as $key => $value) {
+	        	$data['order type'][] = [
+	        		'order type' => $value['shipment_method'],
+	        	];
+	        }
+	        if ($data['order type'] == []) {
+	        	unset($data['order type']);
+	        }
+
 	        $promo['tags'] = [];
 
 	        foreach ($promo['promo_campaign_have_tags'] as $key => $value) {
@@ -185,7 +215,8 @@ class ApiPromoExportImport extends Controller
 	     //    if ($promo['tags'] == [] ) {
     		// 	unset($promo['tags']);
     		// }
-
+	        $min_basket_size = $promo['min_basket_size'];
+	        unset($promo['min_basket_size']);
 	        switch ($promo['promo_type'])
 	        {
 	        	case 'Product discount':
@@ -254,6 +285,14 @@ class ApiPromoExportImport extends Controller
 	        		}
 	        		break;
 	        	
+	        	case 'Discount delivery':
+	        		
+	        		$promo['discount_delivery_type'] = $promo['promo_campaign_discount_delivery_rules']['discount_type'];
+	        		$promo['discount_delivery_value'] = $promo['promo_campaign_discount_delivery_rules']['discount_value'];
+	        		$promo['discount_delivery_max_discount'] = $promo['promo_campaign_discount_delivery_rules']['max_percent_discount'];
+	        		$promo['min_basket_size'] = $min_basket_size;
+	        		break;
+
 	        	default:
 	        		$data['detail_rule'] = [];
 	        		break;
@@ -265,12 +304,14 @@ class ApiPromoExportImport extends Controller
 	        	$promo['last_updated_by'],
 	        	$promo['created_by_user'],
 	        	$promo['outlets'],
+	        	$promo['promo_campaign_shipment_method'],
 	        	$promo['promo_campaign_product_discount_rules'],
 	        	$promo['promo_campaign_product_discount'],
 	        	$promo['promo_campaign_tier_discount_rules'],
 	        	$promo['promo_campaign_tier_discount_product'],
 	        	$promo['promo_campaign_buyxgety_rules'],
 	        	$promo['promo_campaign_buyxgety_product_requirement'],
+	        	$promo['promo_campaign_discount_delivery_rules'],
 	        	$promo['used_code'],
 	        	$promo['promo_campaign_promo_codes'],
 	        	$promo['promo_campaign_have_tags'],
@@ -390,6 +431,27 @@ class ApiPromoExportImport extends Controller
 				$errors[] = 'Outlet '.$key.' - '.$value.' not found';
 			}
 		}
+
+		if ( !empty($post['data']['order type']) && $promo['promo_type'] == 'Discount delivery') 
+		{
+			$data_shipment = [];
+			$id_outlet = [];
+			foreach ($post['data']['order type']??[] as $key => $value) {
+				$data_shipment[] = [
+					'shipment_method' 		=> $value['order type'],
+                	'id_promo_campaign'    	=> $create['id_promo_campaign'],
+                	'created_at'           	=> date('Y-m-d H:i:s'),
+                	'updated_at'           	=> date('Y-m-d H:i:s')
+                ];
+			}
+
+			$save_shipment = PromoCampaignShipmentMethod::insert($data_shipment);
+
+			if (!$save_shipment) {
+				$errors[] = 'Insert Promo Campaign Outlet failed';
+			}
+		}
+
 		// save code
 		$generateCode = app($this->promo_campaign)->generateCode('insert', $create['id_promo_campaign'], $create['code_type'], $post['data']['rule']['promo_code']??null, $create['prefix_code'], $create['number_last_code'], $create['total_coupon']);
 
@@ -549,8 +611,17 @@ class ApiPromoExportImport extends Controller
 				}
         		break;
         	
+        	case 'Discount delivery':
+        		$rule['id_promo_campaign'] 	= $create['id_promo_campaign'];
+        		$rule['discount_type'] 		= $promo['discount_delivery_type'];
+        		$rule['discount_value'] 	= $promo['discount_delivery_value'];
+        		$rule['max_percent_discount'] = $promo['discount_delivery_max_discount'];
+        		$saveRule = PromoCampaignDiscountDeliveryRule::create($rule);
+
+        		break;
+        	
         	default:
-        		$errors[] = 'Deals rules not found';
+        		$errors[] = 'Promo campaign rules not found';
         		break;
         }
 
@@ -640,6 +711,19 @@ class ApiPromoExportImport extends Controller
 
     			break;
     		
+    		case 'shipment':
+
+				if ($convert_type == 'export') 
+				{
+		    		$new_data['is_all_shipment'] = $array_data['is_all_shipment'] ? 'yes' : 'no';
+				}
+				else
+				{
+					$new_data['is_all_shipment'] = $array_data['is_all_shipment'] == 'yes' ? 1 : 0;
+				}
+
+    			break;
+
     		case 'price':
 
 				if ($convert_type == 'export') 
@@ -778,6 +862,14 @@ class ApiPromoExportImport extends Controller
 		    				$rule['buy_x_get_y_discount_product_code'] 	= $array_deals['buy_x_get_y_discount_product_code'];
 		    				$rule['buy_x_get_y_discount_product_name'] 	= $array_deals['buy_x_get_y_discount_product_name'];
 		    				break;
+
+		    			case 'Discount delivery':
+		    				$rule['promo_type'] 					= $array_deals['promo_type'];
+		    				$rule['discount_delivery_type'] 		= $array_deals['discount_delivery_type'];
+		    				$rule['discount_delivery_value'] 		= $array_deals['discount_delivery_value'];
+		    				$rule['discount_delivery_max_discount'] = $array_deals['discount_delivery_max_discount'];
+		    				$rule['min_basket_size'] 				= $array_deals['min_basket_size'];
+		    				break;
 		    			
 		    			default:
 		    				$rule = [];
@@ -815,6 +907,14 @@ class ApiPromoExportImport extends Controller
 			    				$rule['buy_x_get_y_discount_product_name'] 	= $array_deals['buy_x_get_y_discount_product_name'];
 			    				break;
 			    			
+			    			case 'Discount delivery':
+			    				$rule['promo_type'] 					= $array_deals['promo_type'];
+			    				$rule['discount_delivery_type'] 		= $array_deals['discount_delivery_type'];
+			    				$rule['discount_delivery_value'] 		= $array_deals['discount_delivery_value'];
+			    				$rule['discount_delivery_max_discount'] = $array_deals['discount_delivery_max_discount'];
+			    				$rule['min_basket_size'] 				= $array_deals['min_basket_size'];
+			    				break;
+
 			    			default:
 			    				$rule = [];
 			    				break;
@@ -865,7 +965,8 @@ class ApiPromoExportImport extends Controller
     			$data['buy_x_get_y_discount_product_code'],
     			$data['buy_x_get_y_discount_product_name'],
     			$data['deals_promo_id_type'],
-    			$data['deals_promo_id']
+    			$data['deals_promo_id'],
+    			$data['min_basket_size']
     		);
 
 			// date
@@ -971,6 +1072,19 @@ class ApiPromoExportImport extends Controller
 
     			break;
     		
+    		case 'shipment':
+
+				if ($convert_type == 'export') 
+				{
+		    		$new_data['is_all_shipment'] = $array_data['is_all_shipment'] ? 'yes' : 'no';
+				}
+				else
+				{
+					$new_data['is_all_shipment'] = $array_data['is_all_shipment'] == 'yes' ? 1 : 0;
+				}
+
+    			break;
+
     		case 'code type':
 
 				if ($convert_type == 'export') 
@@ -1025,6 +1139,14 @@ class ApiPromoExportImport extends Controller
 		    				$rule['buy_x_get_y_discount_product_name'] 	= $array_data['buy_x_get_y_discount_product_name'];
 		    				break;
 		    			
+		    			case 'Discount delivery':
+		    				$rule['promo_type'] 					= $array_data['promo_type'];
+		    				$rule['discount_delivery_type'] 		= $array_data['discount_delivery_type'];
+		    				$rule['discount_delivery_value'] 		= $array_data['discount_delivery_value'];
+		    				$rule['discount_delivery_max_discount'] = $array_data['discount_delivery_max_discount'];
+		    				$rule['min_basket_size'] 				= $array_data['min_basket_size'];
+		    				break;
+
 		    			default:
 		    				$rule = [];
 		    				break;
@@ -1061,6 +1183,14 @@ class ApiPromoExportImport extends Controller
 			    				$rule['buy_x_get_y_discount_product_name'] 	= $array_data['buy_x_get_y_discount_product_name'];
 			    				break;
 			    			
+			    			case 'Discount delivery':
+			    				$rule['promo_type'] 					= $array_data['promo_type'];
+			    				$rule['discount_delivery_type'] 		= $array_data['discount_delivery_type'];
+			    				$rule['discount_delivery_value'] 		= $array_data['discount_delivery_value'];
+			    				$rule['discount_delivery_max_discount'] = $array_data['discount_delivery_max_discount'];
+			    				$rule['min_basket_size'] 				= $array_data['min_basket_size'];
+			    				break;
+
 			    			default:
 			    				$rule = [];
 			    				break;
@@ -1094,11 +1224,10 @@ class ApiPromoExportImport extends Controller
 
     public function checkPromoCampaignInput($array_data, $check_type='export')
     {
-// return $array_data;
     	if ($check_type == 'export') 
     	{
     		$data = $this->promo_campaign_key;
-    		// return $data;
+
     		// unset rule
     		unset(
     			$data['promo_code'],
@@ -1113,7 +1242,8 @@ class ApiPromoExportImport extends Controller
     			$data['tier_discount_product_code'],
     			$data['tier_discount_product_name'],
     			$data['buy_x_get_y_discount_product_code'],
-    			$data['buy_x_get_y_discount_product_name']
+    			$data['buy_x_get_y_discount_product_name'],
+    			$data['min_basket_size']
     		);
 
 			// date
@@ -1141,6 +1271,10 @@ class ApiPromoExportImport extends Controller
 		// outlet
 		$outlet = $this->convertPromoCampaignInput($array_data, $check_type, 'outlet');
 		$data = array_merge($data, $outlet);
+
+		// shipment
+		$shipment = $this->convertPromoCampaignInput($array_data, $check_type, 'shipment');
+		$data = array_merge($data, $shipment);
 
 		// promo rule
 		$promo_rule = $this->convertPromoCampaignInput($array_data, $check_type, 'promo rule');

@@ -33,6 +33,8 @@ use Modules\Deals\Entities\DealsBuyxgetyRule;
 use Modules\Deals\Entities\DealsUserLimit;
 use Modules\Deals\Entities\DealsContent;
 use Modules\Deals\Entities\DealsContentDetail;
+use Modules\Deals\Entities\DealsShipmentMethod;
+use Modules\Deals\Entities\DealsDiscountDeliveryRule;
 
 use DB;
 
@@ -1665,6 +1667,7 @@ class ApiDeals extends Controller
 
         $data['rule'] = [];
         $data['outlet'] = [];
+        $data['order type'] = [];
         if ($deals) 
         {
 	        $data['outlet'] = [];
@@ -1676,6 +1679,16 @@ class ApiDeals extends Controller
 	        }
 	        if ($data['outlet'] == []) {
 	        	unset($data['outlet']);
+	        }
+
+	        $data['order type'] = [];
+	        foreach ($deals['deals_shipment_method'] as $key => $value) {
+	        	$data['order type'][] = [
+	        		'order type' => $value['shipment_method'],
+	        	];
+	        }
+	        if ($data['order type'] == []) {
+	        	unset($data['order type']);
 	        }
 
 	        $data['content'] = [];
@@ -1697,6 +1710,8 @@ class ApiDeals extends Controller
 	        	$i++;
 	        }
 
+	        $min_basket_size = $deals['min_basket_size'];
+	        unset($deals['min_basket_size']);
 	        switch ($deals['promo_type']) 
 	        {
 	        	case 'Product discount':
@@ -1765,6 +1780,14 @@ class ApiDeals extends Controller
 	        		}
 	        		break;
 	        	
+	        	case 'Discount delivery':
+	        		
+	        		$deals['discount_delivery_type'] = $deals['deals_discount_delivery_rules']['discount_type'];
+	        		$deals['discount_delivery_value'] = $deals['deals_discount_delivery_rules']['discount_value'];
+	        		$deals['discount_delivery_max_discount'] = $deals['deals_discount_delivery_rules']['max_percent_discount'];
+	        		$deals['min_basket_size'] = $min_basket_size;
+	        		break;
+
 	        	default:
 	        		$data['detail_rule'] = [];
 	        		break;
@@ -1808,7 +1831,9 @@ class ApiDeals extends Controller
 	        	$deals['updated_at'],
 	        	$deals['deals_vouchers'],
 	        	$deals['deals_content'],
-	        	$deals['deals_type']
+	        	$deals['deals_type'],
+	        	$deals['promo_campaign_shipment_method'],
+	        	$deals['promo_campaign_discount_delivery_rules']
 	        );
 
 	        $temp_deals = [];
@@ -1970,6 +1995,26 @@ class ApiDeals extends Controller
 			}
 		}
 
+		if ( !empty($post['data']['order type']) && $deals['promo_type'] == 'Discount delivery') 
+		{
+			$data_shipment = [];
+			$id_outlet = [];
+			foreach ($post['data']['order type']??[] as $key => $value) {
+				$data_shipment[] = [
+					'shipment_method' 		=> $value['order type'],
+                	'id_deals'    			=> $create['id_deals'],
+                	'created_at'           	=> date('Y-m-d H:i:s'),
+                	'updated_at'           	=> date('Y-m-d H:i:s')
+                ];
+			}
+
+			$save_shipment = DealsShipmentMethod::insert($data_shipment);
+
+			if (!$save_shipment) {
+				$errors[] = 'Insert Promo Campaign Outlet failed';
+			}
+		}
+
     	switch ($deals['promo_type']) 
         {
         	case 'Product discount':
@@ -2128,6 +2173,15 @@ class ApiDeals extends Controller
 				}
         		break;
         	
+        	case 'Discount delivery':
+        		$rule['id_deals'] 	= $create['id_deals'];
+        		$rule['discount_type'] 		= $deals['discount_delivery_type'];
+        		$rule['discount_value'] 	= $deals['discount_delivery_value'];
+        		$rule['max_percent_discount'] = $deals['discount_delivery_max_discount'];
+        		$saveRule = DealsDiscountDeliveryRule::create($rule);
+
+        		break;
+
         	default:
         		$errors[] = 'Deals rules not found';
         		break;
