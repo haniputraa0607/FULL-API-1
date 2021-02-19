@@ -3166,18 +3166,19 @@ class ApiOnlineTransaction extends Controller
     		$item = 'items';
     	}
     	$payment_detail[] = [
-            'name'          => 'Subtotal ('.$result['total_item'].' '.$item.')',
+            'name'          => 'Subtotal',
+            'desc'			=> $result['total_item'].' '.$item,
             "is_discount"   => 0,
             'amount'        => (string) MyHelper::requestNumber($result['subtotal'],'_CURRENCY')
         ];
 
         //discount product / bill
         if($result['discount'] > 0){
-        	$code = $result['promo']['code'] ?? null;
-        	$discount_name = $code ? 'Discount ('.$code.')' : 'Discount';
+        	$code = $result['promo']['code'] ?? '';
         	
             $payment_detail[] = [
-                'name'          => $discount_name,
+                'name'          => 'Discount',
+                'desc'          => $code,
                 "is_discount"   => 1,
                 'amount'        => (string) '-'.MyHelper::requestNumber($result['discount'],'_CURRENCY')
             ];
@@ -3186,7 +3187,8 @@ class ApiOnlineTransaction extends Controller
         //delivery gosend
         if($result['shipping'] > 0){
             $payment_detail[] = [
-                'name'          => $delivery_text ? 'Delivery ('.$delivery_text.')' : 'Delivery',
+                'name'          => 'Delivery',
+                'desc'          => $delivery_text,
                 "is_discount"   => 0,
                 'amount'        => (string) MyHelper::requestNumber($result['shipping'],'_CURRENCY')
             ];
@@ -3195,7 +3197,8 @@ class ApiOnlineTransaction extends Controller
         //discount delivery
         if($result['discount_delivery'] > 0){
             $payment_detail[] = [
-                'name'          => 'Discount (Delivery)',
+                'name'          => 'Discount',
+                'desc'          => 'Delivery',
                 "is_discount"   => 1,
                 'amount'        => (string) '-'.MyHelper::requestNumber($result['discount_delivery'],'_CURRENCY')
             ];

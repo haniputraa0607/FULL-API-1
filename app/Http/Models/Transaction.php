@@ -220,7 +220,7 @@ class Transaction extends Model
 		return $this->belongsTo(\Modules\PromoCampaign\Entities\PromoCampaignPromoCode::class, 'id_promo_campaign_promo_code', 'id_promo_campaign_promo_code');
 	}
 
-	public function id_promo_campaign_promo_code_delivery()
+	public function promo_campaign_promo_code_delivery()
 	{
 		return $this->belongsTo(\Modules\PromoCampaign\Entities\PromoCampaignPromoCode::class, 'id_promo_campaign_promo_code_delivery', 'id_promo_campaign_promo_code');
 	}
