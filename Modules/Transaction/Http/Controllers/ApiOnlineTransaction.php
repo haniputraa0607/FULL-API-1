@@ -1796,36 +1796,40 @@ class ApiOnlineTransaction extends Controller
         }
 
         if(($post['type']??null) == 'GO-SEND'){
-            if(!($outlet['outlet_latitude']&&$outlet['outlet_longitude']&&$outlet['outlet_phone']&&$outlet['outlet_address'])){
-                app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
-                $outlet->notify_admin = 1;
-                $outlet->save();
-                return [
-                    'status' => 'fail',
-                    'messages' => ['Tidak dapat melakukan pengiriman dari outlet ini']
+            if ($post['destination']) {
+                if(!($outlet['outlet_latitude']&&$outlet['outlet_longitude']&&$outlet['outlet_phone']&&$outlet['outlet_address'])){
+                    app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
+                    $outlet->notify_admin = 1;
+                    $outlet->save();
+                    return [
+                        'status' => 'fail',
+                        'messages' => ['Tidak dapat melakukan pengiriman dari outlet ini']
+                    ];
+                }
+                $coor_origin = [
+                    'latitude' => number_format($outlet['outlet_latitude'],8),
+                    'longitude' => number_format($outlet['outlet_longitude'],8)
                 ];
-            }
-            $coor_origin = [
-                'latitude' => number_format($outlet['outlet_latitude'],8),
-                'longitude' => number_format($outlet['outlet_longitude'],8)
-            ];
-            $coor_destination = [
-                'latitude' => number_format($post['destination']['latitude'],8),
-                'longitude' => number_format($post['destination']['longitude'],8)
-            ];
-            $type = 'Pickup Order';
-            $shippingGoSendx = GoSend::getPrice($coor_origin,$coor_destination);
-            $shippingGoSend = $shippingGoSendx[GoSend::getShipmentMethod()]['price']['total_price']??null;
-            if($shippingGoSend === null){
-                $error_msg += array_column($shippingGoSendx[GoSend::getShipmentMethod()]['errors']??[],'message')?:['Gagal menghitung ongkos kirim'];
+                $coor_destination = [
+                    'latitude' => number_format($post['destination']['latitude'],8),
+                    'longitude' => number_format($post['destination']['longitude'],8)
+                ];
+                $type = 'Pickup Order';
+                $shippingGoSendx = GoSend::getPrice($coor_origin,$coor_destination);
+                $shippingGoSend = $shippingGoSendx[GoSend::getShipmentMethod()]['price']['total_price']??null;
+                if($shippingGoSend === null){
+                    $error_msg += array_column($shippingGoSendx[GoSend::getShipmentMethod()]['errors']??[],'message')?:['Gagal menghitung ongkos kirim'];
+                } else {
+                    $post['shipping'] = $shippingGoSend;
+                }
+                //cek free delivery
+                // if($post['is_free'] == 'yes'){
+                //     $isFree = '1';
+                // }
+                $isFree = 0;
             } else {
-                $post['shipping'] = $shippingGoSend;
+                $post['shipping'] = null;
             }
-            //cek free delivery
-            // if($post['is_free'] == 'yes'){
-            //     $isFree = '1';
-            // }
-            $isFree = 0;
         } elseif (($post['type']??null) == 'Outlet Delivery') {
             $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
             $coor_origin = [
@@ -2372,7 +2376,7 @@ class ApiOnlineTransaction extends Controller
         $result['service_pretty'] = MyHelper::requestNumber($post['service'],'_CURRENCY');
         $result['tax_pretty'] = MyHelper::requestNumber($post['tax'],'_CURRENCY');
         $result['subtotal'] = MyHelper::requestNumber($subtotal,$rn);
-        $result['shipping'] = MyHelper::requestNumber($post['shipping'],$rn);
+        $result['shipping'] = ($post['destination'] ?? false) ? $post['shipping'] : null;
         $result['discount'] = MyHelper::requestNumber($post['discount'],$rn);
         $result['service'] = MyHelper::requestNumber($post['service'],$rn);
         $result['tax'] = MyHelper::requestNumber($post['tax'],$rn);
@@ -2889,7 +2893,7 @@ class ApiOnlineTransaction extends Controller
 
     public function availableShipment(Request $request)
     {
-        $origin = [
+        $destination = [
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
         ];
@@ -2902,12 +2906,16 @@ class ApiOnlineTransaction extends Controller
             ];
         }
 
-        $destination = [
+        $origin = [
             'latitude' => $outlet->outlet_latitude,
             'longitude' => $outlet->outlet_longitude,
         ];
 
-        $availableShipment = MyHelper::getDeliveries($origin, $destination, ['show_inactive' => $request->show_all]);
+        $availableShipment = MyHelper::getDeliveries($origin, $destination, [
+            'show_inactive' => $request->show_all,
+            'calculate_price' => $request->latitude && $request->longitude,
+            'available' => $outlet->available_delivery
+        ]);
 
         return MyHelper::checkGet($availableShipment);
     }
