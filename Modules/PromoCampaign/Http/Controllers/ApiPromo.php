@@ -161,10 +161,11 @@ class ApiPromo extends Controller
     		'id_deals_user'		=> $promo['id_deals_user'] ?? '',
     		'promo_code'		=> $promo['promo_code'] ?? '',
     		'remove'			=> $remove,
-
-    		'id_deals_user_delivery' 	=> $promo_delivery['id_deals_user'] ?? null,
-    		'promo_code_delivery'		=> $promo_delivery['promo_code'] ?? '',
-    		'remove_delivery'			=> $remove_delivery
+    		'promo_delivery'	=> [
+	    		'id_deals_user_delivery' 	=> $promo_delivery['id_deals_user'] ?? null,
+	    		'promo_code_delivery'		=> $promo_delivery['promo_code'] ?? '',
+	    		'remove_delivery'			=> $remove_delivery
+	    	]
     	];
     	return response()->json(MyHelper::checkGet($result));
 
