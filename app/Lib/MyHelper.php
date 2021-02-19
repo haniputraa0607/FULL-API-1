@@ -2874,8 +2874,8 @@ class MyHelper{
 
     public static function getDeliveries(array $origin, array $destination, $options = []) {
         $availableDelivery = config('delivery_method');
-        $show_inactive = $option['show_inactive'] ?? false;
-
+        $calculate_price = $options['calculate_price'] ?? true;
+        $show_inactive = ($options['show_inactive'] ?? false) || !$calculate_price;
         $setting  = json_decode(MyHelper::setting('active_delivery_methods', 'value_text', '[]'), true) ?? [];
         $deliveries = [];
 
@@ -2890,7 +2890,7 @@ class MyHelper{
 	            $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
 	            $distance = MyHelper::count_distance($origin['latitude'], $origin['longitude'], $destination['latitude'], $destination['longitude'], 'M');
 
-	            if ($distance > $max_distance) {
+	            if ($distance > $max_distance && !$show_inactive) {
 	                continue;
 	            }
             }
@@ -2901,7 +2901,7 @@ class MyHelper{
 		        'text'     => $delivery['text'],
 		        'logo'     => $delivery['logo'],
 		        'status'   => (int) $value['status'] ?? 0,
-		        'price'	   => $delivery['helper']::calculatePrice($origin, $destination) ?? 0,
+		        'price'	   => $calculate_price ? $delivery['helper']::calculatePrice($origin, $destination) ?? 0 : null,
             ];
             if (($options['code'] ?? false)) {
             	if ($options['code'] != $value['code']) {
