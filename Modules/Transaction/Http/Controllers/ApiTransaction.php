@@ -1467,6 +1467,7 @@ class ApiTransaction extends Controller
                     'transaction_payment_offlines',
                     'transaction_vouchers.deals_voucher.deal',
                     'promo_campaign_promo_code.promo_campaign',
+                    'promo_campaign_promo_code_delivery.promo_campaign',
                     'promo_campaign_referral_transaction',
                     'transaction_pickup_go_send.transaction_pickup_update',
                     'outlet.city')->first();
@@ -1481,6 +1482,7 @@ class ApiTransaction extends Controller
                     'transaction_payment_offlines',
                     'transaction_vouchers.deals_voucher.deal',
                     'promo_campaign_promo_code.promo_campaign',
+                    'promo_campaign_promo_code_delivery.promo_campaign',
                     'promo_campaign_referral_transaction',
                     'outlet.city')->first();
             }
@@ -1859,6 +1861,7 @@ class ApiTransaction extends Controller
             }
 
             $discount = abs($list['transaction_discount']);
+            $discount_delivery = abs($list['transaction_discount_delivery']);
             $quantity = 0;
             foreach ($list['product_transaction'] as $keyTrx => $valueTrx) {
                 $quantity = $quantity + $valueTrx['transaction_product_qty'];
@@ -1886,29 +1889,54 @@ class ApiTransaction extends Controller
             $result['payment_detail'][] = [
                 'name'      => 'Subtotal',
                 'desc'      => $quantity . ' items',
-                'amount'    => MyHelper::requestNumber($list['transaction_subtotal'],'_CURRENCY')
+                'amount'    => (string) MyHelper::requestNumber($list['transaction_subtotal'],'_CURRENCY')
             ];
 
             $p = 0;
+            $payment_detail_discount = [];
+            $payment_detail_discount_delivery = [];
+
             if (!empty($list['transaction_vouchers'])) {
                 foreach ($list['transaction_vouchers'] as $valueVoc) {
                     $result['promo']['code'][$p++]   = $valueVoc['deals_voucher']['voucher_code'];
-                    $result['payment_detail'][] = [
-                        'name'          => 'Discount',
-                        'desc'          => $valueVoc['deals_voucher']['voucher_code'],
-                        "is_discount"   => 1,
-                        'amount'        => MyHelper::requestNumber($discount,'_CURRENCY')
-                    ];
+
+                    if ($valueVoc['deals_voucher']['deal']['promo_type'] == 'Discount delivery') {
+                    	$payment_detail_discount_delivery[] = [
+                    		'name'          => 'Discount',
+                    		// 'desc'          => $valueVoc['deals_voucher']['voucher_code'],
+                    		'desc'          => 'Delivery',
+                    		"is_discount"   => 1,
+                    		'amount'        => (string) '-'.MyHelper::requestNumber($discount_delivery,'_CURRENCY')
+                    	];
+                    }else{
+                    	$payment_detail_discount[] = [
+                    		'name'          => 'Discount',
+                    		'desc'          => $valueVoc['deals_voucher']['voucher_code'],
+                    		"is_discount"   => 1,
+                    		'amount'        => (string) '-'.MyHelper::requestNumber($discount,'_CURRENCY')
+                    	];
+                    }
                 }
             }
 
             if (!empty($list['promo_campaign_promo_code']) && $list['promo_campaign_promo_code']['promo_campaign']['promo_type'] != 'Referral') {
                 $result['promo']['code'][$p++]   = $list['promo_campaign_promo_code']['promo_code'];
-                $result['payment_detail'][] = [
+                $payment_detail_discount[] = [
                     'name'          => 'Discount',
                     'desc'          => $list['promo_campaign_promo_code']['promo_code'],
                     "is_discount"   => 1,
-                    'amount'        => MyHelper::requestNumber($discount,'_CURRENCY')
+                    'amount'        => (string) '-'.MyHelper::requestNumber($discount,'_CURRENCY')
+                ];
+            }
+
+            if (!empty($list['promo_campaign_promo_code_delivery']) && $list['promo_campaign_promo_code_delivery']['promo_campaign']['promo_type'] != 'Referral') {
+                $result['promo']['code'][$p++]   = $list['promo_campaign_promo_code_delivery']['promo_code'];
+                $payment_detail_discount_delivery[] = [
+                    'name'          => 'Discount',
+                    // 'desc'          => $list['promo_campaign_promo_code_delivery']['promo_code'],
+                    'desc'          => 'Delivery',
+                    "is_discount"   => 1,
+                    'amount'        => (string) '-'.MyHelper::requestNumber($discount_delivery,'_CURRENCY')
                 ];
             }
 
@@ -1925,12 +1953,55 @@ class ApiTransaction extends Controller
 	            	];
             	}else{
             		$result['promo']['code'][$p++]   = $list['promo_campaign_promo_code']['promo_code'];
-	                $result['payment_detail'][] = [
+	                $payment_detail_discount[] = [
 	                    'name'          => 'Discount',
 	                    'desc'          => $list['promo_campaign_promo_code']['promo_code'],
 	                    "is_discount"   => 1,
-	                    'amount'        => MyHelper::requestNumber($discount,'_CURRENCY')
+	                    'amount'        => (string) '-'.MyHelper::requestNumber($discount,'_CURRENCY')
 	                ];
+            	}
+            }
+
+            // add discount to payment detail
+            if (!empty($payment_detail_discount)) {
+            	foreach ($payment_detail_discount as $val) {
+            		$result['payment_detail'][] = $val;
+            	}
+            }
+
+            // add shipment/delivery to payment detail
+            if (!empty($list['transaction_shipment']) || !empty($list['transaction_shipment_go_send'])) {
+
+            	$available_delivery = config('delivery_method');
+		    	$delivery_list = [];
+		    	foreach ($available_delivery as $val) {
+		    		$delivery_list[$val['type']] = $val['text'];
+		    	}
+
+            	switch ($list['pickup_by']) {
+            		case 'GO-SEND':
+            			$delivery_text = $delivery_list['GO-SEND'];
+            			break;
+            		
+            		case 'Outlet':
+            			$delivery_text = $delivery_list['Outlet Delivery'];
+            			break;
+            		
+            		default:
+            			$delivery_text = '';
+            			break;
+            	}
+            	$result['payment_detail'][] = [
+	                'name'      => 'Delivery',
+	                'desc'		=> $delivery_text,
+	                'amount'    => (string) MyHelper::requestNumber(($list['transaction_shipment'] ?: $list['transaction_shipment_go_send']),'_CURRENCY')
+	            ];
+            }
+
+            // add discount delivery to payment detail
+            if (!empty($payment_detail_discount_delivery)) {
+            	foreach ($payment_detail_discount_delivery as $val) {
+            		$result['payment_detail'][] = $val;
             	}
             }
 

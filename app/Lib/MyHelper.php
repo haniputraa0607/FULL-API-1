@@ -2874,60 +2874,85 @@ class MyHelper{
 
     public static function getDeliveries(array $origin, array $destination, $options = []) {
         $availableDelivery = config('delivery_method');
-        $show_inactive = $option['show_inactive'] ?? false;
-
+        $calculate_price = $options['calculate_price'] ?? true;
+        $show_inactive = ($options['show_inactive'] ?? false) || !$calculate_price;
         $setting  = json_decode(MyHelper::setting('active_delivery_methods', 'value_text', '[]'), true) ?? [];
         $deliveries = [];
+        $available = $options['available'] ?? null;
+        $position = [];
 
-        foreach ($setting as $value) {
-            $delivery = $availableDelivery[$value['code'] ?? ''] ?? false;
-            if (!$delivery || !($delivery['status'] ?? false) || (!$show_inactive && !($value['status'] ?? false))) {
-                unset($availableDelivery[$value['code']]);
-                continue;
-            }
-
-            if ($value['code'] == 'outlet') {
-	            $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
-	            $distance = MyHelper::count_distance($origin['latitude'], $origin['longitude'], $destination['latitude'], $destination['longitude'], 'M');
-
-	            if ($distance > $max_distance) {
+        if ($destination['latitude'] && $destination['longitude']) {
+	        foreach ($setting as $value) {
+	        	$position[$value['code']] = $value['position'] ?? 10000;
+	            $delivery = $availableDelivery[$value['code'] ?? ''] ?? false;
+	            if (!$delivery || !($delivery['status'] ?? false) || (!$show_inactive && !($value['status'] ?? false))) {
+	                unset($availableDelivery[$value['code']]);
 	                continue;
 	            }
-            }
 
-            $delivery = [
-            	'code'	   => $value['code'],
-		        'type'     => $delivery['type'],
-		        'text'     => $delivery['text'],
-		        'logo'     => $delivery['logo'],
-		        'status'   => (int) $value['status'] ?? 0,
-		        'price'	   => $delivery['helper']::calculatePrice($origin, $destination) ?? 0,
-            ];
-            if (($options['code'] ?? false)) {
-            	if ($options['code'] != $value['code']) {
-	            	continue;
-            	}  else {
-	            	return $delivery;
+	            if ($value['code'] == 'outlet') {
+		            $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
+		            $distance = MyHelper::count_distance($origin['latitude'], $origin['longitude'], $destination['latitude'], $destination['longitude'], 'M');
+
+		            if ($distance > $max_distance) {
+		                continue;
+		            }
 	            }
-            }
-            $deliveries[] = $delivery;
-            unset($availableDelivery[$value['code']]);
+
+	            if (is_array($available)) {
+	            	if (!in_array($delivery['type'], $available)) {
+	            		continue;
+	            	}
+	            }
+
+	            $delivery = [
+	            	'code'	   => $value['code'],
+	            	'position' => $value['position'] ?? 10000,
+			        'type'     => $delivery['type'],
+			        'text'     => $delivery['text'],
+			        'logo'     => $delivery['logo'],
+			        'status'   => (int) $value['status'] ?? 0,
+			        'price'	   => $calculate_price ? $delivery['helper']::calculatePrice($origin, $destination) ?? 0 : null,
+	            ];
+	            if (($options['code'] ?? false)) {
+	            	if ($options['code'] != $value['code']) {
+		            	continue;
+	            	}  else {
+		            	return $delivery;
+		            }
+	            }
+	            $deliveries[] = $delivery;
+	            unset($availableDelivery[$value['code']]);
+	        }
         }
         if ($show_inactive) {
             foreach ($availableDelivery as $code => $delivery) {
                 if (!$delivery['status']) {
                     continue;
                 }
+
+	            if (is_array($available)) {
+	            	if (!in_array($delivery['type'], $available)) {
+	            		continue;
+	            	}
+	            }
+
                 $deliveries[] = [
                     'code'     => $code,
+	            	'position' => $position[$code] ?? 10000,
 			        'type'     => $delivery['type'],
 			        'text'     => $delivery['text'],
 			        'logo'     => $delivery['logo'],
 			        'status'   => 0,
-			        'price'    => 0,
+			        'price'    => null,
                 ];
             }
         }
+
+        usort($deliveries, function($a, $b) {
+        	return $a['position'] <=> $b['position'];
+        });
+
         return $deliveries;
     }
 }
