@@ -679,9 +679,9 @@ class ApiOnlineTransaction extends Controller
 
         if ($post['type'] == 'GO-SEND') {
             if(!($outlet['outlet_latitude']&&$outlet['outlet_longitude']&&$outlet['outlet_phone']&&$outlet['outlet_address'])){
-                // app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
-                // $outlet->notify_admin = 1;
-                // $outlet->save();
+                app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
+                $outlet->notify_admin = 1;
+                $outlet->save();
                 return [
                     'status' => 'fail',
                     'messages' => ['Tidak dapat melakukan pengiriman dari outlet ini']
@@ -1797,9 +1797,9 @@ class ApiOnlineTransaction extends Controller
 
         if(($post['type']??null) == 'GO-SEND'){
             if(!($outlet['outlet_latitude']&&$outlet['outlet_longitude']&&$outlet['outlet_phone']&&$outlet['outlet_address'])){
-                // app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
-                // $outlet->notify_admin = 1;
-                // $outlet->save();
+                app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
+                $outlet->notify_admin = 1;
+                $outlet->save();
                 return [
                     'status' => 'fail',
                     'messages' => ['Tidak dapat melakukan pengiriman dari outlet ini']
