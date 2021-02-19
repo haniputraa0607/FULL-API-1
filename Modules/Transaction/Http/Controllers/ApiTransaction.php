@@ -70,6 +70,7 @@ use Modules\Transaction\Http\Requests\MethodDelete;
 use Modules\Transaction\Http\Requests\ManualPaymentConfirm;
 use Modules\Transaction\Http\Requests\ShippingGoSend;
 use Modules\PromoCampaign\Entities\PromoCampaignReferral;
+use App\Http\Models\TransactionPickupGoSend;
 
 use App\Lib\MyHelper;
 use App\Lib\GoSend;
@@ -3062,5 +3063,21 @@ class ApiTransaction extends Controller
             ]);
         }
 
+    }
+
+    public function listNoDriver(Request $request)
+    {
+        $gosends = TransactionPickupGoSend::select('transactions.id_transaction', 'order_id', 'transaction_receipt_number')->join('transaction_pickups', 'transaction_pickups.id_transaction_pickup', 'transaction_pickup_go_sends.id_transaction_pickup')
+            ->join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
+            ->where('transaction_payment_status', 'Completed')
+            ->whereNull('reject_at')
+            ->whereIn('latest_status', ['cancelled', 'rejected', 'no_driver'])
+            ->whereDate('transaction_pickup_go_sends.created_at', date('Y-m-d'))
+            ->where('transaction_pickup_go_sends.updated_at', '<', date('Y-m-d H:i:s', time() - (5 * 60)))
+            ->get()
+            ->each(function($item) {
+                $item->delivery_status = 'Driver Tidak Ditemukan';
+            })->toArray();
+        return MyHelper::checkGet($gosends);
     }
 }
