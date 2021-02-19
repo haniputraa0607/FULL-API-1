@@ -605,10 +605,21 @@ class ApiOrder extends Controller
             ]);
         }
 
+        if($order->taken_by_driver_at != null){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => ['Order Has Been Taken by Driver']
+            ]);
+        }
+
         DB::beginTransaction();
 
-        $pickup = TransactionPickup::where('id_transaction', $order->id_transaction)->update(['taken_at' => date('Y-m-d H:i:s')]);
-        if($pickup){
+        if ($order->pickup_by == 'GO-SEND') {
+            $pickup = TransactionPickup::where('id_transaction', $order->id_transaction)->update(['taken_by_driver_at' => date('Y-m-d H:i:s')]);
+        } else {
+            $pickup = TransactionPickup::where('id_transaction', $order->id_transaction)->update(['taken_at' => date('Y-m-d H:i:s')]);
+        }
+        if ($pickup) {
             //send notif to customer
             $user = User::find($order->id_user);
             $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Taken');
