@@ -2011,6 +2011,7 @@ class ApiOnlineTransaction extends Controller
 			            // 	$discount_promo['discount'] = 0;
 			            // }
 			            $discount_type 			= $code->promo_campaign->promo_type;
+			            $promo['code'] 			= $code->promo_code;
 			            $promo['description']	= $discount_promo['new_description'];
 			            $promo['detail'] 		= $discount_promo['promo_detail'];
 			            $promo['discount'] 		= $discount_promo['discount'];
@@ -2082,6 +2083,7 @@ class ApiOnlineTransaction extends Controller
 	            $promo['value'] = $discount_promo['discount'];
 	            $promo['is_free'] = $discount_promo['is_free'];
 	            $promo['type'] = 'discount';
+	            $promo['code'] = $deals->dealVoucher->voucher_code;
 		        $promo_source = 'voucher_online';
 
 				if ( !empty($errors) ) {
@@ -2114,6 +2116,7 @@ class ApiOnlineTransaction extends Controller
         $product_promo = 0;
         $product_promo_sold_out = 0;
         $remove_promo = 0;
+        $total_item = 0;
         foreach ($discount_promo['item']??$post['item'] as &$item) {
 
         	if ($item['is_promo'] ?? false) {
@@ -2287,7 +2290,10 @@ class ApiOnlineTransaction extends Controller
 
             $tree[$product['id_brand']]['products'][]=$product;
             $subtotal += $product_price_total;
+        	
+        	$total_item += $item['qty'];
         }
+
         if ($validate_user??false) {
 	        if ( (!empty($product_promo) && !empty($product_promo_sold_out) && $product_promo == $product_promo_sold_out) || $remove_promo == 1 ) {
 	        	$discount_promo['item'] = $post['item'];
@@ -2511,6 +2517,7 @@ class ApiOnlineTransaction extends Controller
         $result['total_payment_pretty'] = MyHelper::requestNumber(($grandtotal-$used_point),'_CURRENCY');
         $result['total_payment'] = MyHelper::requestNumber(($grandtotal-$used_point),$rn);
 
+        $result['total_item'] = $total_item;
         $result['promo'] = $promo;
         $result['promo_error'] = $promo_error;
         $result['allow_pickup'] = 1;
@@ -3145,36 +3152,52 @@ class ApiOnlineTransaction extends Controller
     public function getTransactionPaymentDetail($request, $result)
     {
     	$payment_detail = [];
+
+    	$available_delivery = config('delivery_method');
+    	$delivery_text = null;
+    	foreach ($available_delivery as $val) {
+    		if ($val['type'] == $request->type) {
+    			$delivery_text = $val['text'];
+    		}
+    	}
+
+    	$item = 'item';
+    	if ($result['total_item'] > 1) {
+    		$item = 'items';
+    	}
     	$payment_detail[] = [
-            'name'          => 'Subtotal',
+            'name'          => 'Subtotal ('.$result['total_item'].' '.$item.')',
             "is_discount"   => 0,
-            'amount'        => MyHelper::requestNumber($result['subtotal'],'_CURRENCY')
+            'amount'        => (string) MyHelper::requestNumber($result['subtotal'],'_CURRENCY')
         ];
 
         //discount product / bill
         if($result['discount'] > 0){
+        	$code = $result['promo']['code'] ?? null;
+        	$discount_name = $code ? 'Discount ('.$code.')' : 'Discount';
+        	
             $payment_detail[] = [
-                'name'          => 'Diskon',
+                'name'          => $discount_name,
                 "is_discount"   => 1,
-                'amount'        => '-'.MyHelper::requestNumber($result['discount'],'_CURRENCY')
+                'amount'        => (string) '-'.MyHelper::requestNumber($result['discount'],'_CURRENCY')
             ];
         }
 
         //delivery gosend
         if($result['shipping'] > 0){
             $payment_detail[] = [
-                'name'          => 'Delivery',
+                'name'          => $delivery_text ? 'Delivery ('.$delivery_text.')' : 'Delivery',
                 "is_discount"   => 0,
-                'amount'        => MyHelper::requestNumber($result['shipping'],'_CURRENCY')
+                'amount'        => (string) MyHelper::requestNumber($result['shipping'],'_CURRENCY')
             ];
         }
 
         //discount delivery
         if($result['discount_delivery'] > 0){
             $payment_detail[] = [
-                'name'          => 'Diskon (Delivery)',
+                'name'          => 'Discount (Delivery)',
                 "is_discount"   => 1,
-                'amount'        => '-'.MyHelper::requestNumber($result['discount_delivery'],'_CURRENCY')
+                'amount'        => (string) '-'.MyHelper::requestNumber($result['discount_delivery'],'_CURRENCY')
             ];
         }
 
