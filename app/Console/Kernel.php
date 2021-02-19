@@ -157,6 +157,13 @@ class Kernel extends ConsoleKernel
          */
 
         $schedule->call('Modules\SettingFraud\Http\Controllers\ApiFraud@fraudCron')->dailyAt('02:00');
+
+        /**
+         * reset notify outlet flag
+         * run every day at 01:00
+         */
+        $schedule->call('Modules\Outlet\Http\Controllers\ApiOutletController@resetNotify')->dailyAt('00:30');
+
         /**
          * Void failed transaction shopeepay
          */

@@ -679,9 +679,9 @@ class ApiOnlineTransaction extends Controller
 
         if ($post['type'] == 'GO-SEND') {
             if(!($outlet['outlet_latitude']&&$outlet['outlet_longitude']&&$outlet['outlet_phone']&&$outlet['outlet_address'])){
-                // app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
-                // $outlet->notify_admin = 1;
-                // $outlet->save();
+                app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
+                $outlet->notify_admin = 1;
+                $outlet->save();
                 return [
                     'status' => 'fail',
                     'messages' => ['Tidak dapat melakukan pengiriman dari outlet ini']
@@ -1797,9 +1797,9 @@ class ApiOnlineTransaction extends Controller
 
         if(($post['type']??null) == 'GO-SEND'){
             if(!($outlet['outlet_latitude']&&$outlet['outlet_longitude']&&$outlet['outlet_phone']&&$outlet['outlet_address'])){
-                // app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
-                // $outlet->notify_admin = 1;
-                // $outlet->save();
+                app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
+                $outlet->notify_admin = 1;
+                $outlet->save();
                 return [
                     'status' => 'fail',
                     'messages' => ['Tidak dapat melakukan pengiriman dari outlet ini']
@@ -2753,7 +2753,7 @@ class ApiOnlineTransaction extends Controller
         if (!$trx) {
             return [
                 'status' => 'fail',
-                'messages' => 'Transaction Not Found'
+                'messages' => ['Transaction Not Found']
             ];
         }
         if($trx->transaction_payment_status != 'Pending'){
@@ -2780,7 +2780,7 @@ class ApiOnlineTransaction extends Controller
             if (!$trx) {
                 return [
                     'status' => 'fail',
-                    'messages' => 'Transaction Not Found'
+                    'messages' => ['Transaction Not Found']
                 ];
             }
         }
@@ -2788,7 +2788,7 @@ class ApiOnlineTransaction extends Controller
         if (!$trx_pickup) {
             return [
                 'status' => 'fail',
-                'messages' => 'Transaction Not Found'
+                'messages' => ['Transaction Not Found']
             ];
         }
         switch ($trx_pickup->pickup_by) {
@@ -2797,13 +2797,13 @@ class ApiOnlineTransaction extends Controller
                 if (!$trx_pickup_go_send) {
                     return [
                         'status' => 'fail',
-                        'messages' => 'Pickup Go Send data not found'
+                        'messages' => ['Pickup Go Send data not found']
                     ];
                 }
                 if ($trx_pickup_go_send->latest_status && !in_array($trx_pickup_go_send->latest_status, ['cancelled', 'rejected', 'no_driver'])) {
                     return [
                         'status' => 'fail',
-                        'messages' => 'Cannot cancel transaction. Delivery service has been ordered'
+                        'messages' => ['Cannot cancel transaction. Delivery service has been ordered']
                     ];
                 }
                 $cancel = $trx->cancelOrder('User cancel', $errors);

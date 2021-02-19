@@ -85,6 +85,7 @@ class Outlet extends Authenticatable
 		'deep_link_grab',
 		'is_24h',
 		'delivery_order',
+		'notify_admin',
 		// 'outlet_open_hours',
 		// 'outlet_close_hours'
 	];
