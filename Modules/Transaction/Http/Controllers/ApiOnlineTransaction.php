@@ -2960,6 +2960,30 @@ class ApiOnlineTransaction extends Controller
                 }
             }
         }
+
+        // flag default
+        $default = MyHelper::setting('delivery_default', 'value', 'price');
+        if ($default == 'price') {
+            $price_min = min(array_filter(array_column($availableShipment, 'price'), function($x){return $x !== null;}) ?: [0]);
+            foreach ($availableShipment as &$shipment) {
+                if ($shipment['price'] === $price_min) {
+                    $shipment['default'] = 1;
+                    break;
+                }
+            }
+        } else {
+            foreach ($availableShipment as &$shipment) {
+                if ($shipment['type'] === $default) {
+                    $shipment['default'] = 1;
+                    break;
+                }
+            }
+        }
+
+        if ($availableShipment && !array_sum(array_column($availableShipment, 'default'))) {
+            $availableShipment[0]['default'] = 1;
+        }
+
         return MyHelper::checkGet($availableShipment);
     }
 

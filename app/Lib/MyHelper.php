@@ -2895,6 +2895,7 @@ class MyHelper{
 		        'status'   	=> (int) $value['status'] ?? 0,
 		        'price'		=> null,
 		        'price_pretty'		=> '',
+		        'default'		=> 0,
             ];
             unset($availableShipment[$value['code']]);
         }
@@ -2912,6 +2913,7 @@ class MyHelper{
 			        'status'   	=> 0,
 			        'price'		=> null,
 			        'price_pretty'		=> '',
+			        'default'		=> 0,
                 ];
             }
         }
