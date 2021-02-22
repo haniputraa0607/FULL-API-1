@@ -709,7 +709,7 @@ class ApiOnlineTransaction extends Controller
             //     $isFree = '1';
             // }
             $isFree = 0;
-        } elseif (($post['type']??null) == 'Outlet Delivery') {
+        } elseif (($post['type']??null) == 'Internal Delivery') {
             $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
             $coor_origin = [
                 'latitude' => number_format($outlet['outlet_latitude'],8),
@@ -1250,7 +1250,7 @@ class ApiOnlineTransaction extends Controller
                 $pickupType = $post['pickup_type'];
             }elseif($post['type'] == 'GO-SEND'){
                 $pickupType = 'right now';
-            }elseif($post['type'] == 'Outlet Delivery'){
+            }elseif($post['type'] == 'Internal Delivery'){
                 $pickupType = 'right now';
             }else{
                 $pickupType = 'set time';
@@ -1291,7 +1291,7 @@ class ApiOnlineTransaction extends Controller
 
             if ($post['type'] == 'GO-SEND') {
                 $dataPickup['pickup_by'] = 'GO-SEND';
-            } elseif ($post['type'] == 'Outlet Delivery') {
+            } elseif ($post['type'] == 'Internal Delivery') {
                 $dataPickup['pickup_by'] = 'Outlet';
             }else{
                 $dataPickup['pickup_by'] = 'Customer';
@@ -1344,7 +1344,7 @@ class ApiOnlineTransaction extends Controller
                 }
 
                 $id_pickup_go_send = $gosend->id_transaction_pickup_go_send;
-            } elseif ($post['type'] == 'Outlet Delivery') {
+            } elseif ($post['type'] == 'Internal Delivery') {
                 if (!($post['destination']['short_address']??false)) {
                     $post['destination']['short_address'] = $post['destination']['address'];
                 }
@@ -1830,7 +1830,7 @@ class ApiOnlineTransaction extends Controller
             } else {
                 $post['shipping'] = null;
             }
-        } elseif (($post['type']??null) == 'Outlet Delivery') {
+        } elseif (($post['type']??null) == 'Internal Delivery') {
             $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
             $coor_origin = [
                 'latitude' => number_format($outlet['outlet_latitude'],8),
