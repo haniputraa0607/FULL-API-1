@@ -128,6 +128,11 @@ class ApiOutletController extends Controller
         }else{
             $data['delivery_order'] = 0;
         }
+        if (isset($post['available_delivery'])) {
+            $data['available_delivery'] = implode(',', $post['available_delivery']);
+        } else {
+            $data['available_delivery'] = null;
+        }
 
         return $data;
     }

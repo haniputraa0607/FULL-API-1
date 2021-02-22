@@ -3026,6 +3026,8 @@ class ApiOnlineTransaction extends Controller
             ];
         }
         $update = Setting::updateOrCreate(['key' => 'active_delivery_methods'], ['value_text' => json_encode($deliveries)]);
+        $update = Setting::updateOrCreate(['key' => 'delivery_max_cup'], ['value' => $request->delivery_max_cup]);
+        $update = Setting::updateOrCreate(['key' => 'delivery_default'], ['value' => $request->delivery_default]);
         return MyHelper::checkUpdate($update);
     }
 
