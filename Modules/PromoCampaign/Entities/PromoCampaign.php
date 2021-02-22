@@ -80,7 +80,9 @@ class PromoCampaign extends Eloquent
 		'specific_user',
 		'step_complete',
 		'product_type',
-		'promo_campaign_warning_image'
+		'promo_campaign_warning_image',
+		'min_basket_size',
+		'is_all_shipment'
 	];
 
 	protected $appends  = ['url_promo_campaign_warning_image'];
@@ -178,6 +180,16 @@ class PromoCampaign extends Eloquent
     {
     	return $this->belongsTo(\Modules\RedirectComplex\Entities\RedirectComplexReference::class, 'id_redirect_complex_reference');
     }
+
+    public function promo_campaign_shipment_method()
+    {
+        return $this->hasMany(\Modules\PromoCampaign\Entities\PromoCampaignShipmentMethod::class, 'id_promo_campaign', 'id_promo_campaign');
+    }
+
+    public function promo_campaign_discount_delivery_rules()
+	{
+		return $this->hasOne(\Modules\PromoCampaign\Entities\PromoCampaignDiscountDeliveryRule::class, 'id_promo_campaign');
+	}
 
     public function getGetAllRulesAttribute() {
 		$this->load([

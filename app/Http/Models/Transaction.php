@@ -91,6 +91,8 @@ class Transaction extends Model
 		'completed_at',
 		'show_rate_popup',
 		'latest_reversal_process',
+		'transaction_discount_delivery',
+		'id_promo_campaign_promo_code_delivery',
 		'transaction_shipping_method',
 	];
 
@@ -217,6 +219,11 @@ class Transaction extends Model
 	public function promo_campaign_promo_code()
 	{
 		return $this->belongsTo(\Modules\PromoCampaign\Entities\PromoCampaignPromoCode::class, 'id_promo_campaign_promo_code', 'id_promo_campaign_promo_code');
+	}
+
+	public function promo_campaign_promo_code_delivery()
+	{
+		return $this->belongsTo(\Modules\PromoCampaign\Entities\PromoCampaignPromoCode::class, 'id_promo_campaign_promo_code_delivery', 'id_promo_campaign_promo_code');
 	}
 
 	public function outlet_city()
