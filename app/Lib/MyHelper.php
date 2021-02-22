@@ -2878,6 +2878,7 @@ class MyHelper{
         $setting  = json_decode(MyHelper::setting('active_delivery_methods', 'value_text', '[]'), true) ?? [];
         $shipments = [];
         $position = [];
+        $max_cup = MyHelper::setting('delivery_max_cup', 'value', 50);
 
         foreach ($setting as $value) {
         	$position[$value['code']] = $value['position'] ?? 10000;
@@ -2896,6 +2897,7 @@ class MyHelper{
 		        'price'		=> null,
 		        'price_pretty'		=> '',
 		        'default'		=> 0,
+		        'max_cup'	=> $value['code'] == 'outlet' ? 0 : $max_cup,
             ];
             unset($availableShipment[$value['code']]);
         }
@@ -2914,6 +2916,7 @@ class MyHelper{
 			        'price'		=> null,
 			        'price_pretty'		=> '',
 			        'default'		=> 0,
+			        'max_cup'	=> $value['code'] == 'outlet' ? 0 : $max_cup,
                 ];
             }
         }

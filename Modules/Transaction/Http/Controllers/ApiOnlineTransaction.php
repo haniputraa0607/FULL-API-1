@@ -687,6 +687,16 @@ class ApiOnlineTransaction extends Controller
                     'messages' => ['Tidak dapat melakukan pengiriman dari outlet ini']
                 ];
             }
+
+            $max_cup = MyHelper::setting('delivery_max_cup', 'value', 50);
+            $total_cup = array_sum(array_column($request->item, 'qty'));
+            if ($total_cup && $total_cup > $max_cup) {
+                return [
+                    'status' => 'fail',
+                    'messages' => ["Maaf, maksimal pembelian untuk menggunakan GO-SEND adalah $max_cup cup"]
+                ];
+            }
+
             $coor_origin = [
                 'latitude' => number_format($outlet['outlet_latitude'],8),
                 'longitude' => number_format($outlet['outlet_longitude'],8)
@@ -1806,6 +1816,13 @@ class ApiOnlineTransaction extends Controller
                         'messages' => ['Tidak dapat melakukan pengiriman dari outlet ini']
                     ];
                 }
+
+                $max_cup = MyHelper::setting('delivery_max_cup', 'value', 50);
+                $total_cup = array_sum(array_column($request->item, 'qty'));
+                if ($total_cup && $total_cup > $max_cup) {
+                    $error_msg[] = "Maaf, maksimal pembelian untuk menggunakan GO-SEND adalah $max_cup cup";
+                }
+
                 $coor_origin = [
                     'latitude' => number_format($outlet['outlet_latitude'],8),
                     'longitude' => number_format($outlet['outlet_longitude'],8)
@@ -2897,6 +2914,10 @@ class ApiOnlineTransaction extends Controller
         $destination = null;
         $outlet = null;
         $show_all = $request->show_all;
+        $total_cup = 0;
+        if (is_array($request->item)) {
+            $total_cup = array_sum(array_column($request->item, 'qty'));
+        }
         if ($request->id_outlet) {
             $outlet = Outlet::find($request->id_outlet);
             if (!$outlet) {
@@ -2922,7 +2943,7 @@ class ApiOnlineTransaction extends Controller
         $configShipment = config('delivery_method');
         if ($outlet) {
             foreach ($availableShipment as $index => &$shipment) {
-                if (!in_array($shipment['type'], $outlet->available_delivery)) {
+                if ($shipment['max_cup'] && $total_cup > $shipment['max_cup'] || !in_array($shipment['type'], $outlet->available_delivery)) {
                     if ($show_all) {
                         $shipment['status'] = 0;
                     } else {
