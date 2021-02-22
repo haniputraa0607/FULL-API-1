@@ -14,7 +14,7 @@ use App\Http\Models\User;
 class GoSend
 {
     static function calculatePrice(array $origin, array $destination) {
-        return 10000;
+        return static::getPrice($origin, $destination)['Instant']['price']['total_price'] ?? null;
     }
 
     public function __construct()

@@ -2893,30 +2893,73 @@ class ApiOnlineTransaction extends Controller
 
     public function availableShipment(Request $request)
     {
-        $destination = [
-            'latitude' => $request->latitude,
-            'longitude' => $request->longitude,
-        ];
-
-        $outlet = Outlet::find($request->id_outlet);
-        if (!$outlet) {
-            return [
-                'status' => 'fail',
-                'messages' => ['Outlet not found']
+        $origin = null;
+        $destination = null;
+        $outlet = null;
+        $show_all = $request->show_all;
+        if ($request->id_outlet) {
+            $outlet = Outlet::find($request->id_outlet);
+            if (!$outlet) {
+                return [
+                    'status' => 'fail',
+                    'messages' => ['Outlet not found']
+                ];
+            }
+            $origin = [
+                'latitude' => $outlet->outlet_latitude,
+                'longitude' => $outlet->outlet_longitude,
             ];
+
+            if ($request->latitude && $request->longitude) {
+                $destination = [
+                    'latitude' => $request->latitude,
+                    'longitude' => $request->longitude,
+                ];
+            }
         }
 
-        $origin = [
-            'latitude' => $outlet->outlet_latitude,
-            'longitude' => $outlet->outlet_longitude,
-        ];
-
-        $availableShipment = MyHelper::getDeliveries($origin, $destination, [
-            'show_inactive' => $request->show_all,
-            'calculate_price' => $request->latitude && $request->longitude,
-            'available' => $outlet->available_delivery
-        ]);
-
+        $availableShipment = MyHelper::getDeliveries($show_all);
+        $configShipment = config('delivery_method');
+        if ($outlet) {
+            foreach ($availableShipment as $index => &$shipment) {
+                if (!in_array($shipment['type'], $outlet->available_delivery)) {
+                    if ($show_all) {
+                        $shipment['status'] = 0;
+                    } else {
+                        unset($availableShipment[$index]);
+                    }
+                }
+            }
+            if ($destination) {
+                foreach ($availableShipment as $index => &$shipment) {
+                    if ($shipment['code'] == 'outlet') {
+                        $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
+                        $distance = MyHelper::count_distance($origin['latitude'], $origin['longitude'], $destination['latitude'], $destination['longitude'], 'M');
+                        if ($distance > $max_distance) {
+                            if ($show_all) {
+                                $shipment['status'] = 0;
+                            } else {
+                                unset($availableShipment[$index]);
+                            }
+                            continue;
+                        }
+                    }
+                    if ($shipment['status']) {
+                        $shipment['price'] = $configShipment[$shipment['code']]['helper']::calculatePrice($origin, $destination);
+                        if ($shipment['price'] !== null) {
+                            $shipment['price_pretty'] = $shipment['price'] !== null ? MyHelper::requestNumber($shipment['price'], '_CURRENCY') : '';
+                        } else {
+                            $shipment['price_pretty'] = '';
+                            if ($show_all) {
+                                $shipment['status'] = 0;
+                            } else {
+                                unset($availableShipment[$index]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
         return MyHelper::checkGet($availableShipment);
     }
 
