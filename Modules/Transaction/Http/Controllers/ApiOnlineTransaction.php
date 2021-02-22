@@ -708,6 +708,7 @@ class ApiOnlineTransaction extends Controller
             $type = 'Pickup Order';
             $shippingGoSendx = GoSend::getPrice($coor_origin,$coor_destination);
             $shippingGoSend = $shippingGoSendx[GoSend::getShipmentMethod()]['price']['total_price']??null;
+            $post['shipping'] = $shippingGoSend;
             if($shippingGoSend === null){
                 return [
                     'status' => 'fail',
@@ -755,7 +756,8 @@ class ApiOnlineTransaction extends Controller
             'transaction_notes'           => $post['notes'],
             'transaction_subtotal'        => $post['subtotal'],
             'transaction_shipment'        => $post['shipping'],
-            'transaction_shipment_go_send'=> $shippingGoSend,
+            'transaction_shipping_method' => $post['type'] == 'Pickup Order' ? null : $post['type'],
+            // 'transaction_shipment_go_send'=> $shippingGoSend,
             'transaction_is_free'         => $isFree,
             'transaction_service'         => $post['service'],
             'transaction_discount'        => $post['discount'],

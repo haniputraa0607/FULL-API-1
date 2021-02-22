@@ -90,7 +90,8 @@ class Transaction extends Model
 		'membership_promo_id',
 		'completed_at',
 		'show_rate_popup',
-		'latest_reversal_process'
+		'latest_reversal_process',
+		'transaction_shipping_method',
 	];
 
 	protected $balance = 'Modules\Balance\Http\Controllers\BalanceController';
