@@ -123,15 +123,17 @@ class ApiOutletController extends Controller
         if (isset($post['deep_link_grab'])) {
             $data['deep_link_grab'] = $post['deep_link_grab'];
         }
-        if (isset($post['delivery_order'])) {
-            $data['delivery_order'] = $post['delivery_order'];
-        }else{
-            $data['delivery_order'] = 0;
-        }
-        if (isset($post['available_delivery'])) {
-            $data['available_delivery'] = implode(',', $post['available_delivery']);
-        } else {
-            $data['available_delivery'] = null;
+        if (isset($post['delivery_order']) || isset($post['delivery_order_default'])) {
+            $data['delivery_order'] = $post['delivery_order'] ?? $post['delivery_order_default'];
+            if ($data['delivery_order']) {
+                if (isset($post['available_delivery'])) {
+                    $data['available_delivery'] = implode(',', $post['available_delivery']);
+                } else {
+                    $data['available_delivery'] = null;
+                }
+            } else {
+                $data['available_delivery'] = null;
+            }
         }
 
         return $data;
@@ -1756,7 +1758,8 @@ class ApiOutletController extends Controller
                 'outlets.outlet_latitude as latitude',
                 'outlets.outlet_longitude as longitude',
                 'outlets.deep_link_gojek as deep_link_gojek',
-                'outlets.deep_link_grab as deep_link_grab'
+                'outlets.deep_link_grab as deep_link_grab',
+                'outlets.available_delivery'
             )->with('brands')->join('cities', 'outlets.id_city', '=', 'cities.id_city');
 
             foreach ($brand as $bran) {
@@ -1795,6 +1798,8 @@ class ApiOutletController extends Controller
                 unset($outlet_array['url']);
                 unset($outlet_array['brands']);
                 unset($outlet_array['id_outlet']);
+                unset($outlet_array['detail']);
+                $outlet_array['available_delivery'] = implode(',',$outlet_array['available_delivery']);
                 $return[$name][]=$outlet_array;
                 $count++;
             }
@@ -1872,6 +1877,8 @@ class ApiOutletController extends Controller
                             'outlet_longitude' => $value['longitude']??'',
                             'deep_link_gojek' => $value['deep_link_gojek']??'',
                             'deep_link_grab' => $value['deep_link_grab']??'',
+                            'available_delivery' => $value['available_delivery']??'',
+                            'delivery_order' => ($value['available_delivery']??'') ? 1 : 0,
                             'id_city' => $id_city[$search]??null
                         ];
                         if(!empty($insert['outlet_name'])){
