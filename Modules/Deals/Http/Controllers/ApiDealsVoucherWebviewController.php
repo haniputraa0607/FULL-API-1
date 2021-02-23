@@ -192,6 +192,10 @@ class ApiDealsVoucherWebviewController extends Controller
         }
         $data = $voucher;
 
+        $promo_type = 'discount';
+        if ( ($voucher['deals_voucher']['deal']['promo_type'] ?? false) == 'Discount delivery') {
+        	$promo_type = 'delivery';
+        }
 
         $result = [
             'deals_image'           => $data['deals_voucher']['deal']['deals_image'],
@@ -219,6 +223,7 @@ class ApiDealsVoucherWebviewController extends Controller
             'text_before_scan'      => 'QR Code below<br>must be scanned by our Cashier',
             'custom_outlet_text'	=> $data['deals_voucher']['deal']['custom_outlet_text'],
             'offline_description'	=> $data['offline_description'],
+            'promo_type'			=> $promo_type,
             'popup_message'         => [
                 $data['deals_voucher']['deal']['deals_title'],
                 'will be used on the next transaction'
