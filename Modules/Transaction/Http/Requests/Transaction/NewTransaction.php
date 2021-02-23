@@ -12,7 +12,7 @@ class NewTransaction extends FormRequest
     {
         return [
             'id_outlet'                => 'required|integer',
-            'type'                     => 'required|in:Delivery,Pickup Order,GO-SEND,Outlet Delivery',
+            'type'                     => 'required|in:Delivery,Pickup Order,GO-SEND,Internal Delivery',
             'notes'                    => 'nullable|string',
             'pickup_type'              => 'required_if:type,Pickup Order|in:set time,right now,at arrival',
             'pickup_at'                => 'required_if:pickup_type,set time|date_format:Y-m-d H:i:s',
@@ -32,9 +32,9 @@ class NewTransaction extends FormRequest
             'destination.id_user_address'             => 'nullable|sometimes',
             'destination.short_address'               => 'nullable|sometimes',
             'destination.name'                        => 'nullable|sometimes',
-            'destination.address'                     => 'required_if:type,GO-SEND,Grab,Outlet Delivery',
-            'destination.latitude'                    => 'required_if:type,GO-SEND,Grab,Outlet Delivery',
-            'destination.longitude'                   => 'required_if:type,GO-SEND,Grab,Outlet Delivery',
+            'destination.address'                     => 'required_if:type,GO-SEND,Grab,Internal Delivery',
+            'destination.latitude'                    => 'required_if:type,GO-SEND,Grab,Internal Delivery',
+            'destination.longitude'                   => 'required_if:type,GO-SEND,Grab,Internal Delivery',
             'destination.notes'                       => 'nullable|sometimes',
 
             // 'id_manual_payment_method' => 'required_if:payment_type,Manual|integer',
