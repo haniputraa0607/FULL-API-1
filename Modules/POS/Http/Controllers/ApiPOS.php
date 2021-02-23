@@ -628,6 +628,12 @@ class ApiPOS extends Controller
                     if($value['store_status'] == "Not Active"){
                         $value['store_status'] = 'Inactive';
                     }
+
+                    //dont update phone when null
+                    if($value['store_phone'] == null && $cekOutlet['outlet_phone'] != null){
+                        $value['store_phone'] = $cekOutlet['outlet_phone'];
+                    }
+
                     $update = Outlet::updateOrCreate(['outlet_code' => strtoupper($value['store_code'])], [
                         'outlet_name'       => $value['store_name'],
                         'outlet_status'     => $value['store_status'],
