@@ -682,6 +682,20 @@ class ApiOnlineTransaction extends Controller
         $shippingGoSend = 0;
 
         if ($post['type'] == 'GO-SEND') {
+            $availableShipment = $this->availableShipment(new Request([
+                'id_outlet' => $post['id_outlet'],
+                'latitude' => $post['destination']['latitude'],
+                'longitude' => $post['destination']['longitude'],
+                'show_all' => true,
+                'no_calculate_price' => true,
+                'shipment_code' => 'gosend',
+            ]));
+            if (!($availableShipment['result']['status'] ?? false)) {
+                return [
+                    'status' => 'fail',
+                    'messages' => ['GO-SEND not available for this outlet']
+                ];
+            };
             if(!($outlet['outlet_latitude']&&$outlet['outlet_longitude']&&$outlet['outlet_phone']&&$outlet['outlet_address'])){
                 app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
                 $outlet->notify_admin = 1;
@@ -725,6 +739,20 @@ class ApiOnlineTransaction extends Controller
             // }
             $isFree = 0;
         } elseif (($post['type']??null) == 'Internal Delivery') {
+            $availableShipment = $this->availableShipment(new Request([
+                'id_outlet' => $post['id_outlet'],
+                'latitude' => $post['destination']['latitude'],
+                'longitude' => $post['destination']['longitude'],
+                'show_all' => true,
+                'no_calculate_price' => true,
+                'shipment_code' => 'outlet',
+            ]));
+            if (!($availableShipment['result']['status'] ?? false)) {
+                return [
+                    'status' => 'fail',
+                    'messages' => ['Internal Delivery not available for this outlet']
+                ];
+            };
             $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
             $coor_origin = [
                 'latitude' => number_format($outlet['outlet_latitude'],8),
@@ -1908,6 +1936,17 @@ class ApiOnlineTransaction extends Controller
 
         if(($post['type']??null) == 'GO-SEND'){
             if ($post['destination']) {
+                $availableShipment = $this->availableShipment(new Request([
+                    'id_outlet' => $post['id_outlet'],
+                    'latitude' => $post['destination']['latitude'],
+                    'longitude' => $post['destination']['longitude'],
+                    'show_all' => true,
+                    'no_calculate_price' => true,
+                    'shipment_code' => 'gosend',
+                ]));
+                if (!($availableShipment['result']['status'] ?? false)) {
+                    $error_msg[] = 'GO-SEND not available for this outlet';
+                };
                 if(!($outlet['outlet_latitude']&&$outlet['outlet_longitude']&&$outlet['outlet_phone']&&$outlet['outlet_address'])){
                     app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
                     $outlet->notify_admin = 1;
@@ -1949,6 +1988,17 @@ class ApiOnlineTransaction extends Controller
                 $post['shipping'] = null;
             }
         } elseif (($post['type']??null) == 'Internal Delivery') {
+            $availableShipment = $this->availableShipment(new Request([
+                'id_outlet' => $post['id_outlet'],
+                'latitude' => $post['destination']['latitude'],
+                'longitude' => $post['destination']['longitude'],
+                'show_all' => true,
+                'no_calculate_price' => true,
+                'shipment_code' => 'outlet',
+            ]));
+            if (!($availableShipment['result']['status'] ?? false)) {
+                $error_msg[] = 'Internal Delivery not available for this outlet';
+            };
             $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
             $coor_origin = [
                 'latitude' => number_format($outlet['outlet_latitude'],8),
@@ -2493,6 +2543,7 @@ class ApiOnlineTransaction extends Controller
             'outlet_code' => $outlet['outlet_code'],
             'outlet_name' => $outlet['outlet_name'],
             'outlet_address' => $outlet['outlet_address'],
+            'delivery_order' => $outlet['delivery_order'],
             'today' => $outlet['today']
         ];
         $result['item'] = array_values($tree);
@@ -3102,7 +3153,7 @@ class ApiOnlineTransaction extends Controller
                             continue;
                         }
                     }
-                    if ($shipment['status']) {
+                    if ($shipment['status'] && !$request->no_calculate_price) {
                         $shipment['price'] = $configShipment[$shipment['code']]['helper']::calculatePrice($origin, $destination);
                         if ($shipment['price'] !== null) {
                             $shipment['price_pretty'] = $shipment['price'] !== null ? MyHelper::requestNumber($shipment['price'], '_CURRENCY') : '';
@@ -3140,6 +3191,16 @@ class ApiOnlineTransaction extends Controller
 
         if ($availableShipment && !array_sum(array_column($availableShipment, 'default'))) {
             $availableShipment[0]['default'] = 1;
+        }
+
+        if ($request->shipment_code) {
+            $result = null;
+            foreach ($availableShipment as $shipment) {
+                if ($shipment['code'] == $request->shipment_code) {
+                    $result = $shipment;
+                }
+            }
+            return MyHelper::checkGet($result);
         }
 
         return MyHelper::checkGet($availableShipment);

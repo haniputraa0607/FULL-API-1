@@ -1841,7 +1841,11 @@ class ApiTransaction extends Controller
                     $result['transaction_status'] = 'Order Completed';
                     $result['transaction_status_code'] = 1;
                 } elseif($list['detail']['ready_at'] != null) {
-                    $result['transaction_status'] = 'Order Is Ready';
+                    if (($list['detail']['pickup_by'] ?? false) == 'Outlet') {
+                        $result['transaction_status'] = 'Deliver by MAXX Coffee';
+                    } else {
+                        $result['transaction_status'] = 'Order Is Ready';
+                    }
                     $result['transaction_status_code'] = 2;
                 } elseif($list['detail']['receive_at'] != null) {
                     $result['transaction_status'] = 'Order Received';
