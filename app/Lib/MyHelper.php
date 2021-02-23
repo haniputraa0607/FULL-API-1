@@ -2916,7 +2916,7 @@ class MyHelper{
 			        'price'		=> null,
 			        'price_pretty'		=> '',
 			        'default'		=> 0,
-			        'max_cup'	=> $value['code'] == 'outlet' ? 0 : $max_cup,
+			        'max_cup'	=> $code == 'outlet' ? 0 : $max_cup,
                 ];
             }
         }

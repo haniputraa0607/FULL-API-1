@@ -548,7 +548,7 @@ class ApiUser extends Controller
                     }
 
                     if($condition['subject'] == 'membership'){
-                        $query = $query->where('users.id_membership','=',$conditionParameter);
+                        $query = $query->where('users.id_membership','=',$condition['operator']);
                     }
 
                     if($condition['subject'] == 'points'){
@@ -729,7 +729,7 @@ class ApiUser extends Controller
                     }
 
                     if($condition['subject'] == 'membership'){
-                        $query = $query->orWhere('users.id_membership','=',$conditionParameter);
+                        $query = $query->orWhere('users.id_membership','=',$condition['operator']);
                     }
 
                     if($condition['subject'] == 'points'){
