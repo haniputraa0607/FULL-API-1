@@ -21,6 +21,7 @@ class TransactionPickup extends Model
 		'pickup_at',
 		'receive_at',
 		'ready_at',
+		'taken_by_driver_at',
 		'taken_at',
 		'taken_by_system_at',
 		'reject_at',

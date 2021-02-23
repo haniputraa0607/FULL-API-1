@@ -85,6 +85,8 @@ class Outlet extends Authenticatable
 		'deep_link_grab',
 		'is_24h',
 		'delivery_order',
+		'notify_admin',
+		'available_delivery',
 		// 'outlet_open_hours',
 		// 'outlet_close_hours'
 	];
@@ -104,6 +106,11 @@ class Outlet extends Authenticatable
 	public function getDetailAttribute()
 	{
 		return env('API_URL').'/api/outlet/detail/'.$this->id_outlet;
+	}
+
+	public function getAvailableDeliveryAttribute($value)
+	{
+		return explode(',', $value ?: '');
 	}
 
 	public function brands(){

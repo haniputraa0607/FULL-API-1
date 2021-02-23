@@ -69,6 +69,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'pr
     Route::post('/item', 'ApiTransaction@transactionDetailTrx');
     Route::post('/point/detail', 'ApiTransaction@transactionPointDetail');
     Route::post('/balance/detail', 'ApiTransaction@transactionBalanceDetail');
+    Route::get('/list-no-driver', 'ApiTransaction@listNoDriver');
 
     // Route::post('history', 'ApiHistoryController@historyAll');
     Route::post('history-trx/{mode?}', 'ApiHistoryController@historyTrx');

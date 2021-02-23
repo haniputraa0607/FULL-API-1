@@ -14,7 +14,7 @@ use App\Http\Models\User;
 class GoSend
 {
     static function calculatePrice(array $origin, array $destination) {
-        return 10000;
+        return static::getPrice($origin, $destination)['Instant']['price']['total_price'] ?? null;
     }
 
     public function __construct()
@@ -50,7 +50,7 @@ class GoSend
 
         $post['routes'][0]['originName']         = "";
         $post['routes'][0]['originNote']         = $origin['note'];
-        $post['routes'][0]['originContactName']  = 'JIWA+';
+        $post['routes'][0]['originContactName']  = 'MAXX';
         $post['routes'][0]['originContactPhone'] = $origin['phone'];
         $post['routes'][0]['originLatLong']      = $origin['latitude'] . ',' . $origin['longitude'];
         $post['routes'][0]['originAddress']      = $origin['address'] . '. ' . $origin['note'];
