@@ -92,7 +92,8 @@ class Transaction extends Model
 		'show_rate_popup',
 		'latest_reversal_process',
 		'transaction_discount_delivery',
-		'id_promo_campaign_promo_code_delivery'
+		'id_promo_campaign_promo_code_delivery',
+		'transaction_shipping_method',
 	];
 
 	protected $balance = 'Modules\Balance\Http\Controllers\BalanceController';

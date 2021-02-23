@@ -16,7 +16,7 @@ return [
         'status'   => 0,
     ],
     'outlet' => [
-        'type'     => 'Outlet Delivery',
+        'type'     => 'Internal Delivery',
         'text'     => 'Internal Delivery',
         'logo'     => env('STORAGE_URL_API').'default_image/delivery_method/outlet.png',
         'nolimit'  => true,
