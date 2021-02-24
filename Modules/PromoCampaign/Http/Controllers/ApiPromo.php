@@ -266,6 +266,7 @@ class ApiPromo extends Controller
     	$available_promo_delivery = $this->availablePromo('delivery');
     	$promo_text_delivery = $this->availablePromoText($available_promo_delivery);
     	$user = auth()->user();
+    	$cancel = false;
 
     	if (!empty($post['id_deals_user']))
     	{
@@ -275,18 +276,37 @@ class ApiPromo extends Controller
     	{
     		$source = 'promo_campaign';
     	}
+
     	if (!$request->promo_type) {
     		$request->promo_type = 'discount';
     	}
-    	$user_promo = UserPromo::where('id_user','=',$user->id)->where('discount_type', $request->promo_type)->first();
 
-    	if ( ($user_promo->promo_type ?? false) == 'deals' ) 
-    	{
-			// change is used flag to 0
-			$update = DealsUser::where('id_deals_user','=',$user_promo->id_reference)->update(['is_used' => 0]);
+    	if ($request->promo_type == 'all') {
+    		$user_promo = UserPromo::where('id_user','=',$user->id)->get();
+
+    		foreach ($user_promo as $key => $val) {
+		    	if ( ($val->promo_type ?? false) == 'deals' ) 
+		    	{
+					// change is used flag to 0
+					$update = DealsUser::where('id_deals_user','=',$val->id_reference)->update(['is_used' => 0]);
+		    	}
+
+		    	$cancel = UserPromo::where('id_user', '=', $user->id)->where('discount_type', $val->discount_type)->delete();
+    		}
+    	}
+    	else{
+
+	    	$user_promo = UserPromo::where('id_user','=',$user->id)->where('discount_type', $request->promo_type)->first();
+
+	    	if ( ($user_promo->promo_type ?? false) == 'deals' ) 
+	    	{
+				// change is used flag to 0
+				$update = DealsUser::where('id_deals_user','=',$user_promo->id_reference)->update(['is_used' => 0]);
+	    	}
+
+	    	$cancel = UserPromo::where('id_user', '=', $user->id)->where('discount_type', $request->promo_type)->delete();
     	}
 
-    	$cancel = UserPromo::where('id_user', '=', $user->id)->where('discount_type', $request->promo_type)->delete();
 
     	if ($cancel) {
     		$result = MyHelper::checkDelete($cancel);
@@ -294,8 +314,8 @@ class ApiPromo extends Controller
 			$result['webview_url_v2'] = "";
 			if ($source == 'deals')
 			{
-				$result['webview_url'] = env('API_URL') ."api/webview/voucher/". $user_promo->id_reference;
-				$result['webview_url_v2'] = env('API_URL') ."api/webview/voucher/v2/". $user_promo->id_reference;
+				$result['webview_url'] = env('API_URL') ."api/webview/voucher/". ($user_promo->id_reference ?? null);
+				$result['webview_url_v2'] = env('API_URL') ."api/webview/voucher/v2/". ($user_promo->id_reference ?? null);
 			}
 
 			$result['result'] = [
