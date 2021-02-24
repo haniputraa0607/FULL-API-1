@@ -1297,7 +1297,15 @@ class ApiTransaction extends Controller
     public function transactionList($key){
         $start = date('Y-m-01 00:00:00');
         $end = date('Y-m-d 23:59:59');
-        $list = Transaction::leftJoin('outlets','outlets.id_outlet','=','transactions.id_outlet')->orderBy('id_transaction', 'DESC')->with('user', 'productTransaction.product.product_category')->where('trasaction_type', ucwords($key))->where('transactions.created_at', '>=', $start)->where('transactions.created_at', '<=', $end)->paginate(10);
+        $list = Transaction::leftJoin('outlets','outlets.id_outlet','=','transactions.id_outlet')->orderBy('id_transaction', 'DESC')->with('user', 'productTransaction.product.product_category');
+
+        if (strtolower($key) == 'delivery') {
+            $list->where('trasaction_type', 'Pickup Order')->whereNotNull('transaction_shipping_method');
+        } else {
+            $list->where('trasaction_type', ucwords($key));
+        }
+
+        $list = $list->where('transactions.created_at', '>=', $start)->where('transactions.created_at', '<=', $end)->paginate(10);
 
         return response()->json(MyHelper::checkGet($list));
     }
@@ -1470,7 +1478,7 @@ class ApiTransaction extends Controller
                     'promo_campaign_promo_code_delivery.promo_campaign',
                     'promo_campaign_referral_transaction',
                     'transaction_pickup_go_send.transaction_pickup_update',
-                    'outlet.city')->first();
+                    'outlet.city')->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')->first();
             }else{
                 $list = $list->with(
                     // 'user.city.province',
@@ -1982,7 +1990,7 @@ class ApiTransaction extends Controller
 		    		$delivery_list[$val['type']] = $val['text'];
 		    	}
 
-            	switch ($list['pickup_by']) {
+            	switch ($list['detail']['pickup_by']) {
             		case 'GO-SEND':
             			$delivery_text = $delivery_list['GO-SEND'];
             			break;
