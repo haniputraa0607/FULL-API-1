@@ -206,7 +206,7 @@ class ApiUserRatingController extends Controller
     public function getDetail(Request $request) {
         $post = $request->json()->all();
         // rating item
-        $user = $request->user();
+        $user = clone $request->user();
         if($post['id']??false){
             $id_transaction = $post['id'];
             $rn = $id_trx[0]??'';
