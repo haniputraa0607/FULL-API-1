@@ -570,7 +570,7 @@ class ApiHome extends Controller
 
     public function membership(Request $request){
         $use_custom_province = \App\Http\Models\Configs::where('id_config',96)->pluck('is_active')->first();
-        $user = $request->user();
+        $user = clone $request->user();
         if($user->first_login===0){
             $send = app($this->autocrm)->SendAutoCRM('Login First Time', $user['phone']);
             if (!$send) {
