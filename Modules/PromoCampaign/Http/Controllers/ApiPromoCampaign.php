@@ -2257,7 +2257,11 @@ class ApiPromoCampaign extends Controller
 		$result['id_deals_user'] 	= $request->id_deals_user;
 		$result['webview_url'] 		= "";
 		$result['webview_url_v2'] 	= "";
+        $result['promo_type'] 		= 'discount';
 
+        if ($query[$source]['promo_type'] == 'Discount delivery') {
+        	$result['promo_type'] = 'delivery';
+        }
 
 		$result = MyHelper::checkGet($result);
 		// check item
