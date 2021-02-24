@@ -1459,7 +1459,7 @@ class ApiTransaction extends Controller
 
         if ($type == 'trx') {
             if($request->json('admin')){
-                $list = Transaction::where(['transactions.id_transaction' => $id])->with('user');
+                $list = Transaction::where(['transactions.id_transaction' => $id])->with('user')->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction');
             }else{
                 $list = Transaction::join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')->where(['transactions.id_transaction' => $id, 'id_user' => $request->user()->id]);
             }
@@ -1478,7 +1478,7 @@ class ApiTransaction extends Controller
                     'promo_campaign_promo_code_delivery.promo_campaign',
                     'promo_campaign_referral_transaction',
                     'transaction_pickup_go_send.transaction_pickup_update',
-                    'outlet.city')->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')->first();
+                    'outlet.city')->first();
             }else{
                 $list = $list->with(
                     // 'user.city.province',
