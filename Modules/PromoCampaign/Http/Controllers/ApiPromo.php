@@ -74,6 +74,10 @@ class ApiPromo extends Controller
     	$datenow = date("Y-m-d H:i:s");
     	$remove = 0;
     	$remove_delivery = 0;
+    	$available_promo = $this->availablePromo();
+    	$promo_text = $this->availablePromoText($available_promo);
+    	$available_promo_delivery = $this->availablePromo('delivery');
+    	$promo_text_delivery = $this->availablePromoText($available_promo_delivery);
     	$promo = null;
     	$promo_delivery = null;
 		DB::beginTransaction();
@@ -83,7 +87,13 @@ class ApiPromo extends Controller
     	$user_promo_delivery = UserPromo::where('id_user','=',$user->id)->where('discount_type', 'delivery')->first();
 
     	if (!$user_promo && !$user_promo_delivery) {
-    		return response()->json(['status' => 'fail']);
+    		return response()->json([
+    			'status' => 'fail', 
+    			'result' => [
+    				'total_promo_text'	=> $promo_text,
+    				'total_promo_text_delivery' => $promo_text_delivery
+    			]
+    		]);
     	}
 
     	if ($user_promo) {
@@ -157,7 +167,13 @@ class ApiPromo extends Controller
 
     	// delivery
     	if ( ($user_promo && !$promo) && ($user_promo_delivery && !$promo_delivery) ) {
-    		return response()->json(['status' => 'fail']);
+    		return response()->json([
+    			'status' => 'fail', 
+    			'result' => [
+    				'total_promo_text'	=> $promo_text,
+    				'total_promo_text_delivery' => $promo_text_delivery
+    			]
+    		]);
     	}
 
     	$result = [
@@ -170,8 +186,14 @@ class ApiPromo extends Controller
 	    		'id_deals_user_delivery' 	=> $promo_delivery['id_deals_user'] ?? null,
 	    		'promo_code_delivery'		=> $promo_delivery['promo_code'] ?? '',
 	    		'remove_delivery'			=> $remove_delivery
-	    	]
+	    	],
+    		'total_promo_text'	=> $promo_text,
+    		'total_promo_text_delivery' => $promo_text_delivery
     	];
+
+    	if ( empty($promo_delivery['id_deals_user']) && empty($promo_delivery['promo_code'])) {
+    		$result['promo_delivery'] = null;
+    	}
     	return response()->json(MyHelper::checkGet($result));
 
     }
@@ -239,6 +261,10 @@ class ApiPromo extends Controller
     public function cancelPromo(Request $request)
     {
     	$post = $request->json()->all();
+    	$available_promo = $this->availablePromo();
+    	$promo_text = $this->availablePromoText($available_promo);
+    	$available_promo_delivery = $this->availablePromo('delivery');
+    	$promo_text_delivery = $this->availablePromoText($available_promo_delivery);
     	$user = auth()->user();
 
     	if (!empty($post['id_deals_user']))
@@ -270,10 +296,19 @@ class ApiPromo extends Controller
 				$result['webview_url_v2'] = env('API_URL') ."api/webview/voucher/v2/". $user_promo->id_reference;
 			}
 
+			$result['result'] = [
+				'total_promo_text' => $promo_text,
+	    		'total_promo_text_delivery' => $promo_text_delivery
+			];
+
 			return $result;
     	}else{
     		return response()->json([
     			'status' => 'fail',
+    			'result' => [
+	    			'total_promo_text'	=> $promo_text,
+    				'total_promo_text_delivery' => $promo_text_delivery
+    			],
     			'messages' => 'Failed to update promo'
     		]);
     	}
@@ -313,5 +348,42 @@ class ApiPromo extends Controller
     	}
 
     	return response()->json(myHelper::checkUpdate($update));
+    }
+
+    public function availablePromo($promo_type = 'discount')
+    {
+		if(isset(auth('api')->user()->id)){
+			$available_deals = DealsUser::where('id_user', auth('api')->user()->id)
+							->join('deals_vouchers', 'deals_users.id_deals_voucher', '=', 'deals_vouchers.id_deals_voucher')
+							->join('deals', 'deals.id_deals', '=', 'deals_vouchers.id_deals')
+							->whereIn('paid_status', ['Free', 'Completed'])
+							->whereNull('used_at')
+							->where('voucher_expired_at', '>', date('Y-m-d H:i:s'))
+							->distinct('deals_users.id_deals_user');
+
+			if ($promo_type == 'delivery') {
+				$available_deals = $available_deals->where('deals.promo_type', '=', 'Discount delivery');
+			}else{
+				$available_deals = $available_deals->where('deals.promo_type', '!=', 'Discount delivery');
+			}
+
+			$available_deals = $available_deals->count('deals_users.id_deals_user');
+
+			$total_promo = $available_deals;
+
+			return $total_promo;
+		}else{
+			return 0;
+		}
+    }
+
+    public function availablePromoText($total_promo)
+    {
+    	$text = 'voucher';
+    	if ($total_promo > 1) {
+    		$text = 'vouchers';
+    	}
+    	$promo_text = $total_promo.' '.$text;
+    	return $promo_text;
     }
 }
