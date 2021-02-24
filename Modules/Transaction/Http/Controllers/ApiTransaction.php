@@ -1478,7 +1478,7 @@ class ApiTransaction extends Controller
                     'promo_campaign_promo_code_delivery.promo_campaign',
                     'promo_campaign_referral_transaction',
                     'transaction_pickup_go_send.transaction_pickup_update',
-                    'outlet.city')->first();
+                    'outlet.city')->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')->first();
             }else{
                 $list = $list->with(
                     // 'user.city.province',
@@ -1990,7 +1990,7 @@ class ApiTransaction extends Controller
 		    		$delivery_list[$val['type']] = $val['text'];
 		    	}
 
-            	switch ($list['pickup_by']) {
+            	switch ($list['detail']['pickup_by']) {
             		case 'GO-SEND':
             			$delivery_text = $delivery_list['GO-SEND'];
             			break;
