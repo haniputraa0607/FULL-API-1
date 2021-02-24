@@ -275,7 +275,9 @@ class ApiPromo extends Controller
     	{
     		$source = 'promo_campaign';
     	}
-
+    	if (!$request->promo_type) {
+    		$request->promo_type = 'discount';
+    	}
     	$user_promo = UserPromo::where('id_user','=',$user->id)->where('discount_type', $request->promo_type)->first();
 
     	if ( ($user_promo->promo_type ?? false) == 'deals' ) 
