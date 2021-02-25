@@ -2983,7 +2983,7 @@ class ApiOnlineTransaction extends Controller
 
     public function cancelDriverNotFound(Request $request, $trx = null)
     {
-        $id_transaction = $request->id;
+        $id_transaction = $request->id ?: $request->id_transaction;
         if (!$trx) {
             $trx = Transaction::where('id_transaction', $id_transaction)->first();
             if (!$trx) {
