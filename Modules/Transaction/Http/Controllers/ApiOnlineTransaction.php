@@ -2957,7 +2957,7 @@ class ApiOnlineTransaction extends Controller
     }
     public function cancelTransaction(Request $request)
     {
-        $id_transaction = $request->id;
+        $id_transaction = $request->id ?: $request->id_transaction;
         $trx = Transaction::where('id_transaction', $id_transaction)->first();
         if (!$trx) {
             return [
