@@ -1558,13 +1558,15 @@ class PromoCampaignTools{
 			            	$promo = $code->promo_campaign;
 			            	$promo_shipment = $code->promo_campaign->promo_campaign_shipment_method->pluck('shipment_method');
 				            $min_basket_size = $code->min_basket_size;
+				            $promo_value = (string) MyHelper::requestNumber(($result['shipping'] - $discount_promo['discount_delivery']),'_CURRENCY');
+				            $shipping_value = (string) MyHelper::requestNumber($result['shipping'],'_CURRENCY');
 				            $promo_delivery = [
 					            'title' 		=> $code->campaign_name,
 				            	'description'	=> $discount_promo['new_description'],
 					            'detail' 		=> $discount_promo['promo_detail'],
-					            'value' 		=> ($result['shipping'] - $discount_promo['discount_delivery']),
+					            'value' 		=> $promo_value,
 					            'is_free' 		=> $discount_promo['is_free'],
-					            'shipping_value'=> $result['shipping'],
+					            'shipping_value'=> $shipping_value,
 					            'type' 			=> 'discount_delivery',
 					            'id_promo_code' => $code->id_promo_campaign_promo_code,
 					            'id_promo_campaign' => $code->id_promo_campaign
@@ -1611,13 +1613,15 @@ class PromoCampaignTools{
 
 				if ($discount_promo) {
 		            $min_basket_size = $deals->dealVoucher->min_basket_size;
+		            $promo_value = (string) MyHelper::requestNumber(($result['shipping'] - $discount_promo['discount_delivery']),'_CURRENCY');
+				    $shipping_value = (string) MyHelper::requestNumber($result['shipping'],'_CURRENCY');
 		            $promo_delivery = [
 		            	'title' 		=> $deals->dealVoucher->deals->deals_title,
 		            	'description'	=> $discount_promo['new_description'],
 			            'detail' 		=> $discount_promo['promo_detail'],
-			            'value' 		=> ($result['shipping'] - $discount_promo['discount_delivery']),
+			            'value' 		=> $promo_value,
 			            'is_free' 		=> $discount_promo['is_free'],
-			            'shipping_value'=> $result['shipping'],
+			            'shipping_value'=> $shipping_value,
 			            'type' 			=> 'discount_delivery',
 			            'id_deals_voucher' => $deals->id_deals_voucher
 		            ];
