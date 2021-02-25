@@ -1035,11 +1035,13 @@ class ApiPromoCampaign extends Controller
 
         $update = $table::where($id_table, $id_post)->updateWithUserstamps($dataPromoCampaign);
 
-        $update_shipment_rule = $this->createShipmentRule($source, $id_table, $id_post, $post);
+		if( ($post['promo_type'] ?? false) == 'Discount delivery'){
+        	$update_shipment_rule = $this->createShipmentRule($source, $id_table, $id_post, $post);
 
-        if ($update_shipment_rule['status'] != 'success') {
-        	return $update_shipment_rule;
-        }
+	        if ($update_shipment_rule['status'] != 'success') {
+	        	return $update_shipment_rule;
+	        }
+		}
 
         if ($post['promo_type'] == 'Product Discount') {
             if ($post['filter_product'] == 'All Product') {
