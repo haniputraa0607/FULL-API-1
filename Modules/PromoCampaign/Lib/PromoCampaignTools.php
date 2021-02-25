@@ -1559,6 +1559,7 @@ class PromoCampaignTools{
 			            	$promo_shipment = $code->promo_campaign->promo_campaign_shipment_method->pluck('shipment_method');
 				            $min_basket_size = $code->min_basket_size;
 				            $promo_delivery = [
+					            'title' 		=> $code->campaign_name,
 				            	'description'	=> $discount_promo['new_description'],
 					            'detail' 		=> $discount_promo['promo_detail'],
 					            'value' 		=> $discount_promo['discount_delivery'],
@@ -1585,7 +1586,7 @@ class PromoCampaignTools{
             	$promo_error = $error;
             }
         }
-        elseif($request->id_deals_user_delivery)
+        elseif($request->id_deals_user_delivery && is_numeric($request->id_deals_user_delivery))
         {
 	        $deals = DealsUser::whereIn('paid_status', ['Free', 'Completed'])->where('id_deals_user', $request->id_deals_user_delivery)->first();
 
@@ -1611,6 +1612,7 @@ class PromoCampaignTools{
 				if ($discount_promo) {
 		            $min_basket_size = $deals->dealVoucher->min_basket_size;
 		            $promo_delivery = [
+		            	'title' 		=> $deals->dealVoucher->deals->deals_title,
 		            	'description'	=> $discount_promo['new_description'],
 			            'detail' 		=> $discount_promo['promo_detail'],
 			            'value' 		=> $discount_promo['discount_delivery'],
@@ -1628,6 +1630,8 @@ class PromoCampaignTools{
 	        	$error = ['Voucher is not valid'];
 	        	$promo_error = $error;
 	        }
+        }else{
+        	$promo_error = ['Promo is invalid'];
         }
 
         // check minimum basket size
