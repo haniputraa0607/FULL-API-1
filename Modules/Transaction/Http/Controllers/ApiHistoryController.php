@@ -600,6 +600,7 @@ class ApiHistoryController extends Controller
             $dataList['outlet_code'] = $value['outlet']['outlet_code'];
             $dataList['outlet'] = $value['outlet']['outlet_name'];
             $dataList['pickup_by'] = $value['pickup_by'];
+            $dataList['transaction_type'] = $value['pickup_by'] == 'Customer' ? 'Pickup Order' : 'Delivery';
             $dataList['amount'] = MyHelper::requestNumber($value['transaction_grandtotal'], '_CURRENCY');
 
             $dataList['cashback'] = MyHelper::requestNumber($value['transaction_cashback_earned'],'_POINT');
@@ -626,7 +627,7 @@ class ApiHistoryController extends Controller
     {
         $transaction = Transaction::select(\DB::raw('*,sum(transaction_products.transaction_product_qty) as sum_qty'))->join('transaction_pickups', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
             ->leftJoin('transaction_products', 'transactions.id_transaction', '=', 'transaction_products.id_transaction')
-            ->with('outlet')
+            ->with('outlet', 'transaction_pickup_go_send')
             ->where('transaction_payment_status', 'Completed')
             ->whereDate('transaction_date', date('Y-m-d'))
             ->whereNull('taken_at')
@@ -638,14 +639,80 @@ class ApiHistoryController extends Controller
 
         $listTransaction = [];
 
+        $lastStatusText = [
+            'pending' => [
+                'text' => 'Your order is pending',
+                'code' => 1,
+            ],
+            'received' => [
+                'text' => 'Order has been received',
+                'code' => 2,
+            ],
+            'on_delivery_find_driver' => [
+                'text' => 'Looking For a Driver',
+                'code' => 2,
+            ],
+            'ready' => [
+                'text' => 'Your order is ready',
+                'code' => 3,
+            ],
+            'on_delivery_no_driver' => [
+                'text' => 'Driver on his way to Outlet',
+                'code' => 0,
+            ],
+            'on_delivery_out_for_pickup' => [
+                'text' => 'Driver on his way to Outlet',
+                'code' => 3,
+            ],
+            'on_delivery_out_for_delivery' => [
+                'text' => 'Driver Delivering Your Order',
+                'code' => 3,
+            ],
+            'on_delivery_out_for_delivery' => [
+                'text' => 'Driver Delivering Your Order',
+                'code' => 3,
+            ],
+            'on_delivery_internal' => [
+                'text' => 'Deliver by MAXX Coffee',
+                'code' => 3,
+            ],
+        ];
+
         foreach ($transaction as $key => $value) {
+            if ($value['reject_at']) {
+                $last_status = $lastStatusText['rejected'];
+            } elseif ($value['taken_by_system_at'] || $value['taken_at']) {
+                $last_status = $lastStatusText['completed'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'out_for_delivery') {
+                $last_status = $lastStatusText['on_delivery_out_for_delivery'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'out_for_pickup') {
+                $last_status = $lastStatusText['on_delivery_out_for_pickup'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'no_driver') {
+                $last_status = $lastStatusText['on_delivery_no_driver'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false)) {
+                $last_status = $lastStatusText['on_delivery_find_driver'];
+            } elseif ($value['ready_at']) {
+                $last_status = $lastStatusText['ready'];
+            } elseif ($value['receive_at']) {
+                $last_status = $lastStatusText['received'];
+            } elseif ($value['transaction_payment_status'] == 'Completed') {
+                $last_status = $lastStatusText['pending'];
+            } elseif ($value['transaction_payment_status'] == 'Cancelled') {
+                $last_status = $lastStatusText['cancelled'];
+            } else {
+                $last_status = $lastStatusText['payment_pending'];
+            }
+
             $dataList['type'] = 'trx';
             $dataList['id'] = $value['id_transaction'] ;
             $dataList['date']    = date('d M Y H:i', strtotime($value['transaction_date']));
             $dataList['outlet'] = $value['outlet']['outlet_name'];
             $dataList['outlet_code'] = $value['outlet']['outlet_code'];
             $dataList['pickup_by'] = $value['pickup_by'];
+            $dataList['transaction_type'] = $value['pickup_by'] == 'Customer' ? 'Pickup Order' : 'Delivery';
             $dataList['amount'] = MyHelper::requestNumber($value['transaction_grandtotal'],'_CURRENCY');
+            $dataList['last_status'] = $last_status['text'];
+            $dataList['last_status_code'] = $last_status['code'];
 
             if ($value['ready_at'] != null) {
                 $dataList['status'] = "Pesanan Sudah Siap";

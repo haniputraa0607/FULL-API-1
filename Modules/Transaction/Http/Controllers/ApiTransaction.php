@@ -2138,7 +2138,7 @@ class ApiTransaction extends Controller
                                 $result['delivery_info']['delivery_status_code'] = 4;
                                 $result['transaction_status_code'] = 2;
                                 $result['transaction_status']          = 'PESANAN TELAH SELESAI DAN DITERIMA';
-                                $result['delivery_info']['delivery_status'] = 'Pesanan sudah diterima Customer';
+                                $result['delivery_info']['delivery_status'] = 'Pesanan Sudah Diterima';
                                 $result['delivery_info']['driver']          = [
                                     'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
                                     'driver_name'       => $list['transaction_pickup_go_send']['driver_name']?:'',
