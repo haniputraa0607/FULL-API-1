@@ -1590,7 +1590,10 @@ class PromoCampaignTools{
         }
         elseif($request->id_deals_user_delivery && is_numeric($request->id_deals_user_delivery))
         {
-	        $deals = DealsUser::whereIn('paid_status', ['Free', 'Completed'])->where('id_deals_user', $request->id_deals_user_delivery)->first();
+	        $deals = DealsUser::whereIn('paid_status', ['Free', 'Completed'])
+	        		->with('dealVoucher.deal')
+	        		->where('id_deals_user', $request->id_deals_user_delivery)
+	        		->first();
 
 	        if (!$deals){
 	        	$error = ['Voucher is not found'];
@@ -1612,7 +1615,7 @@ class PromoCampaignTools{
 				$discount_promo=$this->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals', null, $error_product, $request, $result['shipping']);
 
 				if ($discount_promo) {
-		            $min_basket_size = $deals->dealVoucher->min_basket_size;
+		            $min_basket_size = $deals->dealVoucher->deal->min_basket_size;
 		            $promo_value = (string) MyHelper::requestNumber(($result['shipping'] - $discount_promo['discount_delivery']),'_CURRENCY');
 				    $shipping_value = (string) MyHelper::requestNumber($result['shipping'],'_CURRENCY');
 		            $promo_delivery = [
