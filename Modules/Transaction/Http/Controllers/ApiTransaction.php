@@ -2017,6 +2017,12 @@ class ApiTransaction extends Controller
             	}
             }
 
+            if ($list['detail']['pickup_by'] == 'GO-SEND') {
+                $result['trasaction_type'] = 'GO-SEND';
+            } elseif ($list['detail']['pickup_by'] == 'Outlet') {
+                $result['trasaction_type'] = 'Internal Delivery';
+            }
+
             if ($list['trasaction_payment_type'] != 'Offline') {
 
                 if ($list['transaction_payment_status'] == 'Cancelled') {
@@ -2064,8 +2070,8 @@ class ApiTransaction extends Controller
                             'date'  => date('d F Y H:i', strtotime($list['detail']['receive_at']))
                         ];
                     }
+
                     if ($list['detail']['pickup_by'] == 'GO-SEND' && $list['transaction_pickup_go_send'] && !$list['detail']['reject_at']) {
-                        $result['trasaction_type'] = 'GO-SEND';
                         // $result['transaction_status'] = 5;
                         $result['delivery_info'] = [
                             'driver' => null,
