@@ -1935,7 +1935,7 @@ class ApiOnlineTransaction extends Controller
         }
 
         if(($post['type']??null) == 'GO-SEND'){
-            if ($post['destination']) {
+            if ($post['destination'] ?? false) {
                 $availableShipment = $this->availableShipment(new Request([
                     'id_outlet' => $post['id_outlet'],
                     'latitude' => $post['destination']['latitude'],
@@ -1987,7 +1987,7 @@ class ApiOnlineTransaction extends Controller
             } else {
                 $post['shipping'] = null;
             }
-        } elseif (($post['type']??null) == 'Internal Delivery') {
+        } elseif (($post['type']??null) == 'Internal Delivery' && ($post['destination'] ?? false)) {
             $availableShipment = $this->availableShipment(new Request([
                 'id_outlet' => $post['id_outlet'],
                 'latitude' => $post['destination']['latitude'],

@@ -2105,7 +2105,7 @@ class ApiTransaction extends Controller
                             case 'enroute pickup':
                             case 'out_for_pickup':
                                 $result['delivery_info']['delivery_status_code'] = 2;
-                                $result['delivery_info']['delivery_status'] = 'Driver dalam perjalanan menuju Outlet';
+                                $result['delivery_info']['delivery_status'] = 'Driver Menuju Outlet';
                                 $result['transaction_status']          = 'DRIVER SEDANG MENUJU OUTLET';
                                 $result['delivery_info']['driver']          = [
                                     'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
@@ -2138,7 +2138,7 @@ class ApiTransaction extends Controller
                                 $result['delivery_info']['delivery_status_code'] = 4;
                                 $result['transaction_status_code'] = 2;
                                 $result['transaction_status']          = 'PESANAN TELAH SELESAI DAN DITERIMA';
-                                $result['delivery_info']['delivery_status'] = 'Pesanan sudah diterima Customer';
+                                $result['delivery_info']['delivery_status'] = 'Pesanan Sudah Diterima';
                                 $result['delivery_info']['driver']          = [
                                     'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
                                     'driver_name'       => $list['transaction_pickup_go_send']['driver_name']?:'',
