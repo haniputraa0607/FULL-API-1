@@ -586,6 +586,8 @@ class ApiOnlineTransaction extends Controller
             'discount' => $post['discount'],
         ];
 
+        $post['discount'] = floor($post['discount']);
+
         // return $detailPayment;
         $post['grandTotal'] = (double)$post['subtotal'] + (double)$post['discount'] + (double)$post['service'] + (double)$post['tax'] + (double)$post['shipping'];
         // return $post;
@@ -791,7 +793,7 @@ class ApiOnlineTransaction extends Controller
 	                'messages' => $promo_delivery_error['messages']
 	            ];
 	        }
-
+        	$promo_delivery['value'] = floor($promo_delivery['value']);
 	        $post['discount_delivery'] = - abs($promo_delivery['value']);
 	        $post['grandTotal'] = $post['grandTotal'] - abs($post['discount_delivery']);
         }
@@ -2444,6 +2446,7 @@ class ApiOnlineTransaction extends Controller
         }
         // $post['discount'] = $post['discount'] + ($promo_discount??0);
 
+		$post['discount'] = floor($post['discount']);
         $post['cashback'] = app($this->setting_trx)->countTransaction('cashback', $post);
 
         //count some trx user
@@ -2608,6 +2611,7 @@ class ApiOnlineTransaction extends Controller
 	        $result['allow_pickup'] = $promo_delivery['allow_pickup'] ?? $result['allow_pickup'];
 	        $result['allow_delivery'] = $promo_delivery['allow_delivery'] ?? $result['allow_delivery'];
 		    $result['available_delivery'] = $promo_delivery['available_delivery'] ?? [];
+		    $promo_delivery['value'] = floor($promo_delivery['value']);
 		    $result['discount_delivery'] = abs($promo_delivery['value']);
         	$result['grandtotal'] = MyHelper::requestNumber(($result['grandtotal'] - $promo_delivery['value']),$rn);
 		    $result['grandtotal_pretty'] = MyHelper::requestNumber($result['grandtotal'],'_CURRENCY');
