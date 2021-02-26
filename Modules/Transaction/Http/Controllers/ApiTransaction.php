@@ -2105,7 +2105,7 @@ class ApiTransaction extends Controller
                             case 'enroute pickup':
                             case 'out_for_pickup':
                                 $result['delivery_info']['delivery_status_code'] = 2;
-                                $result['delivery_info']['delivery_status'] = 'Driver dalam perjalanan menuju Outlet';
+                                $result['delivery_info']['delivery_status'] = 'Driver Menuju Outlet';
                                 $result['transaction_status']          = 'DRIVER SEDANG MENUJU OUTLET';
                                 $result['delivery_info']['driver']          = [
                                     'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
