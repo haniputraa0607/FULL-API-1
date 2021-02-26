@@ -2609,7 +2609,7 @@ class ApiOnlineTransaction extends Controller
 	        $result['allow_delivery'] = $promo_delivery['allow_delivery'] ?? $result['allow_delivery'];
 		    $result['available_delivery'] = $promo_delivery['available_delivery'] ?? [];
 		    $result['discount_delivery'] = abs($promo_delivery['value']);
-		    $result['grandtotal'] = $result['grandtotal'] - $promo_delivery['value'];
+        	$result['grandtotal'] = MyHelper::requestNumber(($result['grandtotal'] - $promo_delivery['value']),$rn);
 		    $result['grandtotal_pretty'] = MyHelper::requestNumber($result['grandtotal'],'_CURRENCY');
         	unset($result['promo_delivery']['available_delivery'], $result['promo_delivery']['allow_delivery'], $result['promo_delivery']['allow_pickup']);
         }
