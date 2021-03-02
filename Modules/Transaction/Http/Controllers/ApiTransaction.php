@@ -2091,7 +2091,7 @@ class ApiTransaction extends Controller
                             case 'finding driver':
                             case 'confirmed':
                                 $result['delivery_info']['delivery_status_code'] = 1;
-                                $result['delivery_info']['delivery_status'] = 'Sedang mencari driver';
+                                $result['delivery_info']['delivery_status'] = 'Looking for a Driver';
                                 $result['transaction_status']          = 'PESANAN SUDAH SIAP DAN MENUNGGU PICK UP';
                                 break;
                             case 'driver allocated':
@@ -2111,7 +2111,7 @@ class ApiTransaction extends Controller
                             case 'enroute pickup':
                             case 'out_for_pickup':
                                 $result['delivery_info']['delivery_status_code'] = 2;
-                                $result['delivery_info']['delivery_status'] = 'Driver Menuju Outlet';
+                                $result['delivery_info']['delivery_status'] = 'Driver on his way to Outlet';
                                 $result['transaction_status']          = 'DRIVER SEDANG MENUJU OUTLET';
                                 $result['delivery_info']['driver']          = [
                                     'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
@@ -2126,7 +2126,7 @@ class ApiTransaction extends Controller
                             case 'enroute drop':
                             case 'out_for_delivery':
                                 $result['delivery_info']['delivery_status_code'] = 3;
-                                $result['delivery_info']['delivery_status'] = 'Driver mengantarkan pesanan';
+                                $result['delivery_info']['delivery_status'] = 'Driver Delivering your order';
                                 $result['transaction_status']          = 'PESANAN SUDAH DI PICK UP OLEH DRIVER DAN SEDANG MENUJU LOKASI';
                                 $result['transaction_status_code']               = 3;
                                 $result['delivery_info']['driver']          = [
@@ -2144,7 +2144,7 @@ class ApiTransaction extends Controller
                                 $result['delivery_info']['delivery_status_code'] = 4;
                                 $result['transaction_status_code'] = 2;
                                 $result['transaction_status']          = 'PESANAN TELAH SELESAI DAN DITERIMA';
-                                $result['delivery_info']['delivery_status'] = 'Pesanan Sudah Diterima';
+                                $result['delivery_info']['delivery_status'] = 'Order has been received';
                                 $result['delivery_info']['driver']          = [
                                     'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
                                     'driver_name'       => $list['transaction_pickup_go_send']['driver_name']?:'',
@@ -2159,7 +2159,7 @@ class ApiTransaction extends Controller
                                 $result['delivery_info']['delivery_status_code'] = 0;
                                 $result['delivery_info']['booking_status'] = 0;
                                 $result['transaction_status']         = 'PENGANTARAN PESANAN TELAH DIBATALKAN';
-                                $result['delivery_info']['delivery_status'] = 'Pengantaran dibatalkan';
+                                $result['delivery_info']['delivery_status'] = 'Delivery Cancelled';
                                 $result['delivery_info']['cancelable']     = 0;
                                 break;
                             case 'driver not found':
@@ -2167,7 +2167,7 @@ class ApiTransaction extends Controller
                                 $result['delivery_info']['delivery_status_code'] = 0;
                                 $result['delivery_info']['booking_status']  = 0;
                                 $result['transaction_status']          = 'DRIVER TIDAK DITEMUKAN';
-                                $result['delivery_info']['delivery_status'] = 'Driver tidak ditemukan';
+                                $result['delivery_info']['delivery_status'] = 'Driver not Found';
                                 $result['delivery_info']['cancelable']      = 0;
                                 break;
                         }
@@ -3165,7 +3165,7 @@ class ApiTransaction extends Controller
             ->where('transaction_pickup_go_sends.updated_at', '<', date('Y-m-d H:i:s', time() - (5 * 60)))
             ->get()
             ->each(function($item) {
-                $item->delivery_status = 'Driver Tidak Ditemukan';
+                $item->delivery_status = 'Driver not Found';
             })->toArray();
         return MyHelper::checkGet($gosends);
     }
