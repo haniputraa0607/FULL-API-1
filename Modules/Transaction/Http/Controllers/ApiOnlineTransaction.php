@@ -3355,10 +3355,11 @@ class ApiOnlineTransaction extends Controller
                 'name'          => 'Delivery',
                 'desc'          => $delivery_text,
                 "is_discount"   => 0,
-                'amount'        => (string) MyHelper::requestNumber($result['shipping'],'_CURRENCY')
+                'amount'        => (string) MyHelper::requestNumber($result['discount_delivery'],'_CURRENCY')
             ];
         }
 
+		/*
         //discount delivery
         if($result['discount_delivery'] > 0){
             $payment_detail[] = [
@@ -3368,6 +3369,7 @@ class ApiOnlineTransaction extends Controller
                 'amount'        => (string) '-'.MyHelper::requestNumber($result['discount_delivery'],'_CURRENCY')
             ];
         }
+        */
 
         /*
         //add tax
