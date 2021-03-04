@@ -741,6 +741,7 @@ class ApiOnlineTransaction extends Controller
             // }
             $isFree = 0;
         } elseif (($post['type']??null) == 'Internal Delivery') {
+            $type = 'Pickup Order';
             $availableShipment = $this->availableShipment(new Request([
                 'id_outlet' => $post['id_outlet'],
                 'latitude' => $post['destination']['latitude'],
