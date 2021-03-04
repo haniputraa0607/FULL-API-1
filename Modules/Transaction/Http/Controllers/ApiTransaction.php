@@ -2025,6 +2025,20 @@ class ApiTransaction extends Controller
 
             if ($list['trasaction_payment_type'] != 'Offline') {
 
+                if ($list['detail']['pickup_by'] == 'GO-SEND') {
+                    // $result['transaction_status'] = 5;
+                    $result['delivery_info'] = [
+                        'driver' => null,
+                        'delivery_status' => '',
+                        'delivery_address' => $list['transaction_pickup_go_send']['destination_address']?:'',
+                        'delivery_address_note' => $list['transaction_pickup_go_send']['destination_note'] ?: '',
+                        'delivery_status_code' => 0,
+                        'booking_status' => 0,
+                        'cancelable' => 0,
+                        'go_send_order_no' => $list['transaction_pickup_go_send']['go_send_order_no']?:'',
+                        'live_tracking_url' => $list['transaction_pickup_go_send']['live_tracking_url']?:''
+                    ];
+                }
                 if ($list['transaction_payment_status'] == 'Cancelled') {
                     foreach ($list['payment'] as $key => $value) {
                         if (isset($value['reject'])) {
