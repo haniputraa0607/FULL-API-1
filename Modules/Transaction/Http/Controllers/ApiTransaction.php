@@ -2093,7 +2093,7 @@ class ApiTransaction extends Controller
                             'delivery_address' => $list['transaction_pickup_go_send']['destination_address']?:'',
                             'delivery_address_note' => $list['transaction_pickup_go_send']['destination_note'] ?: '',
                             'delivery_status_code' => 0,
-                            'booking_status' => 0,
+                            'booking_status' => $list['transaction_payment_status'] == 'Pending' ? 1 : 0,
                             'cancelable' => 1,
                             'go_send_order_no' => $list['transaction_pickup_go_send']['go_send_order_no']?:'',
                             'live_tracking_url' => $list['transaction_pickup_go_send']['live_tracking_url']?:''
@@ -2186,57 +2186,58 @@ class ApiTransaction extends Controller
                                 break;
                         }
                     }
-
-                    foreach ($list['transaction_pickup_go_send']['transaction_pickup_update'] as $valueGosend) {
-                        switch (strtolower($valueGosend['status'])) {
-                            case 'finding driver':
-                            case 'confirmed':
-                                $result['detail']['detail_status'][] = [
-                                    'text'  => 'Looking for a Driver',
-                                    'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
-                                ];
-                                break;
-                            // case 'driver allocated':
-                            // case 'allocated':
-                            //     $statusOrder[] = [
-                            //         'text'  => 'Driver ditemukan',
-                            //         'date'  => $valueGosend['created_at']
-                            //     ];
-                            //     break;
-                            // case 'enroute pickup':
-                            case 'out_for_pickup':
-                                $result['detail']['detail_status'][] = [
-                                    'text'  => 'Driver on his way to Outlet',
-                                    'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
-                                ];
-                                break;
-                            case 'enroute drop':
-                            case 'out_for_delivery':
-                                $result['detail']['detail_status'][] = [
-                                    'text'  => 'Driver Delivering your order',
-                                    'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
-                                ];
-                                break;
-                            case 'completed':
-                            case 'delivered':
-                                $result['detail']['detail_status'][] = [
-                                    'text'  => 'Order has been received',
-                                    'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
-                                ];
-                                break;
-                            case 'cancelled':
-                                $result['detail']['detail_status'][] = [
-                                    'text'  => 'Delivery Cancelled',
-                                    'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
-                                ];
-                                break;
-                            case 'driver not found':
-                            case 'no_driver':
-                                $result['detail']['detail_status'][] = [
-                                    'text'  => 'Driver not Found',
-                                    'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
-                                ];
-                                break;
+                    if ($list['transaction_pickup_go_send'] && $list['transaction_pickup_go_send']['transaction_pickup_update']) {
+                        foreach ($list['transaction_pickup_go_send']['transaction_pickup_update'] as $valueGosend) {
+                            switch (strtolower($valueGosend['status'])) {
+                                case 'finding driver':
+                                case 'confirmed':
+                                    $result['detail']['detail_status'][] = [
+                                        'text'  => 'Looking for a Driver',
+                                        'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
+                                    ];
+                                    break;
+                                // case 'driver allocated':
+                                // case 'allocated':
+                                //     $statusOrder[] = [
+                                //         'text'  => 'Driver ditemukan',
+                                //         'date'  => $valueGosend['created_at']
+                                //     ];
+                                //     break;
+                                // case 'enroute pickup':
+                                case 'out_for_pickup':
+                                    $result['detail']['detail_status'][] = [
+                                        'text'  => 'Driver on his way to Outlet',
+                                        'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
+                                    ];
+                                    break;
+                                case 'enroute drop':
+                                case 'out_for_delivery':
+                                    $result['detail']['detail_status'][] = [
+                                        'text'  => 'Driver Delivering your order',
+                                        'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
+                                    ];
+                                    break;
+                                case 'completed':
+                                case 'delivered':
+                                    $result['detail']['detail_status'][] = [
+                                        'text'  => 'Order has been received',
+                                        'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
+                                    ];
+                                    break;
+                                case 'cancelled':
+                                    $result['detail']['detail_status'][] = [
+                                        'text'  => 'Delivery Cancelled',
+                                        'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
+                                    ];
+                                    break;
+                                case 'driver not found':
+                                case 'no_driver':
+                                    $result['detail']['detail_status'][] = [
+                                        'text'  => 'Driver not Found',
+                                        'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
+                                    ];
+                                    break;
+                            }
                         }
                     }
                 }
