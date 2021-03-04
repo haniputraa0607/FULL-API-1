@@ -87,16 +87,16 @@ class PromoCampaignTools{
 		if (isset($request['type'])) {
 			if ($promo->promo_type == 'Discount delivery') {
 
-				$available_delivery = config('delivery_method');
+				$available_shipment = $this->getAvailableShipment($id_outlet);
 				$shipment_method = $promo->{$source.'_shipment_method'}->pluck('shipment_method');
 				$promo_shipment = [];
 
 				foreach ($shipment_method as $value) {
 					if ($value == 'Pickup Order') {
-						$promo_shipment = $value;
+						$promo_shipment[] = $value;
 					}
-		            if (isset($available_delivery[$value])) {
-		            	$promo_shipment[] = $available_delivery[$value]['type'];
+		            if (isset($available_shipment[$value])) {
+		            	$promo_shipment[] = $available_shipment[$value]['type'];
 		            }
 		        }
 
@@ -1663,18 +1663,12 @@ class PromoCampaignTools{
         		$available_delivery = [];
 	        	$availableDelivery = config('delivery_method');
 
+	        	$shipment_list = $this->getAvailableShipment($request->id_outlet);
+
 		        $setting  = json_decode(MyHelper::setting('active_delivery_methods', 'value_text', '[]'), true) ?? [];
 		        $deliveries = [];
 
-		        foreach ($setting as $value) {
-
-		            $delivery = $availableDelivery[$value['code'] ?? ''] ?? false;
-
-		            if ( !$delivery || !($delivery['status'] ?? false) ) {
-		                unset($availableDelivery[$value['code']]);
-		                continue;
-		            }
-
+		        foreach ($shipment_list as $value) {
 			    	if ($this->checkShipmentRule($promo->is_all_shipment, $value['code'], $promo_shipment)) {
 			    		$available_delivery[] = $value['code'];
 			    	}
@@ -1700,6 +1694,34 @@ class PromoCampaignTools{
         }
 
         return $promo_delivery;
+    }
+
+    public function getAvailableShipment($id_outlet)
+    {
+		$data = null;
+    	$custom_data 	= [
+    		'id_outlet' => $id_outlet
+    	];
+    	$custom_request = new \Illuminate\Http\Request;
+		$custom_request = $custom_request
+						->setJson(new \Symfony\Component\HttpFoundation\ParameterBag($custom_data))
+						->merge($custom_data);
+
+		$shipment_list 	= app($this->online_transaction)->availableShipment($custom_request);
+
+		if(($shipment_list['status']??false) == 'success'){
+			$temp = $shipment_list['result'];
+			$data = [];
+			foreach ($shipment_list['result'] as $key => $value) {
+				if (!isset($value['code'])) {
+					continue;
+				}
+				$data[$value['code']] = $value;
+			}
+
+		}
+
+		return $data;
     }
 }
 ?>
