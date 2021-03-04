@@ -1996,9 +1996,6 @@ class ApiOnlineTransaction extends Controller
                 'no_calculate_price' => true,
                 'shipment_code' => 'outlet',
             ]));
-            if (!($availableShipment['result']['status'] ?? false)) {
-                $error_msg[] = 'Internal Delivery not available for this outlet';
-            };
             $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
             $coor_origin = [
                 'latitude' => number_format($outlet['outlet_latitude'],8),
@@ -2010,8 +2007,11 @@ class ApiOnlineTransaction extends Controller
             ];
             $distance = MyHelper::count_distance($coor_origin['latitude'], $coor_origin['longitude'], $coor_destination['latitude'], $coor_destination['longitude'], 'M');
             if ($distance > $max_distance) {
-                $error_msg[] = "Maaf, jarak maksimal untuk menggunakan delivery internal adalah $max_distance meter";
+                $error_msg[] = 'Sorry, the maximum distance to use internal delivery is '.MyHelper::requestNumber($max_distance, 'thousand_id').' meters. You are '.MyHelper::requestNumber(round($distance), 'thousand_id').' meters away.';
             }
+            if (!($availableShipment['result']['status'] ?? false)) {
+                $error_msg[] = 'Internal Delivery not available for this outlet';
+            };
         }
 
         if (!isset($post['subtotal'])) {
