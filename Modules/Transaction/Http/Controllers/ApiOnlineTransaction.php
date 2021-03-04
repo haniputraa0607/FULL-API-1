@@ -3355,7 +3355,7 @@ class ApiOnlineTransaction extends Controller
                 'name'          => 'Delivery',
                 'desc'          => $delivery_text,
                 "is_discount"   => 0,
-                'amount'        => (string) MyHelper::requestNumber($result['discount_delivery'],'_CURRENCY')
+                'amount'        => (string) MyHelper::requestNumber($result['discount_delivery'] ?: $result['shipping'],'_CURRENCY')
             ];
         }
 
