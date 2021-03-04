@@ -2172,6 +2172,59 @@ class ApiTransaction extends Controller
                                 break;
                         }
                     }
+
+                    foreach ($list['transaction_pickup_go_send']['transaction_pickup_update'] as $valueGosend) {
+                        switch (strtolower($valueGosend['status'])) {
+                            case 'finding driver':
+                            case 'confirmed':
+                                $result['detail']['detail_status'][] = [
+                                    'text'  => 'Looking for a Driver',
+                                    'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
+                                ];
+                                break;
+                            // case 'driver allocated':
+                            // case 'allocated':
+                            //     $statusOrder[] = [
+                            //         'text'  => 'Driver ditemukan',
+                            //         'date'  => $valueGosend['created_at']
+                            //     ];
+                            //     break;
+                            // case 'enroute pickup':
+                            case 'out_for_pickup':
+                                $result['detail']['detail_status'][] = [
+                                    'text'  => 'Driver on his way to Outlet',
+                                    'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
+                                ];
+                                break;
+                            case 'enroute drop':
+                            case 'out_for_delivery':
+                                $result['detail']['detail_status'][] = [
+                                    'text'  => 'Driver Delivering your order',
+                                    'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
+                                ];
+                                break;
+                            case 'completed':
+                            case 'delivered':
+                                $result['detail']['detail_status'][] = [
+                                    'text'  => 'Order has been received',
+                                    'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
+                                ];
+                                break;
+                            case 'cancelled':
+                                $result['detail']['detail_status'][] = [
+                                    'text'  => 'Delivery Cancelled',
+                                    'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
+                                ];
+                                break;
+                            case 'driver not found':
+                            case 'no_driver':
+                                $result['detail']['detail_status'][] = [
+                                    'text'  => 'Driver not Found',
+                                    'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
+                                ];
+                                break;
+                        }
+                    }
                 }
 
                 $result['detail']['detail_status'][] = [
@@ -2179,6 +2232,10 @@ class ApiTransaction extends Controller
                     'date'  => date('d F Y H:i', strtotime($list['created_at']))
                 ];
             }
+
+            usort($result['detail']['detail_status'], function($a, $b) {
+                return strtotime($b['date']) <=> strtotime($a['date']);
+            });
 
             if(!isset($list['payment'])){
                 $result['transaction_payment'] = [];
