@@ -2617,7 +2617,7 @@ class ApiOnlineTransaction extends Controller
         // payment detail
         $result['payment_detail'] = $this->getTransactionPaymentDetail($request, $result);
 
-        return MyHelper::checkGet($result)+['messages'=>$error_msg, 'promo_error'=>$promo_error, 'promo'=>$promo, 'clear_cart'=>$clear_cart];
+        return MyHelper::checkGet($result)+['messages'=> $error_msg ? [$error_msg[0]] : [], 'promo_error'=>$promo_error, 'promo'=>$promo, 'clear_cart'=>$clear_cart];
     }
 
     public function saveLocation($latitude, $longitude, $id_user, $id_transaction, $id_outlet){
