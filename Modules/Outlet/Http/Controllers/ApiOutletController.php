@@ -134,6 +134,9 @@ class ApiOutletController extends Controller
             } else {
                 $data['available_delivery'] = null;
             }
+            if (!$data['available_delivery']) {
+                $data['delivery_order'] = 0;
+            }
         }
 
         return $data;

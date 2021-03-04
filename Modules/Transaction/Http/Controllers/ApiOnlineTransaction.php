@@ -713,7 +713,7 @@ class ApiOnlineTransaction extends Controller
             if ($total_cup && $total_cup > $max_cup) {
                 return [
                     'status' => 'fail',
-                    'messages' => ["Maaf, maksimal pembelian untuk menggunakan GO-SEND adalah $max_cup cup"]
+                    'messages' => ["Sorry, the maximum purchase for using GOSEND is $max_cup cup."]
                 ];
             }
 
@@ -1962,7 +1962,7 @@ class ApiOnlineTransaction extends Controller
                 $max_cup = MyHelper::setting('delivery_max_cup', 'value', 50);
                 $total_cup = array_sum(array_column($request->item, 'qty'));
                 if ($total_cup && $total_cup > $max_cup) {
-                    $error_msg[] = "Maaf, maksimal pembelian untuk menggunakan GO-SEND adalah $max_cup cup";
+                    $error_msg[] = "Sorry, the maximum purchase for using GOSEND is $max_cup cup.";
                 }
 
                 $coor_origin = [
@@ -1998,9 +1998,6 @@ class ApiOnlineTransaction extends Controller
                 'no_calculate_price' => true,
                 'shipment_code' => 'outlet',
             ]));
-            if (!($availableShipment['result']['status'] ?? false)) {
-                $error_msg[] = 'Internal Delivery not available for this outlet';
-            };
             $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
             $coor_origin = [
                 'latitude' => number_format($outlet['outlet_latitude'],8),
@@ -2012,8 +2009,11 @@ class ApiOnlineTransaction extends Controller
             ];
             $distance = MyHelper::count_distance($coor_origin['latitude'], $coor_origin['longitude'], $coor_destination['latitude'], $coor_destination['longitude'], 'M');
             if ($distance > $max_distance) {
-                $error_msg[] = "Maaf, jarak maksimal untuk menggunakan delivery internal adalah $max_distance meter";
+                $error_msg[] = 'Sorry, the maximum distance to use internal delivery is '.MyHelper::requestNumber($max_distance, 'thousand_id').' meters. You are '.MyHelper::requestNumber(round($distance), 'thousand_id').' meters away.';
             }
+            if (!($availableShipment['result']['status'] ?? false)) {
+                $error_msg[] = 'Internal Delivery not available for this outlet';
+            };
         }
 
         if (!isset($post['subtotal'])) {
@@ -2621,7 +2621,7 @@ class ApiOnlineTransaction extends Controller
         // payment detail
         $result['payment_detail'] = $this->getTransactionPaymentDetail($request, $result);
 
-        return MyHelper::checkGet($result)+['messages'=>$error_msg, 'promo_error'=>$promo_error, 'promo'=>$promo, 'clear_cart'=>$clear_cart];
+        return MyHelper::checkGet($result)+['messages'=> $error_msg ? [$error_msg[0]] : [], 'promo_error'=>$promo_error, 'promo'=>$promo, 'clear_cart'=>$clear_cart];
     }
 
     public function saveLocation($latitude, $longitude, $id_user, $id_transaction, $id_outlet){
@@ -3134,37 +3134,37 @@ class ApiOnlineTransaction extends Controller
         $availableShipment = MyHelper::getDeliveries($show_all);
         $configShipment = config('delivery_method');
         if ($outlet) {
-            foreach ($availableShipment as $index => &$shipment) {
-                if ($shipment['max_cup'] && $total_cup > $shipment['max_cup'] || !in_array($shipment['type'], $outlet->available_delivery)) {
+            foreach ($availableShipment as $index => &$shipment1) {
+                if ($shipment1['max_cup'] && $total_cup > $shipment1['max_cup'] || !in_array($shipment1['type'], $outlet->available_delivery)) {
                     if ($show_all) {
-                        $shipment['status'] = 0;
+                        $shipment1['status'] = 0;
                     } else {
                         unset($availableShipment[$index]);
                     }
                 }
             }
             if ($destination) {
-                foreach ($availableShipment as $index => &$shipment) {
-                    if ($shipment['code'] == 'outlet') {
+                foreach ($availableShipment as $index => &$shipment2) {
+                    if ($shipment2['code'] == 'outlet') {
                         $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
                         $distance = MyHelper::count_distance($origin['latitude'], $origin['longitude'], $destination['latitude'], $destination['longitude'], 'M');
                         if ($distance > $max_distance) {
                             if ($show_all) {
-                                $shipment['status'] = 0;
+                                $shipment2['status'] = 0;
                             } else {
                                 unset($availableShipment[$index]);
                             }
                             continue;
                         }
                     }
-                    if ($shipment['status'] && !$request->no_calculate_price) {
-                        $shipment['price'] = $configShipment[$shipment['code']]['helper']::calculatePrice($origin, $destination);
-                        if ($shipment['price'] !== null) {
-                            $shipment['price_pretty'] = $shipment['price'] !== null ? MyHelper::requestNumber($shipment['price'], '_CURRENCY') : '';
+                    if ($shipment2['status'] && !$request->no_calculate_price) {
+                        $shipment2['price'] = $configShipment[$shipment2['code']]['helper']::calculatePrice($origin, $destination);
+                        if ($shipment2['price'] !== null) {
+                            $shipment2['price_pretty'] = $shipment2['price'] !== null ? MyHelper::requestNumber($shipment2['price'], '_CURRENCY') : '';
                         } else {
-                            $shipment['price_pretty'] = '';
+                            $shipment2['price_pretty'] = '';
                             if ($show_all) {
-                                $shipment['status'] = 0;
+                                $shipment2['status'] = 0;
                             } else {
                                 unset($availableShipment[$index]);
                             }
@@ -3178,16 +3178,16 @@ class ApiOnlineTransaction extends Controller
         $default = MyHelper::setting('delivery_default', 'value', 'price');
         if ($default == 'price') {
             $price_min = min(array_filter(array_column($availableShipment, 'price'), function($x){return $x !== null;}) ?: [0]);
-            foreach ($availableShipment as &$shipment) {
-                if ($shipment['price'] === $price_min) {
-                    $shipment['default'] = 1;
+            foreach ($availableShipment as &$shipment3) {
+                if ($shipment3['price'] === $price_min) {
+                    $shipment3['default'] = 1;
                     break;
                 }
             }
         } else {
-            foreach ($availableShipment as &$shipment) {
-                if ($shipment['type'] === $default) {
-                    $shipment['default'] = 1;
+            foreach ($availableShipment as &$shipment3) {
+                if ($shipment3['type'] === $default) {
+                    $shipment3['default'] = 1;
                     break;
                 }
             }
@@ -3199,9 +3199,9 @@ class ApiOnlineTransaction extends Controller
 
         if ($request->shipment_code) {
             $result = null;
-            foreach ($availableShipment as $shipment) {
-                if ($shipment['code'] == $request->shipment_code) {
-                    $result = $shipment;
+            foreach ($availableShipment as $shipment4) {
+                if ($shipment4['code'] == $request->shipment_code) {
+                    $result = $shipment4;
                 }
             }
             return MyHelper::checkGet($result);
@@ -3228,6 +3228,7 @@ class ApiOnlineTransaction extends Controller
         $update = Setting::updateOrCreate(['key' => 'active_delivery_methods'], ['value_text' => json_encode($deliveries)]);
         $update = Setting::updateOrCreate(['key' => 'delivery_max_cup'], ['value' => $request->delivery_max_cup]);
         $update = Setting::updateOrCreate(['key' => 'delivery_default'], ['value' => $request->delivery_default]);
+        $update = Setting::updateOrCreate(['key' => 'outlet_delivery_max_distance'], ['value' => $request->outlet_delivery_max_distance]);
         return MyHelper::checkUpdate($update);
     }
 
