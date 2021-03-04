@@ -785,7 +785,7 @@ class ApiOnlineTransaction extends Controller
         $promo_delivery_error = null;
         if ( ($post['type']??null) != 'Pickup Order' ) {
         	$promo_post = $post;
-        	$promo_post['shipping'] = $post['shipping'] + $shippingGoSend;
+        	$promo_post['shipping'] = $post['shipping'];
         	$promo_delivery = $pct->validateDelivery($request, $promo_post, $promo_delivery_error);
 			if ($promo_delivery_error) {
 	            return [
@@ -793,8 +793,8 @@ class ApiOnlineTransaction extends Controller
 	                'messages' => $promo_delivery_error['messages']
 	            ];
 	        }
-        	$promo_delivery['value'] = floor($promo_delivery['value']);
-	        $post['discount_delivery'] = - abs($promo_delivery['value']);
+        	$promo_delivery['discount_delivery'] = floor($promo_delivery['discount_delivery']);
+	        $post['discount_delivery'] = - abs($promo_delivery['discount_delivery']);
 	        $post['grandTotal'] = $post['grandTotal'] - abs($post['discount_delivery']);
         }
 
