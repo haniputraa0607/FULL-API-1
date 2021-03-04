@@ -1559,12 +1559,14 @@ class PromoCampaignTools{
 			            	$promo_shipment = $code->promo_campaign->promo_campaign_shipment_method->pluck('shipment_method');
 				            $min_basket_size = $code->min_basket_size;
 				            $promo_value = (string) MyHelper::requestNumber(($result['shipping'] - $discount_promo['discount_delivery']),'_CURRENCY');
+				            $promo_value_int = ($result['shipping'] - $discount_promo['discount_delivery']);
 				            $shipping_value = (string) MyHelper::requestNumber($result['shipping'],'_CURRENCY');
 				            $promo_delivery = [
 					            'title' 		=> $code->campaign_name,
 				            	'description'	=> $discount_promo['new_description'],
 					            'detail' 		=> $discount_promo['promo_detail'],
 					            'value' 		=> $promo_value,
+					            'value_int' 	=> $promo_value_int,
 					            'is_free' 		=> $discount_promo['is_free'],
 					            'shipping_value'=> $shipping_value,
 					            'type' 			=> 'discount_delivery',
@@ -1617,12 +1619,14 @@ class PromoCampaignTools{
 				if ($discount_promo) {
 		            $min_basket_size = $deals->dealVoucher->deal->min_basket_size;
 		            $promo_value = (string) MyHelper::requestNumber(($result['shipping'] - $discount_promo['discount_delivery']),'_CURRENCY');
+		            $promo_value_int = ($result['shipping'] - $discount_promo['discount_delivery']);
 				    $shipping_value = (string) MyHelper::requestNumber($result['shipping'],'_CURRENCY');
 		            $promo_delivery = [
 		            	'title' 		=> $deals->dealVoucher->deals->deals_title,
 		            	'description'	=> $discount_promo['new_description'],
 			            'detail' 		=> $discount_promo['promo_detail'],
 			            'value' 		=> $promo_value,
+			            'value_int' 	=> $promo_value_int,
 			            'is_free' 		=> $discount_promo['is_free'],
 			            'shipping_value'=> $shipping_value,
 			            'type' 			=> 'discount_delivery',
