@@ -2611,10 +2611,12 @@ class ApiOnlineTransaction extends Controller
 	        $result['allow_pickup'] = $promo_delivery['allow_pickup'] ?? $result['allow_pickup'];
 	        $result['allow_delivery'] = $promo_delivery['allow_delivery'] ?? $result['allow_delivery'];
 		    $result['available_delivery'] = $promo_delivery['available_delivery'] ?? [];
-		    $promo_delivery['value'] = floor($promo_delivery['value_int']);
+		    $promo_delivery['value'] = floor($promo_delivery['discount_delivery']);
 		    $result['discount_delivery'] = abs($promo_delivery['value']);
         	$result['grandtotal'] = MyHelper::requestNumber(($result['grandtotal'] - $promo_delivery['value']),$rn);
 		    $result['grandtotal_pretty'] = MyHelper::requestNumber($result['grandtotal'],'_CURRENCY');
+		    $result['total_payment_pretty'] = MyHelper::requestNumber(($result['grandtotal']-$used_point),'_CURRENCY');
+        	$result['total_payment'] = MyHelper::requestNumber(($result['grandtotal']-$used_point),$rn);
         	unset($result['promo_delivery']['available_delivery'], $result['promo_delivery']['allow_delivery'], $result['promo_delivery']['allow_pickup']);
         }
 
@@ -3355,7 +3357,7 @@ class ApiOnlineTransaction extends Controller
                 'name'          => 'Delivery',
                 'desc'          => $delivery_text,
                 "is_discount"   => 0,
-                'amount'        => (string) MyHelper::requestNumber($result['discount_delivery'] ?: $result['shipping'],'_CURRENCY')
+                'amount'        => (string) MyHelper::requestNumber($result['promo_delivery']['value_int'] ?? $result['shipping'],'_CURRENCY')
             ];
         }
 
