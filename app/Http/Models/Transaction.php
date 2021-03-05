@@ -8,6 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Modules\Transaction\Entities\TransactionPickupOutlet;
 
 /**
  * Class Transaction
@@ -199,6 +200,12 @@ class Transaction extends Model
     {
     	// make sure you have joined transaction_pickups before using this
 		return $this->belongsTo(TransactionPickupGoSend::class, 'id_transaction_pickup', 'id_transaction_pickup');
+    }
+
+    public function transaction_pickup_outlet()
+    {
+    	// make sure you have joined transaction_pickups before using this
+		return $this->belongsTo(TransactionPickupOutlet::class, 'id_transaction_pickup', 'id_transaction_pickup');
     }
 
     public function logTopup()
