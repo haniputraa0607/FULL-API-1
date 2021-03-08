@@ -135,6 +135,7 @@ class ApiPOS extends Controller
                 // }
                 $promoNumber = '01198';
             }
+            $trxData = $check;
             $check = $check->toArray();
             $user = User::where('id', '=', $check['id_user'])->first()->toArray();
 
@@ -183,36 +184,48 @@ class ApiPOS extends Controller
 
             $delivery = [];
 
-            if ($check->pickup_by == 'GO-SEND') {
-                $check->load('transaction_pickup_go_send');
-                $deliveryData = $check->transaction_pickup_go_send;
+            if ($trxData->pickup_by == 'GO-SEND') {
+                $trxData->load('transaction_pickup_go_send');
+                $deliveryData = $trxData->transaction_pickup_go_send;
                 $delivery = [
                     'address' => $deliveryData->destination_address,
                     'latitude' => $deliveryData->destination_latitude, 
                     'longitude' => $deliveryData->destination_longitude, 
                     'courierName' => 'GOSEND', 
-                    'deliveryCost' => $check->transaction_shipment, 
-                    'discDeliveryCost' => $check->transaction_discount_delivery, 
-                    'netDeliveryCost' => $check->transaction_shipment - $check->transaction_discount_delivery, 
+                    'deliveryCost' => $trxData->transaction_shipment, 
+                    'discDeliveryCost' => $trxData->transaction_discount_delivery, 
+                    'netDeliveryCost' => $trxData->transaction_shipment - $trxData->transaction_discount_delivery, 
                     'promoDeliveryId' => '', 
                     'promoDeliveryDesc' => '', 
                     'note' => $deliveryData->destination_note ?: ''
                 ];
-            } elseif ($check->pickup_by == 'Outlet') {
-                $check->load('transaction_pickup_outlet');
-                $deliveryData = $check->transaction_pickup_outlet;
+
+                if ($trxData->transaction_discount_delivery) {
+                    $promoDelivery = $trxData->getUsedPromoDelivery();
+                    $delivery['promoDeliveryId'] = $promoDelivery['promoDeliveryId'];
+                    $delivery['promoDeliveryDesc'] = $promoDelivery['promoDeliveryDesc'];
+                }
+            } elseif ($trxData->pickup_by == 'Outlet') {
+                $trxData->load('transaction_pickup_outlet');
+                $deliveryData = $trxData->transaction_pickup_outlet;
                 $delivery = [
                     'address' => $deliveryData->destination_address,
                     'latitude' => $deliveryData->destination_latitude, 
                     'longitude' => $deliveryData->destination_longitude, 
                     'courierName' => 'Internal Delivery', 
-                    'deliveryCost' => $check->transaction_shipment, 
-                    'discDeliveryCost' => $check->transaction_discount_delivery, 
-                    'netDeliveryCost' => $check->transaction_shipment - $check->transaction_discount_delivery, 
+                    'deliveryCost' => $trxData->transaction_shipment, 
+                    'discDeliveryCost' => $trxData->transaction_discount_delivery, 
+                    'netDeliveryCost' => $trxData->transaction_shipment - $trxData->transaction_discount_delivery, 
                     'promoDeliveryId' => '', 
                     'promoDeliveryDesc' => '', 
                     'note' => $deliveryData->destination_note ?: ''
                 ];
+
+                if ($trxData->transaction_discount_delivery) {
+                    $promoDelivery = $trxData->getUsedPromoDelivery();
+                    $delivery['promoDeliveryId'] = $promoDelivery['promoDeliveryId'];
+                    $delivery['promoDeliveryDesc'] = $promoDelivery['promoDeliveryDesc'];
+                }
             }
 
             $header['delivery'] = $delivery;

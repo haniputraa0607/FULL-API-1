@@ -150,6 +150,12 @@ class ConnectPOS{
 					'promoDeliveryDesc' => '', 
 					'note' => $deliveryData->destination_note ?: ''
 				];
+
+				if ($trxData->transaction_discount_delivery) {
+					$promoDelivery = $trxData->getUsedPromoDelivery();
+					$delivery['promoDeliveryId'] = $promoDelivery['promoDeliveryId'];
+					$delivery['promoDeliveryDesc'] = $promoDelivery['promoDeliveryDesc'];
+				}
 			} elseif ($trxData->pickup_by == 'Outlet') {
 				$trxData->load('transaction_pickup_outlet');
 				$deliveryData = $trxData->transaction_pickup_outlet;
@@ -165,6 +171,12 @@ class ConnectPOS{
 					'promoDeliveryDesc' => '', 
 					'note' => $deliveryData->destination_note ?: ''
 				];
+
+				if ($trxData->transaction_discount_delivery) {
+					$promoDelivery = $trxData->getUsedPromoDelivery();
+					$delivery['promoDeliveryId'] = $promoDelivery['promoDeliveryId'];
+					$delivery['promoDeliveryDesc'] = $promoDelivery['promoDeliveryDesc'];
+				}
 			}
 
 			$body = [
@@ -408,6 +420,7 @@ class ConnectPOS{
 			'body' => $item
 		];
 		$this->sign($sendData);
+		return $sendData;
 		$response = MyHelper::postWithTimeout($this->url.$module_url,null,$sendData,0,null,30,false);
 		$dataLog = [
 			'url' 		        => $this->url.$module_url,
