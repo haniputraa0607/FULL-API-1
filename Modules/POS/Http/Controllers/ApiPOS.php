@@ -180,6 +180,43 @@ class ApiPOS extends Controller
             // $header['ready_date_time'] = date('Ymd His', strtotime($check['ready_at']));
             // $header['taken_date_time'] = date('Ymd His', strtotime($check['taken_at']));
             // $header['reject_date_time'] = date('Ymd His', strtotime($check['reject_at']));
+
+            $delivery = [];
+
+            if ($check->pickup_by == 'GO-SEND') {
+                $check->load('transaction_pickup_go_send');
+                $deliveryData = $check->transaction_pickup_go_send;
+                $delivery = [
+                    'address' => $deliveryData->destination_address,
+                    'latitude' => $deliveryData->destination_latitude, 
+                    'longitude' => $deliveryData->destination_longitude, 
+                    'courierName' => 'GOSEND', 
+                    'deliveryCost' => $check->transaction_shipment, 
+                    'discDeliveryCost' => $check->transaction_discount_delivery, 
+                    'netDeliveryCost' => $check->transaction_shipment - $check->transaction_discount_delivery, 
+                    'promoDeliveryId' => '', 
+                    'promoDeliveryDesc' => '', 
+                    'note' => $deliveryData->destination_note ?: ''
+                ];
+            } elseif ($check->pickup_by == 'Outlet') {
+                $check->load('transaction_pickup_outlet');
+                $deliveryData = $check->transaction_pickup_outlet;
+                $delivery = [
+                    'address' => $deliveryData->destination_address,
+                    'latitude' => $deliveryData->destination_latitude, 
+                    'longitude' => $deliveryData->destination_longitude, 
+                    'courierName' => 'Internal Delivery', 
+                    'deliveryCost' => $check->transaction_shipment, 
+                    'discDeliveryCost' => $check->transaction_discount_delivery, 
+                    'netDeliveryCost' => $check->transaction_shipment - $check->transaction_discount_delivery, 
+                    'promoDeliveryId' => '', 
+                    'promoDeliveryDesc' => '', 
+                    'note' => $deliveryData->destination_note ?: ''
+                ];
+            }
+
+            $header['delivery'] = $delivery;
+
             $header['pos'] = [
                 'id'=> 1,
                 'cashDrawer'=> 1,
