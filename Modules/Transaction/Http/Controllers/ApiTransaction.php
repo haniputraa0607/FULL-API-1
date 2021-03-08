@@ -1478,6 +1478,7 @@ class ApiTransaction extends Controller
                     'promo_campaign_promo_code_delivery.promo_campaign',
                     'promo_campaign_referral_transaction',
                     'transaction_pickup_go_send.transaction_pickup_update',
+                    'transaction_pickup_outlet',
                     'outlet.city')->first();
             }else{
                 $list = $list->with(
@@ -1996,7 +1997,7 @@ class ApiTransaction extends Controller
             			break;
             		
             		case 'Outlet':
-            			$delivery_text = $delivery_list['Outlet Delivery'];
+            			$delivery_text = $delivery_list['Internal Delivery'];
             			break;
             		
             		default:
@@ -2038,7 +2039,18 @@ class ApiTransaction extends Controller
                         'go_send_order_no' => $list['transaction_pickup_go_send']['go_send_order_no']?:'',
                         'live_tracking_url' => $list['transaction_pickup_go_send']['live_tracking_url']?:''
                     ];
+                } elseif ($list['detail']['pickup_by'] == 'Outlet') {
+                    // $result['transaction_status'] = 5;
+                    $result['delivery_info'] = [
+                        'driver' => null,
+                        'delivery_status' => $result['transaction_status'],
+                        'delivery_address' => $list['transaction_pickup_outlet']['destination_address']?:'',
+                        'delivery_address_note' => $list['transaction_pickup_outlet']['destination_note'] ?: '',
+                        'delivery_status_code' => $result['transaction_status_code'],
+                        'cancelable' => 0,
+                    ];
                 }
+
                 if ($list['transaction_payment_status'] == 'Cancelled') {
                     foreach ($list['payment'] as $key => $value) {
                         if (isset($value['reject'])) {
