@@ -420,7 +420,7 @@ class ConnectPOS{
 			'body' => $item
 		];
 		$this->sign($sendData);
-		return $sendData;
+
 		$response = MyHelper::postWithTimeout($this->url.$module_url,null,$sendData,0,null,30,false);
 		$dataLog = [
 			'url' 		        => $this->url.$module_url,
