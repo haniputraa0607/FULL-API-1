@@ -8,6 +8,7 @@
 namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Modules\Transaction\Entities\TransactionPickupOutlet;
 
 /**
  * Class Transaction
@@ -199,6 +200,12 @@ class Transaction extends Model
     {
     	// make sure you have joined transaction_pickups before using this
 		return $this->belongsTo(TransactionPickupGoSend::class, 'id_transaction_pickup', 'id_transaction_pickup');
+    }
+
+    public function transaction_pickup_outlet()
+    {
+    	// make sure you have joined transaction_pickups before using this
+		return $this->belongsTo(TransactionPickupOutlet::class, 'id_transaction_pickup', 'id_transaction_pickup');
     }
 
     public function logTopup()
@@ -412,5 +419,45 @@ class Transaction extends Model
         // return voucher
         $update_voucher = app($this->voucher)->returnVoucher($this->id_transaction);
         return true;
+	}
+
+	public function getUsedPromoDelivery()
+	{
+		if ($this->transaction_discount_delivery) {
+			if ($this->id_promo_campaign_promo_code_delivery) {
+				$promo = \Modules\PromoCampaign\Entities\PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $this->id_promo_campaign_promo_code_delivery)
+					->join('promo_campaigns', 'promo_campaign_promo_codes.id_promo_campaign', 'promo_campaign_promo_codes.id_promo_campaign')
+					->first();
+				if ($promo) {
+					return [
+						'type' => 'promo_campaign',
+						'model' => $promo,
+						'promoDeliveryId' => $promo->promo_code,
+						'promoDeliveryDesc' => $promo->promo_title,
+					];
+				}
+			}
+
+			$deals = TransactionVoucher::where('id_transaction', $this->id_transaction)
+				->join('deals_vouchers', 'transaction_vouchers.id_deals_voucher', 'deals_vouchers.id_deals_voucher')
+				->join('deals', 'deals.id_deals', 'deals_vouchers.id_deals')
+				->where('deals.promo_type', 'Discount delivery')
+				->first();
+			if ($deals) {
+				return [
+					'type' => 'deals',
+					'model' => $deals,
+					'promoDeliveryId' => $deals->voucher_code,
+					'promoDeliveryDesc' => $deals->deals_title,
+				];
+			}
+		}
+
+		return [
+			'type' => null,
+			'model' => null,
+			'promoDeliveryId' => '',
+			'promoDeliveryDesc' => '',
+		];
 	}
 }

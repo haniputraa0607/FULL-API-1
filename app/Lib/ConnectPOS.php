@@ -132,6 +132,53 @@ class ConnectPOS{
 				// }
 				$promoNumber = '01198';
 			}
+
+			$delivery = [];
+
+			if ($trxData->pickup_by == 'GO-SEND') {
+				$trxData->load('transaction_pickup_go_send');
+				$deliveryData = $trxData->transaction_pickup_go_send;
+				$delivery = [
+					'address' => $deliveryData->destination_address,
+					'latitude' => $deliveryData->destination_latitude, 
+					'longitude' => $deliveryData->destination_longitude, 
+					'courierName' => 'GOSEND', 
+					'deliveryCost' => $trxData->transaction_shipment, 
+					'discDeliveryCost' => $trxData->transaction_discount_delivery, 
+					'netDeliveryCost' => $trxData->transaction_shipment - $trxData->transaction_discount_delivery, 
+					'promoDeliveryId' => '', 
+					'promoDeliveryDesc' => '', 
+					'note' => $deliveryData->destination_note ?: ''
+				];
+
+				if ($trxData->transaction_discount_delivery) {
+					$promoDelivery = $trxData->getUsedPromoDelivery();
+					$delivery['promoDeliveryId'] = $promoDelivery['promoDeliveryId'];
+					$delivery['promoDeliveryDesc'] = $promoDelivery['promoDeliveryDesc'];
+				}
+			} elseif ($trxData->pickup_by == 'Outlet') {
+				$trxData->load('transaction_pickup_outlet');
+				$deliveryData = $trxData->transaction_pickup_outlet;
+				$delivery = [
+					'address' => $deliveryData->destination_address,
+					'latitude' => $deliveryData->destination_latitude, 
+					'longitude' => $deliveryData->destination_longitude, 
+					'courierName' => 'Internal Delivery', 
+					'deliveryCost' => $trxData->transaction_shipment, 
+					'discDeliveryCost' => $trxData->transaction_discount_delivery, 
+					'netDeliveryCost' => $trxData->transaction_shipment - $trxData->transaction_discount_delivery, 
+					'promoDeliveryId' => '', 
+					'promoDeliveryDesc' => '', 
+					'note' => $deliveryData->destination_note ?: ''
+				];
+
+				if ($trxData->transaction_discount_delivery) {
+					$promoDelivery = $trxData->getUsedPromoDelivery();
+					$delivery['promoDeliveryId'] = $promoDelivery['promoDeliveryId'];
+					$delivery['promoDeliveryDesc'] = $promoDelivery['promoDeliveryDesc'];
+				}
+			}
+
 			$body = [
 				'header' => [
 					'orderNumber'=> $trxData->transaction_receipt_number, //receipt number
@@ -161,7 +208,8 @@ class ConnectPOS{
 						'gender'=> $trxData->user->gender?:'', //gender / “”
 						'age'=> $trxData->user->birthday?(date_diff(date_create($trxData->user->birthday), date_create('now'))->y):'', // age / “”
 						'occupation'=> '' // “’
-					]
+					],
+					'delivery' => $delivery,
 				],
 				'item' => []
 			];
@@ -372,6 +420,7 @@ class ConnectPOS{
 			'body' => $item
 		];
 		$this->sign($sendData);
+		return $sendData;
 		$response = MyHelper::postWithTimeout($this->url.$module_url,null,$sendData,0,null,30,false);
 		$dataLog = [
 			'url' 		        => $this->url.$module_url,
