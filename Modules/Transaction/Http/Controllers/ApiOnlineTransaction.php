@@ -784,7 +784,7 @@ class ApiOnlineTransaction extends Controller
         // check promo delivery
         $promo_delivery = null;
         $promo_delivery_error = null;
-        if ( ($post['type']??null) != 'Pickup Order' ) {
+        if ( ($post['type']??null) != 'Pickup Order' && ($post['type']??null) != 'Internal Delivery' ) {
         	$promo_post = $post;
         	$promo_post['shipping'] = $post['shipping'];
         	$promo_delivery = $pct->validateDelivery($request, $promo_post, $promo_delivery_error);
