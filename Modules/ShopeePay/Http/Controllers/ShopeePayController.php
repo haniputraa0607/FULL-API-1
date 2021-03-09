@@ -172,10 +172,10 @@ class ShopeePayController extends Controller
             if ($trx['id_transaction']??false) {
                 $pickup = TransactionPickup::where('id_transaction', $trx['id_transaction'])->first();
                 if ($pickup) {
-                    if ($pickup->pickup_by == 'Customer') {
-                        \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
-                    } else {
+                    if ($pickup->pickup_by == 'GO-SEND') {
                         $pickup->bookDelivery();
+                    } else {
+                        \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
                     }
                 }
             }
@@ -358,10 +358,10 @@ class ShopeePayController extends Controller
                     if ($singleTrx['id_transaction']??false) {
                         $pickup = TransactionPickup::where('id_transaction', $singleTrx['id_transaction'])->first();
                         if ($pickup) {
-                            if ($pickup->pickup_by == 'Customer') {
-                                \App\Lib\ConnectPOS::create()->sendTransaction($singleTrx['id_transaction']);
-                            } else {
+                            if ($pickup->pickup_by == 'GO-SEND') {
                                 $pickup->bookDelivery();
+                            } else {
+                                \App\Lib\ConnectPOS::create()->sendTransaction($singleTrx['id_transaction']);
                             }
                         }
                     }

@@ -110,10 +110,10 @@ class ApiTransactionCIMB extends Controller
 
             $pickup = TransactionPickup::where('id_transaction', $transaction->id_transaction)->first();
             if ($pickup) {
-                if ($pickup->pickup_by == 'Customer') {
-                    \App\Lib\ConnectPOS::create()->sendTransaction($transaction->id_transaction);
-                } else {
+                if ($pickup->pickup_by == 'GO-SEND') {
                     $pickup->bookDelivery();
+                } else {
+                    \App\Lib\ConnectPOS::create()->sendTransaction($transaction->id_transaction);
                 }
             }
 

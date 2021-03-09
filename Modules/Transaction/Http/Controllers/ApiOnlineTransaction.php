@@ -1514,10 +1514,10 @@ class ApiOnlineTransaction extends Controller
 
                     $pickup = TransactionPickup::where('id_transaction', $insertTransaction['id_transaction'])->first();
                     if ($pickup) {
-                        if ($pickup->pickup_by == 'Customer') {
-                            \App\Lib\ConnectPOS::create()->sendTransaction($insertTransaction['id_transaction']);
-                        } else {
+                        if ($pickup->pickup_by == 'GO-SEND') {
                             $pickup->bookDelivery();
+                        } else {
+                            \App\Lib\ConnectPOS::create()->sendTransaction($insertTransaction['id_transaction']);
                         }
                     }
                 }
