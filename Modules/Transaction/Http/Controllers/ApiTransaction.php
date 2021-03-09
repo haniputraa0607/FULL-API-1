@@ -1983,7 +1983,7 @@ class ApiTransaction extends Controller
             }
 
             // add shipment/delivery to payment detail
-            if (!empty($list['transaction_shipment']) || !empty($list['transaction_shipment_go_send'])) {
+            if (!empty($list['transaction_shipment']) || !empty($list['transaction_shipment_go_send']) || $list['detail']['pickup_by'] == 'Outlet') {
 
             	$available_delivery = config('delivery_method');
 		    	$delivery_list = [];
