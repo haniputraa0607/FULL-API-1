@@ -157,40 +157,42 @@ class ApiNotification extends Controller {
                 //         ]);
                 //     }
                 // }
-                if($midtrans['transaction_status'] != 'settlement' && $midtrans['payment_type'] != 'credit_card'){
-
-                    $notif = $this->notification($midtrans, $newTrx);
-                    if (!$notif) {
-                        return response()->json([
-                            'status'   => 'fail',
-                            'messages' => ['Transaction failed']
-                        ]);
-                    }
-                    $sendNotifOutlet = app($this->trx)->outletNotif($newTrx['id_transaction']);
-
-                    $kirim = $this->kirimOutlet($newTrx['transaction_receipt_number']);
-                    if (isset($kirim['status']) && $kirim['status'] == 1) {
-
-                        // // apply cashback to referrer
-                        // \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($newTrx);
-
-                        DB::commit();
-                        // langsung
-                        return response()->json(['status' => 'success']);
-                    } elseif (isset($kirim['status']) && $kirim['status'] == 'fail') {
-                        if (isset($kirim['messages'])) {
+                if($midtrans['transaction_status'] == 'settlement' && $midtrans['payment_type'] == 'credit_card'){}
+                else{
+                    if($midtrans['transaction_status'] == 'settlement'){
+                        $notif = $this->notification($midtrans, $newTrx);
+                        if (!$notif) {
+                            return response()->json([
+                                'status'   => 'fail',
+                                'messages' => ['Transaction failed']
+                            ]);
+                        }
+                        $sendNotifOutlet = app($this->trx)->outletNotif($newTrx['id_transaction']);
+    
+                        $kirim = $this->kirimOutlet($newTrx['transaction_receipt_number']);
+                        if (isset($kirim['status']) && $kirim['status'] == 1) {
+    
+                            // // apply cashback to referrer
+                            // \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($newTrx);
+    
+                            DB::commit();
+                            // langsung
+                            return response()->json(['status' => 'success']);
+                        } elseif (isset($kirim['status']) && $kirim['status'] == 'fail') {
+                            if (isset($kirim['messages'])) {
+                                DB::rollBack();
+                                return response()->json([
+                                    'status'   => 'fail',
+                                    'messages' => $kirim['messages']
+                                ]);
+                            }
+                        } else {
                             DB::rollBack();
                             return response()->json([
                                 'status'   => 'fail',
-                                'messages' => $kirim['messages']
+                                'messages' => ['failed']
                             ]);
                         }
-                    } else {
-                        DB::rollBack();
-                        return response()->json([
-                            'status'   => 'fail',
-                            'messages' => ['failed']
-                        ]);
                     }
                 }
 
