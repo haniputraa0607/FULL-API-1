@@ -43,7 +43,7 @@ class Midtrans {
         // return 'Basic ' . base64_encode(env('MIDTRANS_SANDBOX_BEARER'));
     }
     
-    static function token($receipt, $grandTotal, $user=null, $shipping=null, $product=null) {
+    static function token($receipt, $grandTotal, $user=null, $shipping=null, $product=null, $type=null, $id=null) {
         // $url    = env('MIDTRANS_PRO');
         $url    = env('MIDTRANS_SANDBOX');
 
@@ -72,7 +72,33 @@ class Midtrans {
             'secure' => true,
         ];
 
+        if(!is_null($type) && !is_null($id)){
+            $dataMidtrans['gopay'] = [
+                'enable_callback' => true,
+                'callback_url' => env('MIDTRANS_CALLBACK').'?type='.$type.'&order_id='.urlencode($id),
+            ];
+        }else{
+            $dataMidtrans['gopay'] = [
+                'enable_callback' => true,
+                'callback_url' => env('MIDTRANS_CALLBACK').'?order_id='.urlencode($receipt),
+            ];
+        }
+
         $token = MyHelper::post($url, Self::bearer(), $dataMidtrans);
+
+        // try {
+        //     LogMidtrans::create([
+        //         'type'                 => 'request_token',
+        //         'id_reference'         => $receipt,
+        //         'request'              => json_encode($dataMidtrans),
+        //         'request_url'          => $url,
+        //         'request_header'       => json_encode(['Authorization' => Self::bearer()]),
+        //         'response'             => json_encode($token),
+        //         'response_status_code' => $token['status_code']??null,
+        //     ]);
+        // } catch (\Exception $e) {
+        //     \Log::error('Failed write log to LogMidtrans: ' . $e->getMessage());
+        // }
 
         return $token;
     }
