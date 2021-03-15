@@ -1452,7 +1452,16 @@ class ApiTransaction extends Controller
     }
 
     public function transactionDetail(TransactionDetail $request){
-        $id = $request->json('id_transaction');
+        if ($request->json('transaction_receipt_number') !== null) {
+            $trx = Transaction::where(['transaction_receipt_number' => $request->json('transaction_receipt_number')])->first();
+            if($trx) {
+                $id = $trx->id_transaction;
+            } else {
+                return MyHelper::checkGet([]);
+            }
+        } else {
+            $id = $request->json('id_transaction');
+        }
         $type = $request->json('type');
 
         $use_product_variant = \App\Http\Models\Configs::where('id_config',94)->pluck('is_active')->first();
