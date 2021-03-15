@@ -58,12 +58,24 @@ class Midtrans {
         if(!is_null($type) && !is_null($id)){
             $dataMidtrans['gopay'] = [
                 'enable_callback' => true,
-                'callback_url' => env('MIDTRANS_CALLBACK').'?type='.$type.'&order_id='.urlencode($id),
+                'callback_url' => str_replace([
+                        '%type%',
+                        '%order_id%'
+                    ], [
+                        $type,
+                        urlencode($id)
+                    ], env('MIDTRANS_CALLBACK')),
             ];
         }else{
             $dataMidtrans['gopay'] = [
                 'enable_callback' => true,
-                'callback_url' => env('MIDTRANS_CALLBACK').'?order_id='.urlencode($receipt),
+                'callback_url' => str_replace([
+                        '%type%',
+                        '%order_id%'
+                    ], [
+                        $type,
+                        urlencode($id)
+                    ], env('MIDTRANS_CALLBACK')),
             ];
         }
 
