@@ -9,7 +9,7 @@ Route::group(['middleware' => ['auth:api'],'prefix' => 'api/transaction', 'names
 Route::any('api/transaction/update-gosend', 'Modules\Transaction\Http\Controllers\ApiGosendController@updateStatus');
 Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scopes:be'], 'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
     Route::post('/outlet', 'ApiNotification@adminOutlet');
-    Route::post('/admin/confirm', 'ApiNotification@adminOutletComfirm');
+    Route::post('/admin/confirm', 'ApiNotification@adminOutletConfirm');
     Route::get('setting/cashback', 'ApiSettingCashbackController@list');
     Route::post('setting/cashback/update', 'ApiSettingCashbackController@update');
     Route::post('/dump', 'ApiDumpController@dumpData');
@@ -113,7 +113,7 @@ Route::group(['prefix' => 'api/transaction', 'middleware' => ['log_activities', 
     Route::any('/finish', 'ApiTransaction@transactionFinish');
     // Route::any('/cancel', 'ApiTransaction@transactionCancel');
     Route::any('/error', 'ApiTransaction@transactionError');
-    Route::any('/notif', 'ApiNotification@receiveNotification');
+    Route::any('/notif', 'ApiNotification@logReceiveNotification');
 });
 
 Route::group(['prefix' => 'api/transaction', 'middleware' => ['log_activities', 'auth:api', 'scopes:apps'], 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {

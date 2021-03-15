@@ -28,28 +28,18 @@ use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentBalance;
 
 use App\Jobs\FraudJob;
-use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Client;
-use Guzzle\Http\EntityBody;
-use Guzzle\Http\Message\Request as RequestGuzzle;
-use Guzzle\Http\Message\Response as ResponseGuzzle;
-use Guzzle\Http\Exception\ServerErrorResponseException;
 
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 
 use App\Lib\MyHelper;
-use App\Lib\PushNotificationHelper;
-use App\Lib\Midtrans;
 use App\Lib\GoSend;
 use Modules\IPay88\Entities\TransactionPaymentIpay88;
 use Modules\ShopeePay\Entities\TransactionPaymentShopeePay;
-use Validator;
 use Hash;
 use DB;
-use App\Lib\MailQueue as Mail;
-use DateTime;
+use App\Http\Models\LogMidtrans;
 
 class ApiNotification extends Controller {
 
@@ -67,29 +57,51 @@ class ApiNotification extends Controller {
         $this->promo_campaign	= "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
     }
 
+    public function logReceiveNotification(Request $request) {
+        $midtrans = $request->json()->all();
+        $response = $this->receiveNotification($request);
+        try {
+            LogMidtrans::create([
+                'type'                 => 'notification',
+                'id_reference'         => $midtrans['order_id'],
+                'request'              => json_encode($midtrans),
+                'request_url'          => $request->url(),
+                'response'             => json_encode($response),
+                'response_status_code' => $token['status_code']??null,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed write log to LogMidtrans: ' . $e->getMessage());
+        }
+
+        return $response;
+    }
+
     /* RECEIVE NOTIFICATION */
     public function receiveNotification(Request $request) {
         $midtrans = $request->json()->all();
 
         DB::beginTransaction();
 
+    try{
         // CHECK ORDER ID
         if (stristr($midtrans['order_id'], "TRX")) {
             // TRANSACTION
             $transac = Transaction::with('user.memberships', 'logTopup')->where('transaction_receipt_number', $midtrans['order_id'])->first();
 
             if (empty($transac)) {
-                DB::rollBack();
+                DB::rollback();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['Transaction not found']
                 ]);
             }
+                
+            $old_payment_status = $transac->transaction_payment_status;
 
             // PROCESS
             $checkPayment = $this->checkPayment($transac, $midtrans);
             if (!$checkPayment) {
-                DB::rollBack();
+                DB::rollback();
                 return response()->json([
                     'status'   => 'fail',
                     'messages' => ['Transaction not found']
@@ -108,12 +120,11 @@ class ApiNotification extends Controller {
             $newTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction')->where('transaction_receipt_number', $midtrans['order_id'])->first();
 
             $checkType = TransactionMultiplePayment::where('id_transaction', $newTrx['id_transaction'])->get()->toArray();
-
             $column = array_column($checkType, 'type');
 
             // $user = User::where('id', $newTrx['id_user'])->first();
             // if (empty($user)) {
-            //     DB::rollBack();
+            //     DB::rollback();
             //     return response()->json([
             //         'status'   => 'fail',
             //         'messages' => ['Data Transaction Not Valid']
@@ -127,8 +138,12 @@ class ApiNotification extends Controller {
                 if ($newTrx['detail']) {
                     //inset pickup_at when pickup_type = right now
                     if($newTrx['detail']['pickup_type'] == 'right now'){
-                        $settingTime = MyHelper::setting('processing_time', 'value', 0);
-                        $updatePickup = TransactionPickup::where('id_transaction', $newTrx['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s', strtotime('+ '.$settingTime.'minutes')?:time())]);
+                        $settingTime = Setting::where('key', 'processing_time')->first();
+                        if($settingTime && isset($settingTime['value'])){
+                            $updatePickup = TransactionPickup::where('id_transaction', $newTrx['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s', strtotime('+ '.$settingTime['value'].'minutes'))]);
+                        }else{
+                            $updatePickup = TransactionPickup::where('id_transaction', $newTrx['id_transaction'])->update(['pickup_at' => date('Y-m-d H:i:s')]);
+                        }
                     }
                     // book gosend after outlet receive order only
                     // if ($newTrx['detail']['pickup_by'] == 'GO-SEND') {
@@ -138,7 +153,7 @@ class ApiNotification extends Controller {
                     //     }
                     // }
                 } else {
-                    DB::rollBack();
+                    DB::rollback();
                     return response()->json([
                         'status'   => 'fail',
                         'messages' => ['Data Transaction Not Valid']
@@ -150,7 +165,7 @@ class ApiNotification extends Controller {
                 // if (!in_array('Balance', $column)) {
                 //     $savePoint = $this->savePoint($newTrx);
                 //     if (!$savePoint) {
-                //         DB::rollBack();
+                //         DB::rollback();
                 //         return response()->json([
                 //             'status'   => 'fail',
                 //             'messages' => ['Transaction failed']
@@ -167,32 +182,41 @@ class ApiNotification extends Controller {
                                 'messages' => ['Transaction failed']
                             ]);
                         }
+
                         $sendNotifOutlet = app($this->trx)->outletNotif($newTrx['id_transaction']);
     
-                        $kirim = $this->kirimOutlet($newTrx['transaction_receipt_number']);
-                        if (isset($kirim['status']) && $kirim['status'] == 1) {
+                        if($this->url_oauth != ''){
+                            $kirim = $this->kirimOutlet($newTrx['transaction_receipt_number']);
+                            if (isset($kirim['status']) && $kirim['status'] == 1) {
     
-                            // // apply cashback to referrer
+                                // // apply cashback to referrer
+                                // \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($newTrx);
+    
+                                DB::commit();
+                                // langsung
+                                return response()->json(['status' => 'success']);
+                            } elseif (isset($kirim['status']) && $kirim['status'] == 'fail') {
+                                if (isset($kirim['messages'])) {
+                                    DB::rollback();
+                                    return response()->json([
+                                        'status'   => 'fail',
+                                        'messages' => $kirim['messages']
+                                    ]);
+                                }
+                            } else {
+                                DB::rollback();
+                                return response()->json([
+                                    'status'   => 'fail',
+                                    'messages' => ['failed']
+                                ]);
+                            }
+                        }else{
+                            //  // apply cashback to referrer
                             // \Modules\PromoCampaign\Lib\PromoCampaignTools::applyReferrerCashback($newTrx);
     
                             DB::commit();
-                            // langsung
-                            return response()->json(['status' => 'success']);
-                        } elseif (isset($kirim['status']) && $kirim['status'] == 'fail') {
-                            if (isset($kirim['messages'])) {
-                                DB::rollBack();
-                                return response()->json([
-                                    'status'   => 'fail',
-                                    'messages' => $kirim['messages']
-                                ]);
-                            }
-                        } else {
-                            DB::rollBack();
-                            return response()->json([
-                                'status'   => 'fail',
-                                'messages' => ['failed']
-                            ]);
                         }
+                        
                     }
                 }
 
@@ -225,36 +249,39 @@ class ApiNotification extends Controller {
                 if (count($checkType) > 0) {
                     foreach ($checkType as $key => $value) {
                         if ($value['type'] == 'Balance') {
+                            if ($old_payment_status != 'Pending') {
+                                DB::commit();
+                                return response()->json(['status' => 'success']);
+                            }
                             $checkBalance = TransactionPaymentBalance::where('id_transaction_payment_balance', $value['id_payment'])->first();
                             if (!empty($checkBalance)) {
                                 $insertDataLogCash = app($this->balance)->addLogBalance($newTrx['id_user'], $checkBalance['balance_nominal'], $newTrx['id_transaction'], 'Rejected Order', $newTrx['transaction_grandtotal']);
                                 if (!$insertDataLogCash) {
-                                    DB::rollBack();
+                                    DB::rollback();
                                     return response()->json([
                                         'status'    => 'fail',
                                         'messages'  => ['Insert Cashback Failed']
                                     ]);
                                 }
+                                $usere = User::where('id', $newTrx['id_user'])->first();
+                                $send = app($this->autocrm)->SendAutoCRM('Rejected Order Point Refund', $usere->phone,
+                                    [
+                                        "outlet_name"       => $newTrx['outlet']['outlet_name'],
+                                        "transaction_date"  => $newTrx['transaction_date'],
+                                        'id_transaction'    => $newTrx['id_transaction'],
+                                        'receipt_number'    => $newTrx['transaction_receipt_number'],
+                                        'received_point'    => (string) $checkBalance['balance_nominal'],
+                                        'order_id'          => $newTrx['detail']['order_id'] ?? '',
+                                    ]
+                                );
+                                if($send != true){
+                                    DB::rollback();
+                                    return response()->json([
+                                            'status' => 'fail',
+                                            'messages' => ['Failed Send notification to customer']
+                                        ]);
+                                }
                             }
-
-	                        $usere = User::where('id', $newTrx['id_user'])->first();
-
-	                        $send = app($this->autocrm)->SendAutoCRM('Rejected Order Point Refund', $usere->phone,
-	                            [
-	                                "outlet_name"       => $newTrx['outlet']['outlet_name'],
-	                                "transaction_date"  => $newTrx['transaction_date'],
-	                                'id_transaction'    => $newTrx['id_transaction'],
-	                                'receipt_number'    => $newTrx['transaction_receipt_number'],
-	                                'received_point'    => (string) $checkBalance['balance_nominal']
-	                            ]
-	                        );
-	                        if($send != true){
-	                            DB::rollBack();
-	                            return response()->json([
-	                                    'status' => 'fail',
-	                                    'messages' => ['Failed Send notification to customer']
-	                                ]);
-	                        }
                         }
                     }
                 }
@@ -263,7 +290,7 @@ class ApiNotification extends Controller {
             DB::commit();
             return response()->json(['status' => 'success']);
         }
-        else if (stristr($midtrans['order_id'], "SUBS")) {
+        elseif (stristr($midtrans['order_id'], "SUBS")) {
             // SUBSCRIPTION
             $subs = SubscriptionPaymentMidtran::where('order_id', $midtrans['order_id'])->first();
 
@@ -282,25 +309,25 @@ class ApiNotification extends Controller {
                 DB::beginTransaction();
                 $checkLogMid = LogTopupMidtrans::where('order_id', $midtrans['order_id'])->first();
                 if (empty($checkLogMid)) {
-                    DB::rollBack();
+                    DB::rollback();
                     return response()->json(['status' => 'fail']);
                 }
 
                 $checkLog = LogTopup::where('id_log_topup', $checkLogMid['id_log_topup'])->first();
                 if (empty($checkLog)) {
-                    DB::rollBack();
+                    DB::rollback();
                     return response()->json(['status' => 'fail']);
                 }
 
                 $user = User::where('id', $checkLog['id_user'])->first();
                 if (empty($user)) {
-                    DB::rollBack();
+                    DB::rollback();
                     return response()->json(['status' => 'fail']);
                 }
 
                 $dataMid = $this->processMidtrans($midtrans);
                 if (!$dataMid) {
-                    DB::rollBack();
+                    DB::rollback();
                     return response()->json(['status' => 'fail']);
                 }
 
@@ -309,7 +336,7 @@ class ApiNotification extends Controller {
                         $checkLog->topup_payment_status = 'Completed';
                         $checkLog->update();
                         if (!$checkLog) {
-                            DB::rollBack();
+                            DB::rollback();
                             return response()->json(['status' => 'fail']);
                         }
 
@@ -332,7 +359,7 @@ class ApiNotification extends Controller {
                         $checkLog->enc = $enc;
                         $checkLog->update();
                         if (!$checkLog) {
-                            DB::rollBack();
+                            DB::rollback();
                             return response()->json(['status' => 'fail']);
                         }
                     }
@@ -355,8 +382,15 @@ class ApiNotification extends Controller {
             }
 
         }
+    }catch(\Log $error){
+        DB::rollback();
+        return response()->json([
+            'status'   => 'fail',
+            'messages' => ['Transaction not found']
+        ]);
+    }
 
-        DB::rollBack();
+        DB::rollback();
         return response()->json([
             'status'   => 'fail',
             'messages' => ['Transaction not found']
@@ -398,6 +432,7 @@ class ApiNotification extends Controller {
             'id_transaction' => $trx['id_transaction'],
             'name'  => $trx->user->name,
             'id' => $mid['order_id'],
+            'order_id' => $mid['order_id'],
             'outlet_name' => $outlet,
             'detail' => $detail,
             'payment' => $payment,
@@ -440,6 +475,7 @@ class ApiNotification extends Controller {
             'status' => $trx['transaction_payment_status'],
             'name'  => $trx->user->name,
             'id' => $mid['order_id'],
+            'order_id' => $mid['order_id'],
             'outlet_name' => $outlet,
             'detail' => $detail,
             'id_reference' => $mid['order_id'].','.$trx['id_outlet']
@@ -481,6 +517,7 @@ class ApiNotification extends Controller {
             'status' => $trx['transaction_payment_status'],
             'name'  => $trx->user->name,
             'id' => $mid['order_id'],
+            'order_id' => $mid['order_id'],
             'outlet_name' => $outlet,
             'detail' => $detail,
             'id_reference' => $mid['order_id'].','.$trx['id_outlet']
@@ -503,22 +540,7 @@ class ApiNotification extends Controller {
         $receipt = $trx['transaction_receipt_number'];
         $detail = $this->htmlDetailTrxSuccess($trx['id_transaction']);
 
-        if ($trx['transaction_payment_status'] == 'Pending') {
-            $title = 'Pending';
-        }
-
-        if ($trx['transaction_payment_status'] == 'Paid') {
-            $title = 'Terbayar';
-        }
-
-        if ($trx['transaction_payment_status'] == 'Completed') {
-            $title = 'Sukses';
-        }
-
-        if ($trx['transaction_payment_status'] == 'Cancelled') {
-            $title = 'Gagal';
-        }
-
+        $title = 'Sukses';
         $send = app($this->autocrm)->SendAutoCRM('Transaction Success', $trx->user->phone, [
             'notif_type' => 'trx',
             'header_label' => $title,
@@ -563,7 +585,7 @@ class ApiNotification extends Controller {
 
             $insertDataLog = LogPoint::updateOrCreate(['id_reference' => $data['id_transaction'], 'source' => 'Transaction'], $dataLog);
             if (!$insertDataLog) {
-                DB::rollBack();
+                DB::rollback();
                 return false;
             }
 
@@ -581,7 +603,7 @@ class ApiNotification extends Controller {
 
                 $insertDataLogCash = app($this->balance)->addLogBalance( $data['id_user'], $data['transaction_cashback_earned'], $data['id_transaction'], 'Transaction', $data['transaction_grandtotal']);
                 if (!$insertDataLogCash) {
-                    DB::rollBack();
+                    DB::rollback();
                     return false;
                 }
                 $usere= User::where('id',$data['id_user'])->first();
@@ -595,7 +617,7 @@ class ApiNotification extends Controller {
                     ]
                 );
                 if($send != true){
-                    DB::rollBack();
+                    DB::rollback();
                     return false;
                 }
             }
@@ -654,22 +676,21 @@ Detail: ".$link['short'],
             }
 
             if (isset($mid['status_code']) && $mid['status_code'] == 200) {
+                if ($trx['transaction_payment_status'] == 'Cancelled') {
+                    $tpm = TransactionPaymentMidtran::where('id_transaction', $trx['id_transaction'])->first();
+                    if (!$tpm) {
+                        return false;
+                    }
+                    Midtrans::refund($tpm['vt_transaction_id'], null, $midtrans['transaction_status']);
+                    return true;
+                }
                 if ($mid['transaction_status'] == 'capture' || $mid['transaction_status'] == 'settlement') {
                     $check = LogTopup::where('id_log_topup', $trx['logTopup']['id_log_topup'])->update(['topup_payment_status' => 'Completed', 'payment_type' => 'Midtrans']);
 
                     if ($check) {
-                        $upTrx = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Completed','completed_at'=>date('Y-m-d H:i:s')]);
+                        $upTrx = Transaction::where('id_transaction', $trx['id_transaction'])->update(['transaction_payment_status' => 'Completed', 'completed_at' => date('Y-m-d H:i:s')]);
                         if (!$upTrx) {
                             return false;
-                        }
-
-                        $pickup = TransactionPickup::where('id_transaction', $trx['id_transaction'])->first();
-                        if ($pickup) {
-                            if ($pickup->pickup_by == 'GO-SEND') {
-                                $pickup->bookDelivery();
-                            } else {
-                                \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
-                            }
                         }
 
                         $fraud = $this->checkFraud($trx);
@@ -718,6 +739,11 @@ Detail: ".$link['short'],
                 // if($midtrans['transaction_status'] != 'settlement' && $midtrans['payment_type'] != 'credit_card'){
                     $deals = DealsUser::with(['userMid', 'deals'])->where('id_deals_user', $deals->id_deals_user)->first();
 
+                    if ($deals['paid_status'] == 'Cancelled') {
+                        Midtrans::refund($deals['order_id'], null, $midtrans['transaction_status']);
+                        return true;
+                    }
+
                     $title = "";
                     if(isset($deals['deals']['deals_title']) && $deals['deals']['deals_title'] != null){
                         $title = $deals['deals']['deals_title'];
@@ -750,7 +776,7 @@ Detail: ".$link['short'],
                 return true;
             }
         }
-        DB::rollBack();
+        DB::rollback();
         return false;
     }
 
@@ -768,6 +794,11 @@ Detail: ".$link['short'],
             if (isset($midtrans['status_code']) && $midtrans['status_code'] == 200) {
                 // if($midtrans['transaction_status'] != 'settlement' && $midtrans['payment_type'] != 'credit_card'){
                     $subs = SubscriptionUser::with(['user', 'subscription'])->where('id_subscription_user', $subs->id_subscription_user)->first();
+
+                    if ($subs['paid_status'] == 'Cancelled') {
+                        Midtrans::refund($subs['subscription_user_receipt_number'], null, $midtrans['transaction_status']);
+                        return true;
+                    }
 
                     $title = "";
                     if( $subs['subscription']['subscription_title'] ?? false){
@@ -801,7 +832,7 @@ Detail: ".$link['short'],
                 return true;
             }
         }
-        DB::rollBack();
+        DB::rollback();
         return false;
     }
 
@@ -868,8 +899,18 @@ Detail: ".$link['short'],
         }
 
         if (isset($midtrans['status_code']) && $midtrans['status_code'] == 200) {
-            if ($midtrans['transaction_status'] == 'capture' || $midtrans['transaction_status'] == 'settlement') {
-                $check = Transaction::where('id_transaction', $trx->id_transaction)->update(['transaction_payment_status' => 'Completed','completed_at'=>date('Y-m-d H:i:s')]);
+            if ($trx['transaction_payment_status'] == 'Cancelled') {
+                $tpm = TransactionPaymentMidtran::where('id_transaction', $trx['id_transaction'])->first();
+                if (!$tpm) {
+                    return false;
+                }
+                Midtrans::refund($tpm['vt_transaction_id'], null, $midtrans['transaction_status']);
+                return true;
+            }
+            if ($midtrans['transaction_status'] == 'refund' ) {
+                return true;
+            }elseif ($midtrans['transaction_status'] == 'capture' || $midtrans['transaction_status'] == 'settlement') {
+                $check = Transaction::where('id_transaction', $trx->id_transaction)->update(['transaction_payment_status' => 'Completed', 'completed_at' => date('Y-m-d H:i:s')]);
                 if (!$check) {
                     return false;
                 }
@@ -895,7 +936,7 @@ Detail: ".$link['short'],
                 }
             }
         } elseif (isset($midtrans['status_code']) && $midtrans['status_code'] == 202) {
-            $check = Transaction::where('id_transaction', $trx->id_transaction)->update(['transaction_payment_status' => 'Cancelled']);
+            $check = Transaction::where('id_transaction', $trx->id_transaction)->update(['transaction_payment_status' => 'Cancelled', 'void_date' => date('Y-m-d H:i:s')]);
 
             if (!$check) {
                 return false;
@@ -990,7 +1031,7 @@ Detail: ".$link['short'],
         ]);
     }
 
-    public function adminOutletComfirm(Request $request) {
+    public function adminOutletConfirm(Request $request) {
         $post = $request->json()->all();
         // return $post;
         $transaction = Transaction::where('transaction_receipt_number', $post['receipt'])->first();
@@ -1023,6 +1064,8 @@ Detail: ".$link['short'],
             } else {
                 $detail->taken_at = date('Y-m-d H:i:s');
                 $detail->id_admin_outlet_taken = $post['id'];
+                $transaction->show_rate_popup = 1;
+                $transaction->save();
             }
         }
 
@@ -1056,30 +1099,12 @@ Detail: ".$link['short'],
 
         $trxBalance = TransactionMultiplePayment::where('id_transaction', $data['id_transaction'])->first();
 
-        $balanceNow = app($this->balance)->balanceNow($data['id_user']);
-
         if (empty($trxBalance)) {
             $insertDataLogCash = app($this->balance)->addLogBalance( $data['id_user'], -$data['transaction_grandtotal'], $data['id_transaction'], 'Transaction', $data['transaction_grandtotal']);
         } else {
             $paymentBalanceTrx = TransactionPaymentBalance::where('id_transaction', $data['id_transaction'])->first();
             $insertDataLogCash = app($this->balance)->addLogBalance( $data['id_user'], -$paymentBalanceTrx['balance_nominal'], $data['id_transaction'], 'Transaction', $data['transaction_grandtotal']);
         }
-
-        // why send notif in here ???
-        // $usere= User::where('id',$data['id_user'])->first();
-        // $send = app($this->autocrm)->SendAutoCRM('Transaction Point Achievement', $usere->phone,
-        //     [
-        //         "outlet_name"       => $data['outlet']['outlet_name'],
-        //         "transaction_date"  => $data['transaction_date'],
-        //         'id_transaction'    => $data['id_transaction'],
-        //         'receipt_number'    => $data['transaction_receipt_number'],
-        //         'received_point'    => (string) $data['transaction_cashback_earned']
-        //     ]
-        // );
-        // if($send != true){
-        //     DB::rollBack();
-        //     return false;
-        // }
 
         if ($insertDataLogCash == false) {
             return false;
@@ -1147,9 +1172,11 @@ Detail: ".$link['short'],
         }
         //update id from go-send
         $updateGoSend = TransactionPickupGoSend::find($trx['detail']['transaction_pickup_go_send']['id_transaction_pickup_go_send']);
+        $status = GoSend::getStatus($trx['transaction_receipt_number']);
         if($updateGoSend){
             $updateGoSend->go_send_id = $booking['id'];
             $updateGoSend->go_send_order_no = $booking['orderNo'];
+            $updateGoSend->latest_status = $status['status']??null;
             $updateGoSend->save();
 
             if(!$updateGoSend){
