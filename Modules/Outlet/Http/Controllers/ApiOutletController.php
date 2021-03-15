@@ -968,8 +968,13 @@ class ApiOutletController extends Controller
                 $processing = $settingTime->value;
             }
 
+            $activeDelivery = json_decode(MyHelper::setting('active_delivery_methods', 'value_text', '[]'), true) ?? [];
+            $active = array_sum(array_column($activeDelivery ?? [], 'status'));
             foreach ($outlet as $key => $value) {
 				$outlet[$key]['is_promo'] = 0;
+                if (!$active) {
+                    $outlet[$key]['delivery_order'] = 0;
+                }
 			}
 			
 			$promo_data = $this->applyPromo($post, $outlet, $promo_error);
