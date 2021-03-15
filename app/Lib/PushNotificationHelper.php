@@ -129,8 +129,7 @@ class PushNotificationHelper{
         // $notificationBuilder = new PayloadNotificationBuilder("");
         $notificationBuilder = new CustomPayloadNotificationBuilder($subject);
         $notificationBuilder->setBody($messages)
-                            ->setSound('default')
-                            ->setClickAction('Home');
+                            ->setSound('default');
         if($image){
             $notificationBuilder->setImage($image);
         }
