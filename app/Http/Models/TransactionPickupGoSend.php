@@ -263,6 +263,8 @@ class TransactionPickupGoSend extends Model
                     'go_send_order_no'              => $status['orderNo'] ?? ''
                 ];
                 GoSend::saveUpdate($dataSave);
+            } elseif (in_array(strtolower($status['status']), ['allocated', 'out_for_pickup'])) {
+                \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
             } elseif (in_array(strtolower($status['status']), ['cancelled', 'rejected', 'no_driver'])) {
                 $this->update([
                     'live_tracking_url' => null,

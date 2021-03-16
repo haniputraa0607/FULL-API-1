@@ -211,7 +211,7 @@ class ApiGosendController extends Controller
                         'go_send_order_no'              => $post['booking_id']
                     ];
                     GoSend::saveUpdate($dataSave);
-                } elseif (in_array(strtolower($post['status']), ['out_for_pickup'])) {
+                } elseif (in_array(strtolower($post['status']), ['allocated', 'out_for_pickup'])) {
                     \App\Lib\ConnectPOS::create()->sendTransaction($id_transaction);
                 } elseif (in_array(strtolower($post['status']), ['cancelled', 'rejected', 'no_driver'])) {
                     $tpg->update([
