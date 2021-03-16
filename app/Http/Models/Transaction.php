@@ -426,7 +426,7 @@ class Transaction extends Model
 		if ($this->transaction_discount_delivery) {
 			if ($this->id_promo_campaign_promo_code_delivery) {
 				$promo = \Modules\PromoCampaign\Entities\PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $this->id_promo_campaign_promo_code_delivery)
-					->join('promo_campaigns', 'promo_campaign_promo_codes.id_promo_campaign', 'promo_campaign_promo_codes.id_promo_campaign')
+					->join('promo_campaigns', 'promo_campaign_promo_codes.id_promo_campaign', 'promo_campaigns.id_promo_campaign')
 					->first();
 				if ($promo) {
 					return [
