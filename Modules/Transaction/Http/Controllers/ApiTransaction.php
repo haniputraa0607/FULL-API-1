@@ -2047,7 +2047,7 @@ class ApiTransaction extends Controller
                         'cancelable' => 0,
                         'go_send_order_no' => $list['transaction_pickup_go_send']['go_send_order_no']?:'',
                         'live_tracking_url' => $list['transaction_pickup_go_send']['live_tracking_url']?:'',
-                        'delivery_id_name' => 'Gosend ID'
+                        'delivery_id_name' => null
                     ];
                 } elseif ($list['detail']['pickup_by'] == 'Outlet') {
                     // $result['transaction_status'] = 5;
@@ -2118,7 +2118,8 @@ class ApiTransaction extends Controller
                             'booking_status' => $list['transaction_payment_status'] == 'Pending' ? 1 : 0,
                             'cancelable' => 1,
                             'go_send_order_no' => $list['transaction_pickup_go_send']['go_send_order_no']?:'',
-                            'live_tracking_url' => $list['transaction_pickup_go_send']['live_tracking_url']?:''
+                            'live_tracking_url' => $list['transaction_pickup_go_send']['live_tracking_url']?:'',
+                            'delivery_id_name' => 'Gosend ID'
                         ];
                         if($list['transaction_pickup_go_send']['go_send_id']){
                             $result['delivery_info']['booking_status'] = 1;
