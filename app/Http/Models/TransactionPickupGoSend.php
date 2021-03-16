@@ -194,7 +194,7 @@ class TransactionPickupGoSend extends Model
             if ($status['vehicleNumber'] ?? false) {
                 $toUpdate['vehicle_number'] = $status['vehicleNumber'];
             }
-            if (!in_array(strtolower($status['status']), ['allocated', 'no_driver', 'cancelled']) && strpos(env('GO_SEND_URL'), 'integration')) {
+            if (!in_array(strtolower($status['status']), ['confirmed', 'no_driver', 'cancelled']) && strpos(env('GO_SEND_URL'), 'integration')) {
                 $toUpdate['driver_id']      = '00510001';
                 $toUpdate['driver_phone']   = '08111251307';
                 $toUpdate['driver_name']    = 'Anton Lucarus';
