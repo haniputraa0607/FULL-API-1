@@ -3174,11 +3174,6 @@ class ApiOnlineTransaction extends Controller
                             $shipment2['price_pretty'] = $shipment2['price'] !== null ? MyHelper::requestNumber($shipment2['price'], '_CURRENCY') : '';
                         } else {
                             $shipment2['price_pretty'] = '';
-                            if ($show_all) {
-                                $shipment2['status'] = 0;
-                            } else {
-                                unset($availableShipment[$index]);
-                            }
                         }
                     }
                 }
