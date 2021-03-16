@@ -203,7 +203,7 @@ class ApiGosendController extends Controller
                     }
                     $status = GoSend::getStatus($post['booking_id'], true);
                     $arrived_at = date('Y-m-d H:i:s', ($status['orderArrivalTime']??false)?strtotime($status['orderArrivalTime']):time());
-                    TransactionPickup::where('id_transaction', $trx->id_transaction)->update(['arrived_at' => $arrived_at]);
+                    TransactionPickup::where('id_transaction', $trx->id_transaction)->update(['taken_at' => $arrived_at]);
                     $dataSave       = [
                         'id_transaction'                => $id_transaction,
                         'id_transaction_pickup_go_send' => $tpg['id_transaction_pickup_go_send'],
@@ -211,7 +211,7 @@ class ApiGosendController extends Controller
                         'go_send_order_no'              => $post['booking_id']
                     ];
                     GoSend::saveUpdate($dataSave);
-                } elseif (in_array(strtolower($post['status']), ['out_for_pickup'])) {
+                } elseif (in_array(strtolower($post['status']), ['allocated', 'out_for_pickup'])) {
                     \App\Lib\ConnectPOS::create()->sendTransaction($id_transaction);
                 } elseif (in_array(strtolower($post['status']), ['cancelled', 'rejected', 'no_driver'])) {
                     $tpg->update([

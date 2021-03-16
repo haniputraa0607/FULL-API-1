@@ -122,10 +122,10 @@ class ApiPOS extends Controller
             ->first();
 
         if ($check) {
-            $voucher = TransactionVoucher::where('id_transaction',$check->id_transaction)->first();
-            $appliedPromo = "";
-            $promoNumber = "";
-            if($check['id_promo_campaign_promo_code'] || $voucher){
+            $vouchers = TransactionVoucher::where('id_transaction',$check->id_transaction)->get();
+            $appliedPromo = '';
+            $promoNumber = '';
+            if($check['id_promo_campaign_promo_code'] || count($vouchers)){
                 $appliedPromo = 'MOBILE APPS PROMO';
                 // if($trxData->id_promo_campaign_promo_code){
                 //  $promoNumber = $trxData->promo_campaign_promo_code->promo_code;
@@ -134,6 +134,22 @@ class ApiPOS extends Controller
                 //  $promoNumber = $voucher->deals_voucher->voucher_code;
                 // }
                 $promoNumber = '01198';
+                $hasPromoProduct = true;
+                if (!$check['id_promo_campaign_promo_code']) {
+                    $hasPromoProduct = false;
+                    foreach ($vouchers as $voucher) {
+                        $voucher->load('deals_voucher.deals');
+                        if (($voucher['deals_voucher']['deals']['promo_type'] ?? false) != 'Discount delivery') {
+                            $hasPromoProduct = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!$hasPromoProduct) {
+                    $appliedPromo = '';
+                    $promoNumber = '';
+                }
             }
             $trxData = $check;
             $check = $check->toArray();
@@ -193,8 +209,8 @@ class ApiPOS extends Controller
                     'longitude' => $deliveryData->destination_longitude, 
                     'courierName' => 'GOSEND', 
                     'deliveryCost' => $trxData->transaction_shipment, 
-                    'discDeliveryCost' => $trxData->transaction_discount_delivery, 
-                    'netDeliveryCost' => $trxData->transaction_shipment - $trxData->transaction_discount_delivery, 
+                    'discDeliveryCost' => abs($trxData->transaction_discount_delivery), 
+                    'netDeliveryCost' => $trxData->transaction_shipment - abs($trxData->transaction_discount_delivery), 
                     'promoDeliveryId' => '', 
                     'promoDeliveryDesc' => '', 
                     'note' => $deliveryData->destination_note ?: ''
@@ -214,8 +230,8 @@ class ApiPOS extends Controller
                     'longitude' => $deliveryData->destination_longitude, 
                     'courierName' => 'Internal Delivery', 
                     'deliveryCost' => $trxData->transaction_shipment, 
-                    'discDeliveryCost' => $trxData->transaction_discount_delivery, 
-                    'netDeliveryCost' => $trxData->transaction_shipment - $trxData->transaction_discount_delivery, 
+                    'discDeliveryCost' => abs($trxData->transaction_discount_delivery), 
+                    'netDeliveryCost' => $trxData->transaction_shipment - abs($trxData->transaction_discount_delivery), 
                     'promoDeliveryId' => '', 
                     'promoDeliveryDesc' => '', 
                     'note' => $deliveryData->destination_note ?: ''
