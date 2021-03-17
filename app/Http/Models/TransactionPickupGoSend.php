@@ -240,19 +240,6 @@ class TransactionPickupGoSend extends Model
 
                     $newTrx->update(['cashback_insert_status' => 1]);
                     $checkMembership = app($this->membership)->calculateMembership($user['phone']);
-                    $send = app($this->autocrm)->SendAutoCRM('Order Ready', $user['phone'], [
-                        "outlet_name"      => $outlet['outlet_name'],
-                        'id_transaction'   => $trx->id_transaction,
-                        "id_reference"     => $trx->transaction_receipt_number . ',' . $trx->id_outlet,
-                        "transaction_date" => $trx->transaction_date,
-                        'order_id'         => $trx->order_id,
-                    ]);
-                    if ($send != true) {
-                        return response()->json([
-                            'status'   => 'fail',
-                            'messages' => ['Failed Send notification to customer'],
-                        ]);
-                    }
                 }
                 $arrived_at = date('Y-m-d H:i:s', ($status['orderArrivalTime']??false)?strtotime($status['orderArrivalTime']):time());
                 TransactionPickup::where('id_transaction', $trx->id_transaction)->update(['taken_at' => $arrived_at]);
@@ -265,7 +252,7 @@ class TransactionPickupGoSend extends Model
                 GoSend::saveUpdate($dataSave);
             } elseif (in_array(strtolower($status['status']), ['allocated', 'out_for_pickup'])) {
                 \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
-            } elseif (in_array(strtolower($status['status']), ['cancelled', 'rejected', 'no_driver'])) {
+            } elseif (in_array(strtolower($status['status']), ['no_driver'])) {
                 $this->update([
                     'live_tracking_url' => null,
                     'driver_id' => null,
@@ -283,6 +270,19 @@ class TransactionPickupGoSend extends Model
                 ];
                 GoSend::saveUpdate($dataSave);
                 $this->book(true);
+            } elseif (in_array(strtolower($status['status']), ['cancelled', 'rejected'])) {
+                $dataSave = [
+                    'id_transaction'                => $trx['id_transaction'],
+                    'id_transaction_pickup_go_send' => $this['id_transaction_pickup_go_send'],
+                    'status'                        => $status['status'] ?? 'on_going',
+                    'go_send_order_no'              => $status['orderNo'] ?? ''
+                ];
+                GoSend::saveUpdate($dataSave);
+                // masuk flow rejected
+                $cancel = $trx->cancelOrder('auto reject order by system [delivery '.strtolower($status['status']).']', $errors);
+                if (!$cancel) {
+                    \Log::error('Failed cancel order gosend for '.$trx->transaction_receipt_number, $errors ?: []);
+                }
             } else {
                 $dataSave = [
                     'id_transaction'                => $trx['id_transaction'],

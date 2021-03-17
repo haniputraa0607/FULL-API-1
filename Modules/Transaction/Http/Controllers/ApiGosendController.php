@@ -213,7 +213,7 @@ class ApiGosendController extends Controller
                     GoSend::saveUpdate($dataSave);
                 } elseif (in_array(strtolower($post['status']), ['allocated', 'out_for_pickup'])) {
                     \App\Lib\ConnectPOS::create()->sendTransaction($id_transaction);
-                } elseif (in_array(strtolower($post['status']), ['cancelled', 'rejected', 'no_driver'])) {
+                } elseif (in_array(strtolower($post['status']), ['no_driver'])) {
                     $tpg->update([
                         'live_tracking_url' => null,
                         'driver_id' => null,
@@ -231,7 +231,20 @@ class ApiGosendController extends Controller
                     ];
                     GoSend::saveUpdate($dataSave);
                     $tpg->book(true);
-                }else{
+                } elseif (in_array(strtolower($post['status']), ['cancelled', 'rejected'])) {
+                    $dataSave       = [
+                        'id_transaction'                => $id_transaction,
+                        'id_transaction_pickup_go_send' => $tpg['id_transaction_pickup_go_send'],
+                        'status'                        => $post['status'],
+                        'go_send_order_no'              => $post['booking_id']
+                    ];
+                    GoSend::saveUpdate($dataSave);
+                    // masuk flow rejected
+                    $cancel = $trx->cancelOrder('auto reject order by system [delivery '.strtolower($post['status']).']', $errors);
+                    if (!$cancel) {
+                        \Log::error('Failed cancel order gosend for '.$trx->transaction_receipt_number, $errors ?: []);
+                    }
+                } else{
                     $dataSave       = [
                         'id_transaction'                => $id_transaction,
                         'id_transaction_pickup_go_send' => $tpg['id_transaction_pickup_go_send'],
