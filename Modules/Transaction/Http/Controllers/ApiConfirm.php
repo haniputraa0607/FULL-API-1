@@ -66,6 +66,9 @@ class ApiConfirm extends Controller
             ]);
         }
 
+        $payment_id = strtoupper(str_replace(' ', '_', $post['payment_id']??$post['payment_detail']??null));
+        $post['payment_id'] = $payment_id;
+
         $checkPayment = TransactionMultiplePayment::where('id_transaction', $check['id_transaction'])->first();
 
         $countGrandTotal = $check['transaction_grandtotal'];
@@ -256,6 +259,24 @@ class ApiConfirm extends Controller
                 'gross_amount'   => $check['transaction_grandtotal'],
                 'order_id'       => $check['transaction_receipt_number'],
             ];
+
+            switch ($payment_id) {
+                case 'CREDIT_CARD':
+                    $dataNotifMidtrans['payment_type'] = 'Credit Card';
+                    break;
+
+                case 'GOPAY':
+                    $dataNotifMidtrans['payment_type'] = 'Gopay';
+                    break;
+                
+                case 'SHOPEEPAY':
+                    $dataNotifMidtrans['payment_type'] = 'Shopeepay';
+                    break;
+                
+                default:
+                    $dataNotifMidtrans['payment_type'] = null;
+                    break;
+            }
 
             $insertNotifMidtrans = TransactionPaymentMidtran::create($dataNotifMidtrans);
             if (!$insertNotifMidtrans) {
