@@ -1869,7 +1869,7 @@ class ApiTransaction extends Controller
                     $result['transaction_status'] = 'Order Received';
                     $result['transaction_status_code'] = 3;
                 } else {
-                    $result['transaction_status'] = 'Order Pending';
+                    $result['transaction_status'] = 'Waiting for Outlet Confirmation';
                     $result['transaction_status_code'] = 4;
                 }
             }else{
@@ -2265,6 +2265,13 @@ class ApiTransaction extends Controller
                             }
                         }
                     }
+                }
+
+                if ($list['transaction_payment_status'] == 'Completed') {
+                        $result['detail']['detail_status'][] = [
+                        'text'  => 'Your order awaits outlet confirmation',
+                        'date'  => date('d F Y H:i', strtotime($list['completed_at'])),
+                    ];
                 }
 
                 $result['detail']['detail_status'][] = [
