@@ -704,5 +704,72 @@ class IPay88
     	}
     	return false;
     }
+
+	/**
+	 * Signing data (add signature parameter) for void request
+	 * @param  array $data array of full unsigned data
+	 * @return array       array of signed data
+	 */
+	public function signVoid($data) {
+		$string = '||'.$this->merchant_key.'||'.$data['MerchantCode'].'||'.$data['RefNo'].'||'.$data['Amount'].'||';
+		$signature = hash ( 'sha256' ,$string);
+		$data['Signature'] = $signature;
+		return $data;
+	}
+
+    /**
+     * Void ipay88 payment
+     * @param  Model $model Transaction/DealsUser Model
+     * @return [type]         [description]
+     */
+    public function void($model, $type = 'trx', $triggers = 'user')
+    {
+    	if (is_numeric($model)) {
+    		switch ($type) {
+    			case 'trx':
+    				$model = TransactionPaymentIpay88::where('id_transaction',$model)->first();
+    				break;
+
+    			case 'deals':
+    				$model = DealsPaymentIpay88::where('id_deals_user',$model)->first();
+    				break;
+
+    			default:
+    				return false;
+    		}
+    	}
+
+    	if (!$model) {
+    		return true;
+    	}
+
+		$submitted = $this->signVoid([
+			'MerchantCode' => $model['merchant_code'] ?: $this->merchant_code,
+			'RefNo' => $model['ref_no'],
+			'Reason' => 'Pengembalian dana',
+			'Amount' => $model['amount']/100
+		]);
+
+		$url = $this->void_url.'?'.http_build_query($submitted);
+		$response = MyHelper::postWithTimeout($url,null,$submitted,0);
+
+        $toLog = [
+            'type' => $type.'_void',
+            'triggers' => $triggers,
+            'id_reference' => $model['ref_no'],
+            'request' => json_encode($submitted),
+            'request_header' => '',
+            'request_url' => $url,
+            'response' => json_encode($response['response']),
+            'response_status_code' => json_encode($response['status_code'])
+        ];
+        try{
+            LogIpay88::create($toLog);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+        }
+
+        return $response['response']['Code']??'0';
+    }
 }
 ?>

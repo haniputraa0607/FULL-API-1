@@ -1016,7 +1016,7 @@ class ShopeePayController extends Controller
          *     }
          * }
          */
-        return $response;
+        return !($response['response']['errcode'] ?? 0);
     }
 
     /**
