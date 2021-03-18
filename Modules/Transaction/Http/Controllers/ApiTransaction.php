@@ -2089,16 +2089,30 @@ class ApiTransaction extends Controller
                     ];
                     }
                     if ($list['detail']['taken_at'] != null) {
-                        $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order has been picked up',
-                        'date'  => date('d F Y H:i', strtotime($list['detail']['taken_at']))
-                    ];
+                        if ($list['detail']['pickup_by'] == 'Outlet') {
+                            $result['detail']['detail_status'][] = [
+                                'text'  => 'Order completed',
+                                'date'  => date('d F Y H:i', strtotime($list['detail']['taken_at']))
+                            ];
+                        } else {
+                            $result['detail']['detail_status'][] = [
+                                'text'  => 'Your order has been picked up',
+                                'date'  => date('d F Y H:i', strtotime($list['detail']['taken_at']))
+                            ];
+                        }
                     }
                     if ($list['detail']['ready_at'] != null) {
-                        $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order is ready ',
-                        'date'  => date('d F Y H:i', strtotime($list['detail']['ready_at']))
-                    ];
+                        if ($list['detail']['pickup_by'] == 'Outlet') {
+                            $result['detail']['detail_status'][] = [
+                                'text'  => 'Deliver by MAXX Coffee',
+                                'date'  => date('d F Y H:i', strtotime($list['detail']['ready_at']))
+                            ];
+                        } else {
+                            $result['detail']['detail_status'][] = [
+                                'text'  => 'Your order is ready ',
+                                'date'  => date('d F Y H:i', strtotime($list['detail']['ready_at']))
+                            ];
+                        }
                     }
                     if ($list['detail']['receive_at'] != null) {
                         $result['detail']['detail_status'][] = [
