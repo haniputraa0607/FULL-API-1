@@ -1860,7 +1860,7 @@ class ApiTransaction extends Controller
                     $result['transaction_status_code'] = 1;
                 } elseif($list['detail']['ready_at'] != null) {
                     if (($list['detail']['pickup_by'] ?? false) == 'Outlet') {
-                        $result['transaction_status'] = 'Deliver by MAXX Coffee';
+                        $result['transaction_status'] = 'Maxx Crew Delivering your order';
                     } else {
                         $result['transaction_status'] = 'Order Is Ready';
                     }
@@ -1954,9 +1954,9 @@ class ApiTransaction extends Controller
             if (!empty($list['promo_campaign_promo_code_delivery']) && $list['promo_campaign_promo_code_delivery']['promo_campaign']['promo_type'] != 'Referral') {
                 $result['promo']['code'][$p++]   = $list['promo_campaign_promo_code_delivery']['promo_code'];
                 $payment_detail_discount_delivery[] = [
-                    'name'          => 'Discount',
+                    'name'          => 'Delivery Discount',
                     // 'desc'          => $list['promo_campaign_promo_code_delivery']['promo_code'],
-                    'desc'          => 'Delivery',
+                    'desc'          => null,
                     "is_discount"   => 1,
                     'amount'        => (string) '-'.MyHelper::requestNumber($discount_delivery,'_CURRENCY')
                 ];
@@ -2013,8 +2013,9 @@ class ApiTransaction extends Controller
             			$delivery_text = '';
             			break;
             	}
+	            $delivery_text = null;
             	$result['payment_detail'][] = [
-	                'name'      => 'Delivery',
+	                'name'      => 'Delivery Fee',
 	                'desc'		=> $delivery_text,
 	                'amount'    => (string) MyHelper::requestNumber(($list['transaction_shipment'] ?: $list['transaction_shipment_go_send']),'_CURRENCY')
 	            ];
@@ -2089,16 +2090,30 @@ class ApiTransaction extends Controller
                     ];
                     }
                     if ($list['detail']['taken_at'] != null) {
-                        $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order has been picked up',
-                        'date'  => date('d F Y H:i', strtotime($list['detail']['taken_at']))
-                    ];
+                        if ($list['detail']['pickup_by'] == 'Outlet') {
+                            $result['detail']['detail_status'][] = [
+                                'text'  => 'Order completed',
+                                'date'  => date('d F Y H:i', strtotime($list['detail']['taken_at']))
+                            ];
+                        } else {
+                            $result['detail']['detail_status'][] = [
+                                'text'  => 'Your order has been picked up',
+                                'date'  => date('d F Y H:i', strtotime($list['detail']['taken_at']))
+                            ];
+                        }
                     }
                     if ($list['detail']['ready_at'] != null) {
-                        $result['detail']['detail_status'][] = [
-                        'text'  => 'Your order is ready ',
-                        'date'  => date('d F Y H:i', strtotime($list['detail']['ready_at']))
-                    ];
+                        if ($list['detail']['pickup_by'] == 'Outlet') {
+                            $result['detail']['detail_status'][] = [
+                                'text'  => 'Deliver by MAXX Coffee',
+                                'date'  => date('d F Y H:i', strtotime($list['detail']['ready_at']))
+                            ];
+                        } else {
+                            $result['detail']['detail_status'][] = [
+                                'text'  => 'Your order is ready ',
+                                'date'  => date('d F Y H:i', strtotime($list['detail']['ready_at']))
+                            ];
+                        }
                     }
                     if ($list['detail']['receive_at'] != null) {
                         $result['detail']['detail_status'][] = [
@@ -2134,7 +2149,7 @@ class ApiTransaction extends Controller
                             case 'driver allocated':
                             case 'allocated':
                                 $result['delivery_info']['delivery_status_code'] = 2;
-                                $result['delivery_info']['delivery_status'] = 'Driver ditemukan';
+                                $result['delivery_info']['delivery_status'] = 'Driver Found';
                                 $result['transaction_status']          = 'DRIVER DITEMUKAN DAN SEDANG MENUJU OUTLET';
                                 $result['delivery_info']['driver']          = [
                                     'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
@@ -2148,7 +2163,7 @@ class ApiTransaction extends Controller
                             case 'enroute pickup':
                             case 'out_for_pickup':
                                 $result['delivery_info']['delivery_status_code'] = 2;
-                                $result['delivery_info']['delivery_status'] = 'Driver on his way to Outlet';
+                                $result['delivery_info']['delivery_status'] = 'Driver on the way to Outlet';
                                 $result['transaction_status']          = 'DRIVER SEDANG MENUJU OUTLET';
                                 $result['delivery_info']['driver']          = [
                                     'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
@@ -2231,7 +2246,7 @@ class ApiTransaction extends Controller
                                 // case 'enroute pickup':
                                 case 'out_for_pickup':
                                     $result['detail']['detail_status'][] = [
-                                        'text'  => 'Driver on his way to Outlet',
+                                        'text'  => 'Driver on the way to Outlet',
                                         'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
                                     ];
                                     break;
@@ -2459,7 +2474,13 @@ class ApiTransaction extends Controller
         $data   = LogBalance::where('id_log_balance', $id)->first();
         // dd($data);
         if ($data['source'] == 'Transaction' || $data['source'] == 'Rejected Order Point' || $data['source'] == 'Rejected Order' || strpos($data['source'], 'Rejected Order') !== false) {
-            $select = Transaction::select(DB::raw('transactions.*,sum(transaction_products.transaction_product_qty) item_total'))->leftJoin('transaction_products','transactions.id_transaction','=','transaction_products.id_transaction')->with('outlet')->where('transactions.id_transaction', $data['id_reference'])->groupBy('transactions.id_transaction')->first();
+            $select = Transaction::select(DB::raw('transactions.*,transaction_pickups.pickup_by,sum(transaction_products.transaction_product_qty) item_total'))
+                ->leftJoin('transaction_pickups','transactions.id_transaction','=','transaction_pickups.id_transaction')
+                ->leftJoin('transaction_products','transactions.id_transaction','=','transaction_products.id_transaction')
+                ->with('outlet')
+                ->where('transactions.id_transaction', $data['id_reference'])
+                ->groupBy('transactions.id_transaction')
+                ->first();
 
             $data['date'] = $select['transaction_date'];
             $data['type'] = 'trx';
@@ -2482,7 +2503,9 @@ class ApiTransaction extends Controller
                 'transaction_grandtotal'        => MyHelper::requestNumber($data['detail']['transaction_grandtotal'], '_CURRENCY'),
                 'transaction_cashback_earned'   => MyHelper::requestNumber($data['detail']['transaction_cashback_earned'], '_POINT'),
                 'name'                          => $data['detail']['outlet']['outlet_name'],
-                'title'                         => 'Total Payment'
+                'title'                         => 'Total Payment',
+                'pickup_by'                     => $data['detail']['pickup_by'],
+                'transaction_type'              => $data['detail']['pickup_by'] == 'Customer' ? 'Pickup Order' : 'Delivery'
             ];
         } else {
             $select = DealsUser::with('dealVoucher.deal')->where('id_deals_user', $data['id_reference'])->first();
