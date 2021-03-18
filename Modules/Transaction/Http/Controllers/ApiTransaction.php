@@ -2473,7 +2473,13 @@ class ApiTransaction extends Controller
         $data   = LogBalance::where('id_log_balance', $id)->first();
         // dd($data);
         if ($data['source'] == 'Transaction' || $data['source'] == 'Rejected Order Point' || $data['source'] == 'Rejected Order' || strpos($data['source'], 'Rejected Order') !== false) {
-            $select = Transaction::select(DB::raw('transactions.*,sum(transaction_products.transaction_product_qty) item_total'))->leftJoin('transaction_products','transactions.id_transaction','=','transaction_products.id_transaction')->with('outlet')->where('transactions.id_transaction', $data['id_reference'])->groupBy('transactions.id_transaction')->first();
+            $select = Transaction::select(DB::raw('transactions.*,transaction_pickups.pickup_by,sum(transaction_products.transaction_product_qty) item_total'))
+                ->leftJoin('transaction_pickups','transactions.id_transaction','=','transaction_pickups.id_transaction')
+                ->leftJoin('transaction_products','transactions.id_transaction','=','transaction_products.id_transaction')
+                ->with('outlet')
+                ->where('transactions.id_transaction', $data['id_reference'])
+                ->groupBy('transactions.id_transaction')
+                ->first();
 
             $data['date'] = $select['transaction_date'];
             $data['type'] = 'trx';
@@ -2496,7 +2502,9 @@ class ApiTransaction extends Controller
                 'transaction_grandtotal'        => MyHelper::requestNumber($data['detail']['transaction_grandtotal'], '_CURRENCY'),
                 'transaction_cashback_earned'   => MyHelper::requestNumber($data['detail']['transaction_cashback_earned'], '_POINT'),
                 'name'                          => $data['detail']['outlet']['outlet_name'],
-                'title'                         => 'Total Payment'
+                'title'                         => 'Total Payment',
+                'pickup_by'                     => $data['detail']['pickup_by'],
+                'transaction_type'              => $data['detail']['pickup_by'] == 'Customer' ? 'Pickup Order' : 'Delivery'
             ];
         } else {
             $select = DealsUser::with('dealVoucher.deal')->where('id_deals_user', $data['id_reference'])->first();
