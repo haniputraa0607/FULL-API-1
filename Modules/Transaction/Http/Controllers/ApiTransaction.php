@@ -1954,9 +1954,9 @@ class ApiTransaction extends Controller
             if (!empty($list['promo_campaign_promo_code_delivery']) && $list['promo_campaign_promo_code_delivery']['promo_campaign']['promo_type'] != 'Referral') {
                 $result['promo']['code'][$p++]   = $list['promo_campaign_promo_code_delivery']['promo_code'];
                 $payment_detail_discount_delivery[] = [
-                    'name'          => 'Discount',
+                    'name'          => 'Delivery Discount',
                     // 'desc'          => $list['promo_campaign_promo_code_delivery']['promo_code'],
-                    'desc'          => 'Delivery',
+                    'desc'          => null,
                     "is_discount"   => 1,
                     'amount'        => (string) '-'.MyHelper::requestNumber($discount_delivery,'_CURRENCY')
                 ];
@@ -2013,8 +2013,9 @@ class ApiTransaction extends Controller
             			$delivery_text = '';
             			break;
             	}
+	            $delivery_text = null;
             	$result['payment_detail'][] = [
-	                'name'      => 'Delivery',
+	                'name'      => 'Delivery Fee',
 	                'desc'		=> $delivery_text,
 	                'amount'    => (string) MyHelper::requestNumber(($list['transaction_shipment'] ?: $list['transaction_shipment_go_send']),'_CURRENCY')
 	            ];

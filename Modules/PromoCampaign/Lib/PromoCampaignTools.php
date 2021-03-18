@@ -1686,8 +1686,8 @@ class PromoCampaignTools{
 
         if ($promo_error) {
         	$promo_delivery_error = [
-        		'title' => 'Delivery Promo Can\'t use',
-        		'subtitle' => 'Promo Can\'t Use',
+        		'title' => 'Delivery Promo Could Not Be Applied',
+        		'subtitle' => '',
         		'messages' => $promo_error
         		
         	];
