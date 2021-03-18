@@ -304,7 +304,7 @@ class Transaction extends Model
                 if ($payOvo) {
                     if(Configs::select('is_active')->where('config_name','refund ovo')->pluck('is_active')->first()){
                         $point = 0;
-                        $transaction = TransactionPaymentOvo::where('transaction_payment_ovos.id_transaction', $post['id_transaction'])
+                        $transaction = TransactionPaymentOvo::where('transaction_payment_ovos.id_transaction', $pay['id_transaction'])
                             ->join('transactions','transactions.id_transaction','=','transaction_payment_ovos.id_transaction')
                             ->first();
                         $refund = Ovo::Void($transaction);

@@ -1860,7 +1860,7 @@ class ApiTransaction extends Controller
                     $result['transaction_status_code'] = 1;
                 } elseif($list['detail']['ready_at'] != null) {
                     if (($list['detail']['pickup_by'] ?? false) == 'Outlet') {
-                        $result['transaction_status'] = 'Deliver by MAXX Coffee';
+                        $result['transaction_status'] = 'Maxx Crew Delivering your order';
                     } else {
                         $result['transaction_status'] = 'Order Is Ready';
                     }
@@ -2148,7 +2148,7 @@ class ApiTransaction extends Controller
                             case 'driver allocated':
                             case 'allocated':
                                 $result['delivery_info']['delivery_status_code'] = 2;
-                                $result['delivery_info']['delivery_status'] = 'Driver ditemukan';
+                                $result['delivery_info']['delivery_status'] = 'Driver Found';
                                 $result['transaction_status']          = 'DRIVER DITEMUKAN DAN SEDANG MENUJU OUTLET';
                                 $result['delivery_info']['driver']          = [
                                     'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
@@ -2162,7 +2162,7 @@ class ApiTransaction extends Controller
                             case 'enroute pickup':
                             case 'out_for_pickup':
                                 $result['delivery_info']['delivery_status_code'] = 2;
-                                $result['delivery_info']['delivery_status'] = 'Driver on his way to Outlet';
+                                $result['delivery_info']['delivery_status'] = 'Driver on the way to Outlet';
                                 $result['transaction_status']          = 'DRIVER SEDANG MENUJU OUTLET';
                                 $result['delivery_info']['driver']          = [
                                     'driver_id'         => $list['transaction_pickup_go_send']['driver_id']?:'',
@@ -2245,7 +2245,7 @@ class ApiTransaction extends Controller
                                 // case 'enroute pickup':
                                 case 'out_for_pickup':
                                     $result['detail']['detail_status'][] = [
-                                        'text'  => 'Driver on his way to Outlet',
+                                        'text'  => 'Driver on the way to Outlet',
                                         'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
                                     ];
                                     break;
