@@ -9,6 +9,12 @@ namespace App\Http\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Modules\Transaction\Entities\TransactionPickupOutlet;
+use App\Lib\MyHelper;
+use App\Lib\Ovo;
+use App\Lib\Midtrans;
+use DB;
+use Modules\IPay88\Entities\TransactionPaymentIpay88;
+use Modules\ShopeePay\Entities\TransactionPaymentShopeePay;
 
 /**
  * Class Transaction
@@ -101,6 +107,7 @@ class Transaction extends Model
 	protected $autocrm = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
     protected $voucher  = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
     protected $promo_campaign = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+	protected $shopeepay      = "Modules\ShopeePay\Http\Controllers\ShopeePayController";
 
 	public function user()
 	{
@@ -138,7 +145,7 @@ class Transaction extends Model
 
 	public function transaction_payment_ipay88()
 	{
-		return $this->hasOne(\Modules\IPay88\Entities\TransactionPaymentIpay88::class, 'id_transaction');
+		return $this->hasOne(TransactionPaymentIpay88::class, 'id_transaction');
 	}
 
 	public function products()
@@ -343,7 +350,7 @@ class Transaction extends Model
                 $point = 0;
                 $payShopeepay = TransactionPaymentShopeePay::find($pay['id_payment']);
                 if ($payShopeepay) {
-                    if(MyHelper::setting('refund_shopeepay')) {
+                    if (MyHelper::setting('refund_shopeepay')) {
                         $refund = app($this->shopeepay)->void($payShopeepay['id_transaction'], 'trx', $errors);
                         $reject_type = 'refund';
                         if (!$refund) {
@@ -394,7 +401,7 @@ class Transaction extends Model
             $reversal = app($this->balance)->addLogBalance( $this->id_user, abs($logB['balance']), $this->id_transaction, 'Reversal', $this->transaction_grandtotal);
             if (!$reversal) {
                 DB::rollback();
-                $errors[] = 'Failed refund midtrans to balance';
+                $errors[] = 'Failed refund to balance';
                 return false;
             }
         }

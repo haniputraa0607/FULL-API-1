@@ -592,7 +592,82 @@ class ApiHistoryController extends Controller
 
         $listTransaction = [];
 
+        $lastStatusText = [
+            'payment_pending' => [
+                'text' => 'Your order awaits payment confirmation',
+                'code' => 1,
+            ],
+            'pending' => [
+                'text' => 'Your order is pending',
+                'code' => 1,
+            ],
+            'received' => [
+                'text' => 'Order has been received',
+                'code' => 2,
+            ],
+            'on_delivery_find_driver' => [
+                'text' => 'Looking For a Driver',
+                'code' => 2,
+            ],
+            'ready' => [
+                'text' => 'Your order is ready',
+                'code' => 3,
+            ],
+            'completed' => [
+                'text' => 'Order has been completed',
+                'code' => 4,
+            ],
+            'cancelled' => [
+                'text' => 'Order has been cancelled',
+                'code' => 0,
+            ],
+            'rejected' => [
+                'text' => 'Order has been rejected',
+                'code' => 0,
+            ],
+            'on_delivery_no_driver' => [
+                'text' => 'Driver not Found',
+                'code' => 0,
+            ],
+            'on_delivery_out_for_pickup' => [
+                'text' => 'Driver on his way to Outlet',
+                'code' => 3,
+            ],
+            'on_delivery_out_for_delivery' => [
+                'text' => 'Driver Delivering Your Order',
+                'code' => 3,
+            ],
+            'on_delivery_internal' => [
+                'text' => 'Deliver by MAXX Coffee',
+                'code' => 3,
+            ],
+        ];
+
         foreach ($transaction as $key => $value) {
+            if ($value['reject_at']) {
+                $last_status = $lastStatusText['rejected'];
+            } elseif ($value['taken_by_system_at'] || $value['taken_at']) {
+                $last_status = $lastStatusText['completed'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'out_for_delivery') {
+                $last_status = $lastStatusText['on_delivery_out_for_delivery'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'out_for_pickup') {
+                $last_status = $lastStatusText['on_delivery_out_for_pickup'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'no_driver') {
+                $last_status = $lastStatusText['on_delivery_no_driver'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false)) {
+                $last_status = $lastStatusText['on_delivery_find_driver'];
+            } elseif ($value['ready_at']) {
+                $last_status = $lastStatusText['ready'];
+            } elseif ($value['receive_at']) {
+                $last_status = $lastStatusText['received'];
+            } elseif ($value['transaction_payment_status'] == 'Completed') {
+                $last_status = $lastStatusText['pending'];
+            } elseif ($value['transaction_payment_status'] == 'Cancelled') {
+                $last_status = $lastStatusText['cancelled'];
+            } else {
+                $last_status = $lastStatusText['payment_pending'];
+            }
+
             $dataList['type'] = 'trx';
             $dataList['id'] = $value['id_transaction'];
             $dataList['date']    = date('d M Y H:i', strtotime($value['transaction_date']));
@@ -602,6 +677,8 @@ class ApiHistoryController extends Controller
             $dataList['pickup_by'] = $value['pickup_by'];
             $dataList['transaction_type'] = $value['pickup_by'] == 'Customer' ? 'Pickup Order' : 'Delivery';
             $dataList['amount'] = MyHelper::requestNumber($value['transaction_grandtotal'], '_CURRENCY');
+            $dataList['last_status'] = $last_status['text'];
+            $dataList['last_status_code'] = $last_status['code'];
 
             $dataList['cashback'] = MyHelper::requestNumber($value['transaction_cashback_earned'],'_POINT');
             $dataList['subtitle'] = $value['sum_qty'].($value['sum_qty']>1?' items':' item');
@@ -657,7 +734,7 @@ class ApiHistoryController extends Controller
                 'code' => 3,
             ],
             'on_delivery_no_driver' => [
-                'text' => 'Driver on his way to Outlet',
+                'text' => 'Driver not Found',
                 'code' => 0,
             ],
             'on_delivery_out_for_pickup' => [
