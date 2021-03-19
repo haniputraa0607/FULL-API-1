@@ -221,7 +221,7 @@ class ApiGosendController extends Controller
                     ];
                     $trx->load(['user', 'outlet', 'productTransaction']);
 
-                    app($this->notif)->notification($mid, $trx);
+                    app($this->notif)->notification($mid, $trx, true);
                 } elseif (in_array(strtolower($post['status']), ['no_driver'])) {
                     $tpg->update([
                         'live_tracking_url' => null,
