@@ -180,18 +180,36 @@ class Midtrans {
             $id_reference = $order_id;
         }
         $status = MyHelper::post($url, Self::bearer(), $param);
-        try {
-            LogMidtrans::create([
-                'type'                 => 'refund',
-                'id_reference'         => $id_reference,
-                'request'              => json_encode($param),
-                'request_url'          => $url,
-                'request_header'       => json_encode(['Authorization' => Self::bearer()]),
-                'response'             => json_encode($status),
-                'response_status_code' => $status['status_code']??null,
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Failed write log to LogMidtrans: ' . $e->getMessage());
+        if (request()->log_outside) {
+            request()->merge(['doLog' => function() use ($id_reference, $param, $url, $status) {
+                try {
+                    LogMidtrans::create([
+                        'type'                 => 'refund',
+                        'id_reference'         => $id_reference,
+                        'request'              => json_encode($param),
+                        'request_url'          => $url,
+                        'request_header'       => json_encode(['Authorization' => Self::bearer()]),
+                        'response'             => json_encode($status),
+                        'response_status_code' => $status['status_code']??null,
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed write log to LogMidtrans: ' . $e->getMessage());
+                }
+            }]);
+        } else {
+            try {
+                LogMidtrans::create([
+                    'type'                 => 'refund',
+                    'id_reference'         => $id_reference,
+                    'request'              => json_encode($param),
+                    'request_url'          => $url,
+                    'request_header'       => json_encode(['Authorization' => Self::bearer()]),
+                    'response'             => json_encode($status),
+                    'response_status_code' => $status['status_code']??null,
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed write log to LogMidtrans: ' . $e->getMessage());
+            }
         }
         return [
             'status' => ($status['status_code']??false)==200?'success':'fail',
