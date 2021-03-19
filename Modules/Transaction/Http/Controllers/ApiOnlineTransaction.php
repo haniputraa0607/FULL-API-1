@@ -3358,8 +3358,9 @@ class ApiOnlineTransaction extends Controller
 
         //delivery gosend
         if($result['shipping'] > 0){
+        	$delivery_text = null;
             $payment_detail[] = [
-                'name'          => 'Delivery',
+                'name'          => 'Delivery Fee',
                 'desc'          => $delivery_text,
                 "is_discount"   => 0,
                 'amount'        => (string) MyHelper::requestNumber($result['promo_delivery']['value_int'] ?? $result['shipping'],'_CURRENCY')
