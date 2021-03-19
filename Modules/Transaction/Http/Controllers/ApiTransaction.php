@@ -1611,7 +1611,7 @@ class ApiTransaction extends Controller
                                     $payMidtrans = TransactionPaymentMidtran::find($mp['id_payment']);
                                     $payment['name']      = strtoupper(str_replace('_', ' ', $payMidtrans->payment_type)).' '.strtoupper($payMidtrans->bank);
                                     $payment['amount']    = $payMidtrans->gross_amount;
-                                    $payment['reject']    = $payMidtrans->status_message;
+                                    $payment['reject']    = 'payment expired';
                                     $list['payment'][]    = $payment;
                                     break;
                                 case 'Ovo':
@@ -1626,7 +1626,7 @@ class ApiTransaction extends Controller
                                     // $payment['name']    = $PayIpay->payment_method;
                                     $payment['name']    = "CREDIT/DEBIT CARD";
                                     $payment['amount']  = $PayIpay->amount / 100;
-                                    $payment['reject']  = $PayIpay->err_desc;
+                                    $payment['reject']  = $PayIpay->err_desc?:'payment expired';
                                     $list['payment'][]  = $payment;
                                     break;
                                 case 'Shopeepay':
@@ -1680,7 +1680,7 @@ class ApiTransaction extends Controller
                             $payMidtrans = TransactionPaymentMidtran::find($dataPay['id_payment']);
                             $payment[$dataKey]['name']      = strtoupper(str_replace('_', ' ', $payMidtrans->payment_type)).' '.strtoupper($payMidtrans->bank);
                             $payment[$dataKey]['amount']    = $payMidtrans->gross_amount;
-                            $payment[$dataKey]['reject']    = $payMidtrans->status_message;
+                            $payment[$dataKey]['reject']    = 'payment expired';
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey]              = $dataPay;
@@ -2065,8 +2065,12 @@ class ApiTransaction extends Controller
                 if ($list['transaction_payment_status'] == 'Cancelled') {
                     foreach ($list['payment'] as $key => $value) {
                         if (isset($value['reject'])) {
+                            $text = 'Your transaction failed because ' . $value['reject'];
+                            if (strpos($text, 'expire')) {
+                                $text = 'Transaction timeout. We’re sorry but your transaction took longer than expected ​and we couldn’t process your transaction. Please try again.';
+                            }
                             $result['detail']['detail_status'][] = [
-                                'text'  => 'Your transaction failed because ' . $value['reject'],
+                                'text'  => $text,
                                 'date'  => date('d F Y H:i', strtotime($list['void_date']))
                             ];
                         }
