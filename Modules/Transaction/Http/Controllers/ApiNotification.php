@@ -1641,6 +1641,9 @@ Detail: ".$link['short'],
             'productTransaction.product.product_discounts',
             'transaction_payment_offlines',
             'modifiers',
+            'promo_campaign_promo_code',
+            'promo_campaign_promo_code_delivery',
+            'vouchers.deals',
             'outlet.city')->first();
         $dataPayment = [];
 
