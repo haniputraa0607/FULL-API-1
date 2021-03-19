@@ -2287,7 +2287,7 @@ class ApiTransaction extends Controller
                     }
                 }
 
-                if ($list['transaction_payment_status'] == 'Completed') {
+                if ($list['transaction_payment_status'] == 'Completed' && $list['detail']['pickup_by'] != 'GO-SEND' && !($list['detail']['receive_at'])) {
                         $result['detail']['detail_status'][] = [
                         'text'  => 'Your order awaits outlet confirmation',
                         'date'  => date('d F Y H:i', strtotime($list['completed_at'])),
