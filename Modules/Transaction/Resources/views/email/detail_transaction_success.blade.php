@@ -52,7 +52,7 @@
         </th>
     </tr>
 
-    @foreach ($data['productTransaction'] as $key => $item)
+    @foreach ($data['productTransaction']??$data['product_transaction'] as $key => $item)
         <tr style="text-align:right">
             <td style="max-width:400px;background:#f5f5f5;border-collapse:collapse;border-spacing:0;color:#555;padding-left: 5%" valign="top" align="left"><span style="font-size: 16px;color:#8fd6bd;">{{$item['transaction_product_qty']}}x </span><span style="font-size: 16px">@if(!isset($item['product']['product_group']['product_group_name'])){{$item['product']['product_name']}} @else{{$item['product']['product_group']['product_group_name']}}@endif</span></td>
             <td style="max-width:600px;background:#f5f5f5;padding-bottom:10px;"><table width="100%" style="max-width: 100%"><td width="500px" style="max-width:100px;border-bottom: 1px dashed #8c8c8c;"></td></table></td>
@@ -83,8 +83,22 @@
         </tr>
     @endforeach
 
+    <?php
+        $rowspan = 2;
+        if($data['transaction_shipment'] != 0){
+            $rowspan ++;
+        }
+
+        if($data['transaction_discount'] != 0){
+            $rowspan ++;
+        }
+
+        if($data['transaction_discount_delivery'] != 0){
+            $rowspan ++;
+        }
+    ?>
     <tr style="text-align:right;padding-top: 15px">
-        <td  @if($data['transaction_discount'] != 0) rowspan="3" @else rowspan="2" @endif style="background:#f5f5f5;" align="center">
+        <td  rowspan="{{$rowspan}}" style="background:#f5f5f5;" align="center">
             <img class="img-responsive"  width="80" style="width:100%;max-width:80px;" src="{{env('S3_URL_API').('img/icon_email_1.png')}}">
         </td>
         <td style="background:#f5f5f5;" valign="top" align="right">
@@ -101,12 +115,47 @@
                      @if(isset($data['promo_campaign_promo_code']['promo_code']))
                         <br>({{$data['promo_campaign_promo_code']['promo_code']}})
                     @elseif(isset($data['vouchers'][0]['voucher_code']))
-                        <br>({{$data['vouchers'][0]['voucher_code']}})
+                        @foreach($data['vouchers'] as $vouchers)
+                            @if($vouchers['deals']['promo_type'] != 'Discount delivery')
+                                <br>({{$vouchers['voucher_code']}})
+                            @endif
+                        @endforeach
                     @endif
                 </span>
             </td>
             <td style="background:#f5f5f5;padding-right:15px" valign="top"  align="right">
                 <span style="color:#555;font-size:15px;">{{ \App\Lib\MyHelper::requestNumber(floatval ($data['transaction_discount']), '_CURRENCY') }}</span>
+            </td>
+        </tr>
+    @endif
+    @if($data['transaction_shipment'] != 0)
+        <tr style="text-align:right">
+            <td style="background:#f5f5f5;" valign="top"  align="right">
+                <span style="color:#555;font-size:14px;">Delivery <br>({{$data['transaction_shipping_method']}}):
+                </span>
+            </td>
+            <td style="background:#f5f5f5;padding-right:15px" valign="top"  align="right">
+                <span style="color:#555;font-size:15px;">{{ \App\Lib\MyHelper::requestNumber(floatval ($data['transaction_shipment']), '_CURRENCY') }}</span>
+            </td>
+        </tr>
+    @endif
+    @if($data['transaction_discount_delivery'] != 0)
+        <tr style="text-align:right">
+            <td style="background:#f5f5f5;" valign="top"  align="right">
+                <span style="color:#555;font-size:14px;">Delivery Discount:
+                     @if(isset($data['promo_campaign_promo_code_delivery']['promo_code']))
+                        <br>({{$data['promo_campaign_promo_code_delivery']['promo_code']}})
+                    @elseif(isset($data['vouchers'][0]['voucher_code']))
+                         @foreach($data['vouchers'] as $vouchers)
+                             @if($vouchers['deals']['promo_type'] == 'Discount delivery')
+                                <br>({{$vouchers['voucher_code']}})
+                             @endif
+                         @endforeach
+                    @endif
+                </span>
+            </td>
+            <td style="background:#f5f5f5;padding-right:15px" valign="top"  align="right">
+                <span style="color:#555;font-size:15px;">{{ \App\Lib\MyHelper::requestNumber(floatval ($data['transaction_discount_delivery']), '_CURRENCY') }}</span>
             </td>
         </tr>
     @endif
