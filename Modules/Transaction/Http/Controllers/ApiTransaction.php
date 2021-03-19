@@ -1850,7 +1850,7 @@ class ApiTransaction extends Controller
                     $result['transaction_status'] = 'Payment Pending';
                     $result['transaction_status_code'] = 5;
                 } elseif($list['detail']['reject_at'] != null) {
-                    $result['transaction_status'] = 'Order Rejected';
+                    $result['transaction_status'] = 'Order canceled by user';
                     $result['transaction_status_code'] = 0;
                 } elseif($list['detail']['taken_by_system_at'] != null) {
                     $result['transaction_status'] = 'Order Completed';
@@ -2078,7 +2078,7 @@ class ApiTransaction extends Controller
                 } else {
                     if ($list['detail']['reject_at'] != null) {
                         $result['detail']['detail_status'][] = [
-                        'text'  => 'Order rejected',
+                        'text'  => 'Order canceled by user',
                         'date'  => date('d F Y H:i', strtotime($list['detail']['reject_at'])),
                         'reason'=> $list['detail']['reject_reason']
                     ];
@@ -2115,7 +2115,8 @@ class ApiTransaction extends Controller
                             ];
                         }
                     }
-                    if ($list['detail']['receive_at'] != null) {
+
+                    if ($list['detail']['receive_at'] != null && $list['detail']['pickup_by'] != 'GO-SEND') {
                         $result['detail']['detail_status'][] = [
                             'text'  => 'Your order has been received',
                             'date'  => date('d F Y H:i', strtotime($list['detail']['receive_at']))
