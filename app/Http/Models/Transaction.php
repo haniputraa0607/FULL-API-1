@@ -314,7 +314,6 @@ class Transaction extends Model
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund ovo';
 	                        if (request()->doLog) {
-					        	\Log::debug('masuk log');
 					        	$func = request()->doLog;
 					        	$func();
 	                        }
@@ -341,7 +340,6 @@ class Transaction extends Model
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund ipay88';
 	                        if (request()->doLog) {
-					        	\Log::debug('masuk log');
 					        	$func = request()->doLog;
 					        	$func();
 	                        }
@@ -368,7 +366,6 @@ class Transaction extends Model
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund shopeepay';
 	                        if (request()->doLog) {
-					        	\Log::debug('masuk log');
 					        	$func = request()->doLog;
 					        	$func();
 	                        }
@@ -395,7 +392,6 @@ class Transaction extends Model
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund midtrans';
 	                        if (request()->doLog) {
-					        	\Log::debug('masuk log');
 					        	$func = request()->doLog;
 					        	$func();
 	                        }
@@ -428,7 +424,6 @@ class Transaction extends Model
         }
         $pickup->update(['reject_at' => date('Y-m-d H:i:s'), 'reject_reason' => $reason]);
         if (request()->doLog) {
-        	\Log::debug('masuk log');
         	$func = request()->doLog;
         	$func();
         }
