@@ -611,17 +611,34 @@ class ShopeePayController extends Controller
             'X-Airpay-Req-H'    => $this->createSignature($data), // signature
         ];
         $result = MyHelper::postWithTimeout($url, null, $data, 0, $header, 30);
-        try {
-            if (!$logData) {$logData = [];}
-            LogShopeePay::create($logData + [
-                'request'              => json_encode($data),
-                'request_url'          => $url,
-                'request_header'       => json_encode($header),
-                'response'             => json_encode($result['response'] ?? []),
-                'response_status_code' => $result['status_code'] ?? null
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Failed write log to LogShopeePay: ' . $e->getMessage());
+        if (request()->log_outside) {
+            request()->merge(['doLog' => function() use ($logData, $data, $url, $header, $result) {
+                try {
+                    if (!$logData) {$logData = [];}
+                    LogShopeePay::create($logData + [
+                        'request'              => json_encode($data),
+                        'request_url'          => $url,
+                        'request_header'       => json_encode($header),
+                        'response'             => json_encode($result['response'] ?? []),
+                        'response_status_code' => $result['status_code'] ?? null
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed write log to LogShopeePay: ' . $e->getMessage());
+                }
+            }]);
+        } else {
+            try {
+                if (!$logData) {$logData = [];}
+                LogShopeePay::create($logData + [
+                    'request'              => json_encode($data),
+                    'request_url'          => $url,
+                    'request_header'       => json_encode($header),
+                    'response'             => json_encode($result['response'] ?? []),
+                    'response_status_code' => $result['status_code'] ?? null
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed write log to LogShopeePay: ' . $e->getMessage());
+            }
         }
         return $result;
     }
@@ -1016,7 +1033,7 @@ class ShopeePayController extends Controller
          *     }
          * }
          */
-        return $response;
+        return !($response['response']['errcode'] ?? 0);
     }
 
     /**
