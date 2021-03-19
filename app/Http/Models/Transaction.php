@@ -389,7 +389,7 @@ class Transaction extends Model
                 $payMidtrans = TransactionPaymentMidtran::find($pay['id_payment']);
                 if ($payMidtrans) {
                     if(MyHelper::setting('refund_midtrans')){
-                        $refund = Midtrans::refund($payMidtrans['vt_transaction_id'],['reason' => $post['reason']??'']);
+                        $refund = Midtrans::refund($payMidtrans['vt_transaction_id'],['reason' => 'refund because driver not found']);
                         $reject_type = 'refund';
                         if ($refund['status'] != 'success') {
 	                        DB::rollback();
