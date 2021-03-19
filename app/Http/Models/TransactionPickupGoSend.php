@@ -252,6 +252,14 @@ class TransactionPickupGoSend extends Model
                 GoSend::saveUpdate($dataSave);
             } elseif (in_array(strtolower($status['status']), ['allocated', 'out_for_pickup'])) {
                 \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
+
+                $mid = [
+                    'order_id' => $trx->transaction_receipt_number,
+                    'gross_amount' => $trx->transaction_grandtotal
+                ];
+                $trx->load(['user', 'outlet', 'productTransaction']);
+
+                app('Modules\Transaction\Http\Controllers\ApiNotification')->notification($mid, $trx, true);
             } elseif (in_array(strtolower($status['status']), ['no_driver'])) {
                 $this->update([
                     'live_tracking_url' => null,

@@ -1850,7 +1850,7 @@ class ApiTransaction extends Controller
                     $result['transaction_status'] = 'Payment Pending';
                     $result['transaction_status_code'] = 5;
                 } elseif($list['detail']['reject_at'] != null) {
-                    $result['transaction_status'] = 'Order canceled by user';
+                    $result['transaction_status'] = 'Order Canceled by User';
                     $result['transaction_status_code'] = 0;
                 } elseif($list['detail']['taken_by_system_at'] != null) {
                     $result['transaction_status'] = 'Order Completed';
