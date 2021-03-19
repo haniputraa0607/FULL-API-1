@@ -763,10 +763,21 @@ class IPay88
             'response' => json_encode($response['response']),
             'response_status_code' => json_encode($response['status_code'])
         ];
-        try{
-            LogIpay88::create($toLog);
-        } catch (\Exception $e) {
-            Log::error($e->getMessage());
+
+        if (request()->log_outside) {
+            request()->merge(['doLog' => function() use ($toLog) {
+		        try{
+		            LogIpay88::create($toLog);
+		        } catch (\Exception $e) {
+		            Log::error($e->getMessage());
+		        }
+            }]);
+        } else {
+	        try{
+	            LogIpay88::create($toLog);
+	        } catch (\Exception $e) {
+	            Log::error($e->getMessage());
+	        }
         }
 
         return $response['response']['Code']??'0';

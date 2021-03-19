@@ -286,6 +286,7 @@ class Transaction extends Model
         $point = 0;
 
         \DB::beginTransaction();
+        request()->merge(['log_outside' => true]);
         $multiple = TransactionMultiplePayment::where('id_transaction', $this->id_transaction)->get()->toArray();
         foreach ($multiple as $pay) {
             if ($pay['type'] == 'Balance') {
@@ -304,7 +305,7 @@ class Transaction extends Model
                 if ($payOvo) {
                     if(Configs::select('is_active')->where('config_name','refund ovo')->pluck('is_active')->first()){
                         $point = 0;
-                        $transaction = TransactionPaymentOvo::where('transaction_payment_ovos.id_transaction', $post['id_transaction'])
+                        $transaction = TransactionPaymentOvo::where('transaction_payment_ovos.id_transaction', $this->id_transaction)
                             ->join('transactions','transactions.id_transaction','=','transaction_payment_ovos.id_transaction')
                             ->first();
                         $refund = Ovo::Void($transaction);
@@ -312,6 +313,11 @@ class Transaction extends Model
                         if ($refund['status_code'] != '200') {
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund ovo';
+	                        if (request()->doLog) {
+					        	\Log::debug('masuk log');
+					        	$func = request()->doLog;
+					        	$func();
+	                        }
 	                        return false;
                         }
                     }else{
@@ -334,6 +340,11 @@ class Transaction extends Model
                         if (!$refund) {
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund ipay88';
+	                        if (request()->doLog) {
+					        	\Log::debug('masuk log');
+					        	$func = request()->doLog;
+					        	$func();
+	                        }
 	                        return false;
                         }
                     }else{
@@ -356,6 +367,11 @@ class Transaction extends Model
                         if (!$refund) {
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund shopeepay';
+	                        if (request()->doLog) {
+					        	\Log::debug('masuk log');
+					        	$func = request()->doLog;
+					        	$func();
+	                        }
 	                        return false;
                         }
                     }else{
@@ -378,6 +394,11 @@ class Transaction extends Model
                         if ($refund['status'] != 'success') {
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund midtrans';
+	                        if (request()->doLog) {
+					        	\Log::debug('masuk log');
+					        	$func = request()->doLog;
+					        	$func();
+	                        }
 	                        return false;
                         }
                     } else {
@@ -406,6 +427,11 @@ class Transaction extends Model
             }
         }
         $pickup->update(['reject_at' => date('Y-m-d H:i:s'), 'reject_reason' => $reason]);
+        if (request()->doLog) {
+        	\Log::debug('masuk log');
+        	$func = request()->doLog;
+        	$func();
+        }
         \DB::commit();
         if ($rejectBalance) {
             $usere= User::where('id',$this->id_user)->first();
