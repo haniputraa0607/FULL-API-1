@@ -599,7 +599,7 @@ class ApiHistoryController extends Controller
             ],
             'pending' => [
                 'text' => 'Your order is pending',
-                'code' => 2,
+                'code' => 1,
             ],
             'received' => [
                 'text' => 'On Process',
@@ -717,12 +717,16 @@ class ApiHistoryController extends Controller
         $listTransaction = [];
 
         $lastStatusText = [
+            'payment_pending' => [
+                'text' => 'Payment Pending',
+                'code' => 2,
+            ],
             'pending' => [
                 'text' => 'Your order is pending',
                 'code' => 1,
             ],
             'received' => [
-                'text' => 'Order has been received',
+                'text' => 'On Process',
                 'code' => 2,
             ],
             'on_delivery_find_driver' => [
@@ -730,27 +734,35 @@ class ApiHistoryController extends Controller
                 'code' => 2,
             ],
             'ready' => [
-                'text' => 'Your order is ready',
+                'text' => 'Order Ready',
                 'code' => 3,
+            ],
+            'completed' => [
+                'text' => 'Completed',
+                'code' => 4,
+            ],
+            'cancelled' => [
+                'text' => 'Payment Canceled',
+                'code' => 0,
+            ],
+            'rejected' => [
+                'text' => 'Order Canceled',
+                'code' => 0,
             ],
             'on_delivery_no_driver' => [
                 'text' => 'Driver not Found',
                 'code' => 0,
             ],
             'on_delivery_out_for_pickup' => [
-                'text' => 'Driver on his way to Outlet',
+                'text' => 'Driver on the way to Outlet',
                 'code' => 3,
             ],
             'on_delivery_out_for_delivery' => [
-                'text' => 'Driver Delivering Your Order',
-                'code' => 3,
-            ],
-            'on_delivery_out_for_delivery' => [
-                'text' => 'Driver Delivering Your Order',
+                'text' => 'Delivering by Driver',
                 'code' => 3,
             ],
             'on_delivery_internal' => [
-                'text' => 'Deliver by MAXX Coffee',
+                'text' => 'Delivering by Maxx Crew',
                 'code' => 3,
             ],
         ];

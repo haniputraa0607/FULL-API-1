@@ -531,8 +531,11 @@ class ApiNotification extends Controller {
         $send = app($this->autocrm)->SendAutoCRM('Topup Success', $user->phone, ['notif_type' => 'topup', 'date' => $data['created_at'], 'status' => $data['transaction_payment_status'], 'name'  => $user->name, 'id' => $mid['order_id'], 'id_reference' => $mid['order_id']]);
     }
 
-    function notification($mid, $trx)
+    function notification($mid, $trx, $fromDelivery = false)
     {
+        if (($trx['transaction_shipping_method'] == 'GO-SEND' && !$fromDelivery) || $trx['notif_ready_sent']) {
+            return true;
+        }
         $name    = $trx['user']['name'];
         $phone   = $trx['user']['phone'];
         $date    = $trx['transaction_date'];
@@ -553,6 +556,8 @@ class ApiNotification extends Controller {
             'detail' => $detail,
             'id_reference' => $mid['order_id'].','.$trx['id_outlet']
         ]);
+
+        Transaction::where('id_transaction', $trx['id_transaction'])->update(['notif_ready_sent' => 1]);
 
         return $send;
     }

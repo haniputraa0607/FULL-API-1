@@ -27,6 +27,7 @@ class ApiGosendController extends Controller
         $this->membership = "Modules\Membership\Http\Controllers\ApiMembership";
         $this->trx        = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
         $this->outlet_app = "Modules\OutletApp\Http\Controllers\ApiOutletApp";
+        $this->notif      = "Modules\Transaction\Http\Controllers\ApiNotification";
     }
     /**
      * Update latest status from gosend
@@ -213,6 +214,14 @@ class ApiGosendController extends Controller
                     GoSend::saveUpdate($dataSave);
                 } elseif (in_array(strtolower($post['status']), ['allocated', 'out_for_pickup'])) {
                     \App\Lib\ConnectPOS::create()->sendTransaction($id_transaction);
+
+                    $mid = [
+                        'order_id' => $trx->transaction_receipt_number,
+                        'gross_amount' => $trx->transaction_grandtotal
+                    ];
+                    $trx->load(['user', 'outlet', 'productTransaction']);
+
+                    app($this->notif)->notification($mid, $trx, true);
                 } elseif (in_array(strtolower($post['status']), ['no_driver'])) {
                     $tpg->update([
                         'live_tracking_url' => null,
