@@ -463,4 +463,41 @@ class ApiCronTrxController extends Controller
             ],false,false);
         }
     }
+
+    /**
+     * Cron check status gosend
+     */
+    public function cronCancelDriverNotFound()
+    {
+        $log = MyHelper::logCron('Cancel Transaction Driver Not Found');
+        $minutes = (int) MyHelper::setting('auto_reject_time','value', 15)*60;
+        try {
+            $trxs = Transaction::select('transactions.*')
+                ->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
+                ->join('transaction_pickup_go_sends', 'transaction_pickup_go_sends.id_transaction_pickup', 'transaction_pickups.id_transaction_pickup')
+                ->whereNull('taken_at')
+                ->whereNull('reject_at')
+                ->where('latest_status', 'no_driver')
+                ->whereDate('transactions.transaction_date', date('Y-m-d'))
+                ->where('transaction_pickup_go_sends.stop_booking_at', '<', date('Y-m-d H:i:s', time() - $minutes))
+                ->get();
+            $errors = [];
+            $success = 0;
+            foreach ($trxs as $trx) {
+                $cancel = $trx->cancelOrder('Auto cancel order by system [no driver]', $errors);
+                if ($cancel) {
+                    $trx->update(['is_auto_cancel' => 1]);
+                    $success++;
+                }
+            }
+            $log->success([
+                'total' => $trxs->count(),
+                'success' => $success
+            ]);
+            return response()->json(['success']);
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
+            return ['status' => 'fail'];
+        }
+    }
 }

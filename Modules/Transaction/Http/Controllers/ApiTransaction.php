@@ -1850,7 +1850,11 @@ class ApiTransaction extends Controller
                     $result['transaction_status'] = 'Payment Pending';
                     $result['transaction_status_code'] = 5;
                 } elseif($list['detail']['reject_at'] != null) {
-                    $result['transaction_status'] = 'Order Canceled by User';
+                    if (strpos($list['detail']['reject_reason'], 'user')) {
+                        $result['transaction_status'] = 'Order Canceled by User';
+                    } else {
+                        $result['transaction_status'] = 'Order Canceled by System';
+                    }
                     $result['transaction_status_code'] = 0;
                 } elseif($list['detail']['taken_by_system_at'] != null) {
                     $result['transaction_status'] = 'Order Completed';
@@ -2081,11 +2085,33 @@ class ApiTransaction extends Controller
                     ];
                 } else {
                     if ($list['detail']['reject_at'] != null) {
-                        $result['detail']['detail_status'][] = [
-                        'text'  => 'Order canceled by user',
-                        'date'  => date('d F Y H:i', strtotime($list['detail']['reject_at'])),
-                        'reason'=> $list['detail']['reject_reason']
-                    ];
+                        if (strpos($list['detail']['reject_reason'], 'user')) {
+                            $result['detail']['detail_status'][] = [
+                                'text'  => 'Order canceled by user',
+                                'date'  => date('d F Y H:i', strtotime($list['detail']['reject_at'])),
+                                'reason'=> $list['detail']['reject_reason']
+                            ];
+                        } else {
+                            $reason = $list['transaction_pickup_go_send']['latest_status'] ?? '';
+                            switch ($list['transaction_pickup_go_send']['latest_status'] ?? '') {
+                                case 'no_driver':
+                                    $reason = 'driver not found';
+                                    break;
+                                
+                                case 'rejected':
+                                    $reason = 'delivery rejected';
+                                    break;
+                                
+                                case 'cancelled':
+                                    $reason = 'delivery canceled';
+                                    break;
+                            }
+                            $result['detail']['detail_status'][] = [
+                                'text'  => 'Order canceled by system because '.$reason,
+                                'date'  => date('d F Y H:i', strtotime($list['detail']['reject_at'])),
+                                'reason'=> $list['detail']['reject_reason']
+                            ];
+                        }
                     }
                     if ($list['detail']['taken_by_system_at'] != null) {
                         $result['detail']['detail_status'][] = [
