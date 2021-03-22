@@ -90,6 +90,9 @@ class TransactionPickupGoSend extends Model
         //update id from go-send
         $maxRetry = Setting::select('value')->where('key', 'booking_delivery_max_retry')->pluck('value')->first()?:5;
         if ($fromRetry && $this->retry_count >= $maxRetry) {
+            if (!$this->stop_booking_at) {
+                $this->update(['stop_booking_at' => date('Y-m-d H:i:s')]);
+            }
             $errors[] = 'Retry reach limit';
             return false;
         }

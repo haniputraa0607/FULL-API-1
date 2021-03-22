@@ -101,7 +101,8 @@ class Transaction extends Model
 		'transaction_discount_delivery',
 		'id_promo_campaign_promo_code_delivery',
 		'transaction_shipping_method',
-		'notif_ready_sent'
+		'notif_ready_sent',
+		'is_auto_cancel'
 	];
 
 	protected $balance = 'Modules\Balance\Http\Controllers\BalanceController';

@@ -185,6 +185,11 @@ class Kernel extends ConsoleKernel
          */
         $schedule->call('Modules\Transaction\Http\Controllers\ApiGosendController@cronCheckStatus')->cron('*/3 * * * *');
 
+        /**
+         * To cancel no driver transaction
+         * run every minute
+         */
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiCronTrxController@cronCancelDriverNotFound')->everyMinute();
     }
 
     /**
