@@ -118,6 +118,7 @@ class ConnectPOS{
                 $memberUid = "00000000".$memberUid;
                 $memberUid = substr($memberUid, -8);
             }
+			$transactions[$user->phone]['transaction_object'] = $trxData;
 			$transactions[$user->phone] = $trxData->toArray();
 			$transactions[$user->phone]['outlet_name'] = $trxData->outlet->outlet_name;
 			$outlets[] = env('POS_OUTLET_OVERWRITE')?:$trxData->outlet->outlet_code;
@@ -481,7 +482,12 @@ class ConnectPOS{
 		}else{
 			foreach ($users as $phone) {
 				$variables = $transactions[$phone];
-				$top = TransactionOnlinePos::where('id_transaction',$trxData['id_transaction'])->first();
+				$transaction = $variables['transaction_object'];
+				unset($variables['transaction_object']);
+				if ($transaction->should_cancel == 1) {
+					$this->sendCancelOrder($transaction);
+				}
+				$top = TransactionOnlinePos::where('id_transaction',$variables['id_transaction'])->first();
 				if($top){
 					$top->update([
 						'request' => json_encode($sendData),
@@ -561,21 +567,24 @@ class ConnectPOS{
 	{
 		if (is_numeric($transaction)) {
 			$transaction = Transaction::where('id_transaction', $transaction)
-				->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
-				->whereNotNull('receive_at')
-				->with('outlet', 'transaction_online_pos_cancel')
+				->leftJoin('transactions_online_pos_cancels', 'transactions_online_pos_cancels.id_transaction', 'transactions.id_transaction')
 				->first();
 		} else {
-			if (!$transaction->transaction_online_pos_cancel) {
-				$transaction->load('transaction_online_pos_cancel');
-			}
+			// retrieve database data to get the latest data
+			$transaction = Transaction::where('id_transaction', $transaction->id_transaction)
+				->leftJoin('transactions_online_pos_cancels', 'transactions_online_pos_cancels.id_transaction', 'transactions.id_transaction')
+				->first();
 		}
 
 		if (!$transaction) {
 			return false;
 		}
 
-		$transaction->load('transaction_online_pos');
+		if ($transaction->receive_at == null) {
+			$transaction->update(['should_cancel' => 1]);
+			return true;
+		}
+
 		$queue = 'send_cancel_pos_jobs';
 		if (($transaction->count_retry ?: 0) < 3 && (date('Y-m-d', strtotime($transaction->transaction_date)) == date('Y-m-d'))) {
 			$queue = 'high';
@@ -585,7 +594,7 @@ class ConnectPOS{
 
 	/**
 	 * send a request to the post to notify the canceled transactions
-	 * @param  Transaction/Integer $transaction Transaction model join transaction pickups or id_transaction
+	 * @param  Transaction/Integer $transaction Transaction model or id_transaction
 	 * @return boolean              true/false of send cancel transaction
 	 */
 	public function doSendCancelOrder($transaction)
@@ -594,17 +603,23 @@ class ConnectPOS{
 		if (is_numeric($transaction)) {
 			$transaction = Transaction::where('id_transaction', $transaction)
 				->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
-				->whereNotNull('receive_at')
 				->with('outlet')
 				->first();
 		} else {
-			if (!$transaction->outlet) {
-				$transaction->load('outlet');
-			}
+			// retrieve database data to get the latest data
+			$transaction = Transaction::where('id_transaction', $transaction->id_transaction)
+				->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
+				->with('outlet')
+				->first();
 		}
 
 		if (!$transaction) {
 			return false;
+		}
+
+		if ($transaction->receive_at == null) {
+			$transaction->update(['should_cancel' => 1]);
+			return true;
 		}
 
 		$head_section = $this->getHead($module_url);
@@ -643,25 +658,23 @@ class ConnectPOS{
 				]);
 			}
 		}else{
-			foreach ($users as $phone) {
-				$variables = $transactions[$phone];
-				$top = TransactionOnlinePosCancel::where('id_transaction',$transaction['id_transaction'])->first();
-				if($top){
-					$top->update([
-						'request' => json_encode($sendData),
-						'response' => json_encode($response),
-						'count_retry'=>($top->count_retry+1),
-						'success_retry_status'=>1
-					]);
-				}else{
-					$top = TransactionOnlinePosCancel::create([
-						'request' => json_encode($sendData),
-						'response' => json_encode($response),
-						'id_transaction' => $variables['id_transaction'],
-						'count_retry' => 1,
-						'success_retry_status'=>1
-					]);
-				}
+			$transaction->update(['should_cancel' => 2]);
+			$top = TransactionOnlinePosCancel::where('id_transaction',$transaction['id_transaction'])->first();
+			if($top){
+				$top->update([
+					'request' => json_encode($sendData),
+					'response' => json_encode($response),
+					'count_retry'=>($top->count_retry+1),
+					'success_retry_status'=>1
+				]);
+			}else{
+				$top = TransactionOnlinePosCancel::create([
+					'request' => json_encode($sendData),
+					'response' => json_encode($response),
+					'id_transaction' => $variables['id_transaction'],
+					'count_retry' => 1,
+					'success_retry_status'=>1
+				]);
 			}
 		}
 		LogActivitiesPosCancelTransactionOnline::create($dataLog);
