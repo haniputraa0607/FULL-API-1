@@ -10,12 +10,15 @@ use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionPaymentOvo;
 use Modules\ShopeePay\Entities\TransactionPaymentShopeePay;
 use App\Http\Models\LogActivitiesPosTransactionsOnline;
+use Modules\POS\Entities\LogActivitiesPosCancelTransactionOnline;
 use App\Http\Models\TransactionOnlinePos;
+use Modules\POS\Entities\TransactionOnlinePosCancel;
 use App\Http\Models\Setting;
 use Modules\Transaction\Entities\TransactionPaymentCimb;
 use Modules\IPay88\Entities\TransactionPaymentIpay88;
 
 use App\Jobs\SendPOS;
+use App\Jobs\SendCancelPOS;
 
 class ConnectPOS{
 	public static $obj = null;
@@ -547,5 +550,121 @@ class ConnectPOS{
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * start queue cancel order
+	 * @param  Transaction/Integer $transaction Transaction model join transaction pickups or id_transaction
+	 * @return boolean              true/false of send cancel transaction
+	 */
+	public function sendCancelOrder($transaction)
+	{
+		if (is_numeric($transaction)) {
+			$transaction = Transaction::where('id_transaction', $transaction)
+				->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
+				->whereNotNull('receive_at')
+				->with('outlet', 'transaction_online_pos_cancel')
+				->first();
+		} else {
+			if (!$transaction->transaction_online_pos_cancel) {
+				$transaction->load('transaction_online_pos_cancel');
+			}
+		}
+
+		if (!$transaction) {
+			return false;
+		}
+
+		$transaction->load('transaction_online_pos');
+		$queue = 'send_cancel_pos_jobs';
+		if (($transaction->count_retry ?: 0) < 3 && (date('Y-m-d', strtotime($transaction->transaction_date)) == date('Y-m-d'))) {
+			$queue = 'high';
+		}
+        SendCancelPOS::dispatch($transaction)->allOnConnection('send_cancel_pos_jobs')->onQueue($queue);
+	}
+
+	/**
+	 * send a request to the post to notify the canceled transactions
+	 * @param  Transaction/Integer $transaction Transaction model join transaction pickups or id_transaction
+	 * @return boolean              true/false of send cancel transaction
+	 */
+	public function doSendCancelOrder($transaction)
+	{
+		$module_url = '/MobileReceiver/transaction';
+		if (is_numeric($transaction)) {
+			$transaction = Transaction::where('id_transaction', $transaction)
+				->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
+				->whereNotNull('receive_at')
+				->with('outlet')
+				->first();
+		} else {
+			if (!$transaction->outlet) {
+				$transaction->load('outlet');
+			}
+		}
+
+		if (!$transaction) {
+			return false;
+		}
+
+		$head_section = $this->getHead($module_url);
+		$body_section = [
+			'outletId' => $transaction->outlet->outlet_code,
+			'bookingCode' => $transaction->order_id,
+			'businessDate' => date('Ymd',strtotime($transaction->transaction_date)),
+			'trxDate' => date('Ymd',strtotime($transaction->transaction_date)),
+			'cancelReason' => 'GOJEK DRIVER NOT FOUND',
+		];
+
+		$sendData = [
+			'head' => $head_section,
+			'body' => $body_section,
+		];
+
+		$response = MyHelper::postWithTimeout($this->url.$module_url,null,$sendData,0,null,30,false);
+
+		$is_success = ($response['status_code']??false) == 200;
+		if(!$is_success){
+			$top = TransactionOnlinePosCancel::where('id_transaction',$transaction['id_transaction'])->first();
+			if($top){
+				$top->update([
+					'request' => json_encode($sendData),
+					'response' => json_encode($response),
+					'count_retry'=>($top->count_retry+1),
+					'success_retry_status'=>0,
+					'send_email_status' => 0
+				]);
+			}else{
+				$top = TransactionOnlinePosCancel::create([
+					'request' => json_encode($sendData),
+					'response' => json_encode($response),
+					'id_transaction' => $variables['id_transaction'],
+					'count_retry' => 1
+				]);
+			}
+		}else{
+			foreach ($users as $phone) {
+				$variables = $transactions[$phone];
+				$top = TransactionOnlinePosCancel::where('id_transaction',$transaction['id_transaction'])->first();
+				if($top){
+					$top->update([
+						'request' => json_encode($sendData),
+						'response' => json_encode($response),
+						'count_retry'=>($top->count_retry+1),
+						'success_retry_status'=>1
+					]);
+				}else{
+					$top = TransactionOnlinePosCancel::create([
+						'request' => json_encode($sendData),
+						'response' => json_encode($response),
+						'id_transaction' => $variables['id_transaction'],
+						'count_retry' => 1,
+						'success_retry_status'=>1
+					]);
+				}
+			}
+		}
+		LogActivitiesPosCancelTransactionOnline::create($dataLog);
+		return $is_success;
 	}
 }
