@@ -118,8 +118,8 @@ class ConnectPOS{
                 $memberUid = "00000000".$memberUid;
                 $memberUid = substr($memberUid, -8);
             }
-			$transactions[$user->phone]['transaction_object'] = $trxData;
 			$transactions[$user->phone] = $trxData->toArray();
+			$transactions[$user->phone]['transaction_object'] = $trxData;
 			$transactions[$user->phone]['outlet_name'] = $trxData->outlet->outlet_name;
 			$outlets[] = env('POS_OUTLET_OVERWRITE')?:$trxData->outlet->outlet_code;
 			$receive_at = $trxData->receive_at?:date('Y-m-d H:i:s');
@@ -566,12 +566,12 @@ class ConnectPOS{
 	public function sendCancelOrder($transaction)
 	{
 		if (is_numeric($transaction)) {
-			$transaction = Transaction::where('id_transaction', $transaction)
+			$transaction = Transaction::where('transactions.id_transaction', $transaction)
 				->leftJoin('transaction_online_pos_cancels', 'transaction_online_pos_cancels.id_transaction', 'transactions.id_transaction')
 				->first();
 		} else {
 			// retrieve database data to get the latest data
-			$transaction = Transaction::where('id_transaction', $transaction->id_transaction)
+			$transaction = Transaction::where('transactions.id_transaction', $transaction->id_transaction)
 				->leftJoin('transaction_online_pos_cancels', 'transaction_online_pos_cancels.id_transaction', 'transactions.id_transaction')
 				->first();
 		}
@@ -601,13 +601,13 @@ class ConnectPOS{
 	{
 		$module_url = '/MobileReceiver/transaction';
 		if (is_numeric($transaction)) {
-			$transaction = Transaction::where('id_transaction', $transaction)
+			$transaction = Transaction::where('transactions.id_transaction', $transaction)
 				->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
 				->with('outlet')
 				->first();
 		} else {
 			// retrieve database data to get the latest data
-			$transaction = Transaction::where('id_transaction', $transaction->id_transaction)
+			$transaction = Transaction::where('transactions.id_transaction', $transaction->id_transaction)
 				->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
 				->with('outlet')
 				->first();
