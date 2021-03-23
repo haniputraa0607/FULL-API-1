@@ -567,12 +567,12 @@ class ConnectPOS{
 	{
 		if (is_numeric($transaction)) {
 			$transaction = Transaction::where('id_transaction', $transaction)
-				->leftJoin('transactions_online_pos_cancels', 'transactions_online_pos_cancels.id_transaction', 'transactions.id_transaction')
+				->leftJoin('transaction_online_pos_cancels', 'transaction_online_pos_cancels.id_transaction', 'transactions.id_transaction')
 				->first();
 		} else {
 			// retrieve database data to get the latest data
 			$transaction = Transaction::where('id_transaction', $transaction->id_transaction)
-				->leftJoin('transactions_online_pos_cancels', 'transactions_online_pos_cancels.id_transaction', 'transactions.id_transaction')
+				->leftJoin('transaction_online_pos_cancels', 'transaction_online_pos_cancels.id_transaction', 'transactions.id_transaction')
 				->first();
 		}
 
