@@ -1850,7 +1850,7 @@ class ApiTransaction extends Controller
                     $result['transaction_status'] = 'Payment Pending';
                     $result['transaction_status_code'] = 5;
                 } elseif($list['detail']['reject_at'] != null) {
-                    if (strpos($list['detail']['reject_reason'], 'user')) {
+                    if (strpos(strtolower($list['detail']['reject_reason']), 'user') !== FALSE) {
                         $result['transaction_status'] = 'Order Canceled by User';
                     } else {
                         $result['transaction_status'] = 'Order Canceled by System';
@@ -2125,7 +2125,7 @@ class ApiTransaction extends Controller
                                 'text'  => 'Order completed',
                                 'date'  => date('d F Y H:i', strtotime($list['detail']['taken_at']))
                             ];
-                        } else {
+                        } elseif ($list['detail']['pickup_by'] == 'Customer') {
                             $result['detail']['detail_status'][] = [
                                 'text'  => 'Your order has been picked up',
                                 'date'  => date('d F Y H:i', strtotime($list['detail']['taken_at']))
@@ -2167,7 +2167,8 @@ class ApiTransaction extends Controller
                             'live_tracking_url' => $list['transaction_pickup_go_send']['live_tracking_url']?:'',
                             'delivery_id_name' => 'Gosend ID'
                         ];
-                        if($list['transaction_pickup_go_send']['go_send_id']){
+                        $max_book = MyHelper::setting('booking_delivery_max_retry', 'value', 5);
+                        if ($list['transaction_pickup_go_send']['go_send_id'] || $list['transaction_pickup_go_send']['retry_count'] < $max_book) {
                             $result['delivery_info']['booking_status'] = 1;
                         }
                         switch (strtolower($list['transaction_pickup_go_send']['latest_status'])) {
