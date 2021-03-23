@@ -219,6 +219,15 @@ class ApiGosendController extends Controller
                         'order_id' => $trx->transaction_receipt_number,
                         'gross_amount' => $trx->transaction_grandtotal
                     ];
+
+                    $dataSave       = [
+                        'id_transaction'                => $id_transaction,
+                        'id_transaction_pickup_go_send' => $tpg['id_transaction_pickup_go_send'],
+                        'status'                        => $post['status'],
+                        'go_send_order_no'              => $post['booking_id']
+                    ];
+                    GoSend::saveUpdate($dataSave);
+
                     $trx->load(['user', 'outlet', 'productTransaction']);
 
                     app($this->notif)->notification($mid, $trx, true);
