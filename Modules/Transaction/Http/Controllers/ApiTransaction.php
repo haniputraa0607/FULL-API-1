@@ -1870,7 +1870,7 @@ class ApiTransaction extends Controller
                     }
                     $result['transaction_status_code'] = 2;
                 } elseif($list['detail']['receive_at'] != null) {
-                    $result['transaction_status'] = 'Order Received';
+                    $result['transaction_status'] = 'Order is On Process';
                     $result['transaction_status_code'] = 3;
                 } else {
                     $result['transaction_status'] = 'Waiting for Outlet Confirmation';
