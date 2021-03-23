@@ -260,6 +260,15 @@ class TransactionPickupGoSend extends Model
                     'order_id' => $trx->transaction_receipt_number,
                     'gross_amount' => $trx->transaction_grandtotal
                 ];
+
+                $dataSave = [
+                    'id_transaction'                => $trx['id_transaction'],
+                    'id_transaction_pickup_go_send' => $this['id_transaction_pickup_go_send'],
+                    'status'                        => $status['status'] ?? 'on_going',
+                    'go_send_order_no'              => $status['orderNo'] ?? ''
+                ];
+                GoSend::saveUpdate($dataSave);
+
                 $trx->load(['user', 'outlet', 'productTransaction']);
 
                 app('Modules\Transaction\Http\Controllers\ApiNotification')->notification($mid, $trx, true);
