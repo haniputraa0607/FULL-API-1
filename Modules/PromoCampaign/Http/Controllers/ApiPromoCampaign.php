@@ -2116,10 +2116,22 @@ class ApiPromoCampaign extends Controller
 	                ->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
 	                ->where('step_complete', '=', 1)
 	                ->where( function($q){
-	                	$q->whereColumn('usage','<','limitation_usage')
-	                		->orWhere('code_type','Single')
-	                        ->orWhere('limitation_usage',0);
-	                } )
+		            	$q->where(function($q2) {
+		            		$q2->where('code_type', 'Multiple')
+			            		->where(function($q3) {
+					            	$q3->whereColumn('usage','<','limitation_usage')
+					            		->orWhere('limitation_usage',0);
+			            		});
+
+		            	}) 
+		            	->orWhere(function($q2) {
+		            		$q2->where('code_type','Single')
+			            		->where(function($q3) {
+					            	$q3->whereColumn('total_coupon','>','used_code')
+					            		->orWhere('total_coupon',0);
+			            		});
+		            	});
+		            })
 	                ->with([
 						'promo_campaign.promo_campaign_outlets',
 						'promo_campaign.promo_campaign_product_discount.product' => function($q) {
@@ -2144,6 +2156,13 @@ class ApiPromoCampaign extends Controller
 
 	            ];
 	        }
+
+	        if ($code['promo_campaign']['date_start'] > date('Y-m-d H:i:s')) {
+        		return [
+	                'status'=>'fail',
+                    'messages'=>['Promo code not available']
+	            ];
+        	}
 
 	        if ($code['promo_campaign']['date_end'] < date('Y-m-d H:i:s')) {
         		return [
@@ -2582,10 +2601,22 @@ class ApiPromoCampaign extends Controller
         $code = $code->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
 		            ->where('step_complete', '=', 1)
 		            ->where( function($q){
-		            	$q->whereColumn('usage','<','limitation_usage')
-		            		->orWhere('code_type','Single')
-		            		->orWhere('limitation_usage',0);
-		            } );
+		            	$q->where(function($q2) {
+		            		$q2->where('code_type', 'Multiple')
+			            		->where(function($q3) {
+					            	$q3->whereColumn('usage','<','limitation_usage')
+					            		->orWhere('limitation_usage',0);
+			            		});
+
+		            	}) 
+		            	->orWhere(function($q2) {
+		            		$q2->where('code_type','Single')
+			            		->where(function($q3) {
+					            	$q3->whereColumn('total_coupon','>','used_code')
+					            		->orWhere('total_coupon',0);
+			            		});
+		            	});
+		            });
 
 	    if (!empty($outlet)) {
 	    	$code = $code->with(['promo_campaign.promo_campaign_outlets']);
