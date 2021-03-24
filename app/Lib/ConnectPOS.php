@@ -480,6 +480,9 @@ class ConnectPOS{
 				// }
 			}
 		}else{
+			TransactionPickup::whereIn('id_transaction',$id_transactions)->whereNull('receive_at')->update([
+				'receive_at' => date('Y-m-d H:i:s')
+			]);
 			foreach ($users as $phone) {
 				$variables = $transactions[$phone];
 				$transaction = $variables['transaction_object'];
@@ -505,9 +508,6 @@ class ConnectPOS{
 					]);
 				}
 			}
-			TransactionPickup::whereIn('id_transaction',$id_transactions)->whereNull('receive_at')->update([
-				'receive_at' => date('Y-m-d H:i:s')
-			]);
 		}
 		LogActivitiesPosTransactionsOnline::create($dataLog);
 		return $is_success;
@@ -566,16 +566,19 @@ class ConnectPOS{
 	public function sendCancelOrder($transaction)
 	{
 		if (is_numeric($transaction)) {
-			$transaction = Transaction::where('transactions.id_transaction', $transaction)
+			$transaction = Transaction::select('transactions.*', 'transaction_pickups.receive_at', 'transaction_online_pos_cancels.count_retry')
+				->where('transactions.id_transaction', $transaction)
+				->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
 				->leftJoin('transaction_online_pos_cancels', 'transaction_online_pos_cancels.id_transaction', 'transactions.id_transaction')
 				->first();
 		} else {
 			// retrieve database data to get the latest data
-			$transaction = Transaction::where('transactions.id_transaction', $transaction->id_transaction)
+			$transaction = Transaction::select('transactions.*', 'transaction_pickups.receive_at', 'transaction_online_pos_cancels.count_retry')
+				->where('transactions.id_transaction', $transaction->id_transaction)
+				->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
 				->leftJoin('transaction_online_pos_cancels', 'transaction_online_pos_cancels.id_transaction', 'transactions.id_transaction')
 				->first();
 		}
-
 		if (!$transaction) {
 			return false;
 		}
@@ -603,13 +606,13 @@ class ConnectPOS{
 		if (is_numeric($transaction)) {
 			$transaction = Transaction::where('transactions.id_transaction', $transaction)
 				->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
-				->with('outlet')
+				->with('outlet', 'user')
 				->first();
 		} else {
 			// retrieve database data to get the latest data
 			$transaction = Transaction::where('transactions.id_transaction', $transaction->id_transaction)
 				->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
-				->with('outlet')
+				->with('outlet', 'user')
 				->first();
 		}
 
@@ -637,6 +640,17 @@ class ConnectPOS{
 		];
 
 		$response = MyHelper::postWithTimeout($this->url.$module_url,null,$sendData,0,null,30,false);
+		$dataLog = [
+			'url' 		        => $this->url.$module_url,
+			'subject' 		    => 'POS Send Cancel Transaction',
+			'outlet_code' 	    => $transaction->outlet->outlet_code,
+			'user' 		        => $transaction->user->phone,
+			'request' 		    => json_encode($sendData),
+			'response_status'   => ($response['status_code']??null),
+			'response'   		=> json_encode($response),
+			'ip' 		        => \Request::ip(),
+			'useragent' 	    => \Request::header('user-agent')
+		];
 
 		$is_success = ($response['status_code']??false) == 200;
 		if(!$is_success){
@@ -671,7 +685,7 @@ class ConnectPOS{
 				$top = TransactionOnlinePosCancel::create([
 					'request' => json_encode($sendData),
 					'response' => json_encode($response),
-					'id_transaction' => $variables['id_transaction'],
+					'id_transaction' => $transaction['id_transaction'],
 					'count_retry' => 1,
 					'success_retry_status'=>1
 				]);
