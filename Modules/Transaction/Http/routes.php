@@ -59,6 +59,11 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::any('online-pos', 'ApiTransactionOnlinePos@listTransaction');
     Route::post('online-pos/resend', 'ApiTransactionOnlinePos@resendTransaction');
     Route::any('online-pos/autoresponse', 'ApiTransactionOnlinePos@autoresponse');
+
+    /*[POS] Cancel Transaction online failed*/
+    Route::any('cancel-online-pos', 'ApiTransactionOnlinePos@listCancelTransaction');
+    Route::post('cancel-online-pos/resend', 'ApiTransactionOnlinePos@resendCancelTransaction');
+    Route::any('cancel-online-pos/autoresponse', 'ApiTransactionOnlinePos@autoresponseCancel');
 });
 
 Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
