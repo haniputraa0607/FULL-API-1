@@ -280,7 +280,7 @@ class Transaction extends Model
 			$this->load('user');
 		}
 		$pickup = $this->transaction_pickup;
-		if ($pickup->receive_at || $pickup->ready_at || $pickup->reject_at || $pickup->taken_at || $pickup->taken_by_system_at) {
+		if (($pickup->ready_at && $this->transaction_pickup->pickup_by != 'GO-SEND') || $pickup->reject_at || $pickup->taken_at || $pickup->taken_by_system_at) {
 			$errors[] = 'Order already processed';
 			return false;
 		}

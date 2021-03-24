@@ -8,6 +8,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Modules\POS\Entities\TransactionOnlinePosCancel;
+use Throwable;
 
 class SendCancelPOS implements ShouldQueue
 {
@@ -49,7 +50,7 @@ class SendCancelPOS implements ShouldQueue
     {
         $id_transaction = $this->transaction;
         if (!is_numeric($id_transaction)) {
-            $id_transaction = $transaction->id_transaction;
+            $id_transaction = $id_transaction->id_transaction;
         }
         $top = TransactionOnlinePosCancel::where('id_transaction', $id_transaction)->exists();
         if (!$top) {
