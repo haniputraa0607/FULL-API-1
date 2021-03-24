@@ -90,6 +90,9 @@ class TransactionPickupGoSend extends Model
         //update id from go-send
         $maxRetry = Setting::select('value')->where('key', 'booking_delivery_max_retry')->pluck('value')->first()?:5;
         if ($fromRetry && $this->retry_count >= $maxRetry) {
+            if (!$this->stop_booking_at) {
+                $this->update(['stop_booking_at' => date('Y-m-d H:i:s')]);
+            }
             $errors[] = 'Retry reach limit';
             return false;
         }
@@ -252,6 +255,23 @@ class TransactionPickupGoSend extends Model
                 GoSend::saveUpdate($dataSave);
             } elseif (in_array(strtolower($status['status']), ['allocated', 'out_for_pickup'])) {
                 \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
+
+                $mid = [
+                    'order_id' => $trx->transaction_receipt_number,
+                    'gross_amount' => $trx->transaction_grandtotal
+                ];
+
+                $dataSave = [
+                    'id_transaction'                => $trx['id_transaction'],
+                    'id_transaction_pickup_go_send' => $this['id_transaction_pickup_go_send'],
+                    'status'                        => $status['status'] ?? 'on_going',
+                    'go_send_order_no'              => $status['orderNo'] ?? ''
+                ];
+                GoSend::saveUpdate($dataSave);
+
+                $trx->load(['user', 'outlet', 'productTransaction']);
+
+                app('Modules\Transaction\Http\Controllers\ApiNotification')->notification($mid, $trx, true);
             } elseif (in_array(strtolower($status['status']), ['no_driver'])) {
                 $this->update([
                     'live_tracking_url' => null,
@@ -280,8 +300,11 @@ class TransactionPickupGoSend extends Model
                 GoSend::saveUpdate($dataSave);
                 // masuk flow rejected
                 $cancel = $trx->cancelOrder('auto reject order by system [delivery '.strtolower($status['status']).']', $errors);
+
                 if (!$cancel) {
                     \Log::error('Failed cancel order gosend for '.$trx->transaction_receipt_number, $errors ?: []);
+                } else {
+                    \App\Lib\ConnectPOS::create()->sendCancelOrder($trx);
                 }
             } else {
                 $dataSave = [

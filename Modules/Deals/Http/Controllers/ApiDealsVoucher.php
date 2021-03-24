@@ -589,7 +589,7 @@ class ApiDealsVoucher extends Controller
             $isPromo = $request->json('is_use_promo');
         }
         if($isPromo == 1){
-            $resultMessage = 'Please look at our deals!';
+            $resultMessage = 'Try again later';
         }else{
             if(
                 $request->json('id_outlet') ||

@@ -101,6 +101,9 @@ class Transaction extends Model
 		'transaction_discount_delivery',
 		'id_promo_campaign_promo_code_delivery',
 		'transaction_shipping_method',
+		'notif_ready_sent',
+		'is_auto_cancel',
+		'should_cancel'
 	];
 
 	protected $balance = 'Modules\Balance\Http\Controllers\BalanceController';
@@ -277,7 +280,7 @@ class Transaction extends Model
 			$this->load('user');
 		}
 		$pickup = $this->transaction_pickup;
-		if ($pickup->receive_at || $pickup->ready_at || $pickup->reject_at || $pickup->taken_at || $pickup->taken_by_system_at) {
+		if (($pickup->ready_at && $this->transaction_pickup->pickup_by != 'GO-SEND') || $pickup->reject_at || $pickup->taken_at || $pickup->taken_by_system_at) {
 			$errors[] = 'Order already processed';
 			return false;
 		}
@@ -286,6 +289,7 @@ class Transaction extends Model
         $point = 0;
 
         \DB::beginTransaction();
+        request()->merge(['log_outside' => true]);
         $multiple = TransactionMultiplePayment::where('id_transaction', $this->id_transaction)->get()->toArray();
         foreach ($multiple as $pay) {
             if ($pay['type'] == 'Balance') {
@@ -304,7 +308,7 @@ class Transaction extends Model
                 if ($payOvo) {
                     if(Configs::select('is_active')->where('config_name','refund ovo')->pluck('is_active')->first()){
                         $point = 0;
-                        $transaction = TransactionPaymentOvo::where('transaction_payment_ovos.id_transaction', $post['id_transaction'])
+                        $transaction = TransactionPaymentOvo::where('transaction_payment_ovos.id_transaction', $this->id_transaction)
                             ->join('transactions','transactions.id_transaction','=','transaction_payment_ovos.id_transaction')
                             ->first();
                         $refund = Ovo::Void($transaction);
@@ -312,6 +316,10 @@ class Transaction extends Model
                         if ($refund['status_code'] != '200') {
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund ovo';
+	                        if (request()->doLog) {
+					        	$func = request()->doLog;
+					        	$func();
+	                        }
 	                        return false;
                         }
                     }else{
@@ -334,6 +342,10 @@ class Transaction extends Model
                         if (!$refund) {
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund ipay88';
+	                        if (request()->doLog) {
+					        	$func = request()->doLog;
+					        	$func();
+	                        }
 	                        return false;
                         }
                     }else{
@@ -356,6 +368,10 @@ class Transaction extends Model
                         if (!$refund) {
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund shopeepay';
+	                        if (request()->doLog) {
+					        	$func = request()->doLog;
+					        	$func();
+	                        }
 	                        return false;
                         }
                     }else{
@@ -373,11 +389,15 @@ class Transaction extends Model
                 $payMidtrans = TransactionPaymentMidtran::find($pay['id_payment']);
                 if ($payMidtrans) {
                     if(MyHelper::setting('refund_midtrans')){
-                        $refund = Midtrans::refund($payMidtrans['vt_transaction_id'],['reason' => $post['reason']??'']);
+                        $refund = Midtrans::refund($payMidtrans['vt_transaction_id'],['reason' => 'refund because driver not found']);
                         $reject_type = 'refund';
                         if ($refund['status'] != 'success') {
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund midtrans';
+	                        if (request()->doLog) {
+					        	$func = request()->doLog;
+					        	$func();
+	                        }
 	                        return false;
                         }
                     } else {
@@ -406,6 +426,10 @@ class Transaction extends Model
             }
         }
         $pickup->update(['reject_at' => date('Y-m-d H:i:s'), 'reject_reason' => $reason]);
+        if (request()->doLog) {
+        	$func = request()->doLog;
+        	$func();
+        }
         \DB::commit();
         if ($rejectBalance) {
             $usere= User::where('id',$this->id_user)->first();

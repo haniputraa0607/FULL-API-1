@@ -2601,6 +2601,16 @@ class FeaturesTableSeeder extends Seeder
                     'created_at' => '2018-05-10 08:00:00',
                     'updated_at' => '2018-05-10 08:00:00',
                 ),
+            259 =>
+                array(
+                    'id_feature' => 260,
+                    'feature_type' => 'Report',
+                    'feature_module' => 'Report GoSend',
+                    'show_hide' => 1,
+                    'order' => 117,
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00'),
+                )
         ));
     }
 }

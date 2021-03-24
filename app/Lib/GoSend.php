@@ -272,12 +272,12 @@ class GoSend
             $delivery_status = ($ref_status2[$dataUpdate['status']] ?? $dataUpdate['status']);
 
             $replacer = [
-                'confirmed'             => 'Pesanan nomor ('.$dataUpdate['go_send_order_no'].') sudah diterima dan sedang diproses oleh outlet',
-                'out_for_pickup'        => 'Tunggu sebentar ya, driver mu sedang menuju ke outlet',
-                'out_for_delivery'      => 'Menu favoritmu sedang diantar oleh driver',
-                'cancelled'             => 'Maaf, pesananmu tidak dapat diambil oleh outlet',
-                'delivered'             => 'Pesananmu sudah sampai! Selamat menikmati',
-                'no_driver'             => 'Belum berhasil menemukan driver',
+                'confirmed'             => 'Confirmed by GO-SEND',
+                'out_for_pickup'        => 'Driver on the way to Outlet',
+                'out_for_delivery'      => 'Driver Delivering your order',
+                'cancelled'             => 'Canceled by GO-SEND',
+                'delivered'             => 'Completed',
+                'no_driver'             => 'Driver not found',
             ];
             if($replacer[$delivery_status] ?? false) {
                 $autocrm = app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Delivery Status Update', $phone,
