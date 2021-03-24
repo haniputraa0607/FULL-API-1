@@ -62,6 +62,13 @@ return [
             'retry_after' => 600,
         ],
 
+        'send_cancel_pos_jobs' => [
+            'driver' => 'database',
+            'table' => 'send_cancel_pos_jobs',
+            'queue' => 'send_cancel_pos_jobs',
+            'retry_after' => 600,
+        ],
+
         'check_sms' => [
             'driver' => 'database',
             'table' => 'check_sms_jobs',
