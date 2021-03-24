@@ -300,8 +300,11 @@ class TransactionPickupGoSend extends Model
                 GoSend::saveUpdate($dataSave);
                 // masuk flow rejected
                 $cancel = $trx->cancelOrder('auto reject order by system [delivery '.strtolower($status['status']).']', $errors);
+
                 if (!$cancel) {
                     \Log::error('Failed cancel order gosend for '.$trx->transaction_receipt_number, $errors ?: []);
+                } else {
+                    \App\Lib\ConnectPOS::create()->sendCancelOrder($trx);
                 }
             } else {
                 $dataSave = [
