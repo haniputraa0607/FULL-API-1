@@ -229,15 +229,7 @@ class ApiReportGosend extends Controller
         }
 
         if(isset($post['export']) && $post['export'] == 1){
-            $data = $data->select('outlets.outlet_name as Oultet Name', 'outlets.outlet_code as Oultet Code', 'transactions.transaction_date as Transactin Date',
-                'transactions.transaction_receipt_number as Receipt Number',
-                'transaction_pickups.order_id as Order ID',
-                DB::raw('FORMAT(transactions.transaction_grandtotal, 0) as "Grand Total"'),
-                DB::raw('FORMAT(transactions.transaction_shipment, 0) as "Price GoSend"'),
-                'transaction_pickup_go_sends.destination_name as Receiver Name',
-                'transaction_pickup_go_sends.destination_phone as Receiver Phone',
-                'transaction_pickup_go_sends.driver_name as Driver Name',
-                'transaction_pickup_go_sends.driver_phone as Driver Phone',
+            $data = $data->select('outlets.outlet_name as Oultet Name', 'outlets.outlet_code as Oultet Code',
                 DB::raw('(
                     CASE
                         WHEN transaction_pickup_go_sends.latest_status = "confirmed" THEN "Booking is received"
@@ -249,7 +241,17 @@ class ApiReportGosend extends Controller
                         WHEN transaction_pickup_go_sends.latest_status = "no_driver" THEN "Driver not found"
                         ELSE "-"
                     END
-                ) as "Status"'))->get()->toArray();
+                ) as "Latest Status"'),
+                'transaction_pickup_go_sends.live_tracking_url as Link Tracking',
+                'transactions.transaction_date as Transactin Date',
+                'transactions.transaction_receipt_number as Receipt Number',
+                'transaction_pickups.order_id as Order ID',
+                DB::raw('FORMAT(transactions.transaction_grandtotal, 0) as "Grand Total"'),
+                DB::raw('FORMAT(transactions.transaction_shipment, 0) as "Price GoSend"'),
+                'transaction_pickup_go_sends.destination_name as Receiver Name',
+                'transaction_pickup_go_sends.destination_phone as Receiver Phone',
+                'transaction_pickup_go_sends.driver_name as Driver Name',
+                'transaction_pickup_go_sends.driver_phone as Driver Phone')->get()->toArray();
 
             return response()->json(MyHelper::checkGet($data));
         }else{

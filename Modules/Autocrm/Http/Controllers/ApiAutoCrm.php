@@ -455,7 +455,9 @@ class ApiAutoCrm extends Controller
                         }elseif ($crm['autocrm_push_clickto'] == 'History Transaction') {
                             if (isset($variables['id_transaction'])) {
                                 $dataOptional['id_reference'] = $variables['id_transaction'];
-                            } else {
+                            } elseif(isset($variables['id_reference'])){
+                                $dataOptional['id_reference'] = $variables['id_reference'];
+                            }else {
                                 $dataOptional['id_reference'] = 0;
                             }
                         }elseif ($crm['autocrm_push_clickto'] == 'Transaction Detail') {
