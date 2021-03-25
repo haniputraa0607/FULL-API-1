@@ -180,6 +180,12 @@ class Kernel extends ConsoleKernel
         $schedule->call('Modules\Transaction\Http\Controllers\ApiTransactionOnlinePOS@sendEmail')->cron('*/7 * * * *');
 
         /**
+         * Send Cancel Email Failed Send to POS,
+         * Run every 7 minutes
+         */
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiTransactionOnlinePOS@sendEmailCancel')->cron('*/7 * * * *');
+
+        /**
          * Check the status of Gosend which is not updated after 5 minutes
          * run every 3 minutes
          */

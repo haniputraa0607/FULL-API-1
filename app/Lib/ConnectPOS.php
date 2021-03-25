@@ -625,13 +625,23 @@ class ConnectPOS{
 			return true;
 		}
 
+		$cancelReason = $transaction->reject_reason;
+
+		if (substr(strtolower($cancelReason), 'rejected')) {
+			$cancelReason = 'GOJEK DELIVERY REJECTED';
+		} elseif (substr(strtolower($cancelReason), 'cancelled')) {
+			$cancelReason = 'GOJEK DELIVERY CANCELLED';
+		} elseif (substr(strtolower($cancelReason), 'no driver')) {
+			$cancelReason = 'GOJEK DRIVER NOT FOUND';
+		}
+
 		$head_section = $this->getHead($module_url);
 		$body_section = [
 			'outletId' => $transaction->outlet->outlet_code,
 			'bookingCode' => $transaction->order_id,
 			'businessDate' => date('Ymd',strtotime($transaction->transaction_date)),
 			'trxDate' => date('Ymd',strtotime($transaction->transaction_date)),
-			'cancelReason' => 'GOJEK DRIVER NOT FOUND',
+			'cancelReason' => $cancelReason,
 		];
 
 		$sendData = [
@@ -694,4 +704,50 @@ class ConnectPOS{
 		LogActivitiesPosCancelTransactionOnline::create($dataLog);
 		return $is_success;
 	}
+
+	public function sendMailCancel()
+	{
+		$trxs = TransactionOnlinePosCancel::select('id_transaction')
+			->where('success_retry_status',0)
+			->take(50)
+			->get();
+		TransactionOnlinePosCancel::whereIn('id_transaction', $trxs->pluck('id_transaction'))->update(['success_retry_status' => 2]); // success_retry_status == 2 : job masih jalan
+		if (!$trxs) {
+			return true;
+		}
+		$func = 'doSendCancelOrder';
+		if (count($trxs) > 20) {
+			$func = 'sendCancelOrder';
+		}
+
+		foreach($trxs as $trx) {
+	        $send = \App\Lib\ConnectPOS::create()->$func($trx->id_transaction);
+	        if(!$send){
+	            \Log::error("Failed send cancel transaction to POS [id_transaction = $trx->id_transaction]");
+	        }
+		}
+        
+		$trxs = TransactionOnlinePosCancel::select('id_transaction_online_pos_cancel', 'outlet_code', 'outlet_name', 'transaction_date', 'transaction_receipt_number', 'name', 'phone', 'transactions.id_transaction')
+			->join('transactions', 'transactions_online_pos.id_transaction', 'transactions.id_transaction')
+			->where('success_retry_status',0)
+			->where('send_email_status', 0)
+			->join('users', 'users.id', 'transactions.id_user')
+			->join('outlets', 'outlets.id_outlet', 'transactions.id_outlet')
+			->take(50)
+			->get();
+		if (!$trxs) {
+			return true;
+		}
+
+		$variables = [
+			'detail' => view('emails.send_pos_failed', compact('trxs'))->render()
+		];
+		if (app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Cancel Transaction Online Failed Pos', $trxs->pluck('phone')->first(), $variables,null,true)) {
+			if (\App\Http\Models\Autocrm::where('autocrm_title','=','Transaction Online Failed Pos')->where('autocrm_forward_toogle', '1')->exists()) {
+				TransactionOnlinePos::whereIn('id_transaction_online_pos_cancel', $trxs->pluck('id_transaction_online_pos_cancel'))->update(['send_email_status' => 1]);
+			}
+		}
+		return true;
+	}
+
 }
