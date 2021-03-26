@@ -627,11 +627,11 @@ class ConnectPOS{
 
 		$cancelReason = $transaction->reject_reason;
 
-		if (substr(strtolower($cancelReason), 'rejected')) {
+		if (strpos(strtolower($cancelReason), 'rejected')) {
 			$cancelReason = 'GOJEK DELIVERY REJECTED';
-		} elseif (substr(strtolower($cancelReason), 'cancelled')) {
+		} elseif (strpos(strtolower($cancelReason), 'cancelled')) {
 			$cancelReason = 'GOJEK DELIVERY CANCELLED';
-		} elseif (substr(strtolower($cancelReason), 'no driver')) {
+		} elseif (strpos(strtolower($cancelReason), 'no driver')) {
 			$cancelReason = 'GOJEK DRIVER NOT FOUND';
 		}
 
