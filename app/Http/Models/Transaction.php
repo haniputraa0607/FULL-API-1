@@ -312,7 +312,7 @@ class Transaction extends Model
             } elseif ($pay['type'] == 'Ovo') {
                 $payOvo = TransactionPaymentOvo::find($pay['id_payment']);
                 if ($payOvo) {
-                    $doRefundPayment = Configs::select('is_active')->where('config_name','refund ovo')->pluck('is_active')->first();
+                    $doRefundPayment = MyHelper::setting('refund_ovo');
                     if($doRefundPayment){
                         $point = 0;
                         $transaction = TransactionPaymentOvo::where('transaction_payment_ovos.id_transaction', $this->id_transaction)
