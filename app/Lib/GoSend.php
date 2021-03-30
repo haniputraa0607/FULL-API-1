@@ -10,6 +10,7 @@ use App\Http\Models\TransactionPickup;
 use App\Http\Models\TransactionPickupGoSend;
 use App\Http\Models\TransactionPickupGoSendUpdate;
 use App\Http\Models\User;
+use Modules\UserRating\Entities\UserRatingLog;
 
 class GoSend
 {
@@ -256,6 +257,13 @@ class GoSend
             if ($dataUpdate['status'] == 'delivered') {
                 $trx_pickup->update(['show_confirm' => '1']);
                 $trx->update(['show_rate_popup' => '1']);
+                UserRatingLog::updateOrCreate([
+                    'id_user' => $trx->id_user,
+                    'id_transaction' => $trx->id_transaction
+                ],[
+                    'refuse_count' => 0,
+                    'last_popup' => date('Y-m-d H:i:s', time() - MyHelper::setting('popup_min_interval', 'value', 900))
+                ]);
             }
             $outlet  = Outlet::where('id_outlet', $trx->id_outlet)->first();
             $phone   = User::select('phone')->where('id', $trx->id_user)->pluck('phone')->first();
