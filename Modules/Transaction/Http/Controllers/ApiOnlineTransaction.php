@@ -2636,8 +2636,20 @@ class ApiOnlineTransaction extends Controller
 		    $result['discount_delivery'] = abs($promo_delivery['value']);
         	$result['grandtotal'] = MyHelper::requestNumber(($result['grandtotal'] - $promo_delivery['value']),$rn);
 		    $result['grandtotal_pretty'] = MyHelper::requestNumber($result['grandtotal'],'_CURRENCY');
-		    $result['total_payment_pretty'] = MyHelper::requestNumber(($result['grandtotal']-$used_point),'_CURRENCY');
-        	$result['total_payment'] = MyHelper::requestNumber(($result['grandtotal']-$used_point),$rn);
+
+        	if (isset($post['payment_type'])&&$post['payment_type'] == 'Balance') {
+        		if ($result['used_point'] >= $result['grandtotal'] ) {
+        			$result['used_point'] = $result['grandtotal'];
+	            	$result['used_point_pretty'] = MyHelper::requestNumber($result['used_point'],'_POINT');
+	            	$result['points'] = MyHelper::requestNumber(($balance - $result['used_point']),'point');
+	            	$result['points_pretty'] = MyHelper::requestNumber($result['points'],'_POINT');
+
+        		}
+	        }
+
+		    $result['total_payment_pretty'] = MyHelper::requestNumber(($result['grandtotal']-$result['used_point']),'_CURRENCY');
+        	$result['total_payment'] = MyHelper::requestNumber(($result['grandtotal']-$result['used_point']),$rn);
+
         	unset($result['promo_delivery']['available_delivery'], $result['promo_delivery']['allow_delivery'], $result['promo_delivery']['allow_pickup']);
         }
 
