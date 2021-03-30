@@ -75,7 +75,7 @@ class TransactionPickup extends Model
 		                        'receipt_number'  => $trx->transaction_receipt_number,
 		                        'outlet_code'     => $outlet->outlet_code,
 		                        'outlet_name'     => $outlet->outlet_name,
-		                        'delivery_status' => 'Belum berhasil menemukan driver',
+		                        'delivery_status' => 'Driver Not Found',
 		                        'order_id'        => $this->order_id,
 		                    ]
 		                );                
