@@ -109,13 +109,8 @@ class ApiInbox extends Controller
                 $content['link'] = null;
             }
 
-            if(is_numeric(strpos(strtolower($global['subject']), 'transaksi')) || is_numeric(strpos(strtolower($global['subject']), 'transaction'))
-                || is_numeric(strpos(strtolower($global['subject']), 'deals'))  || is_numeric(strpos(strtolower($global['subject']), 'voucher'))
-                || is_numeric(strpos(strtolower($global['subject']), 'order')) ||
-                is_numeric(strpos(strtolower($global['subject']), 'first'))){
+            if (!empty($content['clickto'])){
                 $content['clickto'] = $global['clickto'];
-            }elseif (is_numeric(strpos(strtolower($global['subject']), 'point'))){
-                $content['clickto'] = 'Membership';
             }elseif (is_numeric(strpos(strtolower($global['subject']), 'subscription'))){
                 $content['clickto'] = 'Subscription';
             }else{

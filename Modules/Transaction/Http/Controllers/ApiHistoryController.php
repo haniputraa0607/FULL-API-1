@@ -539,15 +539,20 @@ class ApiHistoryController extends Controller
         $transaction->where(function ($query) use ($post) {
             if (!is_null($post['pickup_order'])) {
                 $query->orWhere(function ($amp) use ($post) {
-                    $amp->where('transactions.trasaction_type', 'Pickup Order');
+                    $amp->where('transactions.trasaction_type', 'Pickup Order')->whereNull('transaction_shipping_method');
                 });
             }
 
             if (!is_null($post['delivery_order'])) {
                 $query->orWhere(function ($amp) use ($post) {
-                    $amp->where('transactions.trasaction_type', 'Delivery');
+                    $amp->where('transactions.trasaction_type', 'Pickup Order')->whereNotNull('transaction_shipping_method');
                 });
             }
+            // if (!is_null($post['delivery_order'])) {
+            //     $query->orWhere(function ($amp) use ($post) {
+            //         $amp->where('transactions.trasaction_type', 'Delivery');
+            //     });
+            // }
 
             if (!is_null($post['offline_order'])) {
                 $query->orWhere(function ($amp) use ($post) {
