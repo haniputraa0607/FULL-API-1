@@ -55,6 +55,9 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::get('be/{key}', 'ApiTransaction@transactionList');
     Route::post('be/detail/webview/{mode?}', 'ApiWebviewController@webview');
 
+    Route::post('failed-void-payment', 'ApiManualRefundController@listFailedVoidPayment');
+    Route::post('failed-void-payment/confirm', 'ApiManualRefundController@confirmManualRefund');
+
     /*[POS] Transaction online failed*/
     Route::any('online-pos', 'ApiTransactionOnlinePos@listTransaction');
     Route::post('online-pos/resend', 'ApiTransactionOnlinePos@resendTransaction');

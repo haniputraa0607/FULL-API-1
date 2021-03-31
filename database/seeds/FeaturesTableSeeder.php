@@ -2610,6 +2610,16 @@ class FeaturesTableSeeder extends Seeder
                     'order' => 117,
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00'),
+                ),
+            260 =>
+                array(
+                    'id_feature' => 261,
+                    'feature_type' => 'Update',
+                    'feature_module' => 'Failed Void Payment',
+                    'show_hide' => 1,
+                    'order' => 116,
+                    'created_at' => date('Y-m-d H:00:00'),
+                    'updated_at' => date('Y-m-d H:00:00')
                 )
         ));
     }
