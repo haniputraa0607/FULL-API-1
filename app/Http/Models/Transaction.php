@@ -290,7 +290,6 @@ class Transaction extends Model
 		}
 
         $rejectBalance = false;
-        $point = 0;
 
         $shared = \App\Lib\TemporaryDataManager::create('reject_order');
         $refund_failed_process_balance = MyHelper::setting('refund_failed_process_balance');
@@ -298,11 +297,13 @@ class Transaction extends Model
         \DB::beginTransaction();
         request()->merge(['log_outside' => true]);
         $multiple = TransactionMultiplePayment::where('id_transaction', $this->id_transaction)->get()->toArray();
+        $point = 0;
         foreach ($multiple as $pay) {
             if ($pay['type'] == 'Balance') {
                 $payBalance = TransactionPaymentBalance::find($pay['id_payment']);
                 if ($payBalance) {
-                    $refund = app($this->balance)->addLogBalance($this->id_user, $point = $payBalance['balance_nominal'], $this->id_transaction, 'Rejected Order Point', $this->transaction_grandtotal);
+                	$point += $payBalance['balance_nominal'];
+                    $refund = app($this->balance)->addLogBalance($this->id_user, $payBalance['balance_nominal'], $this->id_transaction, 'Rejected Order Point', $this->transaction_grandtotal);
                     if ($refund == false) {
                         DB::rollback();
                         $errors[] = 'Failed refund balance';
@@ -315,7 +316,6 @@ class Transaction extends Model
                 if ($payOvo) {
                     $doRefundPayment = MyHelper::setting('refund_ovo');
                     if($doRefundPayment){
-                        $point = 0;
                         $transaction = TransactionPaymentOvo::where('transaction_payment_ovos.id_transaction', $this->id_transaction)
                             ->join('transactions','transactions.id_transaction','=','transaction_payment_ovos.id_transaction')
                             ->first();
@@ -342,7 +342,8 @@ class Transaction extends Model
 
                     // don't use elseif / else because in the if block there are conditions that should be included in this process too
                     if (!$doRefundPayment) {
-                        $refund = app($this->balance)->addLogBalance($this->id_user, $point = $payOvo['amount'], $this->id_transaction, 'Rejected Order Ovo', $this->transaction_grandtotal);
+	                	$point += $payOvo['amount'];
+                        $refund = app($this->balance)->addLogBalance($this->id_user, $payOvo['amount'], $this->id_transaction, 'Rejected Order Ovo', $this->transaction_grandtotal);
                         if ($refund == false) {
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund Ovo to balance';
@@ -352,7 +353,6 @@ class Transaction extends Model
                     }
                 }
             } elseif (strtolower($pay['type']) == 'ipay88') {
-                $point = 0;
                 $payIpay = TransactionPaymentIpay88::find($pay['id_payment']);
                 if ($payIpay) {
                     $doRefundPayment = strtolower($payIpay['payment_method']) == 'ovo' && MyHelper::setting('refund_ipay88');
@@ -380,7 +380,8 @@ class Transaction extends Model
 
                     // don't use elseif / else because in the if block there are conditions that should be included in this process too
                     if (!$doRefundPayment) {
-                        $refund = app($this->balance)->addLogBalance($this->id_user, $point = ($payIpay['amount']/100), $this->id_transaction, 'Rejected Order', $this->transaction_grandtotal);
+                    	$point += ($payIpay['amount']/100);
+                        $refund = app($this->balance)->addLogBalance($this->id_user, ($payIpay['amount']/100), $this->id_transaction, 'Rejected Order', $this->transaction_grandtotal);
                         if ($refund == false) {
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund ipay to balance';
@@ -390,7 +391,6 @@ class Transaction extends Model
                     }
                 }
             } elseif (strtolower($pay['type']) == 'shopeepay') {
-                $point = 0;
                 $payShopeepay = TransactionPaymentShopeePay::find($pay['id_payment']);
                 if ($payShopeepay) {
                     $doRefundPayment = MyHelper::setting('refund_shopeepay');
@@ -418,7 +418,8 @@ class Transaction extends Model
 
                     // don't use elseif / else because in the if block there are conditions that should be included in this process too
                     if (!$doRefundPayment) {
-                        $refund = app($this->balance)->addLogBalance($this->id_user, $point = ($payShopeepay['amount']/100), $this->id_transaction, 'Rejected Order', $this->transaction_grandtotal);
+                    	$point += ($payShopeepay['amount']/100);
+                        $refund = app($this->balance)->addLogBalance($this->id_user, ($payShopeepay['amount']/100), $this->id_transaction, 'Rejected Order', $this->transaction_grandtotal);
                         if ($refund == false) {
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund shopeepay to balance';
@@ -428,7 +429,6 @@ class Transaction extends Model
                     }
                 }
             } else {
-                $point = 0;
                 $payMidtrans = TransactionPaymentMidtran::find($pay['id_payment']);
                 if ($payMidtrans) {
                     $doRefundPayment = MyHelper::setting('refund_midtrans');
@@ -456,7 +456,8 @@ class Transaction extends Model
 
                     // don't use elseif / else because in the if block there are conditions that should be included in this process too
                     if (!$doRefundPayment) {
-                        $refund = app($this->balance)->addLogBalance( $this->id_user, $point = $payMidtrans['gross_amount'], $this->id_transaction, 'Rejected Order Midtrans', $this->transaction_grandtotal);
+                    	$point += $payMidtrans['gross_amount'];
+                        $refund = app($this->balance)->addLogBalance( $this->id_user, $payMidtrans['gross_amount'], $this->id_transaction, 'Rejected Order Midtrans', $this->transaction_grandtotal);
                         if ($refund == false) {
 	                        DB::rollback();
 	                        $errors[] = 'Failed refund midtrans to balance';
@@ -468,18 +469,6 @@ class Transaction extends Model
             }
         }
 
-        //reversal balance
-        $logBalance = LogBalance::where('id_reference', $this->id_transaction)->where('source', 'Transaction')->where('balance', '<', 0)->get();
-        foreach($logBalance as $logB){
-        	$point += abs($logB['balance']);
-        	$rejectBalance = true;
-            $reversal = app($this->balance)->addLogBalance( $this->id_user, abs($logB['balance']), $this->id_transaction, 'Reversal', $this->transaction_grandtotal);
-            if (!$reversal) {
-                DB::rollback();
-                $errors[] = 'Failed refund to balance';
-                return false;
-            }
-        }
         $pickup->update(['reject_at' => date('Y-m-d H:i:s'), 'reject_reason' => $reason]);
         if (request()->doLog) {
         	$func = request()->doLog;
