@@ -114,6 +114,7 @@ class Transaction extends Model
 	protected $shopeepay      = "Modules\ShopeePay\Http\Controllers\ShopeePayController";
 
 	public $manual_refund = 0;
+	public $payment_method = null;
 
 	public function user()
 	{
@@ -326,6 +327,7 @@ class Transaction extends Model
                             } else {
                                 $this->update(['need_manual_void' => 1]);
                                 $this->manual_refund = $payOvo['amount'];
+                                $this->payment_method = 'Ovo';
                                 if ($shared['reject_batch'] ?? false) {
                                     $shared['void_failed'][] = $this;
                                 } else {
@@ -363,6 +365,7 @@ class Transaction extends Model
                             } else {
                                 $this->update(['need_manual_void' => 1]);
                                 $this->manual_refund = $payIpay['amount']/100;
+                                $this->payment_method = 'IPay88';
                                 if ($shared['reject_batch'] ?? false) {
                                     $shared['void_failed'][] = $this;
                                 } else {
@@ -400,6 +403,7 @@ class Transaction extends Model
                             } else {
                                 $this->update(['need_manual_void' => 1]);
                                 $this->manual_refund = $payShopeepay['amount']/100;
+                                $this->payment_method = 'ShopeePay';
                                 if ($shared['reject_batch'] ?? false) {
                                     $shared['void_failed'][] = $this;
                                 } else {
@@ -436,6 +440,7 @@ class Transaction extends Model
                                 $doRefundPayment = false;
                             } else {
                                 $this->update(['need_manual_void' => 1]);
+                                $this->payment_method = 'Midtrans';
                                 $this->manual_refund = $payMidtrans['gross_amount'];
                                 if ($shared['reject_batch'] ?? false) {
                                     $shared['void_failed'][] = $this;
