@@ -115,6 +115,7 @@ class Transaction extends Model
 
 	public $manual_refund = 0;
 	public $payment_method = null;
+	public $payment_detail = null;
 
 	public function user()
 	{
@@ -366,6 +367,7 @@ class Transaction extends Model
                                 $this->update(['need_manual_void' => 1]);
                                 $this->manual_refund = $payIpay['amount']/100;
                                 $this->payment_method = 'IPay88';
+                                $this->payment_detail = $payIpay->payment_method;
                                 if ($shared['reject_batch'] ?? false) {
                                     $shared['void_failed'][] = $this;
                                 } else {
@@ -441,6 +443,7 @@ class Transaction extends Model
                             } else {
                                 $this->update(['need_manual_void' => 1]);
                                 $this->payment_method = 'Midtrans';
+                                $this->payment_detail = $payMidtrans->payment_type;
                                 $this->manual_refund = $payMidtrans['gross_amount'];
                                 if ($shared['reject_batch'] ?? false) {
                                     $shared['void_failed'][] = $this;
