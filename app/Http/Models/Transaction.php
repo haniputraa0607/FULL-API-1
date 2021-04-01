@@ -142,6 +142,11 @@ class Transaction extends Model
 		return $this->hasMany(\App\Http\Models\TransactionPaymentMidtran::class, 'id_transaction');
 	}
 
+	public function transaction_payment_shopeepay()
+	{
+		return $this->hasMany(TransactionPaymentShopeePay::class, 'id_transaction');
+	}
+
 	public function transaction_payment_offlines()
 	{
 		return $this->hasMany(\App\Http\Models\TransactionPaymentOffline::class, 'id_transaction');
