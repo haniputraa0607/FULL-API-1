@@ -139,7 +139,7 @@ class Transaction extends Model
 
 	public function transaction_payment_midtrans()
 	{
-		return $this->hasMany(\App\Http\Models\TransactionPaymentMidtran::class, 'id_transaction');
+		return $this->hasOne(\App\Http\Models\TransactionPaymentMidtran::class, 'id_transaction');
 	}
 
 	public function transaction_payment_shopeepay()
