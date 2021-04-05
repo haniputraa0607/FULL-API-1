@@ -2620,6 +2620,15 @@ class ApiOnlineTransaction extends Controller
         $result['promo_error'] = $promo_error;
         $result['allow_pickup'] = 1;
         $result['allow_delivery'] = $outlet['delivery_order'];
+
+        if ($result['allow_delivery']) {
+            // check global setting delivery method
+            $delivery_available = array_sum(array_column(json_decode(MyHelper::setting('active_delivery_methods', 'value_text'), true) ?? [], 'status'));
+            if (!$delivery_available) {
+                $result['allow_delivery'] = 0;
+            }
+        }
+
         $result['available_delivery'] = [];
 
         // check promo delivery 
@@ -3259,6 +3268,7 @@ class ApiOnlineTransaction extends Controller
         $update = Setting::updateOrCreate(['key' => 'delivery_max_cup'], ['value' => $request->delivery_max_cup]);
         $update = Setting::updateOrCreate(['key' => 'delivery_default'], ['value' => $request->delivery_default]);
         $update = Setting::updateOrCreate(['key' => 'outlet_delivery_max_distance'], ['value' => $request->outlet_delivery_max_distance]);
+        $update = Setting::updateOrCreate(['key' => 'auto_reject_time'], ['value' => $request->auto_reject_time]);
         return MyHelper::checkUpdate($update);
     }
 
