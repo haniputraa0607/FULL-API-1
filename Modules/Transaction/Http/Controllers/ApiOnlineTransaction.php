@@ -2620,6 +2620,15 @@ class ApiOnlineTransaction extends Controller
         $result['promo_error'] = $promo_error;
         $result['allow_pickup'] = 1;
         $result['allow_delivery'] = $outlet['delivery_order'];
+
+        if ($result['allow_delivery']) {
+            // check global setting delivery method
+            $delivery_available = array_sum(array_column(json_decode(MyHelper::setting('active_delivery_methods', 'value_text'), true) ?? [], 'status'));
+            if (!$delivery_available) {
+                $result['allow_delivery'] = 0;
+            }
+        }
+
         $result['available_delivery'] = [];
 
         // check promo delivery 
