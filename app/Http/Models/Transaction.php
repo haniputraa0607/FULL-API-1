@@ -105,7 +105,8 @@ class Transaction extends Model
 		'is_auto_cancel',
 		'should_cancel',
 		'need_manual_void',
-		'failed_void_reason'
+		'failed_void_reason',
+		'sent_to_pos'
 	];
 
 	protected $balance = 'Modules\Balance\Http\Controllers\BalanceController';

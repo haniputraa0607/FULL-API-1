@@ -71,7 +71,9 @@ class ConnectPOS{
 	public function sendTransaction(...$id_transactions)
 	{
 		foreach ($id_transactions as $id_transaction) {
-			$transaction = Transaction::select('transactions_online_pos.id_transaction', 'transaction_date', 'count_retry')->leftJoin('transactions_online_pos', 'transactions_online_pos.id_transaction', 'transactions.id_transaction')->where('transactions.id_transaction', $id_transaction)->first();
+			$transaction = Transaction::select('transactions_online_pos.id_transaction', 'transaction_date', 'count_retry')->leftJoin('transactions_online_pos', 'transactions_online_pos.id_transaction', 'transactions.id_transaction')->where('transactions.id_transaction', $id_transaction)
+				->where('sent_to_pos', '0')
+				->first();
 			if (!$transaction) {
 				continue;
 			}
@@ -91,13 +93,16 @@ class ConnectPOS{
 	public function doSendTransaction(...$id_transactions) {
 		$module_url = '/MobileReceiver/transaction';
 		$trxDatas = Transaction::whereIn('transactions.id_transaction',$id_transactions)
-		->where('transaction_payment_status','Completed')
-		->join('transaction_pickups','transactions.id_transaction','=','transaction_pickups.id_transaction')
-		->with(['user','modifiers','modifiers.product_modifier','products','products.product_group','products.product_variants'=>function($query){
-			$query->orderBy('parent');
-		},'outlet','promo_campaign_promo_code'])->get();
+			->where('transaction_payment_status','Completed')
+			->join('transaction_pickups','transactions.id_transaction','=','transaction_pickups.id_transaction')
+			->with(['user','modifiers','modifiers.product_modifier','products','products.product_group','products.product_variants'=>function($query){
+				$query->orderBy('parent');
+			},'outlet','promo_campaign_promo_code'])
+			->where('sent_to_pos', '0')
+			->get();
 		// return $trxData;
-		if(!$trxDatas){return false;}
+		if(!$trxDatas){return true;}
+		Transaction::whereIn('id_transaction', $trxDatas->pluck('id_transaction'))->update(['sent_to_pos' => 2]);
 		$item = [];
 		$users = [];
 		$outlets = [];
@@ -455,6 +460,7 @@ class ConnectPOS{
 		];
 		$is_success = ($response['status_code']??false) == 200;
 		if(!$is_success){
+			Transaction::whereIn('id_transaction', $trxDatas->pluck('id_transaction'))->update(['sent_to_pos' => 0]);
 			foreach ($users as $phone) {
 				$variables = $transactions[$phone];
 				$top = TransactionOnlinePos::where('id_transaction',$trxData['id_transaction'])->first();
@@ -480,6 +486,7 @@ class ConnectPOS{
 				// }
 			}
 		}else{
+			Transaction::whereIn('id_transaction', $trxDatas->pluck('id_transaction'))->update(['sent_to_pos' => 1]);
 			TransactionPickup::whereIn('id_transaction',$id_transactions)->whereNull('receive_at')->update([
 				'receive_at' => date('Y-m-d H:i:s')
 			]);
