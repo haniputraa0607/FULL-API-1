@@ -50,6 +50,7 @@ use App\Http\Models\SyncTransactionFaileds;
 use App\Http\Models\SyncTransactionQueues;
 use Modules\UserRating\Entities\UserRatingLog;
 use App\Lib\MyHelper;
+use App\Lib\ConnectPOS;
 use App\Lib\MailQueue as Mail;
 
 use Modules\POS\Http\Requests\reqMember;
@@ -207,7 +208,7 @@ class ApiPOS extends Controller
                     'address' => $deliveryData->destination_address,
                     'latitude' => $deliveryData->destination_latitude, 
                     'longitude' => $deliveryData->destination_longitude, 
-                    'courierName' => 'GOSEND', 
+                    'courierName' => ConnectPOS::$mappingPickup[$trxData->pickup_by] ?? $trxData->pickup_by, 
                     'deliveryCost' => $trxData->transaction_shipment, 
                     'discDeliveryCost' => abs($trxData->transaction_discount_delivery), 
                     'netDeliveryCost' => $trxData->transaction_shipment - abs($trxData->transaction_discount_delivery), 
@@ -228,7 +229,7 @@ class ApiPOS extends Controller
                     'address' => $deliveryData->destination_address,
                     'latitude' => $deliveryData->destination_latitude, 
                     'longitude' => $deliveryData->destination_longitude, 
-                    'courierName' => 'Internal Delivery', 
+                    'courierName' => ConnectPOS::$mappingPickup[$trxData->pickup_by] ?? $trxData->pickup_by, 
                     'deliveryCost' => $trxData->transaction_shipment, 
                     'discDeliveryCost' => abs($trxData->transaction_discount_delivery), 
                     'netDeliveryCost' => $trxData->transaction_shipment - abs($trxData->transaction_discount_delivery), 

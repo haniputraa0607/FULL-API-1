@@ -145,7 +145,9 @@ class TransactionPickupGoSend extends Model
         $this->driver_photo      = $status['driverPhoto'] ?? null;
         $this->vehicle_number    = $status['vehicleNumber'] ?? null;
         $this->live_tracking_url = $status['liveTrackingUrl'] ?? null;
-        $this->retry_count = $fromRetry?($this->retry_count+1):0;
+        $this->retry_count       = $fromRetry?($this->retry_count+1):0;
+        $this->manual_order_no   = $fromRetry?$this->manual_order_no:$booking['orderNo'];
+        $this->stop_booking_at   = null;
         $this->save();
 
         return true;
