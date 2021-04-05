@@ -654,6 +654,8 @@ class ApiHistoryController extends Controller
                 $last_status = $lastStatusText['on_delivery_out_for_pickup'];
             } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'no_driver') {
                 $last_status = $lastStatusText['on_delivery_no_driver'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'cancelled' || ($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'rejected') {
+                $last_status = $lastStatusText['rejected'];
             } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false)) {
                 $last_status = $lastStatusText['on_delivery_find_driver'];
             } elseif ($value['ready_at']) {
@@ -778,6 +780,8 @@ class ApiHistoryController extends Controller
                 $last_status = $lastStatusText['on_delivery_out_for_pickup'];
             } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'no_driver') {
                 $last_status = $lastStatusText['on_delivery_no_driver'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'cancelled' || ($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'rejected') {
+                $last_status = $lastStatusText['rejected'];
             } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false)) {
                 $last_status = $lastStatusText['on_delivery_find_driver'];
             } elseif ($value['ready_at']) {
