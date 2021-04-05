@@ -365,7 +365,7 @@ class Ovo {
             $reversal = MyHelper::postWithTimeout($url, null, $data, 0, $header);
 
             if(isset($reversal['status_code'])){
-
+                $reversal['response'] = self::detailResponse($reversal['response']);
                 if($type == 'deals'){
                     $logData = array_merge($logData, [
                         'response_status' => 'success',

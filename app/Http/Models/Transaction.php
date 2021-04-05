@@ -104,7 +104,8 @@ class Transaction extends Model
 		'notif_ready_sent',
 		'is_auto_cancel',
 		'should_cancel',
-		'need_manual_void'
+		'need_manual_void',
+		'failed_void_reason'
 	];
 
 	protected $balance = 'Modules\Balance\Http\Controllers\BalanceController';
@@ -327,7 +328,8 @@ class Transaction extends Model
                             ->first();
                         $refund = Ovo::Void($transaction);
                         $reject_type = 'refund';
-                        if ($refund['status_code'] != '200') {
+                        if ($refund['response']['responseCode'] != '00') {
+                            $this->update(['failed_void_reason' => $refund['response']['response_description'] ?? '']);
                             if ($refund_failed_process_balance) {
                                 $doRefundPayment = false;
                             } else {
@@ -363,9 +365,10 @@ class Transaction extends Model
                 if ($payIpay) {
                     $doRefundPayment = strtolower($payIpay['payment_method']) == 'ovo' && MyHelper::setting('refund_ipay88');
                     if($doRefundPayment){
-                        $refund = \Modules\IPay88\Lib\IPay88::create()->void($payIpay);
+                        $refund = \Modules\IPay88\Lib\IPay88::create()->void($payIpay, 'trx', 'user', $message);
                         $reject_type = 'refund';
                         if (!$refund) {
+                            $this->update(['failed_void_reason' => $message ?? '']);
                             if ($refund_failed_process_balance) {
                                 $doRefundPayment = false;
                             } else {
@@ -405,6 +408,7 @@ class Transaction extends Model
                         $refund = app($this->shopeepay)->void($payShopeepay['id_transaction'], 'trx', $errors);
                         $reject_type = 'refund';
                         if (!$refund) {
+                            $this->update(['failed_void_reason' => implode(', ', $errors ?: [])]);
                             if ($refund_failed_process_balance) {
                                 $doRefundPayment = false;
                             } else {
@@ -443,6 +447,7 @@ class Transaction extends Model
                         $refund = Midtrans::refund($payMidtrans['vt_transaction_id'],['reason' => 'refund because driver not found']);
                         $reject_type = 'refund';
                         if ($refund['status'] != 'success') {
+                            $this->update(['failed_void_reason' => implode(', ', $refund['messages'] ?? [])]);
                             if ($refund_failed_process_balance) {
                                 $doRefundPayment = false;
                             } else {
