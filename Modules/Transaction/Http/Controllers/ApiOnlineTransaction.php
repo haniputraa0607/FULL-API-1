@@ -3247,6 +3247,7 @@ class ApiOnlineTransaction extends Controller
         $update = Setting::updateOrCreate(['key' => 'delivery_max_cup'], ['value' => $request->delivery_max_cup]);
         $update = Setting::updateOrCreate(['key' => 'delivery_default'], ['value' => $request->delivery_default]);
         $update = Setting::updateOrCreate(['key' => 'outlet_delivery_max_distance'], ['value' => $request->outlet_delivery_max_distance]);
+        $update = Setting::updateOrCreate(['key' => 'auto_reject_time'], ['value' => $request->auto_reject_time]);
         return MyHelper::checkUpdate($update);
     }
 
