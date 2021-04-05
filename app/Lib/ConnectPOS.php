@@ -22,6 +22,13 @@ use App\Jobs\SendCancelPOS;
 
 class ConnectPOS{
 	public static $obj = null;
+	public static $mappingPickup = [
+		'GO-SEND' => 'MADGOJEK',
+		'Grab' => 'MADGRAB',
+		'Lalamove' => 'MADLALA',
+		'Outlet' => 'MADMAXX'
+	];
+
 	/**
 	 * Initialize Lib
 	 */
@@ -167,7 +174,7 @@ class ConnectPOS{
 					'address' => $deliveryData->destination_address,
 					'latitude' => $deliveryData->destination_latitude, 
 					'longitude' => $deliveryData->destination_longitude, 
-					'courierName' => 'GOSEND', 
+					'courierName' => ConnectPOS::$mappingPickup[$trxData->pickup_by] ?? $trxData->pickup_by, 
 					'deliveryCost' => $trxData->transaction_shipment, 
 					'discDeliveryCost' => abs($trxData->transaction_discount_delivery), 
 					'netDeliveryCost' => $trxData->transaction_shipment - abs($trxData->transaction_discount_delivery), 
@@ -188,7 +195,7 @@ class ConnectPOS{
 					'address' => $deliveryData->destination_address,
 					'latitude' => $deliveryData->destination_latitude, 
 					'longitude' => $deliveryData->destination_longitude, 
-					'courierName' => 'Internal Delivery', 
+					'courierName' => ConnectPOS::$mappingPickup[$trxData->pickup_by] ?? $trxData->pickup_by, 
 					'deliveryCost' => $trxData->transaction_shipment, 
 					'discDeliveryCost' => abs($trxData->transaction_discount_delivery), 
 					'netDeliveryCost' => $trxData->transaction_shipment - abs($trxData->transaction_discount_delivery), 
