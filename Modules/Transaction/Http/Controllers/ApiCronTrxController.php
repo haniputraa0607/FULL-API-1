@@ -425,16 +425,19 @@ class ApiCronTrxController extends Controller
                     }
                 }
 
-                // show rate popup
-                if ($newTrx->id_user) {
-                    UserRatingLog::updateOrCreate([
-                        'id_user' => $newTrx->id_user,
-                        'id_transaction' => $newTrx->id_transaction
-                    ],[
-                        'refuse_count' => 0,
-                        'last_popup' => date('Y-m-d H:i:s', time() - MyHelper::setting('popup_min_interval', 'value', 900))
-                    ]);
-                }
+                /**
+                 * taken by system tidak menampilkan popup
+                 */
+                // // show rate popup
+                // if ($newTrx->id_user) {
+                //     UserRatingLog::updateOrCreate([
+                //         'id_user' => $newTrx->id_user,
+                //         'id_transaction' => $newTrx->id_transaction
+                //     ],[
+                //         'refuse_count' => 0,
+                //         'last_popup' => date('Y-m-d H:i:s', time() - MyHelper::setting('popup_min_interval', 'value', 900))
+                //     ]);
+                // }
             }
             //update taken_by_sistem_at
             $dataTrx = TransactionPickup::whereIn('id_transaction', $idTrx)
