@@ -161,7 +161,7 @@ class Midtrans {
             if ($trx->transaction_status == 'capture') {
                 $url = env('BASE_MIDTRANS_SANDBOX').'/v2/'.$trx->vt_transaction_id.'/cancel';
             } else {
-                $param['reason'] = 'Pengembalian dana';
+                $param['reason'] = $param['reason'] ?? 'Pengembalian dana';
             }
             if(!$param){
                 $param = [];
@@ -172,7 +172,7 @@ class Midtrans {
             if ($transaction_status == 'capture') {
                 $url = env('BASE_MIDTRANS_SANDBOX').'/v2/'.$order_id.'/cancel';
             } else {
-                $param['reason'] = 'Pengembalian dana';
+                $param['reason'] = $param['reason'] ?? 'Pengembalian dana';
             }
             if(!$param){
                 $param = [];

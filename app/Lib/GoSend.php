@@ -54,7 +54,7 @@ class GoSend
         $post['routes'][0]['originContactName']  = 'MAXX';
         $post['routes'][0]['originContactPhone'] = $origin['phone'];
         $post['routes'][0]['originLatLong']      = $origin['latitude'] . ',' . $origin['longitude'];
-        $post['routes'][0]['originAddress']      = $origin['address'] . '. ' . $origin['note'];
+        $post['routes'][0]['originAddress']      = $origin['address'];
 
         $post['routes'][0]['destinationName']         = "";
         $post['routes'][0]['destinationNote']         = "";
@@ -291,6 +291,7 @@ class GoSend
                 $autocrm = app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Delivery Status Update', $phone,
                     [
                         'id_reference'    => $dataUpdate['id_transaction'],
+                        'id_transaction'  => $dataUpdate['id_transaction'],
                         'receipt_number'  => $trx->transaction_receipt_number,
                         'outlet_code'     => $outlet->outlet_code,
                         'outlet_name'     => $outlet->outlet_name,
