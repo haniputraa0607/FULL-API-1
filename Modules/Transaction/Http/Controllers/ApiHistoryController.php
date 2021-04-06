@@ -202,10 +202,10 @@ class ApiHistoryController extends Controller
         $transaction = [];
         $voucher = [];
 
-        if($post['online_order'] == 1 || $post['offline_order'] == 1 || ($post['online_order'] == null && $post['offline_order'] == null && $post['voucher'] == null)) {
+        if($post['online_order'] == 1 || $post['offline_order'] == 1 || $post['delivery_order'] == 1 || $post['pickup_order'] == 1 || ($post['online_order'] == null && $post['offline_order'] == null && $post['delivery_order'] == null && $post['pickup_order'] == null && $post['voucher'] == null)) {
             $transaction = $this->transaction($post, $id);
         }
-        if($post['voucher'] == 1 || ($post['online_order'] == null && $post['offline_order'] == null && $post['voucher'] == null)){
+        if($post['voucher'] == 1 || ($post['online_order'] == null && $post['offline_order'] == null && $post['delivery_order'] == null && $post['pickup_order'] == null && $post['voucher'] == null)){
             $voucher = $this->voucher($post, $id);
         }
 
@@ -1078,7 +1078,7 @@ class ApiHistoryController extends Controller
             }
         });
 
-         if (!is_null($post['online_order']) || !is_null($post['offline_order'])) {
+         if (!is_null($post['online_order']) || !is_null($post['offline_order']) || !is_null($post['pickup_order']) || !is_null($post['delivery_order'])) {
              $log->leftJoin('transactions', 'transactions.id_transaction', 'log_balances.id_reference')
                  ->where(function ($query) use ($post) {
                      if (!is_null($post['online_order'])) {
