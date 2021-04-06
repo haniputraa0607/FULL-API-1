@@ -2925,4 +2925,39 @@ class MyHelper{
         });
         return $shipments;
     }
+
+    /**
+     * Validate phone number with gosend rule
+     * @param  string $phone Phone number
+     * @return bool        true/false
+     */
+    public static function validatePhoneGoSend(string $phone) : bool
+    {
+    	/* Length of phone number should not be less than 10 digits */
+    	if (strlen($phone) < 10) {
+    		return false;
+    	}
+
+    	/* If the num starts with `08` then the length of the remaining digits should be between 8 and 12 */
+    	if (substr($phone, 0, 2) === '08') {
+    		$remaining = substr($phone, 2);
+    		if (strlen($remaining) < 8 || strlen($remaining) > 12) {
+    			return false;
+    		}
+    	}
+    	/* If the num does not start with `08` then the length of the remaining digits should be between 8 and 14 */
+    	else {
+    		$remaining = substr($phone, 2);
+    		if (strlen($remaining) < 8 || strlen($remaining) > 14) {
+    			return false;
+    		}
+    	}
+
+    	/* No non-numeric characters should be present */
+    	if (!preg_match('/^([0-9]*)$/', $phone)) {
+    		return false;
+    	}
+
+    	return true;
+    }
 }
