@@ -445,7 +445,20 @@ class Transaction extends Model
                 if ($payMidtrans) {
                     $doRefundPayment = MyHelper::setting('refund_midtrans');
                     if($doRefundPayment){
-                        $refund = Midtrans::refund($payMidtrans['vt_transaction_id'],['reason' => 'refund because driver not found']);
+                    	$refund_reason = 'refund because driver not found';
+                    	if ($this->transaction_pickup->pickup_by == 'GO-SEND') {
+                    		$pickup_gosend = TransactionPickupGoSend::where('id_transaction_pickup', $this->transaction_pickup->id_transaction_pickup)->first();
+                    		if (!$pickup_gosend || !$pickup_gosend['latest_status']) {
+		                    	$refund_reason = 'Refund because failed booking driver';
+                    		} elseif ($pickup_gosend['latest_status'] == 'no_driver') {
+		                    	$refund_reason = 'Refund because driver not found';
+                    		} elseif ($pickup_gosend['latest_status'] == 'cancelled') {
+		                    	$refund_reason = 'Refund because delivery cancelled';
+                    		} elseif ($pickup_gosend['latest_status'] == 'rejected') {
+		                    	$refund_reason = 'Refund because delivery rejected';
+                    		}
+                    	}
+                        $refund = Midtrans::refund($payMidtrans['vt_transaction_id'],['reason' => $refund_reason]);
                         $reject_type = 'refund';
                         if ($refund['status'] != 'success') {
                             $this->update(['failed_void_reason' => implode(', ', $refund['messages'] ?? [])]);
