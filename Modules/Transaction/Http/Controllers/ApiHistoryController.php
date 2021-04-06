@@ -202,10 +202,10 @@ class ApiHistoryController extends Controller
         $transaction = [];
         $voucher = [];
 
-        if($post['online_order'] == 1 || $post['offline_order'] == 1 || ($post['online_order'] == null && $post['offline_order'] == null && $post['voucher'] == null)) {
+        if($post['online_order'] == 1 || $post['offline_order'] == 1 || $post['delivery_order'] == 1 || $post['pickup_order'] == 1 || ($post['online_order'] == null && $post['offline_order'] == null && $post['delivery_order'] == null && $post['pickup_order'] == null && $post['voucher'] == null)) {
             $transaction = $this->transaction($post, $id);
         }
-        if($post['voucher'] == 1 || ($post['online_order'] == null && $post['offline_order'] == null && $post['voucher'] == null)){
+        if($post['voucher'] == 1 || ($post['online_order'] == null && $post['offline_order'] == null && $post['delivery_order'] == null && $post['pickup_order'] == null && $post['voucher'] == null)){
             $voucher = $this->voucher($post, $id);
         }
 
@@ -400,6 +400,12 @@ class ApiHistoryController extends Controller
         }
         if (!isset($post['online_order'])) {
             $post['online_order'] = null;
+        }
+        if (!isset($post['pickup_order'])) {
+            $post['pickup_order'] = null;
+        }
+        if (!isset($post['delivery_order'])) {
+            $post['delivery_order'] = null;
         }
         if (!isset($post['voucher'])) {
             $post['voucher'] = null;
@@ -649,7 +655,9 @@ class ApiHistoryController extends Controller
         ];
 
         foreach ($transaction as $key => $value) {
-            if ($value['reject_at']) {
+            if ($value['transaction_payment_status'] == 'Cancelled') {
+                $last_status = $lastStatusText['cancelled'];
+            } elseif ($value['reject_at']) {
                 $last_status = $lastStatusText['rejected'];
             } elseif ($value['taken_by_system_at'] || $value['taken_at']) {
                 $last_status = $lastStatusText['completed'];
@@ -669,8 +677,6 @@ class ApiHistoryController extends Controller
                 $last_status = $lastStatusText['received'];
             } elseif ($value['transaction_payment_status'] == 'Completed') {
                 $last_status = $lastStatusText['pending'];
-            } elseif ($value['transaction_payment_status'] == 'Cancelled') {
-                $last_status = $lastStatusText['cancelled'];
             } else {
                 $last_status = $lastStatusText['payment_pending'];
             }
@@ -1072,7 +1078,7 @@ class ApiHistoryController extends Controller
             }
         });
 
-         if (!is_null($post['online_order']) || !is_null($post['offline_order'])) {
+         if (!is_null($post['online_order']) || !is_null($post['offline_order']) || !is_null($post['pickup_order']) || !is_null($post['delivery_order'])) {
              $log->leftJoin('transactions', 'transactions.id_transaction', 'log_balances.id_reference')
                  ->where(function ($query) use ($post) {
                      if (!is_null($post['online_order'])) {
@@ -1087,6 +1093,17 @@ class ApiHistoryController extends Controller
                                  ->where('trasaction_type', '=', 'Offline');
                          });
                      }
+                     if (!is_null($post['pickup_order'])) {
+                        $query->orWhere(function ($queryLog) use ($post) {
+                            $queryLog->where('transactions.trasaction_type', 'Pickup Order')->whereNull('transaction_shipping_method');
+                        });
+                    }
+        
+                    if (!is_null($post['delivery_order'])) {
+                        $query->orWhere(function ($queryLog) use ($post) {
+                            $queryLog->where('transactions.trasaction_type', 'Pickup Order')->whereNotNull('transaction_shipping_method');
+                        });
+                    }
                  });
          }
 
