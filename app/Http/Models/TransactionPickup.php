@@ -73,16 +73,16 @@ class TransactionPickup extends Model
 						// $trx = $this->transaction;
 						// $outlet = $trx->outlet;
 						// $user = $trx->user;
-		    //             $autocrm = app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Delivery Status Update', $user->phone,
-		    //                 [
-		    //                     'id_reference'    => $trx->id_transaction,
-		    //                     'receipt_number'  => $trx->transaction_receipt_number,
-		    //                     'outlet_code'     => $outlet->outlet_code,
-		    //                     'outlet_name'     => $outlet->outlet_name,
-		    //                     'delivery_status' => 'Belum berhasil menemukan driver',
-		    //                     'order_id'        => $this->order_id,
-		    //                 ]
-		    //             );
+						// $autocrm = app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Delivery Status Update', $user->phone,
+						// 	[
+						// 		'id_reference'    => $trx->id_transaction,
+						// 		'receipt_number'  => $trx->transaction_receipt_number,
+						// 		'outlet_code'     => $outlet->outlet_code,
+						// 		'outlet_name'     => $outlet->outlet_name,
+						// 		'delivery_status' => 'Driver Not Found',
+						// 		'order_id'        => $this->order_id,
+						// 	]
+						// );
 					}
 					return $book;
 				}

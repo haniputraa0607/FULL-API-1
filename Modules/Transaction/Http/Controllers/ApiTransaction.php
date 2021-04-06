@@ -1301,6 +1301,8 @@ class ApiTransaction extends Controller
 
         if (strtolower($key) == 'delivery') {
             $list->where('trasaction_type', 'Pickup Order')->whereNotNull('transaction_shipping_method');
+        } elseif (strtolower($key) == 'pickup order') {
+            $list->where('trasaction_type', 'Pickup Order')->whereNull('transaction_shipping_method');
         } else {
             $list->where('trasaction_type', ucwords($key));
         }
@@ -1844,7 +1846,7 @@ class ApiTransaction extends Controller
                     unset($result['detail']['order_id_qrcode']);
                     unset($result['detail']['order_id']);
                     unset($result['detail']['pickup_time']);
-                    $result['transaction_status'] = 'Order Canceled';
+                    $result['transaction_status'] = 'Payment Canceled';
                     $result['transaction_status_code'] = 0;
                 } elseif(isset($list['transaction_payment_status']) && $list['transaction_payment_status'] == 'Pending') {
                     $result['transaction_status'] = 'Payment Pending';
@@ -2241,7 +2243,10 @@ class ApiTransaction extends Controller
                                     'driver_photo'      => $list['transaction_pickup_go_send']['driver_photo']?:'',
                                     'vehicle_number'    => $list['transaction_pickup_go_send']['vehicle_number']?:'',
                                 ];
-                                $result['delivery_info']['go_send_order_no'] = null;
+                                $url = $request->url();
+                                if(!stristr($url, 'transaction/be/detail')){
+                                    $result['delivery_info']['go_send_order_no'] = null;
+                                }
                                 $result['delivery_info']['cancelable'] = 0;
                                 $result['delivery_info']['delivery_id_name'] = null;
                                 break;
