@@ -75,7 +75,7 @@ class TransactionPickupGoSend extends Model
         $origin['phone']     = $trx['outlet']['outlet_phone'];
         $origin['latitude']  = $trx['outlet']['outlet_latitude'];
         $origin['longitude'] = $trx['outlet']['outlet_longitude'];
-        $origin['address']   = $trx['outlet']['outlet_address'] . '. ' . $this['origin_note'];
+        $origin['address']   = $trx['outlet']['outlet_address'];
         $origin['note']      = $this['origin_note'];
 
         $destination['name']      = $this['destination_name'];

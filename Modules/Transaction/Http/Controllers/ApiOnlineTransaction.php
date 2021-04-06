@@ -718,13 +718,24 @@ class ApiOnlineTransaction extends Controller
                     'messages' => ['GO-SEND not available for this outlet']
                 ];
             };
-            if(!($outlet['outlet_latitude']&&$outlet['outlet_longitude']&&$outlet['outlet_phone']&&$outlet['outlet_address'])){
+
+            if (!$outlet['outlet_phone']) {
+                $outlet['outlet_phone'] = MyHelper::setting('default_outlet_phone');
+            }
+
+            if(!(
+                $outlet['outlet_latitude'] &&
+                $outlet['outlet_longitude'] &&
+                $outlet['outlet_phone'] &&
+                $outlet['outlet_address'] &&
+                MyHelper::validatePhoneGoSend($outlet['outlet_phone'])
+            )){
                 app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
                 $outlet->notify_admin = 1;
                 $outlet->save();
                 return [
                     'status' => 'fail',
-                    'messages' => ['Tidak dapat melakukan pengiriman dari outlet ini']
+                    'messages' => ['Cannot make delivery using GOSEND from this outlet']
                 ];
             }
 
@@ -1451,7 +1462,7 @@ class ApiOnlineTransaction extends Controller
                 $dataGoSend['origin_address']        = $outlet['outlet_address'];
                 $dataGoSend['origin_latitude']       = $outlet['outlet_latitude'];
                 $dataGoSend['origin_longitude']      = $outlet['outlet_longitude'];
-                $dataGoSend['origin_note']           = "NOTE: bila ada pertanyaan, mohon hubungi penerima terlebih dahulu untuk informasi. \nPickup Code $order_id";
+                $dataGoSend['origin_note']           = "Pickup Code : $order_id // $user[name]";
                 $dataGoSend['destination_name']      = $user['name'];
                 $dataGoSend['destination_phone']     = $user['phone'];
                 $dataGoSend['destination_address']   = $post['destination']['address'];
@@ -1970,14 +1981,22 @@ class ApiOnlineTransaction extends Controller
                 if (!($availableShipment['result']['status'] ?? false)) {
                     $error_msg[] = 'GO-SEND not available for this outlet';
                 };
-                if(!($outlet['outlet_latitude']&&$outlet['outlet_longitude']&&$outlet['outlet_phone']&&$outlet['outlet_address'])){
+
+                if (!$outlet['outlet_phone']) {
+                    $outlet['outlet_phone'] = MyHelper::setting('default_outlet_phone');
+                }
+
+                if(!(
+                    $outlet['outlet_latitude'] &&
+                    $outlet['outlet_longitude'] &&
+                    $outlet['outlet_phone'] &&
+                    $outlet['outlet_address'] &&
+                    MyHelper::validatePhoneGoSend($outlet['outlet_phone'])
+                )){
                     app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
                     $outlet->notify_admin = 1;
                     $outlet->save();
-                    return [
-                        'status' => 'fail',
-                        'messages' => ['Tidak dapat melakukan pengiriman dari outlet ini']
-                    ];
+                    $error_msg[] = 'Cannot make delivery using GOSEND from this outlet';
                 }
 
                 $max_cup = MyHelper::setting('delivery_max_cup', 'value', 50);
