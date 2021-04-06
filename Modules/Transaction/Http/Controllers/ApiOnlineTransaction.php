@@ -735,7 +735,7 @@ class ApiOnlineTransaction extends Controller
                 $outlet->save();
                 return [
                     'status' => 'fail',
-                    'messages' => ['Tidak dapat melakukan pengiriman GoSend dari outlet ini']
+                    'messages' => ['Cannot make delivery using GOSEND from this outlet']
                 ];
             }
 
@@ -1996,7 +1996,7 @@ class ApiOnlineTransaction extends Controller
                     app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
                     $outlet->notify_admin = 1;
                     $outlet->save();
-                    $error_msg[] = 'Tidak dapat melakukan pengiriman GoSend dari outlet ini';
+                    $error_msg[] = 'Cannot make delivery using GOSEND from this outlet';
                 }
 
                 $max_cup = MyHelper::setting('delivery_max_cup', 'value', 50);
