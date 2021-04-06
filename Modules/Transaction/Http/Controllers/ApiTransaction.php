@@ -1846,7 +1846,7 @@ class ApiTransaction extends Controller
                     unset($result['detail']['order_id_qrcode']);
                     unset($result['detail']['order_id']);
                     unset($result['detail']['pickup_time']);
-                    $result['transaction_status'] = 'Order Canceled';
+                    $result['transaction_status'] = 'Payment Canceled';
                     $result['transaction_status_code'] = 0;
                 } elseif(isset($list['transaction_payment_status']) && $list['transaction_payment_status'] == 'Pending') {
                     $result['transaction_status'] = 'Payment Pending';
