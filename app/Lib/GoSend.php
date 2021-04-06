@@ -291,6 +291,7 @@ class GoSend
                 $autocrm = app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Delivery Status Update', $phone,
                     [
                         'id_reference'    => $dataUpdate['id_transaction'],
+                        'id_transaction'  => $dataUpdate['id_transaction'],
                         'receipt_number'  => $trx->transaction_receipt_number,
                         'outlet_code'     => $outlet->outlet_code,
                         'outlet_name'     => $outlet->outlet_name,
