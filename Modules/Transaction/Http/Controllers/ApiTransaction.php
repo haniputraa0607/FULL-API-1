@@ -2105,6 +2105,10 @@ class ApiTransaction extends Controller
                                 case 'cancelled':
                                     $reason = 'delivery canceled';
                                     break;
+
+                                case '':
+                                    $reason = 'failed book delivery';
+                                    break;
                             }
                             $result['detail']['detail_status'][] = [
                                 'text'  => 'Order canceled by system because '.$reason,
