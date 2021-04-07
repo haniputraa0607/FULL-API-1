@@ -350,7 +350,7 @@ class Transaction extends Model
                                     $variables = [
                                         'detail' => view('emails.failed_refund', ['transaction' => $this])->render()
                                     ];
-                                    app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Payment Void Failed', $this->phone, $variables, null, true);
+                                    app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Payment Void Failed', optional($this->user)->phone, $variables, null, true);
                                 }
                             }
                         }
@@ -391,7 +391,7 @@ class Transaction extends Model
                                     $variables = [
                                         'detail' => view('emails.failed_refund', ['transaction' => $this])->render()
                                     ];
-                                    app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Payment Void Failed', $this->phone, $variables, null, true);
+                                    app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Payment Void Failed', optional($this->user)->phone, $variables, null, true);
                                 }
                             }
                         }
@@ -431,7 +431,7 @@ class Transaction extends Model
                                     $variables = [
                                         'detail' => view('emails.failed_refund', ['transaction' => $this])->render()
                                     ];
-                                    app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Payment Void Failed', $this->phone, $variables, null, true);
+                                    app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Payment Void Failed', optional($this->user)->phone, $variables, null, true);
                                 }
                             }
                         }
@@ -485,7 +485,7 @@ class Transaction extends Model
                                     $variables = [
                                         'detail' => view('emails.failed_refund', ['transaction' => $this])->render()
                                     ];
-                                    app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Payment Void Failed', $this->phone, $variables, null, true);
+                                    app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Payment Void Failed', optional($this->user)->phone, $variables, null, true);
                                 }
                             }
                         }
