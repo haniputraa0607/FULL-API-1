@@ -287,6 +287,16 @@ class GoSend
                 'delivered'             => 'Completed',
                 'no_driver'             => 'Driver not found',
             ];
+            if ($delivery_status == 'out_for_delivery') {
+                $send = app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Order Taken By Driver', $phone, [
+                    "outlet_name"      => $outlet->outlet_name,
+                    'id_transaction'   => $dataUpdate['id_transaction'],
+                    "id_reference"     => $dataUpdate['id_transaction'],
+                    "transaction_date" => $trx->transaction_date,
+                    'order_id'         => $trx_pickup->order_id,
+                    'receipt_number'   => $trx->transaction_receipt_number
+                ]);
+            }
             if($replacer[$delivery_status] ?? false) {
                 $autocrm = app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Delivery Status Update', $phone,
                     [
@@ -298,7 +308,7 @@ class GoSend
                         'delivery_status' => $replacer[$delivery_status] ?? $delivery_status,
                         'order_id'        => $trx_pickup->order_id,
                     ]
-                );                
+                );
             }
             TransactionPickupGoSendUpdate::create($dataUpdate);
         }
