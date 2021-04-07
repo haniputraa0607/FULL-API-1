@@ -1016,6 +1016,9 @@ class ShopeePayController extends Controller
             $payment_builder->update(['manual_refund' => '1']);
             return true;
         }
+        if ($errcode = ($response['response']['errcode'] ?? -3)) {
+            $errors[] = $this->errcode[$errcode] ?? 'Something went wrong';
+        }
         /**
          * $response
          * {
