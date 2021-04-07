@@ -2087,9 +2087,9 @@ class ApiTransaction extends Controller
                     ];
                 } else {
                     if ($list['detail']['reject_at'] != null) {
-                        if (strpos($list['detail']['reject_reason'], 'user')) {
+                        if (strpos(strtolower($list['detail']['reject_reason']), 'user') !== false) {
                             $result['detail']['detail_status'][] = [
-                                'text'  => 'Order canceled by user',
+                                'text'  => 'Order canceled by user because driver not found',
                                 'date'  => date('d F Y H:i', strtotime($list['detail']['reject_at'])),
                                 'reason'=> $list['detail']['reject_reason']
                             ];
