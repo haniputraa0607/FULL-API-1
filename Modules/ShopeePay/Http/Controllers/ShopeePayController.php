@@ -1053,7 +1053,9 @@ class ShopeePayController extends Controller
          *     }
          * }
          */
-        return ($response['response']['errcode'] ?? 123) == 0;
+        // check status after void
+        $status = $this->checkStatus($reference, $type);
+        return (($status['response']['payment_status']??false) == '4');
     }
 
     /**
