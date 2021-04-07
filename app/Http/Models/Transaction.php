@@ -118,6 +118,7 @@ class Transaction extends Model
 	public $manual_refund = 0;
 	public $payment_method = null;
 	public $payment_detail = null;
+	public $payment_reference_number = null;
 
 	public function user()
 	{
@@ -155,7 +156,12 @@ class Transaction extends Model
 	}
 	public function transaction_payment_ovo()
 	{
-		return $this->hasMany(\App\Http\Models\TransactionPaymentOvo::class, 'id_transaction');
+		return $this->hasOne(\App\Http\Models\TransactionPaymentOvo::class, 'id_transaction');
+	}
+
+	public function transaction_payment_shopee_pay()
+	{
+		return $this->hasOne(TransactionPaymentShopeePay::class, 'id_transaction');
 	}
 
 	public function transaction_payment_ipay88()
@@ -337,6 +343,7 @@ class Transaction extends Model
                                 $this->update(['need_manual_void' => 1]);
                                 $this->manual_refund = $payOvo['amount'];
                                 $this->payment_method = 'Ovo';
+                                $this->payment_reference_number = $payOvo['approval_code'];
                                 if ($shared['reject_batch'] ?? false) {
                                     $shared['void_failed'][] = $this;
                                 } else {
@@ -377,6 +384,7 @@ class Transaction extends Model
                                 $this->manual_refund = $payIpay['amount']/100;
                                 $this->payment_method = 'IPay88';
                                 $this->payment_detail = $payIpay->payment_method;
+                                $this->payment_reference_number = $payIpay['trans_id'];
                                 if ($shared['reject_batch'] ?? false) {
                                     $shared['void_failed'][] = $this;
                                 } else {
@@ -416,6 +424,7 @@ class Transaction extends Model
                                 $this->update(['need_manual_void' => 1]);
                                 $this->manual_refund = $payShopeepay['amount']/100;
                                 $this->payment_method = 'ShopeePay';
+                                $this->payment_reference_number = $payShopeepay['transaction_sn'];
                                 if ($shared['reject_batch'] ?? false) {
                                     $shared['void_failed'][] = $this;
                                 } else {
@@ -469,6 +478,7 @@ class Transaction extends Model
                                 $this->payment_method = 'Midtrans';
                                 $this->payment_detail = $payMidtrans->payment_type;
                                 $this->manual_refund = $payMidtrans['gross_amount'];
+                                $this->payment_reference_number = $payMidtrans['vt_transaction_id'];
                                 if ($shared['reject_batch'] ?? false) {
                                     $shared['void_failed'][] = $this;
                                 } else {
