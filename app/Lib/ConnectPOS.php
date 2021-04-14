@@ -616,7 +616,7 @@ class ConnectPOS{
 	 */
 	public function doSendCancelOrder($transaction)
 	{
-		$module_url = '/MobileReceiver/transaction';
+		$module_url = '/MobileReceiver/transactionCancel';
 		if (is_numeric($transaction)) {
 			$transaction = Transaction::where('transactions.id_transaction', $transaction)
 				->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
