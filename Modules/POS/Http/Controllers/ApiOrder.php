@@ -634,6 +634,14 @@ class ApiOrder extends Controller
                     "transaction_date" => $order->transaction_date,
                     'detail' => $detail
                 ]);
+            } else {
+                $send = app($this->autocrm)->SendAutoCRM('Order Taken By Driver', $user['phone'], [
+                    "outlet_name" => $outlet['outlet_name'],
+                    "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
+                    'id_transaction' => $order->id_transaction,
+                    "transaction_date" => $order->transaction_date,
+                    'detail' => $detail
+                ]);
             }
 
 
