@@ -651,7 +651,7 @@ class ConnectPOS{
 
 		$head_section = $this->getHead($module_url);
 		$body_section = [
-			'outletId' => $transaction->outlet->outlet_code,
+			'outletId'=> env('POS_OUTLET_OVERWRITE')?:$transaction->outlet->outlet_code, //outlet code
 			'bookingCode' => $transaction->order_id,
 			'businessDate' => date('Ymd',strtotime($transaction->transaction_date)),
 			'trxDate' => date('Ymd',strtotime($transaction->transaction_date)),
