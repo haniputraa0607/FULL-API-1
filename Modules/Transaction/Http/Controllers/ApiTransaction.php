@@ -2232,7 +2232,7 @@ class ApiTransaction extends Controller
                             case 'completed':
                             case 'delivered':
                                 $result['delivery_info']['delivery_status_code'] = 4;
-                                $result['transaction_status_code'] = 2;
+                                $result['transaction_status_code'] = 1;
                                 $result['transaction_status']          = 'Order Completed';
                                 $result['delivery_info']['delivery_status'] = 'Order Completed';
                                 $result['delivery_info']['driver']          = [
