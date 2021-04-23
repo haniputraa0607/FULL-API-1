@@ -644,26 +644,26 @@ class ApiOrder extends Controller
                 ]);
             }
 
-
-            $updateRatePopUp = Transaction::where('id_transaction', $order->id_transaction)->update(['show_rate_popup' => 1]);
-
-            // show rate popup
-            if ($order->id_user) {
-                UserRatingLog::updateOrCreate([
-                    'id_user' => $order->id_user,
-                    'id_transaction' => $order->id_transaction
-                ],[
-                    'refuse_count' => 0,
-                    'last_popup' => date('Y-m-d H:i:s', time() - MyHelper::setting('popup_min_interval', 'value', 900))
-                ]);
-            }
-
-            if($send != true){
-                DB::rollBack();
-                return response()->json([
-                        'status' => 'fail',
-                        'messages' => ['Failed Send notification to customer']
+            if ($order->pickup_by !== 'GO-SEND') {
+                $updateRatePopUp = Transaction::where('id_transaction', $order->id_transaction)->update(['show_rate_popup' => 1]);
+                // show rate popup
+                if ($order->id_user) {
+                    UserRatingLog::updateOrCreate([
+                        'id_user' => $order->id_user,
+                        'id_transaction' => $order->id_transaction
+                    ],[
+                        'refuse_count' => 0,
+                        'last_popup' => date('Y-m-d H:i:s', time() - MyHelper::setting('popup_min_interval', 'value', 900))
                     ]);
+                }
+
+                if($send != true){
+                    DB::rollBack();
+                    return response()->json([
+                            'status' => 'fail',
+                            'messages' => ['Failed Send notification to customer']
+                        ]);
+                }
             }
 
             DB::commit();
