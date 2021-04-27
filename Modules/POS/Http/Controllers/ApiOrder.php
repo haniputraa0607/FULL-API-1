@@ -477,26 +477,24 @@ class ApiOrder extends Controller
         // DB::beginTransaction();
         $pickup = TransactionPickup::where('id_transaction', $order->id_transaction)->update(['ready_at' => date('Y-m-d H:i:s')]);
         // dd($pickup);
-        if($pickup){
+        if($pickup && $order->pickup_by !== 'GO-SEND'){
             //send notif to customer
             $user = User::find($order->id_user);
             $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Ready');
 
-            if ($order->pickup_by !== 'GO-SEND') {
-                $send = app($this->autocrm)->SendAutoCRM($order->pickup_by == 'Outlet' ? 'Order Ready Internal Delivery' : 'Order Ready', $user['phone'], [
-                    "outlet_name" => $outlet['outlet_name'],
-                    "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
-                    'id_transaction' => $order->id_transaction,
-                    "transaction_date" => $order->transaction_date,
-                    'detail' => $detail,
-                ]);
-                if($send != true){
-                    // DB::rollBack();
-                    return response()->json([
-                            'status' => 'fail',
-                            'messages' => ['Failed Send notification to customer']
-                        ]);
-                }
+            $send = app($this->autocrm)->SendAutoCRM($order->pickup_by == 'Outlet' ? 'Order Ready Internal Delivery' : 'Order Ready', $user['phone'], [
+                "outlet_name" => $outlet['outlet_name'],
+                "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
+                'id_transaction' => $order->id_transaction,
+                "transaction_date" => $order->transaction_date,
+                'detail' => $detail,
+            ]);
+            if($send != true){
+                // DB::rollBack();
+                return response()->json([
+                        'status' => 'fail',
+                        'messages' => ['Failed Send notification to customer']
+                    ]);
             }
 
             $newTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction', 'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign')->where('id_transaction', $order->id_transaction)->first();
