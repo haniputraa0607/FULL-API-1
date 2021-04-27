@@ -297,7 +297,8 @@ class TransactionPickupGoSend extends Model
                     'id_transaction'                => $trx['id_transaction'],
                     'id_transaction_pickup_go_send' => $this['id_transaction_pickup_go_send'],
                     'status'                        => $status['status'] ?? 'on_going',
-                    'go_send_order_no'              => $status['orderNo'] ?? ''
+                    'go_send_order_no'              => $status['orderNo'] ?? '',
+                    'description'                   => $status['cancelDescription'] ?? null
                 ];
                 GoSend::saveUpdate($dataSave);
                 // masuk flow rejected
