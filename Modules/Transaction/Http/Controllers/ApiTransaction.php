@@ -2009,6 +2009,12 @@ class ApiTransaction extends Controller
             	switch ($list['detail']['pickup_by']) {
             		case 'GO-SEND':
             			$delivery_text = $delivery_list['GO-SEND'];
+			            $delivery_text = null;
+		            	$result['payment_detail'][] = [
+			                'name'      => 'Delivery Fee',
+			                'desc'		=> $delivery_text,
+			                'amount'    => (string) MyHelper::requestNumber(($list['transaction_shipment'] ?: $list['transaction_shipment_go_send']),'_CURRENCY')
+			            ];
             			break;
             		
             		case 'Outlet':
@@ -2019,12 +2025,6 @@ class ApiTransaction extends Controller
             			$delivery_text = '';
             			break;
             	}
-	            $delivery_text = null;
-            	$result['payment_detail'][] = [
-	                'name'      => 'Delivery Fee',
-	                'desc'		=> $delivery_text,
-	                'amount'    => (string) MyHelper::requestNumber(($list['transaction_shipment'] ?: $list['transaction_shipment_go_send']),'_CURRENCY')
-	            ];
             }
 
             // add discount delivery to payment detail
