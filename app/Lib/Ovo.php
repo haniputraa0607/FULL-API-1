@@ -394,10 +394,10 @@ class Ovo {
 
                     if (request()->log_outside) {
                         request()->merge(['doLog' => function() use ($logData) {
-                            $createLog = LogOvoDeals::create($logData);
+                            $createLog = LogOvo::create($logData);
                         }]);
                     } else {
-                        $createLog = LogOvoDeals::create($logData);
+                        $createLog = LogOvo::create($logData);
                     }
 
                     if($reversal['status_code'] != 404){
@@ -436,10 +436,10 @@ class Ovo {
 
                     if (request()->log_outside) {
                         request()->merge(['doLog' => function() use ($logData) {
-                            $createLog = LogOvoDeals::create($logData);
+                            $createLog = LogOvo::create($logData);
                         }]);
                     } else {
-                        $createLog = LogOvoDeals::create($logData);
+                        $createLog = LogOvo::create($logData);
                     }
 
                     break;
