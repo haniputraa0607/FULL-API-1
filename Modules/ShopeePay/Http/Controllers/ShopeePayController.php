@@ -927,6 +927,10 @@ class ShopeePayController extends Controller
          *     }
          * }
          */
+        if ($response['response']['errcode'] ?? false) {
+            $errors[] = $this->errcode[$response['response']['errcode']] ?? 'Something went wrong';
+            $errors[] = 'Refund Failed';
+        }
         $status = $this->checkStatus($reference, $type);
         return (($status['response']['payment_status'] ?? false) == '3');
     }
