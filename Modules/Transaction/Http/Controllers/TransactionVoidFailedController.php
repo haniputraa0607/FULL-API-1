@@ -121,6 +121,7 @@ class TransactionVoidFailedController extends Controller
                     ->where('type', '<>', 'Balance');
             })
             ->leftJoin('transaction_payment_balances', 'transaction_payment_balances.id_transaction', 'transactions.id_transaction')
+            ->where('retry_count', '>=', 3)
             ->with('transaction_payment_midtrans', 'transaction_payment_shopee_pay');
 
         $countTotal = null;
@@ -228,6 +229,38 @@ class TransactionVoidFailedController extends Controller
                 'status' => 'fail',
                 'messages' => $errors ?? ['Something went wrong']
             ];
+        }
+    }
+
+    public function cronRetry()
+    {
+        $log = MyHelper::logCron('Cron Retry Refund');
+        try {
+            $tvf = TransactionVoidFailed::where('retry_status', 0)
+                ->where('retry_count', '<', '3')
+                ->join('transactions', 'transactions.id_transaction', 'transaction_void_faileds.id_transaction')
+                ->where('need_manual_void', 0)
+                ->get();
+            $errors = [];
+            $result = [
+                'total' => $tvf->count(),
+                'success' => 0,
+                'fail' => 0,
+                'errors' => &$errors
+            ];
+            foreach ($tvf as $tv) {
+                $retry = $this->retryRefund($tv->id_transaction, $errors);
+                if ($retry) {
+                    $result['success']++;
+                } else {
+                    $result['fail']++;
+                }
+            }
+
+            $log->success($result);
+            return $result;
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
         }
     }
 }
