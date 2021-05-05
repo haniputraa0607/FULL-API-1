@@ -20,6 +20,7 @@ class CreateTransactionVoidFailedsTable extends Migration
             $table->string('payment_type');
             $table->boolean('retry_status')->default(0);
             $table->unsignedInteger('retry_count')->default(0);
+            $table->string('refund_reason')->nullable();
             $table->timestamps();
 
             $table->foreign('id_transaction')->references('id_transaction')->on('transactions')->onDelete('cascade');

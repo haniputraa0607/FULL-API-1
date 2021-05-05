@@ -13,5 +13,6 @@ class TransactionVoidFailed extends Model
         'payment_type',
         'retry_status',
         'retry_count',
+        'refund_reason',
     ];
 }
