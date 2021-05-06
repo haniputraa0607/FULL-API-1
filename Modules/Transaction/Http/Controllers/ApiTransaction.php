@@ -2050,7 +2050,7 @@ class ApiTransaction extends Controller
                         'delivery_address' => $list['transaction_pickup_go_send']['destination_address']?:'',
                         'delivery_address_note' => $list['transaction_pickup_go_send']['destination_note'] ?: '',
                         'delivery_status_code' => 0,
-                        'booking_status' => 0,
+                        'booking_status' => 1,
                         'cancelable' => 0,
                         'go_send_order_no' => $list['transaction_pickup_go_send']['go_send_order_no']?:'',
                         'live_tracking_url' => $list['transaction_pickup_go_send']['live_tracking_url']?:'',
@@ -2257,6 +2257,16 @@ class ApiTransaction extends Controller
                                 $result['delivery_info']['delivery_status'] = 'Delivery Cancelled';
                                 $result['delivery_info']['cancelable']     = 0;
                                 break;
+                            case 'rejected':
+                                $result['delivery_info']['booking_status'] = 1;
+                                break;
+                            case 'on_hold':
+                                $result['delivery_info']['delivery_status_code'] = 5;
+                                $result['delivery_info']['booking_status'] = 1;
+                                $result['transaction_status']         = 'On Hold';
+                                $result['delivery_info']['delivery_status'] = 'On Hold';
+                                $result['delivery_info']['cancelable']     = 0;
+                                break;
                             case 'driver not found':
                             case 'no_driver':
                                 $result['delivery_info']['delivery_status_code'] = 0;
@@ -2302,6 +2312,12 @@ class ApiTransaction extends Controller
                                 case 'delivered':
                                     $result['detail']['detail_status'][] = [
                                         'text'  => 'Your order has been received',
+                                        'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
+                                    ];
+                                    break;
+                                case 'on_hold':
+                                    $result['detail']['detail_status'][] = [
+                                        'text'  => 'Driver failed to reach the destination address',
                                         'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
                                     ];
                                     break;
