@@ -435,7 +435,7 @@ class Transaction extends Model
                 if ($payShopeepay) {
                     $doRefundPayment = MyHelper::setting('refund_shopeepay');
                     if($doRefundPayment){
-                        $refund = app($this->shopeepay)->void($payShopeepay['id_transaction'], 'trx', $errors);
+                        $refund = app($this->shopeepay)->refund($payShopeepay['id_transaction'], 'trx', $errors);
                         $reject_type = 'refund';
                         if (!$refund) {
                             $this->update(['failed_void_reason' => implode(', ', $errors ?: [])]);
