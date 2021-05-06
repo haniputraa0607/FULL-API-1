@@ -15,6 +15,7 @@ use App\Lib\Midtrans;
 use DB;
 use Modules\IPay88\Entities\TransactionPaymentIpay88;
 use Modules\ShopeePay\Entities\TransactionPaymentShopeePay;
+use Modules\Transaction\Entities\TransactionVoidFailed;
 
 /**
  * Class Transaction
@@ -418,22 +419,15 @@ class Transaction extends Model
                         $reject_type = 'refund';
                         if (!$refund) {
                             $this->update(['failed_void_reason' => implode(', ', $errors ?: [])]);
-                            if ($refund_failed_process_balance) {
-                                $doRefundPayment = false;
-                            } else {
-                                $this->update(['need_manual_void' => 1]);
-                                $this->manual_refund = $payShopeepay['amount']/100;
-                                $this->payment_method = 'ShopeePay';
-                                $this->payment_reference_number = $payShopeepay['transaction_sn'];
-                                if ($shared['reject_batch'] ?? false) {
-                                    $shared['void_failed'][] = $this;
-                                } else {
-                                    $variables = [
-                                        'detail' => view('emails.failed_refund', ['transaction' => $this])->render()
-                                    ];
-                                    app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Payment Void Failed', optional($this->user)->phone, $variables, null, true);
-                                }
-                            }
+                            TransactionVoidFailed::updateOrCreate([
+                                'id_transaction' => $payShopeepay['id_transaction'],
+                            ], [
+                                'id_payment' => $pay['id_payment'],
+                                'payment_type' => 'Shopeepay',
+                                'retry_status' => 0,
+                                'retry_count' => 0,
+                                'refund_reason' => $reason
+                            ]);
                         }
                     }
 
@@ -471,23 +465,32 @@ class Transaction extends Model
                         $reject_type = 'refund';
                         if ($refund['status'] != 'success') {
                             $this->update(['failed_void_reason' => implode(', ', $refund['messages'] ?? [])]);
-                            if ($refund_failed_process_balance) {
-                                $doRefundPayment = false;
-                            } else {
-                                $this->update(['need_manual_void' => 1]);
-                                $this->payment_method = 'Midtrans';
-                                $this->payment_detail = $payMidtrans->payment_type;
-                                $this->manual_refund = $payMidtrans['gross_amount'];
-                                $this->payment_reference_number = $payMidtrans['vt_transaction_id'];
-                                if ($shared['reject_batch'] ?? false) {
-                                    $shared['void_failed'][] = $this;
-                                } else {
-                                    $variables = [
-                                        'detail' => view('emails.failed_refund', ['transaction' => $this])->render()
-                                    ];
-                                    app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Payment Void Failed', optional($this->user)->phone, $variables, null, true);
-                                }
-                            }
+                            TransactionVoidFailed::updateOrCreate([
+                                'id_transaction' => $payMidtrans['id_transaction'],
+                            ], [
+                                'id_payment' => $pay['id_payment'],
+                                'payment_type' => 'Midtrans',
+                                'retry_status' => 0,
+                                'retry_count' => 0,
+                                'refund_reason' => $refund_reason
+                            ]);
+                            // if ($refund_failed_process_balance) {
+                            //     $doRefundPayment = false;
+                            // } else {
+                            //     $this->update(['need_manual_void' => 1]);
+                            //     $this->payment_method = 'Midtrans';
+                            //     $this->payment_detail = $payMidtrans->payment_type;
+                            //     $this->manual_refund = $payMidtrans['gross_amount'];
+                            //     $this->payment_reference_number = $payMidtrans['vt_transaction_id'];
+                            //     if ($shared['reject_batch'] ?? false) {
+                            //         $shared['void_failed'][] = $this;
+                            //     } else {
+                            //         $variables = [
+                            //             'detail' => view('emails.failed_refund', ['transaction' => $this])->render()
+                            //         ];
+                            //         app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Payment Void Failed', optional($this->user)->phone, $variables, null, true);
+                            //     }
+                            // }
                         }
                     }
 
