@@ -2317,7 +2317,13 @@ class ApiTransaction extends Controller
                                     break;
                                 case 'on_hold':
                                     $result['detail']['detail_status'][] = [
-                                        'text'  => 'Driver failed to reach the destination address',
+                                        'text'  => 'Driver was unable to reach the destination address and will try to redeliver',
+                                        'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
+                                    ];
+                                    break;
+                                case 'rejected':
+                                    $result['detail']['detail_status'][] = [
+                                        'text'  => 'Order canceled because Driver was unable to reach the destination address',
                                         'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
                                     ];
                                     break;
