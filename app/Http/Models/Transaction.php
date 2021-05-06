@@ -313,6 +313,26 @@ class Transaction extends Model
         request()->merge(['log_outside' => true]);
         $multiple = TransactionMultiplePayment::where('id_transaction', $this->id_transaction)->get()->toArray();
         $point = 0;
+
+		if ($this->transaction_pickup->pickup_by == 'GO-SEND') {
+			$pickup_gosend = TransactionPickupGoSend::where('id_transaction_pickup', $this->transaction_pickup->id_transaction_pickup)->first();
+			if ($pickup_gosend && $pickup_gosend['latest_status'] == 'rejected') {
+				/*
+				- refund ke point
+				- hanya refund harga item saja (tanpa delivery fee)
+				 */
+				$rejectBalance = true;
+				$multiple = [];
+				$point = $this->transaction_grandtotal - ($this->transaction_shipment);
+                $refund = app($this->balance)->addLogBalance($this->id_user, $point, $this->id_transaction, 'Rejected Order Point', $this->transaction_grandtotal);
+                if ($refund == false) {
+                    DB::rollback();
+                    $errors[] = 'Failed refund balance';
+                    return false;
+                }
+			}
+		}
+
         foreach ($multiple as $pay) {
             if ($pay['type'] == 'Balance') {
                 $payBalance = TransactionPaymentBalance::find($pay['id_payment']);

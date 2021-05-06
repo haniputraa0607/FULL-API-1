@@ -644,6 +644,10 @@ class ApiHistoryController extends Controller
                 'text' => 'Driver on the way to Outlet',
                 'code' => 3,
             ],
+            'on_delivery_on_hold' => [
+                'text' => 'Delivery On Hold',
+                'code' => 3,
+            ],
             'on_delivery_out_for_delivery' => [
                 'text' => 'Delivering by Driver',
                 'code' => 3,
@@ -667,6 +671,8 @@ class ApiHistoryController extends Controller
                 $last_status = $lastStatusText['on_delivery_out_for_pickup'];
             } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'no_driver') {
                 $last_status = $lastStatusText['on_delivery_no_driver'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'on_hold') {
+                $last_status = $lastStatusText['on_delivery_on_hold'];
             } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'cancelled' || ($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'rejected') {
                 $last_status = $lastStatusText['rejected'];
             } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false)) {
@@ -774,6 +780,10 @@ class ApiHistoryController extends Controller
                 'text' => 'Delivering by Driver',
                 'code' => 3,
             ],
+            'on_delivery_on_hold' => [
+                'text' => 'Delivery On Hold',
+                'code' => 3,
+            ],
             'on_delivery_internal' => [
                 'text' => 'Delivering by Maxx Crew',
                 'code' => 3,
@@ -791,6 +801,8 @@ class ApiHistoryController extends Controller
                 $last_status = $lastStatusText['on_delivery_out_for_pickup'];
             } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'no_driver') {
                 $last_status = $lastStatusText['on_delivery_no_driver'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'on_hold') {
+                $last_status = $lastStatusText['on_delivery_on_hold'];
             } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'cancelled' || ($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'rejected') {
                 $last_status = $lastStatusText['rejected'];
             } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false)) {

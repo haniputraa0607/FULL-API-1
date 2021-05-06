@@ -70,10 +70,21 @@ class ApiGosendController extends Controller
             return response()->json(['status'=>'fail','messages'=>'Invalid Token'],401);
         }
         $post = $request->json()->all();
-        $tpg  = TransactionPickupGoSend::where('go_send_order_no', $post['booking_id'] ?? '')->where('latest_status', '<>', 'delivered')->first();
+        $tpg  = TransactionPickupGoSend::where('go_send_order_no', $post['booking_id'] ?? '')->first();
         if (!$tpg) {
             $response_code = 404;
             $response_body = ['status' => 'fail', 'messages' => ['Transaction Not Found']];
+        } elseif ($tpg->latest_status == 'delivered') {
+            if (in_array($post['status'], ['completed', 'delivered'])) {
+                $response_code = 200;
+                $response_body = [
+                    'status' => 'success',
+                    'messages' => ['Order already delivered']
+                ];
+            } else {
+                $response_code = 404;
+                $response_body = ['status' => 'fail', 'messages' => ['Transaction Not Found']];
+            }
         } else {
             $id_transaction = TransactionPickup::select('id_transaction')->where('id_transaction_pickup', $tpg->id_transaction_pickup)->pluck('id_transaction')->first();
             if ($post['booking_id'] ?? false) {
