@@ -201,6 +201,14 @@ class Kernel extends ConsoleKernel
          * run every minute
          */
         $schedule->call('Modules\Transaction\Http\Controllers\ApiCronTrxController@cronCancelDriverNotFound')->everyMinute();
+
+        /**
+         * To retry vailed refund
+         * run at specific timeframe
+         */
+        foreach (['03:05', '11:00', '19:00'] as $time) {
+            $schedule->call('Modules\Transaction\Http\Controllers\TransactionVoidFailedController@cronRetry')->dailyAt($time);
+        }
     }
 
     /**

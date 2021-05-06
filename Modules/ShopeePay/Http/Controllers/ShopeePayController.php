@@ -815,7 +815,7 @@ class ShopeePayController extends Controller
      * @param  string $type type of transaction ('trx'/'deals')
      * @return Array       array formdata
      */
-    public function generateDataRefund($reference, $type = 'trx', &$errors = null, &$refund_reference_id = null)
+    public function generateDataRefund($reference, $type = 'trx', &$errors = null, &$refund_reference_id = null, &$payment_builder = null)
     {
         $refund_reference_id = $refund_reference_id ?: time() . rand(10, 99);
         $data                = [
@@ -839,6 +839,7 @@ class ShopeePayController extends Controller
                         return false;
                     }
                 }
+                $payment_builder = TransactionPaymentShopeePay::where('id_transaction', $reference['id_transaction']);
                 $data['payment_reference_id'] = $reference['transaction_receipt_number'];
                 break;
 
@@ -855,6 +856,7 @@ class ShopeePayController extends Controller
                         return false;
                     }
                 }
+                $payment_builder = DealsPaymentShopeePay::where('order_id', $reference['order_id']);
                 $data['payment_reference_id'] = $reference['order_id'];
                 break;
 
@@ -873,11 +875,15 @@ class ShopeePayController extends Controller
     public function refund($reference, $type = 'trx', &$errors = null, &$refund_reference_id = null)
     {
         $url      = $this->base_url . 'v3/merchant-host/transaction/refund/create';
-        $postData = $this->generateDataRefund($reference, $type, $errors, $refund_reference_id);
+        $postData = $this->generateDataRefund($reference, $type, $errors, $refund_reference_id, $payment_builder);
         if (!$postData) {
             return $postData;
         }
         $response = $this->send($url, $postData, ['type' => 'refund', 'id_reference' => $postData['payment_reference_id']]);
+        if (($response['response']['errcode']?? 0) == 601 && $payment_builder) {
+            $payment_builder->update(['manual_refund' => '1']);
+            return true;
+        }
         /**
          * $response
          * {
@@ -927,6 +933,10 @@ class ShopeePayController extends Controller
          *     }
          * }
          */
+        if ($response['response']['errcode'] ?? false) {
+            $errors[] = $this->errcode[$response['response']['errcode']] ?? 'Something went wrong';
+            $errors[] = 'Refund Failed';
+        }
         $status = $this->checkStatus($reference, $type);
         return (($status['response']['payment_status'] ?? false) == '3');
     }
