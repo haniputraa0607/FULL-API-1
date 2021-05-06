@@ -286,6 +286,8 @@ class GoSend
                 'cancelled'             => 'Canceled by GO-SEND',
                 'delivered'             => 'Completed',
                 'no_driver'             => 'Driver not found',
+                'rejected'              => 'Rejected because Driver was unable to reach the destination address',
+                'on_hold'               => 'On Hold because Driver was unable to reach the destination address',
             ];
             if($replacer[$delivery_status] ?? false) {
                 $autocrm = app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Delivery Status Update', $phone,
