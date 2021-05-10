@@ -52,6 +52,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     });
     Route::post('/be/new', 'ApiOnlineTransaction@newTransaction');
     Route::post('be/detail', 'ApiTransaction@transactionDetail');
+    Route::post('be/delivery-rejected', 'ApiTransaction@transactionDeliveryRejected');
     Route::get('be/{key}', 'ApiTransaction@transactionList');
     Route::post('be/detail/webview/{mode?}', 'ApiWebviewController@webview');
 
