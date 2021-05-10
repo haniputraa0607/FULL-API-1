@@ -2094,26 +2094,27 @@ class ApiTransaction extends Controller
                                 'reason'=> $list['detail']['reject_reason']
                             ];
                         } else {
-                            $reason = $list['transaction_pickup_go_send']['latest_status'] ?? '';
+                            $reason = 'Order canceled by system because '.$list['transaction_pickup_go_send']['latest_status'] ?? '';
                             switch ($list['transaction_pickup_go_send']['latest_status'] ?? '') {
                                 case 'no_driver':
-                                    $reason = 'driver not found';
+                                    $reason = 'Order canceled by system because driver not found';
                                     break;
                                 
                                 case 'rejected':
-                                    $reason = 'delivery rejected';
+                                    $email = MyHelper::setting('transaction_email_contact', 'value', env('MAIL_FROM_ADDRESS'));
+                                    $reason = "Sorry, our driver could not reach you, please contact us at $email";
                                     break;
                                 
                                 case 'cancelled':
-                                    $reason = 'delivery canceled';
+                                    $reason = 'Order canceled by system because delivery canceled';
                                     break;
 
                                 case '':
-                                    $reason = 'failed book delivery';
+                                    $reason = 'Order canceled by system because failed book delivery';
                                     break;
                             }
                             $result['detail']['detail_status'][] = [
-                                'text'  => 'Order canceled by system because '.$reason,
+                                'text'  => $reason,
                                 'date'  => date('d F Y H:i', strtotime($list['detail']['reject_at'])),
                                 'reason'=> $list['detail']['reject_reason']
                             ];
@@ -3358,5 +3359,67 @@ class ApiTransaction extends Controller
                 $item->delivery_status = 'Driver not Found';
             })->toArray();
         return MyHelper::checkGet($gosends);
+    }
+
+    public function transactionDeliveryRejected(Request $request)
+    {
+        $result = Transaction::select('transactions.id_transaction', 'transaction_date', 'transaction_receipt_number', 'users.name', 'users.phone', 'transaction_multiple_payments.type as trasaction_payment_type', 'transaction_shipment', 'transaction_grandtotal', 'order_id')
+            ->join('users', 'users.id', 'transactions.id_user')
+            ->join('outlets', 'outlets.id_outlet', 'transactions.id_outlet')
+            ->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
+            ->join('transaction_pickup_go_sends', 'transaction_pickup_go_sends.id_transaction_pickup', 'transaction_pickups.id_transaction_pickup')
+            ->join('transaction_multiple_payments', function($query) {
+                $query->on('transaction_multiple_payments.id_transaction', 'transactions.id_transaction')
+                    ->where('type', '<>', 'Balance');
+            })
+            ->leftJoin('transaction_payment_balances', 'transaction_payment_balances.id_transaction', 'transactions.id_transaction')
+            ->whereNotNull('transaction_pickups.reject_at')
+            ->where('transaction_pickups.pickup_by', 'GO-SEND')
+            ->where('transaction_pickup_go_sends.latest_status', 'rejected')
+            ->with('transaction_payment_midtrans', 'transaction_payment_ipay88');
+
+        $countTotal = null;
+
+        // if ($request->rule) {
+        //     $countTotal = $result->count();
+        //     $this->filterList($result, $request->rule, $request->operator ?: 'and');
+        // }
+
+        if (is_array($orders = $request->order)) {
+            $columns = [
+                'transaction_date', 
+                'transaction_receipt_number', 
+                'name', 
+                'trasaction_payment_type',
+                'transaction_grandtotal', 
+                'transaction_shipment', 
+            ];
+
+            foreach ($orders as $column) {
+                if ($colname = ($columns[$column['column']] ?? false)) {
+                    $result->orderBy($colname, $column['dir']);
+                }
+            }
+        }
+        $result->orderBy('transactions.id_transaction', $column['dir'] ?? 'DESC');
+
+        if ($request->page) {
+            $result = $result->paginate($request->length ?: 15);
+            $result->each(function($item) {
+                $item->images = array_map(function($item) {
+                    return env('STORAGE_URL_API').$item;
+                }, json_decode($item->images) ?? []);
+            });
+            $result = $result->toArray();
+            if (is_null($countTotal)) {
+                $countTotal = $result['total'];
+            }
+            // needed by datatables
+            $result['recordsTotal'] = $countTotal;
+            $result['recordsFiltered'] = $result['total'];
+        } else {
+            $result = $result->get();
+        }
+        return MyHelper::checkGet($result);
     }
 }
