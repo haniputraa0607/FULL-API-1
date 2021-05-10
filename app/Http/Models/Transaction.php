@@ -318,18 +318,9 @@ class Transaction extends Model
 			$pickup_gosend = TransactionPickupGoSend::where('id_transaction_pickup', $this->transaction_pickup->id_transaction_pickup)->first();
 			if ($pickup_gosend && $pickup_gosend['latest_status'] == 'rejected') {
 				/*
-				- refund ke point
-				- hanya refund harga item saja (tanpa delivery fee)
+				- tidak melakukan refund sama sekali
 				 */
-				$rejectBalance = true;
 				$multiple = [];
-				$point = $this->transaction_grandtotal - ($this->transaction_shipment);
-                $refund = app($this->balance)->addLogBalance($this->id_user, $point, $this->id_transaction, 'Rejected Order Point', $this->transaction_grandtotal);
-                if ($refund == false) {
-                    DB::rollback();
-                    $errors[] = 'Failed refund balance';
-                    return false;
-                }
 			}
 		}
 
