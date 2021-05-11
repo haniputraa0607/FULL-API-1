@@ -2103,6 +2103,7 @@ class ApiTransaction extends Controller
                                 case 'rejected':
                                     $email = MyHelper::setting('transaction_email_contact', 'value', env('MAIL_FROM_ADDRESS'));
                                     $reason = "Sorry, our driver could not reach you, please contact us at $email";
+                                    $result['transaction_status'] = 'Order Rejected';
                                     break;
                                 
                                 case 'cancelled':
@@ -2322,12 +2323,13 @@ class ApiTransaction extends Controller
                                         'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
                                     ];
                                     break;
-                                case 'rejected':
-                                    $result['detail']['detail_status'][] = [
-                                        'text'  => 'Order canceled because Driver was unable to reach the destination address',
-                                        'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
-                                    ];
-                                    break;
+                                // removed because the reasons already explained by cancel reject_at messages
+                                // case 'rejected':
+                                //     $result['detail']['detail_status'][] = [
+                                //         'text'  => 'Order canceled because Driver was unable to reach the destination address',
+                                //         'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
+                                //     ];
+                                //     break;
                                 case 'cancelled':
                                     $result['detail']['detail_status'][] = [
                                         'text'  => 'Delivery Cancelled',
