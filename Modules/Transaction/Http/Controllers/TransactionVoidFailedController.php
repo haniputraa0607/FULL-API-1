@@ -132,16 +132,33 @@ class TransactionVoidFailedController extends Controller
             $countTotal = $result->count();
             $this->filterList($result, $request->rule, $request->operator ?: 'and');
         }
+        switch ($request->status) {
+            case 'success':
+                $result->where('retry_status', 1);
+                break;
+
+            case 'failed':
+                $result->where('retry_status', 0)->where('need_manual_void', 1);
+                break;
+
+            case 'manual_refund':
+                $result->where('need_manual_void', 2);
+                break;
+        }
 
         if (is_array($orders = $request->order)) {
             $columns = [
                 'transaction_date', 
                 'transaction_receipt_number', 
-                'name', 
-                'phone',
+                'outlet_name', 
+                'name',
                 'trasaction_payment_type',
-                'transaction_grandtotal', 
-                'refund_nominal', 
+                null,
+                'transaction_grandtotal',
+                'refund_nominal',
+                null,
+                'retry_count',
+                null,
             ];
 
             foreach ($orders as $column) {
