@@ -2106,7 +2106,7 @@ class ApiTransaction extends Controller
                                         $email = "<a href='mailto:$email'>$email</a>";
                                     }
                                     $reason = "Sorry, our driver could not reach you, please contact us at $email";
-                                    $result['transaction_status'] = 'Order Rejected';
+                                    $result['transaction_status'] = 'Delivery Rejected';
                                     break;
                                 
                                 case 'cancelled':
@@ -2322,7 +2322,7 @@ class ApiTransaction extends Controller
                                     break;
                                 case 'on_hold':
                                     $result['detail']['detail_status'][] = [
-                                        'text'  => 'Driver was unable to reach the destination address and will try to redeliver',
+                                        'text'  => 'Delivery On Hold because Driver could not reach the destination address',
                                         'date'  => date('d F Y H:i', strtotime($valueGosend['created_at']))
                                     ];
                                     break;
