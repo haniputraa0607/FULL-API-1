@@ -35,6 +35,16 @@ class ApiManualRefundController extends Controller
             $this->filterList($result, $request->rule, $request->operator ?: 'and');
         }
 
+        switch ($request->status) {
+            case 'processed':
+                $result->where('need_manual_void', 2);
+                break;
+
+            case 'unprocessed':
+                $result->where('need_manual_void', 1);
+                break;
+        }
+
         if (is_array($orders = $request->order)) {
             $columns = [
                 'transaction_date', 

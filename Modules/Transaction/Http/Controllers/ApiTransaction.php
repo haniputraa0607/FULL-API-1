@@ -2102,6 +2102,9 @@ class ApiTransaction extends Controller
                                 
                                 case 'rejected':
                                     $email = MyHelper::setting('transaction_email_contact', 'value', env('MAIL_FROM_ADDRESS'));
+                                    if ($request->support_html) {
+                                        $email = "<a href='mailto:$email'>$email</a>";
+                                    }
                                     $reason = "Sorry, our driver could not reach you, please contact us at $email";
                                     $result['transaction_status'] = 'Order Rejected';
                                     break;

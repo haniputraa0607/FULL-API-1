@@ -65,6 +65,7 @@ class TransactionVoidFailedController extends Controller
                     $errors = $refund['messages'] ?? [];
                     $result = false;
                 } else {
+                    Transaction::where('id_transaction', $id_transaction)->update(['need_manual_void' => 0]);
                     $tvf->update(['retry_status' => 1]);
                 }
                 break;
@@ -99,6 +100,7 @@ class TransactionVoidFailedController extends Controller
                     $errors = $errors2;
                     $result = false;
                 } else {
+                    Transaction::where('id_transaction', $id_transaction)->update(['need_manual_void' => 0]);
                     $tvf->update(['retry_status' => 1]);
                 }
                 break;
@@ -121,7 +123,7 @@ class TransactionVoidFailedController extends Controller
                     ->where('type', '<>', 'Balance');
             })
             ->leftJoin('transaction_payment_balances', 'transaction_payment_balances.id_transaction', 'transactions.id_transaction')
-            ->where('retry_count', '>=', 3)
+            // ->where('retry_count', '>=', 3)
             ->with('transaction_payment_midtrans', 'transaction_payment_shopee_pay');
 
         $countTotal = null;
@@ -130,16 +132,33 @@ class TransactionVoidFailedController extends Controller
             $countTotal = $result->count();
             $this->filterList($result, $request->rule, $request->operator ?: 'and');
         }
+        switch ($request->status) {
+            case 'success':
+                $result->where('retry_status', 1);
+                break;
+
+            case 'failed':
+                $result->where('retry_status', 0)->where('need_manual_void', 1);
+                break;
+
+            case 'manual_refund':
+                $result->where('need_manual_void', 2);
+                break;
+        }
 
         if (is_array($orders = $request->order)) {
             $columns = [
                 'transaction_date', 
                 'transaction_receipt_number', 
-                'name', 
-                'phone',
+                'outlet_name', 
+                'name',
                 'trasaction_payment_type',
-                'transaction_grandtotal', 
-                'refund_nominal', 
+                null,
+                'transaction_grandtotal',
+                'refund_nominal',
+                null,
+                'retry_count',
+                null,
             ];
 
             foreach ($orders as $column) {
@@ -219,7 +238,7 @@ class TransactionVoidFailedController extends Controller
 
     public function retry(Request $request)
     {
-        $retry = $this->retryRefund($request->id_transaction, $errors);
+        $retry = $this->retryRefund($request->id_transaction, $errors, true);
         if ($retry) {
             return [
                 'status' => 'success'
@@ -248,6 +267,8 @@ class TransactionVoidFailedController extends Controller
                 'fail' => 0,
                 'errors' => &$errors
             ];
+
+            $shared = \App\Lib\TemporaryDataManager::create('retry_refund');
             foreach ($tvf as $tv) {
                 $retry = $this->retryRefund($tv->id_transaction, $errors);
                 if ($retry) {
