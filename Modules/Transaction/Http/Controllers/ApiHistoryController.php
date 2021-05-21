@@ -652,6 +652,10 @@ class ApiHistoryController extends Controller
                 'text' => 'Delivering by Driver',
                 'code' => 3,
             ],
+            'on_delivery_rejected' => [
+                'text' => 'Delivery Rejected',
+                'code' => 0,
+            ],
             'on_delivery_internal' => [
                 'text' => 'Delivering by Maxx Crew',
                 'code' => 3,
@@ -661,6 +665,8 @@ class ApiHistoryController extends Controller
         foreach ($transaction as $key => $value) {
             if ($value['transaction_payment_status'] == 'Cancelled') {
                 $last_status = $lastStatusText['cancelled'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'rejected') {
+                $last_status = $lastStatusText['on_delivery_rejected'];
             } elseif ($value['reject_at']) {
                 $last_status = $lastStatusText['rejected'];
             } elseif ($value['taken_by_system_at'] || $value['taken_at']) {
@@ -673,7 +679,7 @@ class ApiHistoryController extends Controller
                 $last_status = $lastStatusText['on_delivery_no_driver'];
             } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'on_hold') {
                 $last_status = $lastStatusText['on_delivery_on_hold'];
-            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'cancelled' || ($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'rejected') {
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'cancelled') {
                 $last_status = $lastStatusText['rejected'];
             } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false)) {
                 $last_status = $lastStatusText['on_delivery_find_driver'];
