@@ -1996,7 +1996,11 @@ class ApiOnlineTransaction extends Controller
                     app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
                     $outlet->notify_admin = 1;
                     $outlet->save();
-                    $error_msg[] = 'Cannot make delivery using GOSEND from this outlet';
+                    if (!MyHelper::validatePhoneGoSend($outlet['outlet_phone'])) {
+                        $error_msg[] = 'Please check the outlet phone number';
+                    } else {
+                        $error_msg[] = 'Cannot make delivery using GOSEND from this outlet';
+                    }
                 }
 
                 $max_cup = MyHelper::setting('delivery_max_cup', 'value', 50);
