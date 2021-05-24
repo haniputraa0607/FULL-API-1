@@ -946,7 +946,7 @@ class ShopeePayController extends Controller
             $errors[] = $this->errcode[$response['response']['errcode']] ?? 'Something went wrong';
             $errors[] = 'Refund Failed';
         }
-        return (($status['response']['transaction_list'][0]['status']??false) == '3' && ($status['response']['transaction_list'][0]['transaction_type']??false) == '15');
+        return (($response['response']['transaction_list'][0]['status']??false) == '3' && ($response['response']['transaction_list'][0]['transaction_type']??false) == '15');
     }
 
     /**
@@ -1071,7 +1071,7 @@ class ShopeePayController extends Controller
          *     }
          * }
          */
-        return (($status['response']['transaction_list'][0]['status']??false) == '3' && ($status['response']['transaction_list'][0]['transaction_type']??false) == '26');
+        return (($response['response']['transaction_list'][0]['status']??false) == '3' && ($response['response']['transaction_list'][0]['transaction_type']??false) == '26');
     }
 
     /**
