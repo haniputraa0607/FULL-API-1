@@ -2794,9 +2794,9 @@ class ApiTransaction extends Controller
 
         if($keyword = $request->json('keyword')){
             $user_address->where(function($query) use ($keyword) {
-                $query->where('name',$keyword);
-                $query->orWhere('address',$keyword);
-                $query->orWhere('short_address',$keyword);
+                $query->where('name','like','%'.$keyword.'%');
+                $query->orWhere('address','like','%'.$keyword.'%');
+                $query->orWhere('short_address','like','%'.$keyword.'%');
             });
         }
 

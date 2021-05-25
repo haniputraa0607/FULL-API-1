@@ -38,7 +38,7 @@ class CheckSmsStatus implements ShouldQueue
         $report = $status['response']['Reports']??[];
         $deliveryStatus = ($report['DeliveryStatus']??false) ? (classJatisSms::$deliveryStatus[trim($report['DeliveryStatus'])] ?? false) : null;
 
-        $this->logModel->update(['status' => $deliveryStatus, 'status_response' => $status['response_raw']]);
+        $this->logModel->update(['status' => $deliveryStatus, 'status_response' => ($status['response_raw'] ?? null)]);
         if (($report['DeliveryStatus']??'77') == '77') {
             CheckSmsStatus::dispatch($this->logModel, $this->result)->delay(now()->addHours(24))->allOnConnection('check_sms');
         }
