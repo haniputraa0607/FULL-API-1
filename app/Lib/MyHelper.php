@@ -1515,13 +1515,14 @@ class MyHelper{
 					$response = $e->getResponse()->getBody()->getContents();
 					return [
 						'status_code' => $e->getResponse()->getStatusCode(),
-						'response' => $response
+						'response' => $response,
+						'response_raw' => $response,
 					];
 				}
-				else  return ['status' => 'fail', 'messages' => [0 => 'Failed get response.']];
+				else  return ['status' => 'fail', 'messages' => [0 => 'Failed get response.'], 'response_raw' => null];
 			}
 			catch(Exception $e){
-				return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.']];
+				return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.'], 'response_raw' => null];
 			}
 		} catch (\Exception $e) {
 			return ['status' => 'fail', 'messages' => ['Something went wrong'], 'response_raw' => ''];
