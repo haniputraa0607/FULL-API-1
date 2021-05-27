@@ -118,7 +118,9 @@ class ApiGosendController extends Controller
                     if ($post['driver_photo_url'] ?? false) {
                         $toUpdate['driver_photo'] = $post['driver_photo_url'];
                     }
-                    $tpg->update($toUpdate);
+                    if (!($post['status'] == 'allocated' && $tpg->latest_status == 'out_for_pickup')) {
+                        $tpg->update($toUpdate);
+                    }
                     // request booking detail because some data not available from webhook request
                     $status = GoSend::getStatus($post['booking_id'], true);
                     if ($status['receiverName'] ?? false) {
