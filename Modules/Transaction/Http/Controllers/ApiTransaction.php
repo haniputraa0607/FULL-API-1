@@ -2763,6 +2763,13 @@ class ApiTransaction extends Controller
         $latitude = $request->json('latitude');
         $longitude = $request->json('longitude');
 
+        if (!$latitude && !$longitude) {
+            return [
+                'status' => 'fail',
+                'messages' => ['Make sure your phone\'s location settings are connected']
+            ];
+        }
+
         // get place from google maps . max 20
         $key_maps = env('GMAPS_PLACE_KEY');
         if (env('GMAPS_PLACE_KEY_TOTAL')) {

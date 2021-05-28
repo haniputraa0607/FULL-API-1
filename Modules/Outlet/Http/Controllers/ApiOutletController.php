@@ -2242,6 +2242,13 @@ class ApiOutletController extends Controller
         $post = $request->json()->all();
         $user = $request->user();
 
+        if (!$request->latitude && !$request->longitude) {
+            return [
+                'status' => 'fail',
+                'messages' => ['Make sure your phone\'s location settings are connected']
+            ];
+        }
+
         try{
             $title = Setting::where('key', 'order_now_title')->first()->value;
             $subTitleSuccess = Setting::where('key', 'order_now_sub_title_success')->first()->value;
