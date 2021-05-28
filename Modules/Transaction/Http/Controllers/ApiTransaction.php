@@ -2779,12 +2779,17 @@ class ApiTransaction extends Controller
         }
         $gmaps = MyHelper::get('https://maps.googleapis.com/maps/api/place/nearbysearch/json?'.http_build_query($param));
 
+        $error_msg = 'Location is not available. Please try again later.';
+
         if($gmaps['status'] === 'OK'){
             $gmaps = $gmaps['results'];
             MyHelper::sendGmapsData($gmaps);
-        }else{
+        } elseif ($gmaps['status'] == 'ZERO_RESULTS' && $request->json('keyword')) {
+            $error_msg = 'The location you are looking for is not available. Try to search with other keywords.';
             $gmaps = [];
-        };
+        } else {
+            $gmaps = [];
+        }
 
         $maxmin = MyHelper::getRadius($latitude,$longitude,$distance);
         $user_address = UserAddress::select('id_user_address','short_address','address','latitude','longitude','description','favorite')->where('id_user',$id)
@@ -2864,7 +2869,7 @@ class ApiTransaction extends Controller
                 'nearby' => $user_address
             ];
         }
-        return response()->json(MyHelper::checkGet($result));
+        return response()->json(MyHelper::checkGet($result, $error_msg));
     }
 
     public function getDefaultAddress (GetNearbyAddress $request) {

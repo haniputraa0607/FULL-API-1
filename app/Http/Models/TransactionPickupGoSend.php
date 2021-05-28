@@ -206,7 +206,9 @@ class TransactionPickupGoSend extends Model
                 $toUpdate['driver_photo']   = 'http://beritatrans.com/cms/wp-content/uploads/2020/02/images4-553x400.jpeg';
                 $toUpdate['vehicle_number'] = 'AB 2641 XY';
             }
-            $this->update($toUpdate);
+            if (!($status['status'] == 'allocated' && $this->latest_status == 'out_for_pickup')) {
+                $this->update($toUpdate);
+            }
             if (in_array(strtolower($status['status']), ['completed', 'delivered'])) {
                 // sendPoint delivery after status delivered only
                 if ($trx->cashback_insert_status != 1) {
