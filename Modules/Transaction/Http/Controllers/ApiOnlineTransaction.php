@@ -3177,6 +3177,7 @@ class ApiOnlineTransaction extends Controller
         if (is_array($request->item)) {
             $total_cup = array_sum(array_column($request->item, 'qty'));
         }
+        $phone_valid = true;
         if ($request->id_outlet) {
             $outlet = Outlet::find($request->id_outlet);
             if (!$outlet) {
@@ -3195,6 +3196,13 @@ class ApiOnlineTransaction extends Controller
                     'latitude' => $request->latitude,
                     'longitude' => $request->longitude,
                 ];
+            }
+
+            if (!MyHelper::validatePhoneGoSend($outlet['outlet_phone'] ?: MyHelper::setting('default_outlet_phone'))) {
+                app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
+                $outlet->notify_admin = 1;
+                $outlet->save();
+                $phone_valid = false;
             }
         }
 
@@ -3222,6 +3230,12 @@ class ApiOnlineTransaction extends Controller
                                 unset($availableShipment[$index]);
                             }
                             continue;
+                        }
+                    } elseif ($shipment2['code'] == 'gosend' && !$phone_valid) {
+                        if ($show_all) {
+                            $shipment2['status'] = 0;
+                        } else {
+                            unset($availableShipment[$index]);
                         }
                     }
                     if ($shipment2['status'] && !$request->no_calculate_price) {
