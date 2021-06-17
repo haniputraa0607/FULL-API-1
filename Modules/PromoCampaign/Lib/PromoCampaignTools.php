@@ -1533,6 +1533,7 @@ class PromoCampaignTools{
     		return null;
     	}
 
+    	$stop_trx = true;
     	$promo_error = null;
     	$post = $request->json()->all();
     	$promo_delivery = null;
@@ -1653,6 +1654,7 @@ class PromoCampaignTools{
 	        if ($min_basket_size > $subtotal) {
     			$promo_error = ['your total order is less than '.number_format($min_basket_size,0,',','.')];
     			$promo_delivery = null;
+    			$stop_trx = false;
 	        }
 	    }
 
@@ -1688,8 +1690,8 @@ class PromoCampaignTools{
         	$promo_delivery_error = [
         		'title' => 'Delivery Promo Could Not Be Applied',
         		'subtitle' => '',
-        		'messages' => $promo_error
-        		
+        		'messages' => $promo_error,
+        		'stop_trx' => $stop_trx
         	];
         }
 
