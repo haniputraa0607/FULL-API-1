@@ -820,14 +820,17 @@ class ApiOnlineTransaction extends Controller
         	$promo_post['shipping'] = $post['shipping'];
         	$promo_delivery = $pct->validateDelivery($request, $promo_post, $promo_delivery_error);
 			if ($promo_delivery_error) {
-	            return [
-	                'status' => 'fail',
-	                'messages' => $promo_delivery_error['messages']
-	            ];
+				if ($promo_delivery_error['stop_trx']) {
+		            return [
+		                'status' => 'fail',
+		                'messages' => $promo_delivery_error['messages']
+		            ];
+				}
+	        } else {
+	        	$promo_delivery['discount_delivery'] = floor($promo_delivery['discount_delivery']);
+		        $post['discount_delivery'] = - abs($promo_delivery['discount_delivery']);
+		        $post['grandTotal'] = $post['grandTotal'] - abs($post['discount_delivery']);
 	        }
-        	$promo_delivery['discount_delivery'] = floor($promo_delivery['discount_delivery']);
-	        $post['discount_delivery'] = - abs($promo_delivery['discount_delivery']);
-	        $post['grandTotal'] = $post['grandTotal'] - abs($post['discount_delivery']);
         }
 
         DB::beginTransaction();
