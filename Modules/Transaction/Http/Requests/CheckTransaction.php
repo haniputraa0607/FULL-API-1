@@ -2,8 +2,8 @@
 
 namespace Modules\Transaction\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 class CheckTransaction extends FormRequest
@@ -11,8 +11,27 @@ class CheckTransaction extends FormRequest
     public function rules()
     {
         return [
-            'item'    => 'required|array',
-            'id_outlet'   => 'required|numeric'
+            'type'                                    => 'sometimes|in:Pickup Order,GO-SEND,Grab,Internal Delivery',
+            'payment_type'                            => 'nullable|in:Midtrans,Manual,Balance,Ovo,Ipay88,Shopeepay,Xendit',
+            'destination'                             => 'nullable|sometimes|array',
+            'destination.id_user_address'             => 'nullable|sometimes',
+            'destination.short_address'               => 'nullable|sometimes',
+            'destination.address'                     => 'required_with:destination',
+            'destination.latitude'                    => 'required_with:destination',
+            'destination.longitude'                   => 'required_with:destination',
+            'destination.notes'                       => 'nullable|sometimes',
+            'id_outlet'                               => 'required|numeric',
+            'pickup_at'                               => 'nullable|date_format:H:i',
+            'items'                                   => 'sometimes|nullable|array',
+            'items.*.id_product_group'                => 'required|numeric',
+            'items.*.id_brand'                        => 'required|numeric',
+            'items.*.variants'                        => 'required|array',
+            'items.*.variants.*'                      => 'required|numeric',
+            'items.*.qty'                             => 'required|numeric|min:1',
+            'items.*.note'                            => 'sometimes|nullable|string',
+            'items.*.modifiers'                       => 'sometimes|nullable|array',
+            'items.*.modifiers.*.qty'                 => 'required|numeric|min:1',
+            'items.*.modifiers.*.id_product_modifier' => 'required|numeric',
         ];
     }
 
@@ -23,7 +42,7 @@ class CheckTransaction extends FormRequest
 
     protected function failedValidation(Validator $validator)
     {
-        throw new HttpResponseException(response()->json(['status' => 'fail', 'messages'  => $validator->errors()->all()], 200));
+        throw new HttpResponseException(response()->json(['status' => 'fail', 'messages' => $validator->errors()->all()], 200));
     }
 
     protected function validationData()

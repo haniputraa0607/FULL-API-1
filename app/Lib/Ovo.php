@@ -343,47 +343,62 @@ class Ovo {
 
         //create log request
             if($type == 'deals'){
-                $createLog = LogOvoDeals::create([
+                $logData = [
                     'id_deals_payment_ovo' => $transaction['id_deals_payment_ovo'],
                     'order_id' => $transaction['order_id'],
                     'url' => $url,
                     'header' => json_encode($header),
                     'request' => json_encode($data),
                     'payment_type' => 'Void'
-                ]);
+                ];
             }else{
-                $createLog = LogOvo::create([
+                $logData = [
                     'id_transaction_payment_ovo' => $transaction['id_transaction_payment_ovo'],
                     'transaction_receipt_number' => $transaction['transaction_receipt_number'],
                     'url' => $url,
                     'header' => json_encode($header),
                     'request' => json_encode($data),
                     'payment_type' => 'Void'
-                ]);
+                ];
             }
 
             $reversal = MyHelper::postWithTimeout($url, null, $data, 0, $header);
 
             if(isset($reversal['status_code'])){
-
+                $reversal['response'] = self::detailResponse($reversal['response']);
                 if($type == 'deals'){
-                    $updateLog = LogOvoDeals::where('id_log_ovo_deals', $createLog['id'])->update([
+                    $logData = array_merge($logData, [
                         'response_status' => 'success',
                         'response_code' => $reversal['status_code'],
                         'response' => json_encode($reversal['response'])
                     ]);
+
+                    if (request()->log_outside) {
+                        request()->merge(['doLog' => function() use ($logData) {
+                            $createLog = LogOvoDeals::create($logData);
+                        }]);
+                    } else {
+                        $createLog = LogOvoDeals::create($logData);
+                    }
 
                     if($reversal['status_code'] != 404){
                         break;
                         return $reversal;
-
                     }
                 }else{
-                    $updateLog = LogOvo::where('id_log_ovo', $createLog['id_log_ovo'])->update([
+                    $logData = array_merge($logData, [
                         'response_status' => 'success',
                         'response_code' => $reversal['status_code'],
                         'response' => json_encode($reversal['response'])
                     ]);
+
+                    if (request()->log_outside) {
+                        request()->merge(['doLog' => function() use ($logData) {
+                            $createLog = LogOvo::create($logData);
+                        }]);
+                    } else {
+                        $createLog = LogOvo::create($logData);
+                    }
 
                     if($reversal['status_code'] != 404){
                         break;
@@ -396,17 +411,37 @@ class Ovo {
                 if($type == 'deals'){
                     $deals_user = DealsUser::where('id_deals_user',$transaction['id_deals_user'])->first();
                     $voucher = DealsVoucher::where('id_deals_voucher',$deals_user['id_deals_voucher'])->update(['deals_voucher_status'=>'Available']);
-                    $updateLog = LogOvoDeals::where('id_log_ovo_deals', $createLog['id_log_ovo_deals'])->update([
+
+                    $logData = array_merge($logData, [
                         'response_status' => 'fail',
                         'response' => json_encode($pay)
                     ]);
+
+                    if (request()->log_outside) {
+                        request()->merge(['doLog' => function() use ($logData) {
+                            $createLog = LogOvoDeals::create($logData);
+                        }]);
+                    } else {
+                        $createLog = LogOvoDeals::create($logData);
+                    }
+
                     break;
                     return $reversal;
                 }else{
-                    $updateLog = LogOvo::where('id_log_ovo', $createLog['id_log_ovo'])->update([
+
+                    $logData = array_merge($logData, [
                         'response_status' => 'fail',
                         'response' => json_encode($pay)
                     ]);
+
+                    if (request()->log_outside) {
+                        request()->merge(['doLog' => function() use ($logData) {
+                            $createLog = LogOvo::create($logData);
+                        }]);
+                    } else {
+                        $createLog = LogOvo::create($logData);
+                    }
+
                     break;
                     return $reversal;
                 }

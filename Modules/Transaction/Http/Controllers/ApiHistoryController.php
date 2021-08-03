@@ -202,10 +202,10 @@ class ApiHistoryController extends Controller
         $transaction = [];
         $voucher = [];
 
-        if($post['online_order'] == 1 || $post['offline_order'] == 1 || ($post['online_order'] == null && $post['offline_order'] == null && $post['voucher'] == null)) {
+        if($post['online_order'] == 1 || $post['offline_order'] == 1 || $post['delivery_order'] == 1 || $post['pickup_order'] == 1 || ($post['online_order'] == null && $post['offline_order'] == null && $post['delivery_order'] == null && $post['pickup_order'] == null && $post['voucher'] == null)) {
             $transaction = $this->transaction($post, $id);
         }
-        if($post['voucher'] == 1 || ($post['online_order'] == null && $post['offline_order'] == null && $post['voucher'] == null)){
+        if($post['voucher'] == 1 || ($post['online_order'] == null && $post['offline_order'] == null && $post['delivery_order'] == null && $post['pickup_order'] == null && $post['voucher'] == null)){
             $voucher = $this->voucher($post, $id);
         }
 
@@ -401,6 +401,12 @@ class ApiHistoryController extends Controller
         if (!isset($post['online_order'])) {
             $post['online_order'] = null;
         }
+        if (!isset($post['pickup_order'])) {
+            $post['pickup_order'] = null;
+        }
+        if (!isset($post['delivery_order'])) {
+            $post['delivery_order'] = null;
+        }
         if (!isset($post['voucher'])) {
             $post['voucher'] = null;
         }
@@ -510,6 +516,7 @@ class ApiHistoryController extends Controller
     {
         $transaction = Transaction::select(\DB::raw('*,sum(transaction_products.transaction_product_qty) as sum_qty'))->distinct('transactions.*')
             ->join('outlets', 'transactions.id_outlet', '=', 'outlets.id_outlet')
+            ->join('transaction_pickups', 'transactions.id_transaction', '=', 'transaction_pickups.id_transaction')
             ->join('brand_outlet', 'outlets.id_outlet', '=', 'brand_outlet.id_outlet')
             ->leftJoin('transaction_products', 'transactions.id_transaction', '=', 'transaction_products.id_transaction')
             ->where('transactions.id_user', $id)
@@ -538,15 +545,20 @@ class ApiHistoryController extends Controller
         $transaction->where(function ($query) use ($post) {
             if (!is_null($post['pickup_order'])) {
                 $query->orWhere(function ($amp) use ($post) {
-                    $amp->where('transactions.trasaction_type', 'Pickup Order');
+                    $amp->where('transactions.trasaction_type', 'Pickup Order')->whereNull('transaction_shipping_method');
                 });
             }
 
             if (!is_null($post['delivery_order'])) {
                 $query->orWhere(function ($amp) use ($post) {
-                    $amp->where('transactions.trasaction_type', 'Delivery');
+                    $amp->where('transactions.trasaction_type', 'Pickup Order')->whereNotNull('transaction_shipping_method');
                 });
             }
+            // if (!is_null($post['delivery_order'])) {
+            //     $query->orWhere(function ($amp) use ($post) {
+            //         $amp->where('transactions.trasaction_type', 'Delivery');
+            //     });
+            // }
 
             if (!is_null($post['offline_order'])) {
                 $query->orWhere(function ($amp) use ($post) {
@@ -591,14 +603,107 @@ class ApiHistoryController extends Controller
 
         $listTransaction = [];
 
+        $lastStatusText = [
+            'payment_pending' => [
+                'text' => 'Payment Pending',
+                'code' => 2,
+            ],
+            'pending' => [
+                'text' => 'Your order is pending',
+                'code' => 1,
+            ],
+            'received' => [
+                'text' => 'On Process',
+                'code' => 2,
+            ],
+            'on_delivery_find_driver' => [
+                'text' => 'Looking For a Driver',
+                'code' => 2,
+            ],
+            'ready' => [
+                'text' => 'Order Ready',
+                'code' => 3,
+            ],
+            'completed' => [
+                'text' => 'Completed',
+                'code' => 4,
+            ],
+            'cancelled' => [
+                'text' => 'Payment Canceled',
+                'code' => 0,
+            ],
+            'rejected' => [
+                'text' => 'Order Canceled',
+                'code' => 0,
+            ],
+            'on_delivery_no_driver' => [
+                'text' => 'Driver not Found',
+                'code' => 0,
+            ],
+            'on_delivery_out_for_pickup' => [
+                'text' => 'Driver on the way to Outlet',
+                'code' => 3,
+            ],
+            'on_delivery_on_hold' => [
+                'text' => 'Delivery On Hold',
+                'code' => 3,
+            ],
+            'on_delivery_out_for_delivery' => [
+                'text' => 'Delivering by Driver',
+                'code' => 3,
+            ],
+            'on_delivery_rejected' => [
+                'text' => 'Delivery Rejected',
+                'code' => 0,
+            ],
+            'on_delivery_internal' => [
+                'text' => 'Delivering by Maxx Crew',
+                'code' => 3,
+            ],
+        ];
+
         foreach ($transaction as $key => $value) {
+            if ($value['transaction_payment_status'] == 'Cancelled') {
+                $last_status = $lastStatusText['cancelled'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'rejected') {
+                $last_status = $lastStatusText['on_delivery_rejected'];
+            } elseif ($value['reject_at']) {
+                $last_status = $lastStatusText['rejected'];
+            } elseif ($value['taken_by_system_at'] || $value['taken_at']) {
+                $last_status = $lastStatusText['completed'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'out_for_delivery') {
+                $last_status = $lastStatusText['on_delivery_out_for_delivery'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'out_for_pickup') {
+                $last_status = $lastStatusText['on_delivery_out_for_pickup'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'no_driver') {
+                $last_status = $lastStatusText['on_delivery_no_driver'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'on_hold') {
+                $last_status = $lastStatusText['on_delivery_on_hold'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'cancelled') {
+                $last_status = $lastStatusText['rejected'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false)) {
+                $last_status = $lastStatusText['on_delivery_find_driver'];
+            } elseif ($value['ready_at']) {
+                $last_status = $lastStatusText['ready'];
+            } elseif ($value['receive_at']) {
+                $last_status = $lastStatusText['received'];
+            } elseif ($value['transaction_payment_status'] == 'Completed') {
+                $last_status = $lastStatusText['pending'];
+            } else {
+                $last_status = $lastStatusText['payment_pending'];
+            }
+
             $dataList['type'] = 'trx';
             $dataList['id'] = $value['id_transaction'];
             $dataList['date']    = date('d M Y H:i', strtotime($value['transaction_date']));
             $dataList['id_outlet'] = $value['outlet']['id_outlet'];
             $dataList['outlet_code'] = $value['outlet']['outlet_code'];
             $dataList['outlet'] = $value['outlet']['outlet_name'];
+            $dataList['pickup_by'] = $value['pickup_by'];
+            $dataList['transaction_type'] = $value['pickup_by'] == 'Customer' ? 'Pickup Order' : 'Delivery';
             $dataList['amount'] = MyHelper::requestNumber($value['transaction_grandtotal'], '_CURRENCY');
+            $dataList['last_status'] = $last_status['text'];
+            $dataList['last_status_code'] = $last_status['code'];
 
             $dataList['cashback'] = MyHelper::requestNumber($value['transaction_cashback_earned'],'_POINT');
             $dataList['subtitle'] = $value['sum_qty'].($value['sum_qty']>1?' items':' item');
@@ -624,7 +729,7 @@ class ApiHistoryController extends Controller
     {
         $transaction = Transaction::select(\DB::raw('*,sum(transaction_products.transaction_product_qty) as sum_qty'))->join('transaction_pickups', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
             ->leftJoin('transaction_products', 'transactions.id_transaction', '=', 'transaction_products.id_transaction')
-            ->with('outlet')
+            ->with('outlet', 'transaction_pickup_go_send')
             ->where('transaction_payment_status', 'Completed')
             ->whereDate('transaction_date', date('Y-m-d'))
             ->whereNull('taken_at')
@@ -636,13 +741,100 @@ class ApiHistoryController extends Controller
 
         $listTransaction = [];
 
+        $lastStatusText = [
+            'payment_pending' => [
+                'text' => 'Payment Pending',
+                'code' => 2,
+            ],
+            'pending' => [
+                'text' => 'Your order is pending',
+                'code' => 1,
+            ],
+            'received' => [
+                'text' => 'On Process',
+                'code' => 2,
+            ],
+            'on_delivery_find_driver' => [
+                'text' => 'Looking For a Driver',
+                'code' => 2,
+            ],
+            'ready' => [
+                'text' => 'Order Ready',
+                'code' => 3,
+            ],
+            'completed' => [
+                'text' => 'Completed',
+                'code' => 4,
+            ],
+            'cancelled' => [
+                'text' => 'Payment Canceled',
+                'code' => 0,
+            ],
+            'rejected' => [
+                'text' => 'Order Canceled',
+                'code' => 0,
+            ],
+            'on_delivery_no_driver' => [
+                'text' => 'Driver not Found',
+                'code' => 0,
+            ],
+            'on_delivery_out_for_pickup' => [
+                'text' => 'Driver on the way to Outlet',
+                'code' => 3,
+            ],
+            'on_delivery_out_for_delivery' => [
+                'text' => 'Delivering by Driver',
+                'code' => 3,
+            ],
+            'on_delivery_on_hold' => [
+                'text' => 'Delivery On Hold',
+                'code' => 3,
+            ],
+            'on_delivery_internal' => [
+                'text' => 'Delivering by Maxx Crew',
+                'code' => 3,
+            ],
+        ];
+
         foreach ($transaction as $key => $value) {
+            if ($value['reject_at']) {
+                $last_status = $lastStatusText['rejected'];
+            } elseif ($value['taken_by_system_at'] || $value['taken_at']) {
+                $last_status = $lastStatusText['completed'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'out_for_delivery') {
+                $last_status = $lastStatusText['on_delivery_out_for_delivery'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'out_for_pickup') {
+                $last_status = $lastStatusText['on_delivery_out_for_pickup'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'no_driver') {
+                $last_status = $lastStatusText['on_delivery_no_driver'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'on_hold') {
+                $last_status = $lastStatusText['on_delivery_on_hold'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'cancelled' || ($value['transaction_pickup_go_send']['latest_status'] ?? false) == 'rejected') {
+                $last_status = $lastStatusText['rejected'];
+            } elseif (($value['transaction_pickup_go_send']['latest_status'] ?? false)) {
+                $last_status = $lastStatusText['on_delivery_find_driver'];
+            } elseif ($value['ready_at']) {
+                $last_status = $lastStatusText['ready'];
+            } elseif ($value['receive_at']) {
+                $last_status = $lastStatusText['received'];
+            } elseif ($value['transaction_payment_status'] == 'Completed') {
+                $last_status = $lastStatusText['pending'];
+            } elseif ($value['transaction_payment_status'] == 'Cancelled') {
+                $last_status = $lastStatusText['cancelled'];
+            } else {
+                $last_status = $lastStatusText['payment_pending'];
+            }
+
             $dataList['type'] = 'trx';
             $dataList['id'] = $value['id_transaction'] ;
             $dataList['date']    = date('d M Y H:i', strtotime($value['transaction_date']));
             $dataList['outlet'] = $value['outlet']['outlet_name'];
             $dataList['outlet_code'] = $value['outlet']['outlet_code'];
+            $dataList['pickup_by'] = $value['pickup_by'];
+            $dataList['transaction_type'] = $value['pickup_by'] == 'Customer' ? 'Pickup Order' : 'Delivery';
             $dataList['amount'] = MyHelper::requestNumber($value['transaction_grandtotal'],'_CURRENCY');
+            $dataList['last_status'] = $last_status['text'];
+            $dataList['last_status_code'] = $last_status['code'];
 
             if ($value['ready_at'] != null) {
                 $dataList['status'] = "Pesanan Sudah Siap";
@@ -904,7 +1096,7 @@ class ApiHistoryController extends Controller
             }
         });
 
-         if (!is_null($post['online_order']) || !is_null($post['offline_order'])) {
+         if (!is_null($post['online_order']) || !is_null($post['offline_order']) || !is_null($post['pickup_order']) || !is_null($post['delivery_order'])) {
              $log->leftJoin('transactions', 'transactions.id_transaction', 'log_balances.id_reference')
                  ->where(function ($query) use ($post) {
                      if (!is_null($post['online_order'])) {
@@ -919,6 +1111,17 @@ class ApiHistoryController extends Controller
                                  ->where('trasaction_type', '=', 'Offline');
                          });
                      }
+                     if (!is_null($post['pickup_order'])) {
+                        $query->orWhere(function ($queryLog) use ($post) {
+                            $queryLog->where('transactions.trasaction_type', 'Pickup Order')->whereNull('transaction_shipping_method');
+                        });
+                    }
+        
+                    if (!is_null($post['delivery_order'])) {
+                        $query->orWhere(function ($queryLog) use ($post) {
+                            $queryLog->where('transactions.trasaction_type', 'Pickup Order')->whereNotNull('transaction_shipping_method');
+                        });
+                    }
                  });
          }
 
@@ -1053,6 +1256,18 @@ class ApiHistoryController extends Controller
                 $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
                 $dataList['outlet'] = 'Referral Bonus';
                 $dataList['amount'] = '+ ' . MyHelper::requestNumber($value['balance'], '_POINT');
+
+                $listBalance[$key] = $dataList;
+            } elseif (strpos($value['source'], 'Rejected Order') !== false) {
+                $dataList['type']   = 'balance';
+                $dataList['id']      = $value['id_log_balance'];
+                $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
+                $dataList['outlet'] = 'Reversal';
+                if ($value['balance'] < 0) {
+                    $dataList['amount'] = '- ' . ltrim(MyHelper::requestNumber($value['balance'], '_POINT'), '-');
+                } else {
+                    $dataList['amount'] = '+ ' . MyHelper::requestNumber($value['balance'], '_POINT');
+                }
 
                 $listBalance[$key] = $dataList;
             } else {

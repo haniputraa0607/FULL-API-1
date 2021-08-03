@@ -157,6 +157,13 @@ class Kernel extends ConsoleKernel
          */
 
         $schedule->call('Modules\SettingFraud\Http\Controllers\ApiFraud@fraudCron')->dailyAt('02:00');
+
+        /**
+         * reset notify outlet flag
+         * run every day at 01:00
+         */
+        $schedule->call('Modules\Outlet\Http\Controllers\ApiOutletController@resetNotify')->dailyAt('00:30');
+
         /**
          * Void failed transaction shopeepay
          */
@@ -167,11 +174,41 @@ class Kernel extends ConsoleKernel
         $schedule->call('Modules\ShopeePay\Http\Controllers\ShopeePayController@cronCancelDeals')->cron('*/1 * * * *');
 
         /**
+         * process refund shopeepay at 06:00
+         */
+        $schedule->call('Modules\ShopeePay\Http\Controllers\ShopeePayController@cronRefund')->dailyAt('03:05');
+
+        /**
          * Send Email Failed Send to POS,
          * Run every 7 minutes
          */
         $schedule->call('Modules\Transaction\Http\Controllers\ApiTransactionOnlinePOS@sendEmail')->cron('*/7 * * * *');
 
+        /**
+         * Send Cancel Email Failed Send to POS,
+         * Run every 7 minutes
+         */
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiTransactionOnlinePOS@sendEmailCancel')->cron('*/7 * * * *');
+
+        /**
+         * Check the status of Gosend which is not updated after 5 minutes
+         * run every 3 minutes
+         */
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiGosendController@cronCheckStatus')->cron('*/3 * * * *');
+
+        /**
+         * To cancel no driver transaction
+         * run every minute
+         */
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiCronTrxController@cronCancelDriverNotFound')->everyMinute();
+
+        /**
+         * To retry vailed refund
+         * run at specific timeframe
+         */
+        foreach (['03:05', '11:00', '19:00'] as $time) {
+            $schedule->call('Modules\Transaction\Http\Controllers\TransactionVoidFailedController@cronRetry')->dailyAt($time);
+        }
     }
 
     /**

@@ -88,7 +88,12 @@ class ApiCronTrxController extends Controller
                     continue;
                 }
                 if($singleTrx->trasaction_payment_type == 'Midtrans') {
-                    $connectMidtrans = Midtrans::expire($singleTrx->transaction_receipt_number);
+                    $midtransStatus = Midtrans::status($singleTrx->id_transaction);
+                    if ((($midtransStatus['status'] ?? false) == 'fail' && ($midtransStatus['messages'][0] ?? false) == 'Midtrans payment not found') || in_array(($midtransStatus['response']['transaction_status'] ?? false), ['deny', 'cancel', 'expire', 'failure']) || ($midtransStatus['status_code'] ?? false) == '404') {
+                        $connectMidtrans = Midtrans::expire($singleTrx->transaction_receipt_number);
+                    } else {
+                        continue;
+                    }
                 }elseif($singleTrx->trasaction_payment_type == 'Ipay88') {
                     $trx_ipay = TransactionPaymentIpay88::where('id_transaction',$singleTrx->id_transaction)->first();
 
@@ -420,16 +425,19 @@ class ApiCronTrxController extends Controller
                     }
                 }
 
-                // show rate popup
-                if ($newTrx->id_user) {
-                    UserRatingLog::updateOrCreate([
-                        'id_user' => $newTrx->id_user,
-                        'id_transaction' => $newTrx->id_transaction
-                    ],[
-                        'refuse_count' => 0,
-                        'last_popup' => date('Y-m-d H:i:s', time() - MyHelper::setting('popup_min_interval', 'value', 900))
-                    ]);
-                }
+                /**
+                 * taken by system tidak menampilkan popup
+                 */
+                // // show rate popup
+                // if ($newTrx->id_user) {
+                //     UserRatingLog::updateOrCreate([
+                //         'id_user' => $newTrx->id_user,
+                //         'id_transaction' => $newTrx->id_transaction
+                //     ],[
+                //         'refuse_count' => 0,
+                //         'last_popup' => date('Y-m-d H:i:s', time() - MyHelper::setting('popup_min_interval', 'value', 900))
+                //     ]);
+                // }
             }
             //update taken_by_sistem_at
             $dataTrx = TransactionPickup::whereIn('id_transaction', $idTrx)
@@ -456,6 +464,43 @@ class ApiCronTrxController extends Controller
                 'Status' => '0',
                 'requery_response' => 'Cancelled by cron'
             ],false,false);
+        }
+    }
+
+    /**
+     * Cron check status gosend
+     */
+    public function cronCancelDriverNotFound()
+    {
+        $log = MyHelper::logCron('Cancel Transaction Driver Not Found');
+        $minutes = (int) MyHelper::setting('auto_reject_time','value', 15)*60;
+        try {
+            $trxs = Transaction::select('transactions.*')
+                ->join('transaction_pickups', 'transaction_pickups.id_transaction', 'transactions.id_transaction')
+                ->join('transaction_pickup_go_sends', 'transaction_pickup_go_sends.id_transaction_pickup', 'transaction_pickups.id_transaction_pickup')
+                ->whereNull('taken_at')
+                ->whereNull('reject_at')
+                ->where('latest_status', 'no_driver')
+                ->whereDate('transactions.transaction_date', date('Y-m-d'))
+                ->where('transaction_pickup_go_sends.stop_booking_at', '<', date('Y-m-d H:i:s', time() - $minutes))
+                ->get();
+            $errors = [];
+            $success = 0;
+            foreach ($trxs as $trx) {
+                $cancel = $trx->cancelOrder('Auto cancel order by system [no driver]', $errors);
+                if ($cancel) {
+                    $trx->update(['is_auto_cancel' => 1]);
+                    $success++;
+                }
+            }
+            $log->success([
+                'total' => $trxs->count(),
+                'success' => $success
+            ]);
+            return response()->json(['success']);
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
+            return ['status' => 'fail'];
         }
     }
 }

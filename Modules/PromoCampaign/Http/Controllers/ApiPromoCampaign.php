@@ -18,6 +18,8 @@ use Modules\PromoCampaign\Entities\PromoCampaignHaveTag;
 use Modules\PromoCampaign\Entities\PromoCampaignTag;
 use Modules\PromoCampaign\Entities\PromoCampaignReport;
 use Modules\PromoCampaign\Entities\UserReferralCode;
+use Modules\PromoCampaign\Entities\PromoCampaignDiscountDeliveryRule;
+use Modules\PromoCampaign\Entities\PromoCampaignShipmentMethod;
 
 use Modules\Deals\Entities\DealsProductDiscount;
 use Modules\Deals\Entities\DealsProductDiscountRule;
@@ -25,6 +27,8 @@ use Modules\Deals\Entities\DealsTierDiscountProduct;
 use Modules\Deals\Entities\DealsTierDiscountRule;
 use Modules\Deals\Entities\DealsBuyxgetyProductRequirement;
 use Modules\Deals\Entities\DealsBuyxgetyRule;
+use Modules\Deals\Entities\DealsDiscountDeliveryRule;
+use Modules\Deals\Entities\DealsShipmentMethod;
 
 use Modules\Promotion\Entities\DealsPromotionProductDiscount;
 use Modules\Promotion\Entities\DealsPromotionProductDiscountRule;
@@ -32,6 +36,8 @@ use Modules\Promotion\Entities\DealsPromotionTierDiscountProduct;
 use Modules\Promotion\Entities\DealsPromotionTierDiscountRule;
 use Modules\Promotion\Entities\DealsPromotionBuyxgetyProductRequirement;
 use Modules\Promotion\Entities\DealsPromotionBuyxgetyRule;
+use Modules\Promotion\Entities\DealsPromotionDiscountDeliveryRule;
+use Modules\Promotion\Entities\DealsPromotionShipmentMethod;
 
 use Modules\ProductVariant\Entities\ProductGroup;
 
@@ -292,6 +298,8 @@ class ApiPromoCampaign extends Controller
             'promo_campaign_tier_discount_product',
             'promo_campaign_buyxgety_rules.product',
             'promo_campaign_buyxgety_product_requirement',
+            'promo_campaign_shipment_method',
+            'promo_campaign_discount_delivery_rules'
             // 'promo_campaign_reports'
         ];
         $promoCampaign = PromoCampaign::with($data)->where('id_promo_campaign', '=', $post['id_promo_campaign'])->first();
@@ -953,6 +961,7 @@ class ApiPromoCampaign extends Controller
 	        $dataPromoCampaign['last_updated_by'] = $user['id'];
 	        $dataPromoCampaign['user_type'] = $post['filter_user'];
 	        $dataPromoCampaign['specific_user'] = $post['specific_user']??null;
+	        $dataPromoCampaign['min_basket_size'] = $post['min_basket_size']??null;
 
 	        if ($post['filter_outlet'] == 'All Outlet')
 	        {
@@ -979,6 +988,7 @@ class ApiPromoCampaign extends Controller
         	$dataPromoCampaign['deals_promo_id']		= $dataPromoCampaign['deals_promo_id_type'] == 'nominal' ? $post['deals_promo_id_nominal'] : ($post['deals_promo_id_promoid']??null);
         	$dataPromoCampaign['last_updated_by'] 		= auth()->user()->id;
         	$dataPromoCampaign['step_complete']			= 0;
+        	$dataPromoCampaign['min_basket_size'] 		= $post['min_basket_size']??null;
         }
 
 		$image = $table::where($id_table, $id_post)->first();
@@ -1025,6 +1035,14 @@ class ApiPromoCampaign extends Controller
 
         $update = $table::where($id_table, $id_post)->updateWithUserstamps($dataPromoCampaign);
 
+		if( ($post['promo_type'] ?? false) == 'Discount delivery'){
+        	$update_shipment_rule = $this->createShipmentRule($source, $id_table, $id_post, $post);
+
+	        if ($update_shipment_rule['status'] != 'success') {
+	        	return $update_shipment_rule;
+	        }
+		}
+
         if ($post['promo_type'] == 'Product Discount') {
             if ($post['filter_product'] == 'All Product') {
                 $createFilterProduct = $this->createProductFilter('all_product', 1, $id_post, null, $post['discount_type'], $post['discount_value'], $post['max_product'], $post['max_percent_discount'], $post['product_type'], $source, $table, $id_table);
@@ -1055,6 +1073,17 @@ class ApiPromoCampaign extends Controller
             try {
                 $createFilterProduct = $this->createBuyXGetYDiscount($id_post, $post['product'], $post['promo_rule'], $post['product_type'], $source, $table, $id_table);
 
+            } catch (Exception $e) {
+                $createFilterProduct = [
+                    'status'  => 'fail',
+                    'messages' => 'Create Promo Type Failed'
+                ];
+                DB::rollBack();
+                return response()->json($createFilterProduct);
+            }
+        } elseif ($post['promo_type'] == 'Discount delivery') {
+            try {
+                $createFilterProduct = $this->createDiscountDelivery($id_post, $post['discount_type'], $post['discount_value'], $post['max_percent_discount'], $source, $table, $id_table);
             } catch (Exception $e) {
                 $createFilterProduct = [
                     'status'  => 'fail',
@@ -1125,6 +1154,114 @@ class ApiPromoCampaign extends Controller
         return $result;
     }
 
+    function createShipmentRule($source, $id_table, $id_post, $post)
+    {
+    	if ($source == 'promo_campaign') 
+    	{
+	        $table_shipment = new PromoCampaignShipmentMethod;
+	        $table_promo = new PromoCampaign;
+    	}
+    	elseif ($source == 'deals') 
+    	{
+	        $table_shipment = new DealsShipmentMethod;
+	        $table_promo = new Deal;
+    	}
+    	elseif ($source == 'deals_promotion')
+    	{
+    		$table_shipment = new DealsPromotionShipmentMethod;
+	        $table_promo = new DealsPromotionTemplate;
+	        $id_table = 'id_deals';
+    	}
+
+        $table_shipment::where($id_table, '=', $id_post)->delete();
+
+        if ($post['promo_type'] == 'Discount delivery') {
+        	$post['filter_shipment'] = 'selected_shipment';
+        	$post['shipment_method'] = $post['shipment_method'] ?? [];
+        }
+
+        if ($post['filter_shipment'] == 'all_shipment') {
+            try {
+            	if ($source == 'deals_promotion') {
+            		$id_table = 'id_deals_promotion_template';
+            	}
+                $table_promo::where($id_table, '=', $id_post)->update(['is_all_shipment' => 1]);
+                $result = ['status'  => 'success'];
+            } catch (\Exception $e) {
+                $result = [
+                    'status'  => 'fail',
+                    'message' => 'Create Shipment Rule Failed'
+                ];
+                return $result;
+            }
+        } else {
+
+            $data_shipment = [];
+            foreach ($post['shipment_method'] as $key => $value) {
+            	if ($value == 'Pickup Order' && $post['promo_type'] == 'Discount delivery') {
+            		continue;
+            	}
+            	$temp_data = [
+	                $id_table => $id_post,
+	            	'shipment_method' => $value,
+	                'created_at' => date('Y-m-d H:i:s'),
+	                'updated_at' => date('Y-m-d H:i:s')
+            	];
+            	$data_shipment[] = $temp_data;
+            }
+
+            if (empty($data_shipment)) {
+            	if ($post['promo_type'] != 'Discount delivery') {
+            		$delivery_pickup = [
+		                $id_table => $id_post,
+		            	'shipment_method' => 'Pickup Order',
+		                'created_at' => date('Y-m-d H:i:s'),
+		                'updated_at' => date('Y-m-d H:i:s')
+	            	];
+            		$data_shipment[] = $delivery_pickup;
+            	}
+
+            	$availableDelivery = config('delivery_method');
+
+		        $setting  = json_decode(MyHelper::setting('active_delivery_methods', 'value_text', '[]'), true) ?? [];
+		        $deliveries = [];
+
+		        foreach ($setting as $value) {
+
+		            $delivery = $availableDelivery[$value['code'] ?? ''] ?? false;
+
+		            if ( !$delivery || !($delivery['status'] ?? false) ) {
+		                unset($availableDelivery[$value['code']]);
+		                continue;
+		            }
+
+		            $data_shipment[] = [
+		                $id_table => $id_post,
+		            	'shipment_method' => $value['code'],
+		                'created_at' => date('Y-m-d H:i:s'),
+		                'updated_at' => date('Y-m-d H:i:s')
+	            	];
+		        }
+            }
+
+            try {
+            	if ($source == 'deals_promotion') {
+            		$id_table = 'id_deals_promotion_template';
+            	}
+                $table_promo::where($id_table, '=', $id_post)->update(['is_all_shipment' => 0]);
+                $table_shipment::insert($data_shipment);
+                $result = ['status'  => 'success'];
+            } catch (\Exception $e) {
+                $result = [
+                    'status'  => 'fail',
+                    'message' => 'Create Shipment Rule Failed'
+                ];
+                return $result;
+            }
+        }
+        return $result;
+    }
+
     public function deleteAllProductRule($source, $id_post)
     {
     	try {
@@ -1134,6 +1271,7 @@ class ApiPromoCampaign extends Controller
 		        PromoCampaignProductDiscountRule::where('id_promo_campaign', '=', $id_post)->delete();
 		        PromoCampaignTierDiscountRule::where('id_promo_campaign', '=', $id_post)->delete();
 		        PromoCampaignBuyxgetyRule::where('id_promo_campaign', '=', $id_post)->delete();
+		        PromoCampaignDiscountDeliveryRule::where('id_promo_campaign', '=', $id_post)->delete();
 
 		        PromoCampaignTierDiscountProduct::where('id_promo_campaign', '=', $id_post)->delete();
 		        PromoCampaignProductDiscount::where('id_promo_campaign', '=', $id_post)->delete();
@@ -1145,6 +1283,7 @@ class ApiPromoCampaign extends Controller
 	    		DealsProductDiscountRule::where('id_deals', '=', $id_post)->delete();
 		        DealsTierDiscountRule::where('id_deals', '=', $id_post)->delete();
 		        DealsBuyxgetyRule::where('id_deals', '=', $id_post)->delete();
+				DealsDiscountDeliveryRule::where('id_deals', '=', $id_post)->delete();
 
 		        DealsTierDiscountProduct::where('id_deals', '=', $id_post)->delete();
 		        DealsProductDiscount::where('id_deals', '=', $id_post)->delete();
@@ -1156,6 +1295,7 @@ class ApiPromoCampaign extends Controller
 	    		DealsPromotionProductDiscountRule::where('id_deals', '=', $id_post)->delete();
 		        DealsPromotionTierDiscountRule::where('id_deals', '=', $id_post)->delete();
 		        DealsPromotionBuyxgetyRule::where('id_deals', '=', $id_post)->delete();
+				DealsPromotionDiscountDeliveryRule::where('id_deals', '=', $id_post)->delete();
 
 		        DealsPromotionTierDiscountProduct::where('id_deals', '=', $id_post)->delete();
 		        DealsPromotionProductDiscount::where('id_deals', '=', $id_post)->delete();
@@ -1458,6 +1598,62 @@ class ApiPromoCampaign extends Controller
         return $result;
     }
 
+    public function createDiscountDelivery($id_post, $discount_type, $discount_value, $max_percent_discount, $source, $table, $id_table)
+    {
+    	$delete_rule = $this->deleteAllProductRule($source, $id_post);
+
+    	if (!$delete_rule) {
+    		$result = [
+                'status'  => 'fail',
+                'message' => 'Create Filter Product Failed'
+            ];
+            DB::rollBack();
+            return response()->json($result);
+    	}
+
+    	if ($source == 'promo_campaign') 
+    	{
+	        $table_discount_bill_rule = new PromoCampaignDiscountDeliveryRule;
+    	}
+    	elseif ($source == 'deals') 
+    	{
+	        $table_discount_bill_rule = new DealsDiscountDeliveryRule;
+    	}
+    	elseif ($source == 'deals_promotion')
+    	{
+    		$table_discount_bill_rule = new DealsPromotionDiscountDeliveryRule;
+	        $id_table = 'id_deals';
+    	}
+
+    	if ($discount_type == 'Nominal') {
+        	$max_percent_discount = NULL;
+        }
+
+        $data = [
+
+            $id_table 				=> $id_post,
+            'discount_type'     	=> $discount_type,
+            'discount_value'    	=> $discount_value,
+            'max_percent_discount'  => $max_percent_discount,
+            'created_at'        	=> date('Y-m-d H:i:s'),
+            'updated_at'        	=> date('Y-m-d H:i:s')
+        ];
+
+        try {
+            $table_discount_bill_rule::insert($data);
+            $result = ['status'  => 'success'];
+        } catch (\Exception $e) {
+            $result = [
+                'status'  => 'fail',
+                'message' => 'Create Discount Failed'
+            ];
+            DB::rollBack();
+            return response()->json($result);
+        }
+        
+        return $result;
+    }
+
     function generateDate($date)
     {
         $datetimearr    = explode(' - ', $date);
@@ -1668,7 +1864,9 @@ class ApiPromoCampaign extends Controller
                             'promo_campaign_tier_discount_rules',
                             'promo_campaign_buyxgety_product_requirement',
                             'promo_campaign_buyxgety_rules',
-                            'outlets'
+                            'outlets',
+                            'promo_campaign_shipment_method',
+                            'promo_campaign_discount_delivery_rules'
                         ])
                         ->where('id_promo_campaign', '=', $post['id_promo_campaign'])
                         ->first();
@@ -1747,6 +1945,60 @@ class ApiPromoCampaign extends Controller
         		}
         		break;
 
+        	case 'shipment_method':
+        		$availableDelivery = config('delivery_method');
+		        $show_inactive = $POST['show_inactive'] ?? false;
+
+		        $setting  = json_decode(MyHelper::setting('active_delivery_methods', 'value_text', '[]'), true) ?? [];
+		        $deliveries = [];
+
+		        foreach ($setting as $value) {
+
+		            $delivery = $availableDelivery[$value['code'] ?? ''] ?? false;
+
+		            if (!$delivery || !($delivery['status'] ?? false) || (!$show_inactive && !($value['status'] ?? false))) {
+		                unset($availableDelivery[$value['code']]);
+		                continue;
+		            }
+
+		            $delivery = [
+		            	'code'	   => $value['code'],
+				        'type'     => $delivery['type'],
+				        'text'     => $delivery['text'],
+				        'logo'     => $delivery['logo'],
+				        'status'   => (int) $value['status'] ?? 0
+		            ];
+
+		            if (($options['code'] ?? false)) {
+		            	if ($options['code'] != $value['code']) {
+			            	continue;
+		            	}  else {
+			            	return $delivery;
+			            }
+		            }
+		            $deliveries[] = $delivery;
+		            unset($availableDelivery[$value['code']]);
+		        }
+		        if ($show_inactive) {
+		            foreach ($availableDelivery as $code => $delivery) {
+		                if (!$delivery['status']) {
+		                    continue;
+		                }
+		                $deliveries[] = [
+		                    'code'     => $code,
+					        'type'     => $delivery['type'],
+					        'text'     => $delivery['text'],
+					        'logo'     => $delivery['logo'],
+					        'status'   => 0
+		                ];
+		            }
+		        }
+
+		        $data = $deliveries;
+
+        		break;
+
+        	
         	default:
         		# code...
         		break;
@@ -1864,10 +2116,22 @@ class ApiPromoCampaign extends Controller
 	                ->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
 	                ->where('step_complete', '=', 1)
 	                ->where( function($q){
-	                	$q->whereColumn('usage','<','limitation_usage')
-	                		->orWhere('code_type','Single')
-	                        ->orWhere('limitation_usage',0);
-	                } )
+		            	$q->where(function($q2) {
+		            		$q2->where('code_type', 'Multiple')
+			            		->where(function($q3) {
+					            	$q3->whereColumn('usage','<','limitation_usage')
+					            		->orWhere('limitation_usage',0);
+			            		});
+
+		            	}) 
+		            	->orWhere(function($q2) {
+		            		$q2->where('code_type','Single')
+			            		->where(function($q3) {
+					            	$q3->whereColumn('total_coupon','>','used_code')
+					            		->orWhere('total_coupon',0);
+			            		});
+		            	});
+		            })
 	                ->with([
 						'promo_campaign.promo_campaign_outlets',
 						'promo_campaign.promo_campaign_product_discount.product' => function($q) {
@@ -1880,7 +2144,8 @@ class ApiPromoCampaign extends Controller
 						'promo_campaign.promo_campaign_product_discount_rules',
 						'promo_campaign.promo_campaign_tier_discount_rules',
                         'promo_campaign.promo_campaign_buyxgety_rules',
-                        'promo_campaign.promo_campaign_referral'
+                        'promo_campaign.promo_campaign_referral',
+                        'promo_campaign.promo_campaign_discount_delivery_rules'
 					])
 	                ->first();
 
@@ -1891,6 +2156,13 @@ class ApiPromoCampaign extends Controller
 
 	            ];
 	        }
+
+	        if ($code['promo_campaign']['date_start'] > date('Y-m-d H:i:s')) {
+        		return [
+	                'status'=>'fail',
+                    'messages'=>['Promo code not available']
+	            ];
+        	}
 
 	        if ($code['promo_campaign']['date_end'] < date('Y-m-d H:i:s')) {
         		return [
@@ -1945,7 +2217,8 @@ class ApiPromoCampaign extends Controller
 						},
                         'dealVoucher.deals.deals_product_discount_rules',
                         'dealVoucher.deals.deals_tier_discount_rules',
-                        'dealVoucher.deals.deals_buyxgety_rules'
+                        'dealVoucher.deals.deals_buyxgety_rules',
+                        'dealVoucher.deals.deals_discount_delivery_rules'
                     ])
         			->first();
 
@@ -2005,7 +2278,11 @@ class ApiPromoCampaign extends Controller
 		$result['id_deals_user'] 	= $request->id_deals_user;
 		$result['webview_url'] 		= "";
 		$result['webview_url_v2'] 	= "";
+        $result['promo_type'] 		= 'discount';
 
+        if ($query[$source]['promo_type'] == 'Discount delivery') {
+        	$result['promo_type'] = 'delivery';
+        }
 
 		$result = MyHelper::checkGet($result);
 		// check item
@@ -2061,7 +2338,7 @@ class ApiPromoCampaign extends Controller
         }
 
         if ($source == 'deals') {
-        	$change_used_voucher = app($this->promo)->usePromo($source, $request->id_deals_user);
+        	$change_used_voucher = app($this->promo)->usePromo($source, $request->id_deals_user, $query);
         	if (($change_used_voucher['status']??false) == 'success') {
 	        	$result['result']['webview_url'] = $change_used_voucher['webview_url'];
 	        	$result['result']['webview_url_v2'] = $change_used_voucher['webview_url_v2'];
@@ -2072,7 +2349,7 @@ class ApiPromoCampaign extends Controller
 	            ];
         	}
         }else{
-        	$change_used_voucher = app($this->promo)->usePromo($source, $query['id_promo_campaign_promo_code']);
+        	$change_used_voucher = app($this->promo)->usePromo($source, $query['id_promo_campaign_promo_code'], $query);
         	if (!$change_used_voucher) {
         		return [
 	                'status'=>'fail',
@@ -2278,6 +2555,29 @@ class ApiPromoCampaign extends Controller
                 }
             }
     	}
+    	elseif ($query['promo_type'] == 'Discount delivery')
+        {
+        	if ($product == 'All Product') {
+        		$product = 'this item';
+        	}
+        	elseif ($product == 'specified product') {
+        		$product = 'these products';
+        	}else {
+        		$product = 'purchasing "'.$product.'"';
+        	}
+
+        	$discount = $query[$source.'_discount_delivery_rules']['discount_type']??'Nominal';
+
+        	if ($discount == 'Percent') {
+        		$discount = ( $query[$source.'_discount_delivery_rules']['discount_value']??0).'%';
+        	}else{
+        		$discount = 'IDR '.number_format( ($query[$source.'_discount_delivery_rules']['discount_value']??0),0,',','.');
+        	}
+
+			$desc = 'You are entitled to a %discount% discount on delivery costs';
+
+			$desc = MyHelper::simpleReplace($desc,['discount'=>$discount]);
+    	}
     	else
     	{
     		$key = null;
@@ -2301,10 +2601,22 @@ class ApiPromoCampaign extends Controller
         $code = $code->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
 		            ->where('step_complete', '=', 1)
 		            ->where( function($q){
-		            	$q->whereColumn('usage','<','limitation_usage')
-		            		->orWhere('code_type','Single')
-		            		->orWhere('limitation_usage',0);
-		            } );
+		            	$q->where(function($q2) {
+		            		$q2->where('code_type', 'Multiple')
+			            		->where(function($q3) {
+					            	$q3->whereColumn('usage','<','limitation_usage')
+					            		->orWhere('limitation_usage',0);
+			            		});
+
+		            	}) 
+		            	->orWhere(function($q2) {
+		            		$q2->where('code_type','Single')
+			            		->where(function($q3) {
+					            	$q3->whereColumn('total_coupon','>','used_code')
+					            		->orWhere('total_coupon',0);
+			            		});
+		            	});
+		            });
 
 	    if (!empty($outlet)) {
 	    	$code = $code->with(['promo_campaign.promo_campaign_outlets']);
@@ -2318,7 +2630,8 @@ class ApiPromoCampaign extends Controller
 					'promo_campaign.promo_campaign_product_discount_rules',
 					'promo_campaign.promo_campaign_tier_discount_rules',
                     'promo_campaign.promo_campaign_buyxgety_rules',
-                    'promo_campaign.promo_campaign_referral'
+                    'promo_campaign.promo_campaign_referral',
+                    'promo_campaign.promo_campaign_discount_delivery_rules'
 				]);
 	    }
 
@@ -2363,7 +2676,8 @@ class ApiPromoCampaign extends Controller
                     'dealVoucher.deals.deals_buyxgety_product_requirement',
                     'dealVoucher.deals.deals_product_discount_rules',
                     'dealVoucher.deals.deals_tier_discount_rules',
-                    'dealVoucher.deals.deals_buyxgety_rules'
+                    'dealVoucher.deals.deals_buyxgety_rules',
+                    'dealVoucher.deals.deals_discount_delivery_rules'
                 ]);
 	    }
 
@@ -2451,30 +2765,31 @@ class ApiPromoCampaign extends Controller
     	return true;
     }
 
-    public function deleteReport($id_transaction, $id_promo_campaign_promo_code)
+    public function deleteReport($id_transaction, $id_promo_campaign_promo_code = null)
     {
-    	$getReport = PromoCampaignReport::with('promo_campaign')
-						->where('id_promo_campaign_promo_code', $id_promo_campaign_promo_code)
+    	$getReports = PromoCampaignReport::with('promo_campaign')
+						// ->where('id_promo_campaign_promo_code', $id_promo_campaign_promo_code)
 						->where('id_transaction','=',$id_transaction)
-						->first();
+						->get();
 
-    	if ($getReport)
+    	// if ($getReport)
+		foreach ($getReports ?? [] as $key => $getReport) 
     	{
 	    	$delete = PromoCampaignReport::where('id_transaction', '=', $id_transaction)
-	    				->where('id_promo_campaign_promo_code', $id_promo_campaign_promo_code)
+	    				->where('id_promo_campaign_promo_code', $getReport->id_promo_campaign_promo_code)
 	    				->delete();
 
 	    	if ($delete)
 	    	{
-	    		$get_code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $id_promo_campaign_promo_code)->first();
-	    		$update = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $id_promo_campaign_promo_code)->update(['usage' => $get_code->usage-1]);
+	    		$get_code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $getReport->id_promo_campaign_promo_code)->first();
+	    		$update = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $getReport->id_promo_campaign_promo_code)->update(['usage' => $get_code->usage-1]);
 
 	    		if ($update) {
 		    		$update = PromoCampaign::where('id_promo_campaign', '=', $getReport['id_promo_campaign'])->update(['used_code' => $getReport->promo_campaign->used_code-1]);
 
 		    		if ($update)
 		    		{
-			    		return true;
+			    		continue;
 		    		}
 		    		else
 		    		{

@@ -59,7 +59,8 @@ class Outlet extends Authenticatable
 	protected $hidden = ['outlet_pin'];
 
 	protected $casts = [
-		'id_city' => 'int'
+		'id_city' => 'int',
+		'delivery_order' => 'int'
 	];
 
 	// protected $dates = [
@@ -82,8 +83,10 @@ class Outlet extends Authenticatable
 		'outlet_status',
 		'deep_link_gojek',
 		'deep_link_grab',
-		'big_order',
-		'is_24h'
+		'is_24h',
+		'delivery_order',
+		'notify_admin',
+		'available_delivery',
 		// 'outlet_open_hours',
 		// 'outlet_close_hours'
 	];
@@ -103,6 +106,11 @@ class Outlet extends Authenticatable
 	public function getDetailAttribute()
 	{
 		return env('API_URL').'/api/outlet/detail/'.$this->id_outlet;
+	}
+
+	public function getAvailableDeliveryAttribute($value)
+	{
+		return explode(',', $value ?: '');
 	}
 
 	public function brands(){

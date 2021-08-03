@@ -1329,7 +1329,7 @@ class MyHelper{
 			}
 	}
 
-	public static function get($url, $bearer=null, $header=null){
+	public static function get($url, $bearer=null, $header=null,&$status_code=null,&$response_header=null){
 		$client = new Client;
 
 		$content = array(
@@ -1353,15 +1353,19 @@ class MyHelper{
 
 		try {
 			$response =  $client->request('GET', $url, $content);
+			$status_code = $response->getStatusCode();
+			$response_header = $response->getHeaders();
 			return json_decode($response->getBody(), true);
 		}
 		catch (\GuzzleHttp\Exception\RequestException $e) {
 			try{
 				if($e->getResponse()){
 						$response = $e->getResponse()->getBody()->getContents();
+						$response_header = $e->getResponse()->getHeaders();
+						$status_code = $e->getResponse()->getStatusCode();
 						return json_decode($response, true);
 				}
-				else return ['status' => 'fail', 'messages' => [0 => 'Failed get response.']];
+				else return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.']];
 			}
 			catch(Exception $e){
 				return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.']];
@@ -1369,7 +1373,7 @@ class MyHelper{
 		}
 	}
 
-	public static function post($url, $bearer=null, $post, $form_type=0, $header=null){
+	public static function post($url, $bearer=null, $post, $form_type=0, $header=null,&$status_code = null,&$response_header = null){
 		$client = new Client;
 
 		$content = array(
@@ -1402,11 +1406,15 @@ class MyHelper{
 
 		try {
 			$response = $client->post($url, $content);
+			$status_code = $response->getStatusCode();
+			$response_header = $response->getHeaders();
 			return json_decode($response->getBody(), true);
 		}catch (\GuzzleHttp\Exception\RequestException $e) {
 			try{
 				if($e->getResponse()){
 					$response = $e->getResponse()->getBody()->getContents();
+					$status_code = $e->getResponse()->getStatusCode();
+					$response_header = $e->getResponse()->getHeaders();
 					return json_decode($response, true);
 				}
 				else  return ['status' => 'fail', 'messages' => [0 => 'Failed get response.']];
@@ -1507,13 +1515,14 @@ class MyHelper{
 					$response = $e->getResponse()->getBody()->getContents();
 					return [
 						'status_code' => $e->getResponse()->getStatusCode(),
-						'response' => $response
+						'response' => $response,
+						'response_raw' => $response,
 					];
 				}
-				else  return ['status' => 'fail', 'messages' => [0 => 'Failed get response.']];
+				else  return ['status' => 'fail', 'messages' => [0 => 'Failed get response.'], 'response_raw' => null];
 			}
 			catch(Exception $e){
-				return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.']];
+				return ['status' => 'fail', 'messages' => [0 => 'Check your internet connection.'], 'response_raw' => null];
 			}
 		} catch (\Exception $e) {
 			return ['status' => 'fail', 'messages' => ['Something went wrong'], 'response_raw' => ''];
@@ -2351,6 +2360,8 @@ class MyHelper{
 
         if ($unit == "K") {
             $hasil = ($miles * 1.609344);
+        } else if ($unit == 'M') {
+            $hasil = ($miles * 1609.344);
         } else if ($unit == "N") {
             $hasil = ($miles * 0.8684);
         } else {
@@ -2362,6 +2373,27 @@ class MyHelper{
         }else{
         	return $hasil;
         }
+    }
+    /**
+     * Get max min latitude based on radius. Hanya perhitngan kasar,
+     * @param  Float  $lat    user latitude
+     * @param  Float  $lon    user longitude
+     * @param  Float  $radius    radius in meter
+     * @return Array    ['latitude'=>['max'=>xxx,'min'=>xxx],'longitude'=>['max'=>xxx,'min'=>xxx]]
+     */
+    public static function getRadius($lat, $lon, $radius) {
+        $distance = (float) $radius / 111319.5;
+        $result = [
+        	'latitude' => [
+        		'min' => $lat - $distance,
+        		'max' => $lat + $distance
+        	],
+        	'longitude' => [
+        		'min' => $lon - $distance,
+        		'max' => $lon + $distance
+        	],
+        ];
+        return $result;
     }
     /**
      * Group some array based on a column
@@ -2820,4 +2852,113 @@ class MyHelper{
 
 		return $log;
 	}
+
+    public static function sendGmapsData($data)
+    {
+        $url = env('API_PLACE_RECEIVER').'api/place';
+        $token = env('API_PLACE_RECEIVER_TOKEN');
+        $data_send = json_encode(['places' => $data]);
+		$logAppsPath = storage_path('tmp');
+        if (!file_exists($logAppsPath)) {
+               mkdir($logAppsPath, 0777, true);
+        }
+        $path = tempnam($logAppsPath, 'FORCURL');;
+        $temp = fopen($path, 'w');
+        fwrite($temp, $data_send);
+        fclose($temp);
+		chmod($path, 0777);
+        $command = "(curl --location --request POST '$url' --header 'Content-Type: application/json' --header 'Accept: application/json' --header 'Authorization: $token' -d @$path; rm $path) > /dev/null &";
+
+        // print $command; die();
+        exec($command);
+    }
+
+    public static function getDeliveries($show_all = true) {
+    	$availableShipment = config('delivery_method');
+
+        $setting  = json_decode(MyHelper::setting('active_delivery_methods', 'value_text', '[]'), true) ?? [];
+        $shipments = [];
+        $position = [];
+        $max_cup = MyHelper::setting('delivery_max_cup', 'value', 50);
+
+        foreach ($setting as $value) {
+        	$position[$value['code']] = $value['position'] ?? 10000;
+            $shipment = $availableShipment[$value['code'] ?? ''] ?? false;
+            if (!$shipment || !($shipment['status'] ?? false) || (!$show_all && !($value['status'] ?? false))) {
+                unset($availableShipment[$value['code']]);
+                continue;
+            }
+            $shipments[] = [
+                'code'      => $value['code'],
+            	'position' 	=> $value['position'] ?? 10000,
+		        'type'     	=> $shipment['type'],
+		        'text'     	=> $shipment['text'],
+		        'logo'     	=> $shipment['logo'],
+		        'status'   	=> (int) $value['status'] ?? 0,
+		        'price'		=> null,
+		        'price_pretty'		=> '',
+		        'default'		=> 0,
+		        'max_cup'	=> $value['code'] == 'outlet' ? 0 : $max_cup,
+            ];
+            unset($availableShipment[$value['code']]);
+        }
+        if ($show_all) {
+            foreach ($availableShipment ?? [] as $code => $shipment) {
+                if (!$shipment['status']) {
+                    continue;
+                }
+                $shipments[] = [
+                    'code'      => $code,
+	            	'position'  => $position[$code] ?? 10000,
+			        'type'     	=> $shipment['type'],
+			        'text'     	=> $shipment['text'],
+			        'logo'     	=> $shipment['logo'],
+			        'status'   	=> 0,
+			        'price'		=> null,
+			        'price_pretty'		=> '',
+			        'default'		=> 0,
+			        'max_cup'	=> $code == 'outlet' ? 0 : $max_cup,
+                ];
+            }
+        }
+        usort($shipments, function ($a, $b) {
+        	return $a['position'] <=> $b['position'];
+        });
+        return $shipments;
+    }
+
+    /**
+     * Validate phone number with gosend rule
+     * @param  string $phone Phone number
+     * @return bool        true/false
+     */
+    public static function validatePhoneGoSend(string $phone) : bool
+    {
+    	/* Length of phone number should not be less than 10 digits */
+    	if (strlen($phone) < 10) {
+    		return false;
+    	}
+
+    	/* If the num starts with `08` then the length of the remaining digits should be between 8 and 12 */
+    	if (substr($phone, 0, 2) === '08') {
+    		$remaining = substr($phone, 2);
+    		if (strlen($remaining) < 8 || strlen($remaining) > 12) {
+    			return false;
+    		}
+    	}
+    	/* If the num does not start with `08` then the length of the remaining digits should be between 8 and 14 */
+    	else {
+    		$remaining = substr($phone, 2);
+    		if (strlen($remaining) < 8 || strlen($remaining) > 14) {
+    			return false;
+    		}
+    	}
+
+    	/* No non-numeric characters should be present */
+    	if (!preg_match('/^([0-9]*)$/', $phone)) {
+    		return false;
+    	}
+
+    	return true;
+    }
 }

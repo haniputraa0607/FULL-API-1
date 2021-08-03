@@ -2,11 +2,14 @@
 Route::group(['middleware' => ['auth:api'],'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
     Route::any('available-payment', 'ApiOnlineTransaction@availablePayment');
     Route::any('available-payment/update', 'ApiOnlineTransaction@availablePaymentUpdate')->middleware('scopes:be');
+    Route::any('available-shipment', 'ApiOnlineTransaction@availableShipment');
+    Route::any('available-shipment/update', 'ApiOnlineTransaction@availableShipmentUpdate')->middleware('scopes:be');
 });
 
+Route::any('api/transaction/update-gosend', 'Modules\Transaction\Http\Controllers\ApiGosendController@updateStatus');
 Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scopes:be'], 'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
     Route::post('/outlet', 'ApiNotification@adminOutlet');
-    Route::post('/admin/confirm', 'ApiNotification@adminOutletComfirm');
+    Route::post('/admin/confirm', 'ApiNotification@adminOutletConfirm');
     Route::get('setting/cashback', 'ApiSettingCashbackController@list');
     Route::post('setting/cashback/update', 'ApiSettingCashbackController@update');
     Route::post('/dump', 'ApiDumpController@dumpData');
@@ -49,13 +52,25 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     });
     Route::post('/be/new', 'ApiOnlineTransaction@newTransaction');
     Route::post('be/detail', 'ApiTransaction@transactionDetail');
+    Route::post('be/delivery-rejected', 'ApiTransaction@transactionDeliveryRejected');
     Route::get('be/{key}', 'ApiTransaction@transactionList');
     Route::post('be/detail/webview/{mode?}', 'ApiWebviewController@webview');
+
+    Route::post('failed-void-payment', 'ApiManualRefundController@listFailedVoidPayment');
+    Route::post('failed-void-payment/confirm', 'ApiManualRefundController@confirmManualRefund');
+
+    Route::post('retry-void-payment', 'TransactionVoidFailedController@index');
+    Route::post('retry-void-payment/retry', 'TransactionVoidFailedController@retry');
 
     /*[POS] Transaction online failed*/
     Route::any('online-pos', 'ApiTransactionOnlinePos@listTransaction');
     Route::post('online-pos/resend', 'ApiTransactionOnlinePos@resendTransaction');
     Route::any('online-pos/autoresponse', 'ApiTransactionOnlinePos@autoresponse');
+
+    /*[POS] Cancel Transaction online failed*/
+    Route::any('cancel-online-pos', 'ApiTransactionOnlinePos@listCancelTransaction');
+    Route::post('cancel-online-pos/resend', 'ApiTransactionOnlinePos@resendCancelTransaction');
+    Route::any('cancel-online-pos/autoresponse', 'ApiTransactionOnlinePos@autoresponseCancel');
 });
 
 Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'prefix' => 'api/transaction', 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {
@@ -66,6 +81,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'pr
     Route::post('/item', 'ApiTransaction@transactionDetailTrx');
     Route::post('/point/detail', 'ApiTransaction@transactionPointDetail');
     Route::post('/balance/detail', 'ApiTransaction@transactionBalanceDetail');
+    Route::get('/list-no-driver', 'ApiTransaction@listNoDriver');
 
     // Route::post('history', 'ApiHistoryController@historyAll');
     Route::post('history-trx/{mode?}', 'ApiHistoryController@historyTrx');
@@ -74,7 +90,11 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'pr
     Route::post('history-balance/{mode?}', 'ApiHistoryController@historyBalance');
 
     Route::post('/shipping', 'ApiTransaction@getShippingFee');
-    Route::get('/address', 'ApiTransaction@getAddress');
+    Route::any('/address', 'ApiTransaction@getAddress');
+    Route::post('/address/nearby', 'ApiTransaction@getNearbyAddress');
+    Route::post('/address/recently', 'ApiTransaction@getRecentlyAddress');
+    Route::post('/address/default', 'ApiTransaction@getDefaultAddress');
+    Route::post('/address/detail', 'ApiTransaction@detailAddress');
     Route::post('/address/add', 'ApiTransaction@addAddress');
     Route::post('/address/update', 'ApiTransaction@updateAddress');
     Route::post('/address/delete', 'ApiTransaction@deleteAddress');
@@ -84,6 +104,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'pr
     Route::post('/new', 'ApiOnlineTransaction@newTransaction');
     Route::post('/confirm', 'ApiConfirm@confirmTransaction');
     Route::post('/cancel', 'ApiOnlineTransaction@cancelTransaction');
+    Route::post('/book-delivery', 'ApiOnlineTransaction@bookDelivery');
     Route::post('/prod/confirm', 'ApiTransactionProductionController@confirmTransaction2');
     Route::get('/{key}', 'ApiTransaction@transactionList');
 });
@@ -104,7 +125,7 @@ Route::group(['prefix' => 'api/transaction', 'middleware' => ['log_activities', 
     Route::any('/finish', 'ApiTransaction@transactionFinish');
     // Route::any('/cancel', 'ApiTransaction@transactionCancel');
     Route::any('/error', 'ApiTransaction@transactionError');
-    Route::any('/notif', 'ApiNotification@receiveNotification');
+    Route::any('/notif', 'ApiNotification@logReceiveNotification');
 });
 
 Route::group(['prefix' => 'api/transaction', 'middleware' => ['log_activities', 'auth:api', 'scopes:apps'], 'namespace' => 'Modules\Transaction\Http\Controllers'], function () {

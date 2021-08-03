@@ -66,6 +66,7 @@ class ApiOutletController extends Controller
     function __construct() {
         date_default_timezone_set('Asia/Jakarta');
         $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+        $this->autocrm              = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
     }
 
     function checkInputOutlet($post=[]) {
@@ -122,10 +123,20 @@ class ApiOutletController extends Controller
         if (isset($post['deep_link_grab'])) {
             $data['deep_link_grab'] = $post['deep_link_grab'];
         }
-        if (isset($post['big_order'])) {
-            $data['big_order'] = $post['big_order'];
-        }else{
-            $data['big_order'] = 0;
+        if (isset($post['delivery_order']) || isset($post['delivery_order_default'])) {
+            $data['delivery_order'] = $post['delivery_order'] ?? $post['delivery_order_default'];
+            if ($data['delivery_order']) {
+                if (isset($post['available_delivery'])) {
+                    $data['available_delivery'] = implode(',', $post['available_delivery']);
+                } else {
+                    $data['available_delivery'] = null;
+                }
+            } else {
+                $data['available_delivery'] = null;
+            }
+            if (!$data['available_delivery']) {
+                $data['delivery_order'] = 0;
+            }
         }
 
         return $data;
@@ -918,7 +929,7 @@ class ApiOutletController extends Controller
         $grabfood = $post['grabfood']??"";
 
         // outlet
-        $outlet = Outlet::with(['today'])->select('outlets.id_outlet','outlets.outlet_name','outlets.outlet_phone','outlets.outlet_code','outlets.outlet_status','outlets.outlet_address','outlets.id_city','outlet_latitude','outlet_longitude')->where('outlet_status', 'Active')->whereNotNull('id_city')->orderBy('outlet_name','asc');
+        $outlet = Outlet::with(['today'])->select('outlets.id_outlet','outlets.outlet_name','outlets.outlet_phone','outlets.outlet_code','outlets.outlet_status','outlets.outlet_address','outlets.id_city','outlet_latitude','outlet_longitude', 'delivery_order')->where('outlet_status', 'Active')->whereNotNull('id_city')->orderBy('outlet_name','asc');
 
         $outlet->whereHas('brands',function($query){
             $query->where('brand_active','1');
@@ -957,8 +968,13 @@ class ApiOutletController extends Controller
                 $processing = $settingTime->value;
             }
 
+            $activeDelivery = json_decode(MyHelper::setting('active_delivery_methods', 'value_text', '[]'), true) ?? [];
+            $active = array_sum(array_column($activeDelivery ?? [], 'status'));
             foreach ($outlet as $key => $value) {
 				$outlet[$key]['is_promo'] = 0;
+                if (!$active) {
+                    $outlet[$key]['delivery_order'] = 0;
+                }
 			}
 			
 			$promo_data = $this->applyPromo($post, $outlet, $promo_error);
@@ -1750,7 +1766,8 @@ class ApiOutletController extends Controller
                 'outlets.outlet_latitude as latitude',
                 'outlets.outlet_longitude as longitude',
                 'outlets.deep_link_gojek as deep_link_gojek',
-                'outlets.deep_link_grab as deep_link_grab'
+                'outlets.deep_link_grab as deep_link_grab',
+                'outlets.available_delivery'
             )->with('brands')->join('cities', 'outlets.id_city', '=', 'cities.id_city');
 
             foreach ($brand as $bran) {
@@ -1789,6 +1806,8 @@ class ApiOutletController extends Controller
                 unset($outlet_array['url']);
                 unset($outlet_array['brands']);
                 unset($outlet_array['id_outlet']);
+                unset($outlet_array['detail']);
+                $outlet_array['available_delivery'] = implode(',',$outlet_array['available_delivery']);
                 $return[$name][]=$outlet_array;
                 $count++;
             }
@@ -1866,6 +1885,8 @@ class ApiOutletController extends Controller
                             'outlet_longitude' => $value['longitude']??'',
                             'deep_link_gojek' => $value['deep_link_gojek']??'',
                             'deep_link_grab' => $value['deep_link_grab']??'',
+                            'available_delivery' => $value['available_delivery']??'',
+                            'delivery_order' => ($value['available_delivery']??'') ? 1 : 0,
                             'id_city' => $id_city[$search]??null
                         ];
                         if(!empty($insert['outlet_name'])){
@@ -2186,7 +2207,7 @@ class ApiOutletController extends Controller
         $outlet = Outlet::with(['today','brands'=>function($query){
                     $query->where([['brand_active',1],['brand_visibility',1]]);
                     $query->select('brands.id_brand','name_brand');
-                }])->select('id_outlet','outlet_code','outlet_name','outlet_address','outlet_latitude','outlet_longitude','outlet_phone','outlet_status')->find($request->json('id_outlet'));
+                }])->select('id_outlet','outlet_code','outlet_name','outlet_address','outlet_latitude','outlet_longitude','outlet_phone','outlet_status','delivery_order')->find($request->json('id_outlet'));
         if(!$outlet){
             return MyHelper::checkGet([]);
         }
@@ -2220,6 +2241,13 @@ class ApiOutletController extends Controller
     public function listOutletOrderNow(OutletListOrderNow $request){
         $post = $request->json()->all();
         $user = $request->user();
+
+        if (!$request->latitude && !$request->longitude) {
+            return [
+                'status' => 'fail',
+                'messages' => ['Make sure your phone\'s location settings are connected']
+            ];
+        }
 
         try{
             $title = Setting::where('key', 'order_now_title')->first()->value;
@@ -2530,5 +2558,61 @@ class ApiOutletController extends Controller
 	    $outlet_schedule = OutletSchedule::where('id_outlet', $id_outlet)->where('day', $yesterday)->select('id_outlet', 'day', 'open', 'close', 'is_closed', 'time_zone')->first();
 
 	    return $outlet_schedule;
+    }
+
+    public function sendNotifIncompleteOutlet(...$id_outlets)
+    {
+        if(!$id_outlets){
+            // find incomplete outlet
+            $outlets = Outlet::where(function($q) {
+                $q->whereNull('outlet_latitude')
+                    ->orWhereNull('outlet_longitude')
+                    ->orWhereNull('outlet_phone')
+                    ->orWhereNull('outlet_address');
+            })->get();
+        }else{
+            $outlets = Outlet::whereIn('id_outlet',$id_outlets)->where('notify_admin',0)->get();
+        }
+        $phone = User::select('phone')->pluck('phone')->first();
+        $complete = [0,0];
+        foreach ($outlets as $outlet) {
+            $variable = [];
+            foreach ($outlet->toArray() as $key => $value) {
+                $variable[str_replace('outlet_','',$key)] = $value;
+            }
+            $incomplete = [];
+            if(!$outlet['outlet_latitude']){
+                $incomplete[] = 'Outlet Latitude';
+            }
+            if(!$outlet['outlet_longitude']){
+                $incomplete[] = 'Outlet Longitude';
+            }
+            if(!$outlet['outlet_phone']){
+                $incomplete[] = 'Outlet Phone';
+            }
+            if(!$outlet['outlet_address']){
+                $incomplete[] = 'Outlet Address';
+            }
+            $variable['incomplete_data'] = implode(', ', $incomplete);
+            $send = app($this->autocrm)->SendAutoCRM('Incomplete Outlet Data', $phone, $variable, null, true);
+            $complete[1]++;
+            if(!$send){
+                \Log::warning('Failed send forward email Incomplete Outlet Data for outlet '.$outlet->code.' - '.$outlet->name);
+            }else{
+                $complete[0]++;
+            }
+        }
+        return ['status'=>'success','result' => ['incomplete'=>$complete[1],'send'=>$complete[0]]];
+    }
+
+    public function resetNotify()
+    {
+        $log = MyHelper::logCron('Reset Notify Flag');
+        try {
+            Outlet::where('notify_admin',1)->update(['notify_admin'=>0]);
+            $log->success();
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
+        }
     }
 }

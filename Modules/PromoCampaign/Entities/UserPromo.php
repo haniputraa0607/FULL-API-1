@@ -33,7 +33,8 @@ class UserPromo extends Eloquent
 	protected $fillable = [
 		'id_user',
 		'promo_type',
-		'id_reference'
+		'id_reference',
+		'discount_type'
 	];
 
 	public function user()

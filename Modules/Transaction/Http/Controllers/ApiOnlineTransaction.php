@@ -45,6 +45,8 @@ use Modules\PromoCampaign\Entities\PromoCampaignReferral;
 use Modules\PromoCampaign\Entities\PromoCampaignReferralTransaction;
 use Modules\PromoCampaign\Entities\UserReferralCode;
 use Modules\PromoCampaign\Entities\PromoCampaignReport;
+use Modules\PromoCampaign\Entities\UserPromo;
+use Modules\Transaction\Entities\TransactionPickupOutlet;
 
 use Modules\Balance\Http\Controllers\NewTopupController;
 use Modules\PromoCampaign\Lib\PromoCampaignTools;
@@ -86,6 +88,7 @@ class ApiOnlineTransaction extends Controller
         $this->setting_trx   = "Modules\Transaction\Http\Controllers\ApiSettingTransactionV2";
         $this->promo_campaign       = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
         $this->promo       = "Modules\PromoCampaign\Http\Controllers\ApiPromo";
+        $this->outlet       = "Modules\Outlet\Http\Controllers\ApiOutletController";
     }
 
     public function newTransaction(NewTransaction $request) {
@@ -300,14 +303,33 @@ class ApiOnlineTransaction extends Controller
         $discount_promo = [];
         $promo_discount = 0;
         $promo_source = null;
+
+        if($request->json('promo_code') || $request->json('id_deals_user') || $request->json('promo_code_delivery') || $request->json('id_deals_user_delivery')){
+        	// change is used flag to 0
+			$update_deals 	= DealsUser::where('id_user','=',$request->user()->id)->where('is_used','=',1)->update(['is_used' => 0]);
+        	$removePromo 	= UserPromo::where('id_user',$request->user()->id)->delete();
+        }
+
         if($request->json('promo_code') && !$request->json('id_deals_user')){
             $code=PromoCampaignPromoCode::where('promo_code',$request->promo_code)
                 ->join('promo_campaigns', 'promo_campaigns.id_promo_campaign', '=', 'promo_campaign_promo_codes.id_promo_campaign')
                 ->where( function($q){
-                    $q->whereColumn('usage','<','limitation_usage')
-                        ->orWhere('code_type','Single')
-                        ->orWhere('limitation_usage',0);
-                } )
+	            	$q->where(function($q2) {
+	            		$q2->where('code_type', 'Multiple')
+		            		->where(function($q3) {
+				            	$q3->whereColumn('usage','<','limitation_usage')
+				            		->orWhere('limitation_usage',0);
+		            		});
+
+	            	}) 
+	            	->orWhere(function($q2) {
+	            		$q2->where('code_type','Single')
+		            		->where(function($q3) {
+				            	$q3->whereColumn('total_coupon','>','used_code')
+				            		->orWhere('total_coupon',0);
+		            		});
+	            	});
+	            })
                 ->first();
             if ($code)
             {
@@ -525,6 +547,10 @@ class ApiOnlineTransaction extends Controller
             $post['discount'] = 0;
         }
 
+        if (!isset($post['discount_delivery'])) {
+            $post['discount_delivery'] = 0;
+        }
+
         if (!isset($post['service'])) {
             $post['service'] = 0;
         }
@@ -580,6 +606,8 @@ class ApiOnlineTransaction extends Controller
             'discount' => $post['discount'],
         ];
 
+        $post['discount'] = floor($post['discount']);
+
         // return $detailPayment;
         $post['grandTotal'] = (double)$post['subtotal'] + (double)$post['discount'] + (double)$post['service'] + (double)$post['tax'] + (double)$post['shipping'];
         // return $post;
@@ -612,11 +640,34 @@ class ApiOnlineTransaction extends Controller
                     'phone'       => $user['phone']
                 ],
             ];
-        } elseif($post['type'] == 'GO-SEND'){
-            //check key GO-SEND
-            $checkKey = Gosend::checkKey();
-            if(isset($checkKey) && $checkKey['status'] == 'fail'){
-                DB::rollBack();
+        } elseif($post['type'] != 'Pickup Order'){
+            if (!($post['destination']['short_address'] ?? false)) {
+                $post['destination']['short_address'] = $post['destination']['address'];
+            }
+            if (!($post['destination']['name'] ?? false)) {
+                $post['destination']['name'] = $post['destination']['short_address'];
+            }
+            $dataAddress = $post['destination'];
+            $dataAddress['latitude'] = number_format($dataAddress['latitude'],8);
+            $dataAddress['longitude'] = number_format($dataAddress['longitude'],8);
+            if($dataAddress['id_user_address']??false){
+                $dataAddressKeys = ['id_user_address'=>$dataAddress['id_user_address']];
+            }else{
+                $dataAddressKeys = [
+                    'latitude' => number_format($dataAddress['latitude'],8),
+                    'longitude' => number_format($dataAddress['longitude'],8)
+                ];
+            }
+            $dataAddressKeys['id_user'] = $user['id'];
+            $addressx = UserAddress::where($dataAddressKeys)->first();
+            if(!$addressx){
+                $addressx = UserAddress::create($dataAddressKeys+$dataAddress);
+            }elseif(!$addressx->favorite){
+                $addressx->update($dataAddress);
+            }
+            $checkKey = GoSend::checkKey();
+            if(is_array($checkKey) && $checkKey['status'] == 'fail'){
+                DB::rollback();
                 return response()->json($checkKey);
             }
 
@@ -630,8 +681,8 @@ class ApiOnlineTransaction extends Controller
                 ],
             ];
             $dataShipping = [
-                'name'        => $post['destination']['name'],
-                'phone'       => $user['destination']['phone'],
+                'name'        => $user['name'],
+                'phone'       => $user['phone'],
                 'address'     => $post['destination']['address']
             ];
         }
@@ -650,14 +701,107 @@ class ApiOnlineTransaction extends Controller
 
         $type = $post['type'];
         $isFree = '0';
-        $shippingGoSend = null;
+        $shippingGoSend = 0;
 
-        if($post['type'] == 'GO-SEND'){
+        if ($post['type'] == 'GO-SEND') {
+            $availableShipment = $this->availableShipment(new Request([
+                'id_outlet' => $post['id_outlet'],
+                'latitude' => $post['destination']['latitude'],
+                'longitude' => $post['destination']['longitude'],
+                'show_all' => true,
+                'no_calculate_price' => true,
+                'shipment_code' => 'gosend',
+            ]));
+            if (!($availableShipment['result']['status'] ?? false)) {
+                return [
+                    'status' => 'fail',
+                    'messages' => ['GO-SEND not available for this outlet']
+                ];
+            };
+
+            if (!$outlet['outlet_phone']) {
+                $outlet['outlet_phone'] = MyHelper::setting('default_outlet_phone');
+            }
+
+            if(!(
+                $outlet['outlet_latitude'] &&
+                $outlet['outlet_longitude'] &&
+                $outlet['outlet_phone'] &&
+                $outlet['outlet_address'] &&
+                MyHelper::validatePhoneGoSend($outlet['outlet_phone'])
+            )){
+                app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
+                $outlet->notify_admin = 1;
+                $outlet->save();
+                return [
+                    'status' => 'fail',
+                    'messages' => ['Cannot make delivery using GOSEND from this outlet']
+                ];
+            }
+
+            $max_cup = MyHelper::setting('delivery_max_cup', 'value', 50);
+            $total_cup = array_sum(array_column($request->item, 'qty'));
+            if ($total_cup && $total_cup > $max_cup) {
+                return [
+                    'status' => 'fail',
+                    'messages' => ["Sorry, the maximum purchase for using GOSEND is $max_cup cup."]
+                ];
+            }
+
+            $coor_origin = [
+                'latitude' => number_format($outlet['outlet_latitude'],8),
+                'longitude' => number_format($outlet['outlet_longitude'],8)
+            ];
+            $coor_destination = [
+                'latitude' => number_format($post['destination']['latitude'],8),
+                'longitude' => number_format($post['destination']['longitude'],8)
+            ];
             $type = 'Pickup Order';
-            $shippingGoSend = $post['shipping_go_send'];
+            $shippingGoSendx = GoSend::getPrice($coor_origin,$coor_destination);
+            $shippingGoSend = $shippingGoSendx[GoSend::getShipmentMethod()]['price']['total_price']??null;
+            $post['shipping'] = $shippingGoSend;
+            if($shippingGoSend === null){
+                return [
+                    'status' => 'fail',
+                    'messages' => array_column($shippingGoSendx[GoSend::getShipmentMethod()]['errors']??[],'message')?:['Gagal menghitung ongkos kirim']
+                ];
+            }
             //cek free delivery
-            if($post['is_free'] == 'yes'){
-                $isFree = '1';
+            // if($post['is_free'] == 'yes'){
+            //     $isFree = '1';
+            // }
+            $isFree = 0;
+        } elseif (($post['type']??null) == 'Internal Delivery') {
+            $type = 'Pickup Order';
+            $availableShipment = $this->availableShipment(new Request([
+                'id_outlet' => $post['id_outlet'],
+                'latitude' => $post['destination']['latitude'],
+                'longitude' => $post['destination']['longitude'],
+                'show_all' => true,
+                'no_calculate_price' => true,
+                'shipment_code' => 'outlet',
+            ]));
+            if (!($availableShipment['result']['status'] ?? false)) {
+                return [
+                    'status' => 'fail',
+                    'messages' => ['Internal Delivery not available for this outlet']
+                ];
+            };
+            $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
+            $coor_origin = [
+                'latitude' => number_format($outlet['outlet_latitude'],8),
+                'longitude' => number_format($outlet['outlet_longitude'],8)
+            ];
+            $coor_destination = [
+                'latitude' => number_format($post['destination']['latitude'],8),
+                'longitude' => number_format($post['destination']['longitude'],8)
+            ];
+            $distance = MyHelper::count_distance($coor_origin['latitude'], $coor_origin['longitude'], $coor_destination['latitude'], $coor_destination['longitude'], 'M');
+            if ($distance > $max_distance) {
+                return [
+                    'status' => 'fail',
+                    'messages' => ["Maaf, jarak maksimal untuk menggunakan delivery internal adalah $max_distance meter"],
+                ];
             }
         }
 
@@ -667,23 +811,48 @@ class ApiOnlineTransaction extends Controller
                 'messages' => ['Invalid transaction']
             ];
         }
+
+        // check promo delivery
+        $promo_delivery = null;
+        $promo_delivery_error = null;
+        if ( ($post['type']??null) != 'Pickup Order' && ($post['type']??null) != 'Internal Delivery' ) {
+        	$promo_post = $post;
+        	$promo_post['shipping'] = $post['shipping'];
+        	$promo_delivery = $pct->validateDelivery($request, $promo_post, $promo_delivery_error);
+			if ($promo_delivery_error) {
+				if ($promo_delivery_error['stop_trx']) {
+		            return [
+		                'status' => 'fail',
+		                'messages' => $promo_delivery_error['messages']
+		            ];
+				}
+	        } else {
+	        	$promo_delivery['discount_delivery'] = floor($promo_delivery['discount_delivery']);
+		        $post['discount_delivery'] = - abs($promo_delivery['discount_delivery']);
+		        $post['grandTotal'] = $post['grandTotal'] - abs($post['discount_delivery']);
+	        }
+        }
+
         DB::beginTransaction();
         $transaction = [
             'id_outlet'                   => $post['id_outlet'],
             'id_user'                     => $id,
-            'id_promo_campaign_promo_code'           => $post['id_promo_campaign_promo_code']??null,
+            'id_promo_campaign_promo_code'	=> $post['id_promo_campaign_promo_code'] ?? null,
+            'id_promo_campaign_promo_code_delivery'	=> $promo_delivery['id_promo_code'] ?? null,
             'transaction_date'            => $post['transaction_date'],
             'transaction_receipt_number'  => 'TRX-'.date('ymd').MyHelper::createrandom(6,'Besar'),
             'trasaction_type'             => $type,
             'transaction_notes'           => $post['notes'],
             'transaction_subtotal'        => $post['subtotal'],
             'transaction_shipment'        => $post['shipping'],
-            'transaction_shipment_go_send'=> $shippingGoSend,
+            'transaction_shipping_method' => $post['type'] == 'Pickup Order' ? null : $post['type'],
+            // 'transaction_shipment_go_send'=> $shippingGoSend,
             'transaction_is_free'         => $isFree,
             'transaction_service'         => $post['service'],
             'transaction_discount'        => $post['discount'],
+            'transaction_discount_delivery'	=> $post['discount_delivery'],
             'transaction_tax'             => $post['tax'],
-            'transaction_grandtotal'      => $post['grandTotal'],
+            'transaction_grandtotal'      => $post['grandTotal'] + $shippingGoSend,
             'transaction_point_earned'    => $post['point'],
             'transaction_cashback_earned' => MyHelper::requestNumber($post['cashback'],'point'),
             'trasaction_payment_type'     => $post['payment_type'],
@@ -787,6 +956,48 @@ class ApiOnlineTransaction extends Controller
                 ]);
         	}
         }
+
+        // add promo campaign delivery report
+        if($promo_delivery)
+        {
+        	if( $request->json('id_deals_user_delivery') ) {
+	        	$update_voucher = DealsUser::where('id_deals_user','=',$request->id_deals_user_delivery)->update(['used_at' => date('Y-m-d H:i:s'), 'id_outlet' => $request->json('id_outlet'), 'redeemed_at' => date('Y-m-d H:i:s')]);
+
+	            $addTransactionVoucher = TransactionVoucher::create([
+	                'id_deals_voucher' => $promo_delivery['id_deals_voucher'],
+	                'id_user' => $insertTransaction['id_user'],
+	                'id_transaction' => $insertTransaction['id_transaction']
+	            ]);
+
+	            if(!$addTransactionVoucher){
+	                DB::rollBack();
+	                return response()->json([
+	                    'status'    => 'fail',
+	                    'messages'  => ['Insert Transaction Failed']
+	                ]);
+	            }
+
+	        } elseif ( $request->json('promo_code_delivery') ) {
+
+	        	$promo_campaign_report = app($this->promo_campaign)->addReport(
+					$promo_delivery['id_promo_campaign'],
+					$promo_delivery['id_promo_code'],
+					$insertTransaction['id_transaction'],
+					$insertTransaction['id_outlet'],
+					$request->device_id?:'',
+					$request->device_type?:''
+				);
+
+	        	if (!$promo_campaign_report) {
+	        		DB::rollBack();
+	                return response()->json([
+	                    'status'    => 'fail',
+	                    'messages'  => ['Insert Transaction Failed']
+	                ]);
+	        	}
+	        }
+        }
+
         //update receipt
         // $receipt = 'TRX-'.MyHelper::createrandom(6,'Angka').time().MyHelper::createrandom(3,'Angka').$insertTransaction['id_outlet'].MyHelper::createrandom(3,'Angka');
         // $updateReceiptNumber = Transaction::where('id_transaction', $insertTransaction['id_transaction'])->update([
@@ -1119,19 +1330,19 @@ class ApiOnlineTransaction extends Controller
                     'messages'  => ['Insert Shipment Transaction Failed']
                 ]);
             }
-        } elseif ($post['type'] == 'Pickup Order' || $post['type'] == 'GO-SEND') {
+        } else {
             $link = '';
             if($configAdminOutlet && $configAdminOutlet['is_active'] == '1'){
                 $totalAdmin = $adminOutlet->where('pickup_order', 1)->first();
                 if (empty($totalAdmin)) {
-                    DB::rollBack();
+                    DB::rollback();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Admin outlet is empty']
                     ]);
                 }
 
-                $link = env('APP_URL').'/transaction/admin/'.$insertTransaction['transaction_receipt_number'].'/'.$totalAdmin['phone'];
+                $link = config('url.app_url').'/transaction/admin/'.$insertTransaction['transaction_receipt_number'].'/'.$totalAdmin['phone'];
             }
             $order_id = MyHelper::createrandom(4, 'Besar Angka');
 
@@ -1142,6 +1353,22 @@ class ApiOnlineTransaction extends Controller
                                             ->whereDate('transaction_date', date('Y-m-d'))
                                             ->first();
             while($cekOrderId){
+                $order_id = MyHelper::createrandom(4, 'Besar Angka');
+
+                $cekOrderId = TransactionPickup::join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
+                                                ->where('id_outlet', $insertTransaction['id_outlet'])
+                                                ->where('order_id', $order_id)
+                                                ->whereDate('transaction_date', date('Y-m-d'))
+                                                ->first();
+            }
+
+            //cek unique order id today
+            $cekOrderId = TransactionPickup::join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
+                                            ->where('id_outlet', $insertTransaction['id_outlet'])
+                                            ->where('order_id', $order_id)
+                                            ->whereDate('transaction_date', date('Y-m-d'))
+                                            ->first();
+            while ($cekOrderId) {
                 $order_id = MyHelper::createrandom(4, 'Besar Angka');
 
                 $cekOrderId = TransactionPickup::join('transactions', 'transactions.id_transaction', 'transaction_pickups.id_transaction')
@@ -1167,32 +1394,21 @@ class ApiOnlineTransaction extends Controller
                 $pickupType = $post['pickup_type'];
             }elseif($post['type'] == 'GO-SEND'){
                 $pickupType = 'right now';
+            }elseif($post['type'] == 'Internal Delivery'){
+                $pickupType = 'right now';
             }else{
                 $pickupType = 'set time';
             }
 
-            $settingTime = Setting::where('key', 'processing_time')->first();
-            if(!isset($settingTime['value'])){
-                $settingTime['value'] = '15';
-            }
             if($pickupType == 'set time'){
+                $settingTime = Setting::where('key', 'processing_time')->first();
                 if (date('Y-m-d H:i:s', strtotime($post['pickup_at'])) <= date('Y-m-d H:i:s', strtotime('- '.$settingTime['value'].'minutes'))) {
-                    // $pickup = date('Y-m-d H:i:s', strtotime('+ '.$settingTime['value'].'minutes'));
-                    DB::rollBack();
-                    return response()->json([
-                        'status'    => 'fail',
-                        'messages'  => ['Set pickup time min '.$settingTime['value'].' minutes from now']
-                    ]);
+                    $pickup = date('Y-m-d H:i:s', strtotime('+ '.$settingTime['value'].'minutes'));
                 }
                 else {
                     if(isset($outlet['today']['close'])){
-                        if(date('Y-m-d H:i', strtotime($post['pickup_at'])) > date('Y-m-d').' '.date('H:i', strtotime('+ '.$settingTime['value'].'minutes', strtotime($outlet['today']['close'])))){
-                            // $pickup =  date('Y-m-d').' '.date('H:i:s', strtotime($outlet['today']['close']));
-                            DB::rollBack();
-                            return response()->json([
-                                'status'    => 'fail',
-                                'messages'  => ['Set pickup time max '.$settingTime['value'].' before outlet close']
-                            ]);
+                        if(date('Y-m-d H:i', strtotime($post['pickup_at'])) > date('Y-m-d').' '.date('H:i', strtotime($outlet['today']['close']))){
+                            $pickup =  date('Y-m-d').' '.date('H:i:s', strtotime($outlet['today']['close']));
                         }else{
                             $pickup = date('Y-m-d H:i:s', strtotime($post['pickup_at']));
                         }
@@ -1207,7 +1423,7 @@ class ApiOnlineTransaction extends Controller
             $dataPickup = [
                 'id_transaction'          => $insertTransaction['id_transaction'],
                 'order_id'                => $order_id,
-                'short_link'              => env('APP_URL').'/transaction/'.$order_id.'/status',
+                'short_link'              => config('url.app_url').'/transaction/'.$order_id.'/status',
                 'pickup_type'             => $pickupType,
                 'pickup_at'               => $pickup,
                 'receive_at'              => $post['receive_at'],
@@ -1217,8 +1433,10 @@ class ApiOnlineTransaction extends Controller
                 'short_link'              => $link
             ];
 
-            if($post['type'] == 'GO-SEND'){
+            if ($post['type'] == 'GO-SEND') {
                 $dataPickup['pickup_by'] = 'GO-SEND';
+            } elseif ($post['type'] == 'Internal Delivery') {
+                $dataPickup['pickup_by'] = 'Outlet';
             }else{
                 $dataPickup['pickup_by'] = 'Customer';
             }
@@ -1226,35 +1444,43 @@ class ApiOnlineTransaction extends Controller
             $insertPickup = TransactionPickup::create($dataPickup);
 
             if (!$insertPickup) {
-                DB::rollBack();
+                DB::rollback();
                 return response()->json([
                     'status'    => 'fail',
                     'messages'  => ['Insert Pickup Order Transaction Failed']
                 ]);
             }
-
+            if($dataPickup['taken_at']){
+                Transaction::where('id_transaction',$dataPickup['id_transaction'])->update(['show_rate_popup'=>1]);
+            }
             //insert pickup go-send
             if($post['type'] == 'GO-SEND'){
+                if (!($post['destination']['short_address']??false)) {
+                    $post['destination']['short_address'] = $post['destination']['address'];
+                }
+
                 $dataGoSend['id_transaction_pickup'] = $insertPickup['id_transaction_pickup'];
                 $dataGoSend['origin_name']           = $outlet['outlet_name'];
                 $dataGoSend['origin_phone']          = $outlet['outlet_phone'];
                 $dataGoSend['origin_address']        = $outlet['outlet_address'];
                 $dataGoSend['origin_latitude']       = $outlet['outlet_latitude'];
                 $dataGoSend['origin_longitude']      = $outlet['outlet_longitude'];
-                $dataGoSend['origin_note']           = '';
-                $dataGoSend['destination_name']      = $post['destination']['name'];
-                $dataGoSend['destination_phone']     = $post['destination']['phone'];
+                $dataGoSend['origin_note']           = "Pickup Code : $order_id // $user[name]";
+                $dataGoSend['destination_name']      = $user['name'];
+                $dataGoSend['destination_phone']     = $user['phone'];
                 $dataGoSend['destination_address']   = $post['destination']['address'];
+                $dataGoSend['destination_short_address'] = $post['destination']['short_address'];
+                $dataGoSend['destination_address_name']   = $addressx->name;
                 $dataGoSend['destination_latitude']  = $post['destination']['latitude'];
                 $dataGoSend['destination_longitude'] = $post['destination']['longitude'];
 
-                if(isset($post['destination_note'])){
-                    $dataGoSend['destination_note'] = $post['destination']['note'];
+                if(isset($post['destination']['description'])){
+                    $dataGoSend['destination_note'] = $post['destination']['description'];
                 }
 
                 $gosend = TransactionPickupGoSend::create($dataGoSend);
                 if (!$gosend) {
-                    DB::rollBack();
+                    DB::rollback();
                     return response()->json([
                         'status'    => 'fail',
                         'messages'  => ['Insert Transaction GO-SEND Failed']
@@ -1262,6 +1488,32 @@ class ApiOnlineTransaction extends Controller
                 }
 
                 $id_pickup_go_send = $gosend->id_transaction_pickup_go_send;
+            } elseif ($post['type'] == 'Internal Delivery') {
+                if (!($post['destination']['short_address']??false)) {
+                    $post['destination']['short_address'] = $post['destination']['address'];
+                }
+
+                $dataGoSend['id_transaction_pickup'] = $insertPickup['id_transaction_pickup'];
+                $dataGoSend['id_transaction'] = $insertPickup['id_transaction'];
+                $dataGoSend['destination_address']   = $post['destination']['address'];
+                $dataGoSend['destination_short_address'] = $post['destination']['short_address'];
+                $dataGoSend['destination_address_name']   = $addressx->name;
+                $dataGoSend['destination_latitude']  = $post['destination']['latitude'];
+                $dataGoSend['destination_longitude'] = $post['destination']['longitude'];
+
+                if(isset($post['destination']['description'])){
+                    $dataGoSend['destination_note'] = $post['destination']['description'];
+                }
+
+                $gosend = TransactionPickupOutlet::create($dataGoSend);
+                if (!$gosend) {
+                    DB::rollback();
+                    return response()->json([
+                        'status'    => 'fail',
+                        'messages'  => ['Insert Transaction Pickup Outlet Failed']
+                    ]);
+                }
+
             }
         }
 
@@ -1295,7 +1547,15 @@ class ApiOnlineTransaction extends Controller
                 }else{
                     $save['status'] = 'success'; 
                     $save['type'] = 'no_topup';
-                    \App\Lib\ConnectPOS::create()->sendTransaction($insertTransaction['id_transaction']);
+
+                    $pickup = TransactionPickup::where('id_transaction', $insertTransaction['id_transaction'])->first();
+                    if ($pickup) {
+                        if ($pickup->pickup_by == 'GO-SEND') {
+                            $pickup->bookDelivery();
+                        } else {
+                            \App\Lib\ConnectPOS::create()->sendTransaction($insertTransaction['id_transaction']);
+                        }
+                    }
                 }
 
                 if ($post['transaction_payment_status'] == 'Completed' || $save['type'] == 'no_topup') {
@@ -1319,6 +1579,7 @@ class ApiOnlineTransaction extends Controller
 
                     $insertTransaction = Transaction::with('user.memberships', 'outlet', 'productTransaction')->where('transaction_receipt_number', $insertTransaction['transaction_receipt_number'])->first();
 
+                    // double check voucher
                     if($request->json('id_deals_user') && !$request->json('promo_code'))
 			        {
 			        	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $deals['id_deals_voucher'])->where('status','success')->count();
@@ -1333,6 +1594,20 @@ class ApiOnlineTransaction extends Controller
 				        }
 			        }
 
+			        // double check voucher delivery
+			        if(isset($promo_delivery['id_deals_voucher']))
+			        {
+			        	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $promo_delivery['id_deals_voucher'])->where('status','success')->count();
+
+						if(($check_trx_voucher??false) > 1)
+						{
+							DB::rollBack();
+				            return [
+				                'status'=>'fail',
+				                'messages'=>['Voucher is not valid']
+				            ];
+				        }
+			        }
 
                     if ($configAdminOutlet && $configAdminOutlet['is_active'] == '1') {
                         $sendAdmin = app($this->notif)->sendNotif($insertTransaction);
@@ -1461,6 +1736,7 @@ class ApiOnlineTransaction extends Controller
         //    $savelocation = $this->saveLocation($post['latitude'], $post['longitude'], $insertTransaction['id_user'], $insertTransaction['id_transaction']);
         // }
 
+        // double check voucher
         if($request->json('id_deals_user') && !$request->json('promo_code'))
         {
         	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $deals['id_deals_voucher'])->where('status','success')->count();
@@ -1474,6 +1750,22 @@ class ApiOnlineTransaction extends Controller
 	            ];
 	        }
         }
+
+        // double check voucher delivery
+        if(isset($promo_delivery['id_deals_voucher']))
+        {
+        	$check_trx_voucher = TransactionVoucher::where('id_deals_voucher', $promo_delivery['id_deals_voucher'])->where('status','success')->count();
+
+			if(($check_trx_voucher??false) > 1)
+			{
+				DB::rollBack();
+	            return [
+	                'status'=>'fail',
+	                'messages'=>['Voucher is not valid']
+	            ];
+	        }
+        }
+
         if (!empty($data_autocrm_cashback)) {
 	        $send   = app($this->autocrm)->SendAutoCRM('Transaction Point Achievement', $usere->phone,$data_autocrm_cashback);
 	        if($send != true){
@@ -1671,6 +1963,106 @@ class ApiOnlineTransaction extends Controller
             $post['shipping'] = 0;
         }
 
+        $shippingGoSend = 0;
+
+        $error_msg=[];
+
+        if(($post['type'] ?? 'Pickup Order') != 'Pickup Order' && !$outlet->delivery_order) {
+            $error_msg[] = 'Maaf, Outlet ini tidak support untuk delivery order';
+        }
+
+        if(($post['type']??null) == 'GO-SEND'){
+            if ($post['destination'] ?? false) {
+                $availableShipment = $this->availableShipment(new Request([
+                    'id_outlet' => $post['id_outlet'],
+                    'latitude' => $post['destination']['latitude'],
+                    'longitude' => $post['destination']['longitude'],
+                    'show_all' => true,
+                    'no_calculate_price' => true,
+                    'shipment_code' => 'gosend',
+                ]));
+                if (!($availableShipment['result']['status'] ?? false)) {
+                    $error_msg[] = 'GO-SEND not available for this outlet';
+                };
+
+                if (!$outlet['outlet_phone']) {
+                    $outlet['outlet_phone'] = MyHelper::setting('default_outlet_phone');
+                }
+
+                if(!(
+                    $outlet['outlet_latitude'] &&
+                    $outlet['outlet_longitude'] &&
+                    $outlet['outlet_phone'] &&
+                    $outlet['outlet_address'] &&
+                    MyHelper::validatePhoneGoSend($outlet['outlet_phone'])
+                )){
+                    app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
+                    $outlet->notify_admin = 1;
+                    $outlet->save();
+                    if (!MyHelper::validatePhoneGoSend($outlet['outlet_phone'])) {
+                        $error_msg[] = 'Please check the outlet phone number';
+                    } else {
+                        $error_msg[] = 'Cannot make delivery using GOSEND from this outlet';
+                    }
+                }
+
+                $max_cup = MyHelper::setting('delivery_max_cup', 'value', 50);
+                $total_cup = array_sum(array_column($request->item, 'qty'));
+                if ($total_cup && $total_cup > $max_cup) {
+                    $error_msg[] = "Sorry, the maximum purchase for using GOSEND is $max_cup cup.";
+                }
+
+                $coor_origin = [
+                    'latitude' => number_format($outlet['outlet_latitude'],8),
+                    'longitude' => number_format($outlet['outlet_longitude'],8)
+                ];
+                $coor_destination = [
+                    'latitude' => number_format($post['destination']['latitude'],8),
+                    'longitude' => number_format($post['destination']['longitude'],8)
+                ];
+                $type = 'Pickup Order';
+                $shippingGoSendx = GoSend::getPrice($coor_origin,$coor_destination);
+                $shippingGoSend = $shippingGoSendx[GoSend::getShipmentMethod()]['price']['total_price']??null;
+                if($shippingGoSend === null){
+                    $error_msg += array_column($shippingGoSendx[GoSend::getShipmentMethod()]['errors']??[],'message')?:['Gagal menghitung ongkos kirim'];
+                } else {
+                    $post['shipping'] = $shippingGoSend;
+                }
+                //cek free delivery
+                // if($post['is_free'] == 'yes'){
+                //     $isFree = '1';
+                // }
+                $isFree = 0;
+            } else {
+                $post['shipping'] = null;
+            }
+        } elseif (($post['type']??null) == 'Internal Delivery' && ($post['destination'] ?? false)) {
+            $availableShipment = $this->availableShipment(new Request([
+                'id_outlet' => $post['id_outlet'],
+                'latitude' => $post['destination']['latitude'],
+                'longitude' => $post['destination']['longitude'],
+                'show_all' => true,
+                'no_calculate_price' => true,
+                'shipment_code' => 'outlet',
+            ]));
+            $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
+            $coor_origin = [
+                'latitude' => number_format($outlet['outlet_latitude'],8),
+                'longitude' => number_format($outlet['outlet_longitude'],8)
+            ];
+            $coor_destination = [
+                'latitude' => number_format($post['destination']['latitude'],8),
+                'longitude' => number_format($post['destination']['longitude'],8)
+            ];
+            $distance = MyHelper::count_distance($coor_origin['latitude'], $coor_origin['longitude'], $coor_destination['latitude'], $coor_destination['longitude'], 'M');
+            if ($distance > $max_distance) {
+                $error_msg[] = 'Sorry, the maximum distance to use internal delivery is '.MyHelper::requestNumber($max_distance, 'thousand_id').' meters. You are '.MyHelper::requestNumber(round($distance), 'thousand_id').' meters away.';
+            }
+            if (!($availableShipment['result']['status'] ?? false)) {
+                $error_msg[] = 'Internal Delivery not available for this outlet';
+            };
+        }
+
         if (!isset($post['subtotal'])) {
             $post['subtotal'] = 0;
         }
@@ -1711,6 +2103,8 @@ class ApiOnlineTransaction extends Controller
         $promo['value']=0;
         $promo['discount']=0;
         $promo_source = null;
+        $promo_delivery = null;
+
         if($request->json('promo_code'))
         {
         	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1, 1);
@@ -1739,6 +2133,7 @@ class ApiOnlineTransaction extends Controller
 			            // 	$discount_promo['discount'] = 0;
 			            // }
 			            $discount_type 			= $code->promo_campaign->promo_type;
+			            $promo['code'] 			= $code->promo_code;
 			            $promo['description']	= $discount_promo['new_description'];
 			            $promo['detail'] 		= $discount_promo['promo_detail'];
 			            $promo['discount'] 		= $discount_promo['discount'];
@@ -1810,6 +2205,7 @@ class ApiOnlineTransaction extends Controller
 	            $promo['value'] = $discount_promo['discount'];
 	            $promo['is_free'] = $discount_promo['is_free'];
 	            $promo['type'] = 'discount';
+	            $promo['code'] = $deals->dealVoucher->voucher_code;
 		        $promo_source = 'voucher_online';
 
 				if ( !empty($errors) ) {
@@ -1842,6 +2238,7 @@ class ApiOnlineTransaction extends Controller
         $product_promo = 0;
         $product_promo_sold_out = 0;
         $remove_promo = 0;
+        $total_item = 0;
         foreach ($discount_promo['item']??$post['item'] as &$item) {
 
         	if ($item['is_promo'] ?? false) {
@@ -2015,7 +2412,10 @@ class ApiOnlineTransaction extends Controller
 
             $tree[$product['id_brand']]['products'][]=$product;
             $subtotal += $product_price_total;
+        	
+        	$total_item += $item['qty'];
         }
+
         if ($validate_user??false) {
 	        if ( (!empty($product_promo) && !empty($product_promo_sold_out) && $product_promo == $product_promo_sold_out) || $remove_promo == 1 ) {
 	        	$discount_promo['item'] = $post['item'];
@@ -2093,6 +2493,7 @@ class ApiOnlineTransaction extends Controller
         }
         // $post['discount'] = $post['discount'] + ($promo_discount??0);
 
+		$post['discount'] = floor($post['discount']);
         $post['cashback'] = app($this->setting_trx)->countTransaction('cashback', $post);
 
         //count some trx user
@@ -2192,17 +2593,20 @@ class ApiOnlineTransaction extends Controller
             'outlet_code' => $outlet['outlet_code'],
             'outlet_name' => $outlet['outlet_name'],
             'outlet_address' => $outlet['outlet_address'],
+            'delivery_order' => $outlet['delivery_order'],
             'today' => $outlet['today']
         ];
         $result['item'] = array_values($tree);
         $result['subtotal_pretty'] = MyHelper::requestNumber($subtotal,'_CURRENCY');
         $result['shipping_pretty'] = MyHelper::requestNumber($post['shipping'],'_CURRENCY');
         $result['discount_pretty'] = MyHelper::requestNumber($post['discount'],'_CURRENCY');
+        $result['discount_delivery_pretty'] = 0;
         $result['service_pretty'] = MyHelper::requestNumber($post['service'],'_CURRENCY');
         $result['tax_pretty'] = MyHelper::requestNumber($post['tax'],'_CURRENCY');
         $result['subtotal'] = MyHelper::requestNumber($subtotal,$rn);
-        $result['shipping'] = MyHelper::requestNumber($post['shipping'],$rn);
+        $result['shipping'] = ($post['destination'] ?? false) ? $post['shipping'] : null;
         $result['discount'] = MyHelper::requestNumber($post['discount'],$rn);
+        $result['discount_delivery'] = 0;
         $result['service'] = MyHelper::requestNumber($post['service'],$rn);
         $result['tax'] = MyHelper::requestNumber($post['tax'],$rn);
         $grandtotal = $post['subtotal'] + (-$post['discount']) + $post['service'] + $post['tax'] + $post['shipping'];
@@ -2237,7 +2641,57 @@ class ApiOnlineTransaction extends Controller
         $result['total_payment_pretty'] = MyHelper::requestNumber(($grandtotal-$used_point),'_CURRENCY');
         $result['total_payment'] = MyHelper::requestNumber(($grandtotal-$used_point),$rn);
 
-        return MyHelper::checkGet($result)+['messages'=>$error_msg, 'promo_error'=>$promo_error, 'promo'=>$promo, 'clear_cart'=>$clear_cart];
+        $result['total_item'] = $total_item;
+        $result['promo'] = $promo;
+        $result['promo_error'] = $promo_error;
+        $result['allow_pickup'] = 1;
+        $result['allow_delivery'] = $outlet['delivery_order'];
+
+        if ($result['allow_delivery']) {
+            // check global setting delivery method
+            $delivery_available = array_sum(array_column(json_decode(MyHelper::setting('active_delivery_methods', 'value_text'), true) ?? [], 'status'));
+            if (!$delivery_available) {
+                $result['allow_delivery'] = 0;
+            }
+        }
+
+        $result['available_delivery'] = [];
+
+        // check promo delivery 
+        $promo_delivery_error = null;
+        $promo_delivery = $pct->validateDelivery($request, $result, $promo_delivery_error);
+        $result['promo_delivery'] = $promo_delivery;
+        $result['promo_delivery_error'] = $promo_delivery_error;
+
+        if ($promo_delivery) {
+	        $result['allow_pickup'] = $promo_delivery['allow_pickup'] ?? $result['allow_pickup'];
+	        $result['allow_delivery'] = $promo_delivery['allow_delivery'] ?? $result['allow_delivery'];
+		    $result['available_delivery'] = $promo_delivery['available_delivery'] ?? [];
+		    $promo_delivery['value'] = floor($promo_delivery['discount_delivery']);
+		    $result['discount_delivery'] = abs($promo_delivery['value']);
+        	$result['grandtotal'] = MyHelper::requestNumber(($result['grandtotal'] - $promo_delivery['value']),$rn);
+		    $result['grandtotal_pretty'] = MyHelper::requestNumber($result['grandtotal'],'_CURRENCY');
+
+        	if (isset($post['payment_type'])&&$post['payment_type'] == 'Balance') {
+        		if ($result['used_point'] >= $result['grandtotal'] ) {
+        			$result['used_point'] = $result['grandtotal'];
+	            	$result['used_point_pretty'] = MyHelper::requestNumber($result['used_point'],'_POINT');
+	            	$result['points'] = MyHelper::requestNumber(($balance - $result['used_point']),'point');
+	            	$result['points_pretty'] = MyHelper::requestNumber($result['points'],'_POINT');
+
+        		}
+	        }
+
+		    $result['total_payment_pretty'] = MyHelper::requestNumber(($result['grandtotal']-$result['used_point']),'_CURRENCY');
+        	$result['total_payment'] = MyHelper::requestNumber(($result['grandtotal']-$result['used_point']),$rn);
+
+        	unset($result['promo_delivery']['available_delivery'], $result['promo_delivery']['allow_delivery'], $result['promo_delivery']['allow_pickup']);
+        }
+
+        // payment detail
+        $result['payment_detail'] = $this->getTransactionPaymentDetail($request, $result);
+
+        return MyHelper::checkGet($result)+['messages'=> $error_msg ? [$error_msg[0]] : [], 'promo_error'=>$promo_error, 'promo'=>$promo, 'clear_cart'=>$clear_cart];
     }
 
     public function saveLocation($latitude, $longitude, $id_user, $id_transaction, $id_outlet){
@@ -2577,10 +3031,16 @@ class ApiOnlineTransaction extends Controller
     }
     public function cancelTransaction(Request $request)
     {
-        $id_transaction = $request->id;
+        $id_transaction = $request->id ?: $request->id_transaction;
         $trx = Transaction::where('id_transaction', $id_transaction)->first();
-        if(!$trx || $trx->transaction_payment_status != 'Pending'){
-            return MyHelper::checkGet([],'Transaction cannot be canceled');
+        if (!$trx) {
+            return [
+                'status' => 'fail',
+                'messages' => ['Transaction Not Found']
+            ];
+        }
+        if($trx->transaction_payment_status != 'Pending'){
+            return $this->cancelDriverNotFound($request, $trx);
         }
         $errors = '';
 
@@ -2593,6 +3053,53 @@ class ApiOnlineTransaction extends Controller
             'status'=>'fail',
             'messages' => $errors?:['Something went wrong']
         ];
+    }
+
+    public function cancelDriverNotFound(Request $request, $trx = null)
+    {
+        $id_transaction = $request->id ?: $request->id_transaction;
+        if (!$trx) {
+            $trx = Transaction::where('id_transaction', $id_transaction)->first();
+            if (!$trx) {
+                return [
+                    'status' => 'fail',
+                    'messages' => ['Transaction Not Found']
+                ];
+            }
+        }
+        $trx_pickup = TransactionPickup::where('id_transaction', $id_transaction)->first();
+        if (!$trx_pickup) {
+            return [
+                'status' => 'fail',
+                'messages' => ['Transaction Not Found']
+            ];
+        }
+        switch ($trx_pickup->pickup_by) {
+            case 'GO-SEND':
+                $trx_pickup_go_send = TransactionPickupGoSend::where('id_transaction_pickup', $trx_pickup->id_transaction_pickup)->first();
+                if (!$trx_pickup_go_send) {
+                    return [
+                        'status' => 'fail',
+                        'messages' => ['Pickup Go Send data not found']
+                    ];
+                }
+                if ($trx_pickup_go_send->latest_status && !in_array($trx_pickup_go_send->latest_status, ['cancelled', 'rejected', 'no_driver'])) {
+                    return [
+                        'status' => 'fail',
+                        'messages' => ['Cannot cancel transaction. Delivery service has been ordered']
+                    ];
+                }
+                $cancel = $trx->cancelOrder('User cancel', $errors);
+                if (!$cancel) {
+                    return [
+                        'status' => 'fail',
+                        'messages' => $errors ?: ['Something went wrong']
+                    ];
+                }
+                return ['status' => 'success'];
+                break;
+        }
+        return MyHelper::checkGet([],'Transaction cannot be canceled');
     }
 
     public function availablePayment(Request $request)
@@ -2663,6 +3170,148 @@ class ApiOnlineTransaction extends Controller
         return MyHelper::checkUpdate($update);
     }
 
+    public function availableShipment(Request $request)
+    {
+        $origin = null;
+        $destination = null;
+        $outlet = null;
+        $show_all = $request->show_all;
+        $total_cup = 0;
+        if (is_array($request->item)) {
+            $total_cup = array_sum(array_column($request->item, 'qty'));
+        }
+        $phone_valid = true;
+        if ($request->id_outlet) {
+            $outlet = Outlet::find($request->id_outlet);
+            if (!$outlet) {
+                return [
+                    'status' => 'fail',
+                    'messages' => ['Outlet not found']
+                ];
+            }
+            $origin = [
+                'latitude' => $outlet->outlet_latitude,
+                'longitude' => $outlet->outlet_longitude,
+            ];
+
+            if ($request->latitude && $request->longitude) {
+                $destination = [
+                    'latitude' => $request->latitude,
+                    'longitude' => $request->longitude,
+                ];
+            }
+
+            if (!MyHelper::validatePhoneGoSend($outlet['outlet_phone'] ?: MyHelper::setting('default_outlet_phone'))) {
+                app($this->outlet)->sendNotifIncompleteOutlet($outlet['id_outlet']);
+                $outlet->notify_admin = 1;
+                $outlet->save();
+                $phone_valid = false;
+            }
+        }
+
+        $availableShipment = MyHelper::getDeliveries($show_all);
+        $configShipment = config('delivery_method');
+        if ($outlet) {
+            foreach ($availableShipment as $index => &$shipment1) {
+                if ($shipment1['max_cup'] && $total_cup > $shipment1['max_cup'] || !in_array($shipment1['type'], $outlet->available_delivery)) {
+                    if ($show_all) {
+                        $shipment1['status'] = 0;
+                    } else {
+                        unset($availableShipment[$index]);
+                    }
+                }
+            }
+            if ($destination) {
+                foreach ($availableShipment as $index => &$shipment2) {
+                    if ($shipment2['code'] == 'outlet') {
+                        $max_distance = MyHelper::setting('outlet_delivery_max_distance') ?: 500;
+                        $distance = MyHelper::count_distance($origin['latitude'], $origin['longitude'], $destination['latitude'], $destination['longitude'], 'M');
+                        if ($distance > $max_distance) {
+                            if ($show_all) {
+                                $shipment2['status'] = 0;
+                            } else {
+                                unset($availableShipment[$index]);
+                            }
+                            continue;
+                        }
+                    } elseif ($shipment2['code'] == 'gosend' && !$phone_valid) {
+                        if ($show_all) {
+                            $shipment2['status'] = 0;
+                        } else {
+                            unset($availableShipment[$index]);
+                        }
+                    }
+                    if ($shipment2['status'] && !$request->no_calculate_price) {
+                        $shipment2['price'] = $configShipment[$shipment2['code']]['helper']::calculatePrice($origin, $destination);
+                        if ($shipment2['price'] !== null) {
+                            $shipment2['price_pretty'] = $shipment2['price'] !== null ? MyHelper::requestNumber($shipment2['price'], '_CURRENCY') : '';
+                        } else {
+                            $shipment2['price_pretty'] = '';
+                        }
+                    }
+                }
+            }
+        }
+
+        // flag default
+        $default = MyHelper::setting('delivery_default', 'value', 'price');
+        if ($default == 'price') {
+            $price_min = min(array_filter(array_column($availableShipment, 'price'), function($x){return $x !== null;}) ?: [0]);
+            foreach ($availableShipment as &$shipment3) {
+                if ($shipment3['price'] === $price_min) {
+                    $shipment3['default'] = 1;
+                    break;
+                }
+            }
+        } else {
+            foreach ($availableShipment as &$shipment3) {
+                if ($shipment3['type'] === $default) {
+                    $shipment3['default'] = 1;
+                    break;
+                }
+            }
+        }
+
+        if ($availableShipment && !array_sum(array_column($availableShipment, 'default'))) {
+            $availableShipment[0]['default'] = 1;
+        }
+
+        if ($request->shipment_code) {
+            $result = null;
+            foreach ($availableShipment as $shipment4) {
+                if ($shipment4['code'] == $request->shipment_code) {
+                    $result = $shipment4;
+                }
+            }
+            return MyHelper::checkGet($result);
+        }
+
+        return MyHelper::checkGet($availableShipment);
+    }
+
+    public function availableShipmentUpdate(Request $request)
+    {
+        $availabledelivery = config('delivery_method');
+        $deliveries = [];
+        foreach ($request->deliveries as $key => $value) {
+            $delivery = $availabledelivery[$value['code'] ?? ''] ?? false;
+            if (!$delivery || !($delivery['status'] ?? false)) {
+                continue;
+            }
+            $deliveries[] = [
+                'code'     => $value['code'],
+                'status'   => $value['status'] ?? 0,
+                'position' => $key + 1,
+            ];
+        }
+        $update = Setting::updateOrCreate(['key' => 'active_delivery_methods'], ['value_text' => json_encode($deliveries)]);
+        $update = Setting::updateOrCreate(['key' => 'delivery_max_cup'], ['value' => $request->delivery_max_cup]);
+        $update = Setting::updateOrCreate(['key' => 'delivery_default'], ['value' => $request->delivery_default]);
+        $update = Setting::updateOrCreate(['key' => 'outlet_delivery_max_distance'], ['value' => $request->outlet_delivery_max_distance]);
+        $update = Setting::updateOrCreate(['key' => 'auto_reject_time'], ['value' => $request->auto_reject_time]);
+        return MyHelper::checkUpdate($update);
+    }
+
     public function mergeProducts($items)
     {
         $new_items = [];
@@ -2701,5 +3350,120 @@ class ApiOnlineTransaction extends Controller
         }
 
         return $new_items;
+    }
+
+    public function bookDelivery(Request $request)
+    {
+        $post = $request->all();
+        $trx = TransactionPickup::where('id_transaction', $request->id_transaction)->first();
+
+        if (!$trx) {
+            return [
+                'status' => 'fail',
+                'messages' => ['Transaction not found']
+            ];
+        }
+
+        switch ($trx->pickup_by) {
+            case 'GO-SEND':
+                $trx_pickup_go_send = TransactionPickupGoSend::where('id_transaction_pickup', $trx->id_transaction_pickup)->first();
+                if (!$trx_pickup_go_send) {
+                    return [
+                        'status' => 'fail',
+                        'messages' => 'Pickup Go Send data Not found'
+                    ];
+                }
+                $book = $trx_pickup_go_send->book(false, $errors);
+                if (!$book) {
+                    return [
+                        'status' => 'fail',
+                        'messages' => $errors ?: ['Something went wrong']
+                    ];
+                }
+
+                return [
+                    'status' => 'success',
+                ];
+
+                break;
+
+            default:
+                return [
+                    'status' => 'fail',
+                    'messages' => ['Transaction pickup by '.$trx->pickup_by]
+                ];
+        }
+    }
+
+    public function getTransactionPaymentDetail($request, $result)
+    {
+    	$payment_detail = [];
+
+    	$available_delivery = config('delivery_method');
+    	$delivery_text = null;
+    	foreach ($available_delivery as $val) {
+    		if ($val['type'] == $request->type) {
+    			$delivery_text = $val['text'];
+    		}
+    	}
+
+    	$item = 'item';
+    	if ($result['total_item'] > 1) {
+    		$item = 'items';
+    	}
+    	$payment_detail[] = [
+            'name'          => 'Subtotal',
+            'desc'			=> $result['total_item'].' '.$item,
+            "is_discount"   => 0,
+            'amount'        => (string) MyHelper::requestNumber($result['subtotal'],'_CURRENCY')
+        ];
+
+        //discount product / bill
+        if($result['discount'] > 0){
+        	$code = $result['promo']['code'] ?? '';
+        	
+            $payment_detail[] = [
+                'name'          => 'Discount',
+                'desc'          => $code,
+                "is_discount"   => 1,
+                'amount'        => (string) '-'.MyHelper::requestNumber($result['discount'],'_CURRENCY')
+            ];
+        }
+
+        //delivery gosend
+        if($result['shipping'] > 0){
+        	$delivery_text = null;
+            $payment_detail[] = [
+                'name'          => 'Delivery Fee',
+                'desc'          => $delivery_text,
+                "is_discount"   => 0,
+                'amount'        => (string) MyHelper::requestNumber($result['promo_delivery']['value_int'] ?? $result['shipping'],'_CURRENCY')
+            ];
+        }
+
+		/*
+        //discount delivery
+        if($result['discount_delivery'] > 0){
+            $payment_detail[] = [
+                'name'          => 'Discount',
+                'desc'          => 'Delivery',
+                "is_discount"   => 1,
+                'amount'        => (string) '-'.MyHelper::requestNumber($result['discount_delivery'],'_CURRENCY')
+            ];
+        }
+        */
+
+        /*
+        //add tax
+        if($result['tax'] > 0){
+            $payment_detail[] = [
+                'name'          => 'Tax',
+                "is_discount"   => 0,
+                'amount'        => MyHelper::requestNumber($result['tax'],'_CURRENCY')
+            ];
+        }
+        */
+
+        return $payment_detail;
     }
 }

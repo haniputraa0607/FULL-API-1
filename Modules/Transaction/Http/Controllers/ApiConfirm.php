@@ -66,6 +66,9 @@ class ApiConfirm extends Controller
             ]);
         }
 
+        $payment_id = strtoupper(str_replace(' ', '_', $post['payment_id']??$post['payment_detail']??null));
+        $post['payment_id'] = $payment_id;
+
         $checkPayment = TransactionMultiplePayment::where('id_transaction', $check['id_transaction'])->first();
 
         $countGrandTotal = $check['transaction_grandtotal'];
@@ -125,10 +128,20 @@ class ApiConfirm extends Controller
             array_push($dataDetailProduct, $dataTax);
         }
 
-        if ($check['transaction_discount'] > 0) {
+        if ($check['transaction_discount'] != 0) {
             $dataDis = [
                 'id'       => null,
                 'price'    => -abs($check['transaction_discount']),
+                'name'     => 'Discount',
+                'quantity' => 1,
+            ];
+            array_push($dataDetailProduct, $dataDis);
+        }
+
+        if ($check['transaction_discount_delivery'] != 0) {
+            $dataDis = [
+                'id'       => null,
+                'price'    => -abs($check['transaction_discount_delivery']),
                 'name'     => 'Discount',
                 'quantity' => 1,
             ];
@@ -214,14 +227,14 @@ class ApiConfirm extends Controller
                     'shipping_address'    => $dataShipping,
                 );
 
-                $connectMidtrans = Midtrans::token($check['transaction_receipt_number'], $countGrandTotal, $dataUser, $dataShipping, $dataDetailProduct);
+                $connectMidtrans = Midtrans::token($check['transaction_receipt_number'], $countGrandTotal, $dataUser, $dataShipping, $dataDetailProduct,'trx', $check['transaction_receipt_number']);
             } else {
                 $dataMidtrans = array(
                     'transaction_details' => $transaction_details,
                     'customer_details'    => $dataUser,
                 );
 
-                $connectMidtrans = Midtrans::token($check['transaction_receipt_number'], $countGrandTotal, $dataUser, $ship = null, $dataDetailProduct);
+                $connectMidtrans = Midtrans::token($check['transaction_receipt_number'], $countGrandTotal, $dataUser, $ship = null, $dataDetailProduct,'trx', $check['transaction_receipt_number']);
             }
 
             if (empty($connectMidtrans['token'])) {
@@ -246,6 +259,24 @@ class ApiConfirm extends Controller
                 'gross_amount'   => $check['transaction_grandtotal'],
                 'order_id'       => $check['transaction_receipt_number'],
             ];
+
+            switch ($payment_id) {
+                case 'CREDIT_CARD':
+                    $dataNotifMidtrans['payment_type'] = 'Credit Card';
+                    break;
+
+                case 'GOPAY':
+                    $dataNotifMidtrans['payment_type'] = 'Gopay';
+                    break;
+                
+                case 'SHOPEEPAY':
+                    $dataNotifMidtrans['payment_type'] = 'Shopeepay';
+                    break;
+                
+                default:
+                    $dataNotifMidtrans['payment_type'] = null;
+                    break;
+            }
 
             $insertNotifMidtrans = TransactionPaymentMidtran::create($dataNotifMidtrans);
             if (!$insertNotifMidtrans) {
@@ -790,7 +821,15 @@ class ApiConfirm extends Controller
                                         $checkFraud = app($this->setting_fraud)->checkFraudTrxOnline($userData, $trx);
                                     }
 
-                                    \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
+                                    $pickup = TransactionPickup::where('id_transaction', $trx['id_transaction'])->first();
+                                    if ($pickup) {
+                                        if ($pickup->pickup_by == 'GO-SEND') {
+                                            $pickup->bookDelivery();
+                                        } else {
+                                            \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
+                                        }
+                                    }
+
                                     $dataTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction')
                                         ->where('id_transaction', $payment['id_transaction'])->first();
 

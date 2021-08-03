@@ -50,6 +50,7 @@ use App\Http\Models\SyncTransactionFaileds;
 use App\Http\Models\SyncTransactionQueues;
 use Modules\UserRating\Entities\UserRatingLog;
 use App\Lib\MyHelper;
+use App\Lib\ConnectPOS;
 use App\Lib\MailQueue as Mail;
 
 use Modules\POS\Http\Requests\reqMember;
@@ -122,10 +123,10 @@ class ApiPOS extends Controller
             ->first();
 
         if ($check) {
-            $voucher = TransactionVoucher::where('id_transaction',$check->id_transaction)->first();
-            $appliedPromo = "";
-            $promoNumber = "";
-            if($check['id_promo_campaign_promo_code'] || $voucher){
+            $vouchers = TransactionVoucher::where('id_transaction',$check->id_transaction)->get();
+            $appliedPromo = '';
+            $promoNumber = '';
+            if($check['id_promo_campaign_promo_code'] || count($vouchers)){
                 $appliedPromo = 'MOBILE APPS PROMO';
                 // if($trxData->id_promo_campaign_promo_code){
                 //  $promoNumber = $trxData->promo_campaign_promo_code->promo_code;
@@ -134,7 +135,24 @@ class ApiPOS extends Controller
                 //  $promoNumber = $voucher->deals_voucher->voucher_code;
                 // }
                 $promoNumber = '01198';
+                $hasPromoProduct = true;
+                if (!$check['id_promo_campaign_promo_code']) {
+                    $hasPromoProduct = false;
+                    foreach ($vouchers as $voucher) {
+                        $voucher->load('deals_voucher.deals');
+                        if (($voucher['deals_voucher']['deals']['promo_type'] ?? false) != 'Discount delivery') {
+                            $hasPromoProduct = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!$hasPromoProduct) {
+                    $appliedPromo = '';
+                    $promoNumber = '';
+                }
             }
+            $trxData = $check;
             $check = $check->toArray();
             $user = User::where('id', '=', $check['id_user'])->first()->toArray();
 
@@ -180,6 +198,55 @@ class ApiPOS extends Controller
             // $header['ready_date_time'] = date('Ymd His', strtotime($check['ready_at']));
             // $header['taken_date_time'] = date('Ymd His', strtotime($check['taken_at']));
             // $header['reject_date_time'] = date('Ymd His', strtotime($check['reject_at']));
+
+            $delivery = [];
+
+            if ($trxData->pickup_by == 'GO-SEND') {
+                $trxData->load('transaction_pickup_go_send');
+                $deliveryData = $trxData->transaction_pickup_go_send;
+                $delivery = [
+                    'address' => $deliveryData->destination_address,
+                    'latitude' => $deliveryData->destination_latitude, 
+                    'longitude' => $deliveryData->destination_longitude, 
+                    'courierName' => ConnectPOS::$mappingPickup[$trxData->pickup_by] ?? $trxData->pickup_by, 
+                    'deliveryCost' => $trxData->transaction_shipment, 
+                    'discDeliveryCost' => abs($trxData->transaction_discount_delivery), 
+                    'netDeliveryCost' => $trxData->transaction_shipment - abs($trxData->transaction_discount_delivery), 
+                    'promoDeliveryId' => '', 
+                    'promoDeliveryDesc' => '', 
+                    'note' => $deliveryData->destination_note ?: ''
+                ];
+
+                if ($trxData->transaction_discount_delivery) {
+                    $promoDelivery = $trxData->getUsedPromoDelivery();
+                    $delivery['promoDeliveryId'] = $promoDelivery['promoDeliveryId'];
+                    $delivery['promoDeliveryDesc'] = $promoDelivery['promoDeliveryDesc'];
+                }
+            } elseif ($trxData->pickup_by == 'Outlet') {
+                $trxData->load('transaction_pickup_outlet');
+                $deliveryData = $trxData->transaction_pickup_outlet;
+                $delivery = [
+                    'address' => $deliveryData->destination_address,
+                    'latitude' => $deliveryData->destination_latitude, 
+                    'longitude' => $deliveryData->destination_longitude, 
+                    'courierName' => ConnectPOS::$mappingPickup[$trxData->pickup_by] ?? $trxData->pickup_by, 
+                    'deliveryCost' => $trxData->transaction_shipment, 
+                    'discDeliveryCost' => abs($trxData->transaction_discount_delivery), 
+                    'netDeliveryCost' => $trxData->transaction_shipment - abs($trxData->transaction_discount_delivery), 
+                    'promoDeliveryId' => '', 
+                    'promoDeliveryDesc' => '', 
+                    'note' => $deliveryData->destination_note ?: ''
+                ];
+
+                if ($trxData->transaction_discount_delivery) {
+                    $promoDelivery = $trxData->getUsedPromoDelivery();
+                    $delivery['promoDeliveryId'] = $promoDelivery['promoDeliveryId'];
+                    $delivery['promoDeliveryDesc'] = $promoDelivery['promoDeliveryDesc'];
+                }
+            }
+
+            $header['delivery'] = $delivery;
+
             $header['pos'] = [
                 'id'=> 1,
                 'cashDrawer'=> 1,
@@ -628,6 +695,12 @@ class ApiPOS extends Controller
                     if($value['store_status'] == "Not Active"){
                         $value['store_status'] = 'Inactive';
                     }
+
+                    //dont update phone when null
+                    if($value['store_phone'] == null && $cekOutlet['outlet_phone'] != null){
+                        $value['store_phone'] = $cekOutlet['outlet_phone'];
+                    }
+
                     $update = Outlet::updateOrCreate(['outlet_code' => strtoupper($value['store_code'])], [
                         'outlet_name'       => $value['store_name'],
                         'outlet_status'     => $value['store_status'],

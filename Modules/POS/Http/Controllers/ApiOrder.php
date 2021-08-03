@@ -477,12 +477,12 @@ class ApiOrder extends Controller
         // DB::beginTransaction();
         $pickup = TransactionPickup::where('id_transaction', $order->id_transaction)->update(['ready_at' => date('Y-m-d H:i:s')]);
         // dd($pickup);
-        if($pickup){
+        if($pickup && $order->pickup_by !== 'GO-SEND'){
             //send notif to customer
             $user = User::find($order->id_user);
             $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Ready');
 
-            $send = app($this->autocrm)->SendAutoCRM('Order Ready', $user['phone'], [
+            $send = app($this->autocrm)->SendAutoCRM($order->pickup_by == 'Outlet' ? 'Order Ready Internal Delivery' : 'Order Ready', $user['phone'], [
                 "outlet_name" => $outlet['outlet_name'],
                 "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
                 'id_transaction' => $order->id_transaction,
@@ -605,42 +605,63 @@ class ApiOrder extends Controller
             ]);
         }
 
+        if($order->taken_by_driver_at != null){
+            return response()->json([
+                'status' => 'fail',
+                'messages' => ['Order Has Been Taken by Driver']
+            ]);
+        }
+
         DB::beginTransaction();
 
-        $pickup = TransactionPickup::where('id_transaction', $order->id_transaction)->update(['taken_at' => date('Y-m-d H:i:s')]);
-        if($pickup){
+        if ($order->pickup_by == 'GO-SEND') {
+            $pickup = TransactionPickup::where('id_transaction', $order->id_transaction)->update(['taken_by_driver_at' => date('Y-m-d H:i:s')]);
+        } else {
+            $pickup = TransactionPickup::where('id_transaction', $order->id_transaction)->update(['taken_at' => date('Y-m-d H:i:s')]);
+        }
+        if ($pickup) {
             //send notif to customer
             $user = User::find($order->id_user);
             $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Taken');
 
-            $send = app($this->autocrm)->SendAutoCRM('Order Taken', $user['phone'], [
-                "outlet_name" => $outlet['outlet_name'],
-                "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
-                'id_transaction' => $order->id_transaction,
-                "transaction_date" => $order->transaction_date,
-                'detail' => $detail
-            ]);
-
-
-            $updateRatePopUp = Transaction::where('id_transaction', $order->id_transaction)->update(['show_rate_popup' => 1]);
-
-            // show rate popup
-            if ($order->id_user) {
-                UserRatingLog::updateOrCreate([
-                    'id_user' => $order->id_user,
-                    'id_transaction' => $order->id_transaction
-                ],[
-                    'refuse_count' => 0,
-                    'last_popup' => date('Y-m-d H:i:s', time() - MyHelper::setting('popup_min_interval', 'value', 900))
+            if ($order->pickup_by !== 'GO-SEND') {
+                $send = app($this->autocrm)->SendAutoCRM($order->pickup_by == 'Outlet' ? 'Order Taken Internal Delivery' : 'Order Taken', $user['phone'], [
+                    "outlet_name" => $outlet['outlet_name'],
+                    "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
+                    'id_transaction' => $order->id_transaction,
+                    "transaction_date" => $order->transaction_date,
+                    'detail' => $detail
+                ]);
+            } else {
+                $send = app($this->autocrm)->SendAutoCRM('Order Taken By Driver', $user['phone'], [
+                    "outlet_name" => $outlet['outlet_name'],
+                    "id_reference" => $order->transaction_receipt_number.','.$order->id_outlet,
+                    'id_transaction' => $order->id_transaction,
+                    "transaction_date" => $order->transaction_date,
+                    'detail' => $detail
                 ]);
             }
 
-            if($send != true){
-                DB::rollBack();
-                return response()->json([
-                        'status' => 'fail',
-                        'messages' => ['Failed Send notification to customer']
+            if ($order->pickup_by !== 'GO-SEND') {
+                $updateRatePopUp = Transaction::where('id_transaction', $order->id_transaction)->update(['show_rate_popup' => 1]);
+                // show rate popup
+                if ($order->id_user) {
+                    UserRatingLog::updateOrCreate([
+                        'id_user' => $order->id_user,
+                        'id_transaction' => $order->id_transaction
+                    ],[
+                        'refuse_count' => 0,
+                        'last_popup' => date('Y-m-d H:i:s', time() - MyHelper::setting('popup_min_interval', 'value', 900))
                     ]);
+                }
+
+                if($send != true){
+                    DB::rollBack();
+                    return response()->json([
+                            'status' => 'fail',
+                            'messages' => ['Failed Send notification to customer']
+                        ]);
+                }
             }
 
             DB::commit();

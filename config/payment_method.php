@@ -4,7 +4,7 @@ return [
     'midtrans_gopay' => [
         'payment_gateway' => 'Midtrans',
         'payment_method'  => 'Gopay',
-        'status'          => 0,
+        'status'          => 1,
         'logo'            => env('STORAGE_URL_API').'default_image/payment_method/ic_gopay.png',
         'text'            => null
     ],

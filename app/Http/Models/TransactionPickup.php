@@ -21,6 +21,7 @@ class TransactionPickup extends Model
 		'pickup_at',
 		'receive_at',
 		'ready_at',
+		'taken_by_driver_at',
 		'taken_at',
 		'taken_by_system_at',
 		'reject_at',
@@ -49,5 +50,47 @@ class TransactionPickup extends Model
 	public function admin_taken() 
 	{
 		return $this->belongsTo(UserOutlet::class, 'id_admin_outlet_taken', 'id_user_outlet');
+	}
+
+	public function bookDelivery(&$errors = [], $first = true)
+	{
+		switch ($this->pickup_by) {
+			case 'Customer':
+				$errors[] = 'Transaction pickup by Customer';
+				return false;
+				break;
+			
+			case 'GO-SEND':
+				$pickup_go_send = TransactionPickupGoSend::where('id_transaction_pickup', $this->id_transaction_pickup)->first();
+				if ($pickup_go_send) {
+					$book = $pickup_go_send->book(false, $errors);
+					if (!$book) {
+						if ($first) {
+							$this->load('transaction');
+							$this->transaction->cancelOrder('auto cancel order by system [failed book]');
+						}
+						// $this->load(['transaction', 'transaction.outlet', 'transaction.user']);
+						// $trx = $this->transaction;
+						// $outlet = $trx->outlet;
+						// $user = $trx->user;
+						// $autocrm = app("Modules\Autocrm\Http\Controllers\ApiAutoCrm")->SendAutoCRM('Delivery Status Update', $user->phone,
+						// 	[
+						// 		'id_reference'    => $trx->id_transaction,
+						// 		'receipt_number'  => $trx->transaction_receipt_number,
+						// 		'outlet_code'     => $outlet->outlet_code,
+						// 		'outlet_name'     => $outlet->outlet_name,
+						// 		'delivery_status' => 'Driver Not Found',
+						// 		'order_id'        => $this->order_id,
+						// 	]
+						// );
+					}
+					return $book;
+				}
+				break;
+			
+			default:
+				# code...
+				break;
+		}
 	}
 }
