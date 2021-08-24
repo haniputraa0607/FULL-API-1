@@ -209,6 +209,11 @@ class TransactionPickupGoSend extends Model
             if (!($status['status'] == 'allocated' && $this->latest_status == 'out_for_pickup')) {
                 $this->update($toUpdate);
             }
+
+            if (in_array(strtolower($status['status']), ['allocated', 'out_for_pickup', 'out_for_delivery', 'completed', 'delivered'])) {
+                \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
+            }
+
             if (in_array(strtolower($status['status']), ['completed', 'delivered'])) {
                 // sendPoint delivery after status delivered only
                 if ($trx->cashback_insert_status != 1) {
@@ -258,7 +263,6 @@ class TransactionPickupGoSend extends Model
                 ];
                 GoSend::saveUpdate($dataSave);
             } elseif (in_array(strtolower($status['status']), ['allocated', 'out_for_pickup'])) {
-                \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
 
                 $mid = [
                     'order_id' => $trx->transaction_receipt_number,
