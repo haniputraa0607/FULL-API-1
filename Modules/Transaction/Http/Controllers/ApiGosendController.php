@@ -160,6 +160,10 @@ class ApiGosendController extends Controller
                 }
                 $tpg->update($toUpdate);
                 $trx = Transaction::where('transactions.id_transaction', $id_transaction)->join('transaction_pickups', 'transaction_pickups.id_transaction', '=', 'transactions.id_transaction')->where('pickup_by', 'GO-SEND')->first();
+                if (in_array(strtolower($post['status']), ['allocated', 'out_for_pickup', 'out_for_delivery', 'completed', 'delivered'])) {
+                    \App\Lib\ConnectPOS::create()->sendTransaction($id_transaction);
+                }
+
                 if (in_array(strtolower($post['status']), ['completed', 'delivered'])) {
                     // sendPoint delivery after status delivered only
                     if ($trx->cashback_insert_status != 1) {
@@ -226,7 +230,6 @@ class ApiGosendController extends Controller
                     ];
                     GoSend::saveUpdate($dataSave);
                 } elseif (in_array(strtolower($post['status']), ['allocated', 'out_for_pickup'])) {
-                    \App\Lib\ConnectPOS::create()->sendTransaction($id_transaction);
 
                     $mid = [
                         'order_id' => $trx->transaction_receipt_number,
