@@ -378,7 +378,7 @@ class ConnectPOS{
 						if ($midtrans) {
 							$pay = [
 								'number'        => $key + 1,
-								'type'          => 'GOPAY',
+								'type'          => 'GOPAYMOB',
 								'amount'        => (float) $midtrans['gross_amount'],
 								'changeAmount' => 0,
 								'cardNumber'   => '',
