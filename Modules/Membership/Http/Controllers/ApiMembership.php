@@ -418,7 +418,7 @@ class ApiMembership extends Controller
 				if($retain == 1 && $membership['retain_days'] > 0){
 
 					//ambil batas tanggal terhitung diceknya
-					$date_start = date('Y-m-d', strtotime($check['retain_date'].' -'.$membership['retain_days'].' days'));
+					$date_start = date('Y-m-d', strtotime(' -'.$membership['retain_days'].' days'));
 
 					$trx_count = Transaction::where('id_user',$check['id'])
 											->whereDate('transaction_date','>=',$date_start)
