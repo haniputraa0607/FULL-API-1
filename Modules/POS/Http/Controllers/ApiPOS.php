@@ -1650,6 +1650,72 @@ class ApiPOS extends Controller
         ];
     }
 
+    public function syncAddOnPrice2(Request $request)
+    {
+        $post = $request->json()->all();
+        $api = $this->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
+
+        $countInsert    = 0;
+        $insertProduct  = [];
+        $countfailed    = 0;
+        $failedProduct  = [];
+        $dataJob        = [];
+        foreach ($post['add_on'] as $keyMenu => $menu) {
+            $checkProduct = ProductModifier::where('code', $menu['sap_matnr'])->first();
+            if ($checkProduct) {
+                foreach ($menu['price_detail'] as $keyPrice => $price) {
+                    if ($price['start_date'] < date('Y-m-d')) {
+                        $price['start_date'] = date('Y-m-d');
+                    }
+                    if ($price['end_date'] < $price['start_date']) {
+                        $countfailed     = $countfailed + 1;
+                        $failedProduct[] = 'Fail to sync, product modiffier ' . $menu['sap_matnr'] . ', recheck this date';
+                        continue;
+                    }
+
+                    $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
+                    if (!$checkOutlet) {
+                        $countfailed     = $countfailed + 1;
+                        $failedProduct[] = 'Fail to sync, product modiffier ' . $menu['sap_matnr'] . ', no outlet';
+                        continue;
+                    }
+
+                    $dataJob[$keyMenu]['price_detail'][$keyPrice] = [
+                        'id_product_modifier'   => $checkProduct->id_product_modifier,
+                        'id_outlet'             => $checkOutlet->id_outlet,
+                        'price'                 => $price['price'],
+                        'start_date'            => $price['start_date'],
+                        'end_date'              => $price['end_date'],
+                        'created_at'            => date('Y-m-d H:i:s'),
+                        'updated_at'            => date('Y-m-d H:i:s')
+                    ];
+
+                    $countInsert     = $countInsert + 1;
+                    $insertProduct[] = 'Success to sync price, product modiffier ' . $menu['sap_matnr'] . ' outlet ' . $price['store_code'];
+                }
+            } else {
+                $countfailed     = $countfailed + 1;
+                $failedProduct[] = 'Fail to sync, menu ' . $menu['sap_matnr'] . ', menu not found';
+                continue;
+            }
+            if (isset($dataJob[$keyMenu]['price_detail'])) {
+                SyncAddOnPrice::dispatch(json_encode($dataJob[$keyMenu]))->onQueue('sync_product');
+            }
+        }
+
+        $hasil['success_menu']['total']         = $countInsert;
+        $hasil['success_menu']['list_menu']     = $insertProduct;
+        $hasil['failed_product']['total']       = $countfailed;
+        $hasil['failed_product']['list_menu']   = $failedProduct;
+        return [
+            'status'    => 'success',
+            'result'    => $hasil,
+        ];
+    }
+
     public function cronProductPricePriority()
     {
         $log = MyHelper::logCron('Sync Product Price Priority');
