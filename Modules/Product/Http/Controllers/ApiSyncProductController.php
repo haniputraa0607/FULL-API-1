@@ -102,9 +102,11 @@ class ApiSyncProductController extends Controller
         }
 
         $result = app('Modules\POS\Http\Controllers\ApiPOS')->cronProductPrice();
+        $result = app('Modules\POS\Http\Controllers\ApiPOS')->cronAddOnPrice();
 
         // clear table temp
         \DB::connection('mysql')->table('outlet_product_price_periode_temps')->delete();
+        \DB::connection('mysql')->table('outlet_product_modifier_price_periode_temps')->delete();
         return [
             'status' => 'success'
         ];
