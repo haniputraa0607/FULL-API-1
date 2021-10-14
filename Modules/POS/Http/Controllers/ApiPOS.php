@@ -79,6 +79,7 @@ use Modules\Outlet\Entities\OutletOvo;
 use Modules\POS\Jobs\SyncAddOnPrice;
 use Modules\POS\Jobs\SyncProductPrice;
 use App\Jobs\SyncProductPrice2;
+use App\Jobs\SyncAddonPrice2;
 use Modules\Product\Entities\ProductPricePeriode;
 use Modules\ProductVariant\Entities\ProductGroup;
 use Modules\ProductVariant\Entities\ProductProductVariant;
@@ -1337,6 +1338,7 @@ class ApiPOS extends Controller
         $log = MyHelper::logCron('Reset Temporary Product Price Period');
         try{
             DB::connection('mysql')->table('outlet_product_price_periode_temps')->whereDate('created_at', '<', date('Y-m-d', time()))->delete();
+            DB::connection('mysql')->table('outlet_product_modifier_price_periode_temps')->whereDate('created_at', '<', date('Y-m-d', time()))->delete();
             $log->success();
         } catch (\Exception $e) {
             $log->fail($e->getMessage());
@@ -1663,8 +1665,19 @@ class ApiPOS extends Controller
         $countfailed    = 0;
         $failedProduct  = [];
         $dataJob        = [];
+        $dataOutlet     = [];
+        $outlets        = [];
+
+        // meminimalisir query ke tabel produk
+        $products = [];
+        $all_products = ProductModifier::select('id_product_modifier','code')->get();
+        foreach ($all_products as $product) {
+            $products[$product->code] = $product;
+        }
+
         foreach ($post['add_on'] as $keyMenu => $menu) {
-            $checkProduct = ProductModifier::where('code', $menu['sap_matnr'])->first();
+            $checkProduct = $products[$menu['sap_matnr']]??null;
+
             if ($checkProduct) {
                 foreach ($menu['price_detail'] as $keyPrice => $price) {
                     if ($price['start_date'] < date('Y-m-d')) {
@@ -1672,44 +1685,58 @@ class ApiPOS extends Controller
                     }
                     if ($price['end_date'] < $price['start_date']) {
                         $countfailed     = $countfailed + 1;
-                        $failedProduct[] = 'Fail to sync, product modiffier ' . $menu['sap_matnr'] . ', recheck this date';
+                        $failedProduct[] = 'Fail to sync, addon ' . $menu['sap_matnr'] . ', recheck this date';
                         continue;
                     }
 
-                    $checkOutlet = Outlet::where('outlet_code', $price['store_code'])->first();
+                    // meminimalisir query ke tabel outlet
+                    if(!($outlets[$price['store_code']]??false)) {
+                        $outlets[$price['store_code']] = Outlet::select('id_outlet')->where('outlet_code', $price['store_code'])->first();
+                    }
+
+                    $checkOutlet = $outlets[$price['store_code']];
+
                     if (!$checkOutlet) {
                         $countfailed     = $countfailed + 1;
-                        $failedProduct[] = 'Fail to sync, product modiffier ' . $menu['sap_matnr'] . ', no outlet';
+                        $failedProduct[] = 'Fail to sync, addon ' . $menu['sap_matnr'] . ', no outlet';
                         continue;
                     }
-
-                    $dataJob[$keyMenu]['price_detail'][$keyPrice] = [
-                        'id_product_modifier'   => $checkProduct->id_product_modifier,
-                        'id_outlet'             => $checkOutlet->id_outlet,
-                        'price'                 => $price['price'],
-                        'start_date'            => $price['start_date'],
-                        'end_date'              => $price['end_date'],
-                        'created_at'            => date('Y-m-d H:i:s'),
-                        'updated_at'            => date('Y-m-d H:i:s')
+                    $dataOutlet[$checkOutlet->id_outlet] = null;
+                    $dataJob[] = [
+                        'id_product_modifier'    => $checkProduct->id_product_modifier,
+                        'id_outlet'     => $checkOutlet->id_outlet,
+                        'price'         => $price['price'],
+                        'start_date'    => $price['start_date'],
+                        'end_date'      => $price['end_date'],
+                        'created_at'    => date('Y-m-d H:i:s')
                     ];
 
                     $countInsert     = $countInsert + 1;
-                    $insertProduct[] = 'Success to sync price, product modiffier ' . $menu['sap_matnr'] . ' outlet ' . $price['store_code'];
+                    $insertProduct[] = 'Success to sync price, product ' . $menu['sap_matnr'] . ' outlet ' . $price['store_code'];
                 }
             } else {
                 $countfailed     = $countfailed + 1;
-                $failedProduct[] = 'Fail to sync, menu ' . $menu['sap_matnr'] . ', menu not found';
+                $failedProduct[] = 'Fail to sync, product ' . $menu['sap_matnr'] . ', product not found';
                 continue;
             }
-            if (isset($dataJob[$keyMenu]['price_detail'])) {
-                SyncAddOnPrice::dispatch(json_encode($dataJob[$keyMenu]))->onQueue('sync_product');
-            }
         }
+
+        $insert = DB::connection('mysql')->table('outlet_product_modifier_price_periode_temps')->insert($dataJob);
 
         $hasil['success_menu']['total']         = $countInsert;
         $hasil['success_menu']['list_menu']     = $insertProduct;
         $hasil['failed_product']['total']       = $countfailed;
         $hasil['failed_product']['list_menu']   = $failedProduct;
+
+        if ($dataJob && $insert) {
+            SyncAddonPrice2::dispatch(array_keys($dataOutlet))->allOnConnection('database')->onQueue('sync_product');
+        } else {
+            return [
+                'status' => 'fail',
+                'result' => $hasil
+            ];
+        }
+
         return [
             'status'    => 'success',
             'result'    => $hasil,
