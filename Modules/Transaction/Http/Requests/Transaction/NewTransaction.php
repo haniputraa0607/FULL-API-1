@@ -26,8 +26,8 @@ class NewTransaction extends FormRequest
             'item.*.qty'                             => 'required|numeric|min:1',
             'item.*.note'                            => 'sometimes|nullable|string',
             'item.*.modifiers'                       => 'sometimes|nullable|array',
-            'item.*.modifiers.*.qty'                 => 'required|numeric|min:1',
-            'item.*.modifiers.*.id_product_modifier' => 'required|numeric',
+            // 'item.*.modifiers.*.qty'                 => 'required|numeric|min:1',
+            // 'item.*.modifiers.*.id_product_modifier' => 'required|numeric', // comment for ios compatibility
             
             'destination.id_user_address'             => 'nullable|sometimes',
             'destination.short_address'               => 'nullable|sometimes',
