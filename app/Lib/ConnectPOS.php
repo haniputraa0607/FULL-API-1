@@ -108,7 +108,7 @@ class ConnectPOS{
 			->where('sent_to_pos', '0')
 			->get();
 		// return $trxData;
-		if(!$trxDatas){return true;}
+		if(!$trxDatas->count()){return true;}
 		Transaction::whereIn('id_transaction', $trxDatas->pluck('id_transaction'))->update(['sent_to_pos' => 2]);
 		$item = [];
 		$users = [];
@@ -453,6 +453,17 @@ class ConnectPOS{
 		];
 		$this->sign($sendData);
 
+		$top = TransactionOnlinePos::updateOrCreate(
+			[
+				'id_transaction' => $trxData['id_transaction']
+			] , [
+				'request' => json_encode($sendData),
+				'response' => '',
+				'id_transaction' => $trxData['id_transaction'],
+				'count_retry' => (TransactionOnlinePos::where('id_transaction', $trxData['id_transaction'])->pluck('count_retry')->first() ?? 0) + 1,
+			]
+		);
+
 		$response = MyHelper::postWithTimeout($this->url.$module_url,null,$sendData,0,null,30,false);
 		$dataLog = [
 			'url' 		        => $this->url.$module_url,
@@ -470,7 +481,6 @@ class ConnectPOS{
 			Transaction::whereIn('id_transaction', $trxDatas->pluck('id_transaction'))->update(['sent_to_pos' => 0]);
 			foreach ($users as $phone) {
 				$variables = $transactions[$phone];
-				$top = TransactionOnlinePos::where('id_transaction',$trxData['id_transaction'])->first();
 				if($top){
 					$top->update([
 						'request' => json_encode($sendData),
@@ -663,6 +673,17 @@ class ConnectPOS{
 			'body' => $body_section,
 		];
 
+		$top = TransactionOnlinePosCancel::updateOrCreate(
+			[
+				'id_transaction' => $transaction['id_transaction'],
+			] , [
+				'request' => json_encode($sendData),
+				'response' => '',
+				'id_transaction' => $transaction['id_transaction'],
+				'count_retry' => (TransactionOnlinePosCancel::where('id_transaction', $transaction['id_transaction'])->pluck('count_retry')->first() ?? 0) + 1,
+			]
+		);
+
 		$response = MyHelper::postWithTimeout($this->url.$module_url,null,$sendData,0,null,30,false);
 		$dataLog = [
 			'url' 		        => $this->url.$module_url,
@@ -678,7 +699,6 @@ class ConnectPOS{
 
 		$is_success = ($response['status_code']??false) == 200;
 		if(!$is_success){
-			$top = TransactionOnlinePosCancel::where('id_transaction',$transaction['id_transaction'])->first();
 			if($top){
 				$top->update([
 					'request' => json_encode($sendData),
