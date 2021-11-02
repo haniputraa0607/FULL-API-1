@@ -3893,7 +3893,7 @@ class ApiPOS extends Controller
 
     public function cronResetStatus(Request $request)
     {
-        $log = MyHelper::logCron('Cancel Transaction Driver Not Found');
+        $log = MyHelper::logCron('Reset status send to POS');
         $minutes = (int) MyHelper::setting('auto_reject_time','value', 15)*60;
         try {
             // reset flag transaction online pos
@@ -3902,7 +3902,6 @@ class ApiPOS extends Controller
             $trxs->update(['success_retry_status' => 0]);
             $log->success([
                 'total' => $trxs->count(),
-                'success' => $success
             ]);
             return response()->json(['success']);
         } catch (\Exception $e) {
