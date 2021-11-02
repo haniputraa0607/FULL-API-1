@@ -548,7 +548,7 @@ class ConnectPOS{
 			return true;
 		}
 		$func = 'doSendTransaction';
-		if (count($trxs) > 20) {
+		if (count($trxs) > 5) {
 			$func = 'sendTransaction';
 		}
 
