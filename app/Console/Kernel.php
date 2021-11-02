@@ -203,6 +203,12 @@ class Kernel extends ConsoleKernel
         $schedule->call('Modules\Transaction\Http\Controllers\ApiCronTrxController@cronCancelDriverNotFound')->everyMinute();
 
         /**
+         * To reset send to pos status
+         * run every 5 minutes
+         */
+        $schedule->call('Modules\POS\Http\Controllers\ApiPOS@cronResetStatus')->everyFiveMinutes();
+
+        /**
          * To retry vailed refund
          * run at specific timeframe
          */
