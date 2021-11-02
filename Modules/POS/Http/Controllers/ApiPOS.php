@@ -84,6 +84,8 @@ use Modules\Product\Entities\ProductPricePeriode;
 use Modules\ProductVariant\Entities\ProductGroup;
 use Modules\ProductVariant\Entities\ProductProductVariant;
 use Modules\ProductVariant\Entities\ProductVariant;
+use App\Http\Models\TransactionOnlinePos;
+use Modules\POS\Entities\TransactionOnlinePosCancel;
 
 class ApiPOS extends Controller
 {
@@ -3887,5 +3889,13 @@ class ApiPOS extends Controller
                 break;
         }
         return $data;
+    }
+
+    public function cronResetStatus(Request $request)
+    {
+        // reset flag transaction online pos
+        $trxs = TransactionOnlinePos::where('success_retry_status', 2)->where('created_at', '<', date('Y-m-d H:i:s', time() - 300))->get();
+        Transaction::whereIn('id_transaction', $trxs->pluck('id_transaction'))->update(['sent_to_pos' => 0]);
+        $trxs->update(['success_retry_status' => 0]);
     }
 }
