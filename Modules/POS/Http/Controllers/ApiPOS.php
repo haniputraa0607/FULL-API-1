@@ -84,6 +84,8 @@ use Modules\Product\Entities\ProductPricePeriode;
 use Modules\ProductVariant\Entities\ProductGroup;
 use Modules\ProductVariant\Entities\ProductProductVariant;
 use Modules\ProductVariant\Entities\ProductVariant;
+use App\Http\Models\TransactionOnlinePos;
+use Modules\POS\Entities\TransactionOnlinePosCancel;
 
 class ApiPOS extends Controller
 {
@@ -3887,5 +3889,24 @@ class ApiPOS extends Controller
                 break;
         }
         return $data;
+    }
+
+    public function cronResetStatus(Request $request)
+    {
+        $log = MyHelper::logCron('Reset status send to POS');
+        $minutes = (int) MyHelper::setting('auto_reject_time','value', 15)*60;
+        try {
+            // reset flag transaction online pos
+            $trxs = TransactionOnlinePos::where('success_retry_status', 2)->where('created_at', '<', date('Y-m-d H:i:s', time() - 300))->get();
+            Transaction::whereIn('id_transaction', $trxs->pluck('id_transaction'))->update(['sent_to_pos' => 0]);
+            TransactionOnlinePos::whereIn('id_transaction_online_pos', $trxs->pluck('id_transaction_online_pos'))->update(['success_retry_status' => 0]);
+            $log->success([
+                'total' => $trxs->count(),
+            ]);
+            return response()->json(['success']);
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
+            return ['status' => 'fail'];
+        }
     }
 }
