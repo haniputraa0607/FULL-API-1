@@ -2774,7 +2774,7 @@ class ApiPOS extends Controller
                                 }
                                 $trxVoucher[] = $dataVoucher;
                             }
-                        } elseif ($trx['hasPromo'] ?? false) {
+                        } elseif ($trx['has_promo'] ?? false) {
                             // no add balance
                         } else {
                             if ($config['point'] == '1') {
