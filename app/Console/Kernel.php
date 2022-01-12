@@ -215,6 +215,18 @@ class Kernel extends ConsoleKernel
         foreach (['03:05', '11:00', '19:00'] as $time) {
             $schedule->call('Modules\Transaction\Http\Controllers\TransactionVoidFailedController@cronRetry')->dailyAt($time);
         }
+
+        /**
+         * To send notification expiry point
+         * run every hour
+         */
+        $schedule->call('Modules\Balance\Http\Controllers\ApiExpiryPoint@sendNotificationExpiryPoint')->hourly();
+
+        /**
+         * To adjustment point
+         * run every hour
+         */
+        $schedule->call('Modules\Balance\Http\Controllers\ApiExpiryPoint@adjustmentPointUser')->hourly();
     }
 
     /**
