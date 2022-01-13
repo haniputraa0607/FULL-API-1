@@ -97,6 +97,13 @@ return [
             'retry_after' => 90,
         ],
 
+        'notification_expiry_point_sent_queue' => [
+            'driver' => 'database',
+            'table' => 'notification_expiry_point_sent_jobs',
+            'queue' => 'notification_expiry_point_sent_queue',
+            'retry_after' => 3600,
+        ],
+
         'sqs' => [
             'driver' => 'sqs',
             'key' => 'your-public-key',

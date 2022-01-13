@@ -38,6 +38,7 @@ class AutocrmEmailLog extends Model
 
 	protected $fillable = [
 		'id_user',
+        'id_notification_expiry_point_sent_user',
 		'email_log_to',
 		'email_log_subject',
 		'email_log_message',

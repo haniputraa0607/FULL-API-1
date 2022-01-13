@@ -33,6 +33,7 @@ class AutocrmSmsLog extends Model
 
 	protected $fillable = [
 		'id_user',
+        'id_notification_expiry_point_sent_user',
 		'sms_log_to',
 		'sms_log_content'
 	];
