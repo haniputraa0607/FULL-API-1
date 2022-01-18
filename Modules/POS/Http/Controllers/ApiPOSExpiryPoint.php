@@ -25,7 +25,13 @@ class ApiPOSExpiryPoint extends Controller
     }
 
     public function saveDataExpiryPoint(Request $request){
-        $datas = $request->all();
+        $post = $request->all();
+        $api = app('Modules\POS\Http\Controllers\ApiPOS')->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
+
+        $datas = $post['data'];
         $currentDate = date('Y-m-d');
         $nextMonth = date('Y-m-d', strtotime($currentDate. ' + 1 month'));
 
@@ -46,7 +52,13 @@ class ApiPOSExpiryPoint extends Controller
     }
 
     public function saveDataAdjustmentPoint(Request $request){
-        $datas = $request->all();
+        $post = $request->all();
+        $api = app('Modules\POS\Http\Controllers\ApiPOS')->checkApi($post['api_key'], $post['api_secret']);
+        if ($api['status'] != 'success') {
+            return response()->json($api);
+        }
+
+        $datas = $post['data'];
 
         foreach ($datas as $data){
             $insert = [
