@@ -720,7 +720,25 @@ class SettingsTableSeeder extends Seeder
                     'value_text' => null,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
-                )
+                ),
+            94 =>
+                array(
+                    'id_setting' => 95,
+                    'key' => 'date_send_notification_expiry_point',
+                    'value' => null,
+                    'value_text' => '{"date": ", "time": ""}',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
+            95 =>
+                array(
+                    'id_setting' => 96,
+                    'key' => 'date_adjustment_point_user',
+                    'value' => NULL,
+                    'value_text' => '{"date": "", "time": ""}',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
         ));
     }
 }

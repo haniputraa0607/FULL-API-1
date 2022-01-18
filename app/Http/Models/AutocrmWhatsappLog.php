@@ -20,6 +20,7 @@ class AutocrmWhatsappLog extends Model
 
 	protected $fillable = [
 		'id_user',
+        'id_notification_expiry_point_sent_user',
 		'whatsapp_log_to',
 	];
 

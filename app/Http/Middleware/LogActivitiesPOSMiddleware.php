@@ -114,6 +114,8 @@ class LogActivitiesPOSMiddleware
                 elseif(stristr($url, 'pos/order/ready')) $subject = 'POS Order Ready';
                 elseif(stristr($url, 'pos/order/taken')) $subject = 'POS Order Taken';
                 elseif(stristr($url, 'pos/order/reject')) $subject = 'POS Order Reject';
+                elseif(stristr($url, 'pos/expiry-point/notification')) $subject = 'Notification Expiry Point';
+                elseif(stristr($url, 'pos/expiry-point/adjustment')) $subject = 'Adjustment Expiry Point';
 
                 if(!empty($request->header('ip-address-view'))){
                     $ip = $request->header('ip-address-view');

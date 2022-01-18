@@ -46,7 +46,7 @@ class ApiAutoCrm extends Controller
 		$this->apiwha = new apiwha();
     }
 
-	function SendAutoCRM($autocrm_title, $receipient, $variables = null, $useragent = null, $forward_only = false){
+	function SendAutoCRM($autocrm_title, $receipient, $variables = null, $useragent = null, $forward_only = false, $id_notification_expiry_point_sent_user = null){
 		$query = Autocrm::where('autocrm_title','=',$autocrm_title)->with('whatsapp_content')->get()->toArray();
 		$users = User::where('phone','=',$receipient)->get()->toArray();
 		if(empty($users)){
@@ -172,6 +172,7 @@ class ApiAutoCrm extends Controller
 					$logData['email_log_to'] = $user['email'];
 					$logData['email_log_subject'] = $subject;
 					$logData['email_log_message'] = $content;
+					$logData['id_notification_expiry_point_sent_user'] = $id_notification_expiry_point_sent_user;
 
 					$logs = AutocrmEmailLog::create($logData);
 				}
@@ -251,6 +252,7 @@ class ApiAutoCrm extends Controller
 						$logData['email_log_to'] = $email;
 						$logData['email_log_subject'] = $subject;
 						$logData['email_log_message'] = $content;
+                        $logData['id_notification_expiry_point_sent_user'] = $id_notification_expiry_point_sent_user;
 
 						$logs = AutocrmEmailLog::create($logData);
 					}
@@ -363,6 +365,7 @@ class ApiAutoCrm extends Controller
 					$logData['id_user'] = $user['id'];
 					$logData['sms_log_to'] = $user['phone'];
 					$logData['sms_log_content'] = $content;
+                    $logData['id_notification_expiry_point_sent_user'] = $id_notification_expiry_point_sent_user;
 
 					$logs = AutocrmSmsLog::create($logData);
 				}
@@ -406,7 +409,7 @@ class ApiAutoCrm extends Controller
 								$outbox['id_user'] = $user['id'];
 							}
 							$outbox['whatsapp_log_to'] = $user['phone'];
-
+                            $outbox['id_notification_expiry_point_sent_user'] = $id_notification_expiry_point_sent_user;
 							$logs = AutocrmWhatsappLog::create($outbox);
 							if($logs){
 								// insert to whatsapp log content
@@ -545,6 +548,7 @@ class ApiAutoCrm extends Controller
 									$logData['push_log_to'] = $user['phone'];
 									$logData['push_log_subject'] = $subject;
 									$logData['push_log_content'] = $content;
+                                    $outbox['id_notification_expiry_point_sent_user'] = $id_notification_expiry_point_sent_user;
 
 									$logs = AutocrmPushLog::create($logData);
 								}
@@ -637,6 +641,7 @@ class ApiAutoCrm extends Controller
 					$inbox['inboxes_send_at'] = date("Y-m-d H:i:s");
 					$inbox['created_at'] = date("Y-m-d H:i:s");
 					$inbox['updated_at'] = date("Y-m-d H:i:s");
+                    $inbox['id_notification_expiry_point_sent_user'] = $id_notification_expiry_point_sent_user;
 
 					$inboxQuery = UserInbox::insert($inbox);
 				}
