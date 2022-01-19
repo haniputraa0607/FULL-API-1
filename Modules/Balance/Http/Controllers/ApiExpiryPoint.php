@@ -23,6 +23,7 @@ use Modules\Balance\Http\Controllers\BalanceController;
 use Modules\Balance\Entities\AdjustmentPointUser;
 use Modules\Balance\Entities\NotificationExpiryPoint;
 use Modules\Balance\Entities\NotificationExpiryPointSent;
+use App\Http\Models\User;
 
 class ApiExpiryPoint extends Controller
 {
@@ -110,17 +111,25 @@ class ApiExpiryPoint extends Controller
                 $currentDate == $settingDateTime['date'] && strtotime($currentTime) > strtotime($settingDateTime['time'])){
 
                 $datas = AdjustmentPointUser::join('users', 'users.id', 'adjustment_point_users.id_user')->get()->toArray();
+                $success = 0;
                 foreach ($datas as $data){
+                    if($data['point_adjust'] < 0){
+                        $checkCurrentBalance = User::where('id', $data['id_user'])->first()['balance']??0;
+                        if(abs($data['point_adjust']) > $checkCurrentBalance){
+                            continue;
+                        }
+                    }
                     $balanceController = new BalanceController();
                     $addLogBalance = $balanceController->addLogBalance($data['id_user'], $data['point_adjust'], $data['id_adjustment_point_user'], $data['reason']);
                     if($addLogBalance){
                         AdjustmentPointUser::where('id_adjustment_point_user', $data['id_adjustment_point_user'])->delete();
+                        $success++;
                     }
                 }
             }
 
-            $log->success([count($datas??[])]);
-            return response()->json([count($datas??[])]);
+            $log->success([$success]);
+            return response()->json([$success]);
         } catch (\Exception $e) {
             $log->fail($e->getMessage());
         }
