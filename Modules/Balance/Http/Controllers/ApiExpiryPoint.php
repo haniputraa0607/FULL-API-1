@@ -67,51 +67,63 @@ class ApiExpiryPoint extends Controller
     }
 
     public function sendNotificationExpiryPoint(){
-        $currentDate = date('d');
-        $currentTime = date('H:i');
-        $settingDateTime = Setting::where('key', 'date_send_notification_expiry_point')->first()['value_text']??[];
-        $settingDateTime = (array)json_decode($settingDateTime);
-        if(!empty($settingDateTime['date']) && !empty($settingDateTime['time']) &&
-            $currentDate == $settingDateTime['date'] && strtotime($currentTime) > strtotime($settingDateTime['time'])){
+        $log = MyHelper::logCron('Notification Expiry Point');
+        try {
+            $currentDate = date('d');
+            $currentTime = date('H:i');
+            $settingDateTime = Setting::where('key', 'date_send_notification_expiry_point')->first()['value_text']??[];
+            $settingDateTime = (array)json_decode($settingDateTime);
+            if(!empty($settingDateTime['date']) && !empty($settingDateTime['time']) &&
+                $currentDate == $settingDateTime['date'] && strtotime($currentTime) > strtotime($settingDateTime['time'])){
 
-            $datas = NotificationExpiryPoint::join('users', 'users.id', 'notification_expiry_points.id_user')->get()->toArray();
-            if(!empty($datas)){
-                $create = NotificationExpiryPointSent::create([
-                    'total_customer' => count($datas),
-                    'notification_expiry_point_date_sent' => date('Y-m-d H:i:s')
-                ]);
-                if($create){
-                    $chunk = array_chunk($datas, 200);
-                    foreach ($chunk as $data){
-                        NotificationExpiryPointSendJob::dispatch(['data_notification' => $data, 'id_notification_expiry_point_sent' => $create['id_notification_expiry_point_sent']])->allOnConnection('notification_expiry_point_sent_queue');
-                        NotificationExpiryPoint::whereIn('id_notification_expiry_point', array_column($data, 'id_notification_expiry_point'))->delete();
+                $datas = NotificationExpiryPoint::join('users', 'users.id', 'notification_expiry_points.id_user')->get()->toArray();
+                if(!empty($datas)){
+                    $create = NotificationExpiryPointSent::create([
+                        'total_customer' => count($datas),
+                        'notification_expiry_point_date_sent' => date('Y-m-d H:i:s')
+                    ]);
+                    if($create){
+                        $chunk = array_chunk($datas, 200);
+                        foreach ($chunk as $data){
+                            NotificationExpiryPointSendJob::dispatch(['data_notification' => $data, 'id_notification_expiry_point_sent' => $create['id_notification_expiry_point_sent']])->allOnConnection('notification_expiry_point_sent_queue');
+                            NotificationExpiryPoint::whereIn('id_notification_expiry_point', array_column($data, 'id_notification_expiry_point'))->delete();
+                        }
                     }
                 }
             }
-        }
 
-        return 'success';
+            $log->success([count($datas??[])]);
+            return response()->json([count($datas??[])]);
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
+        }
     }
 
     public function adjustmentPointUser(){
-        $currentDate = date('d');
-        $currentTime = date('H:i');
-        $settingDateTime = Setting::where('key', 'date_adjustment_point_user')->first()['value_text']??[];
-        $settingDateTime = (array)json_decode($settingDateTime);
-        if(!empty($settingDateTime['date']) && !empty($settingDateTime['time']) &&
-            $currentDate == $settingDateTime['date'] && strtotime($currentTime) > strtotime($settingDateTime['time'])){
+        $log = MyHelper::logCron('Adjustment Point User');
+        try {
+            $currentDate = date('d');
+            $currentTime = date('H:i');
+            $settingDateTime = Setting::where('key', 'date_adjustment_point_user')->first()['value_text']??[];
+            $settingDateTime = (array)json_decode($settingDateTime);
+            if(!empty($settingDateTime['date']) && !empty($settingDateTime['time']) &&
+                $currentDate == $settingDateTime['date'] && strtotime($currentTime) > strtotime($settingDateTime['time'])){
 
-            $datas = AdjustmentPointUser::join('users', 'users.id', 'adjustment_point_users.id_user')->get()->toArray();
-            foreach ($datas as $data){
-                $balanceController = new BalanceController();
-                $addLogBalance = $balanceController->addLogBalance($data['id_user'], $data['point_adjust'], $data['id_adjustment_point_user'], $data['reason']);
-                if($addLogBalance){
-                    AdjustmentPointUser::where('id_adjustment_point_user', $data['id_adjustment_point_user'])->delete();
+                $datas = AdjustmentPointUser::join('users', 'users.id', 'adjustment_point_users.id_user')->get()->toArray();
+                foreach ($datas as $data){
+                    $balanceController = new BalanceController();
+                    $addLogBalance = $balanceController->addLogBalance($data['id_user'], $data['point_adjust'], $data['id_adjustment_point_user'], $data['reason']);
+                    if($addLogBalance){
+                        AdjustmentPointUser::where('id_adjustment_point_user', $data['id_adjustment_point_user'])->delete();
+                    }
                 }
             }
-        }
 
-        return 'success';
+            $log->success([count($datas??[])]);
+            return response()->json([count($datas??[])]);
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
+        }
     }
 
     public function reportExpiryPoint(Request $request){
