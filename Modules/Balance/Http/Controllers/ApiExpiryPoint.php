@@ -115,8 +115,11 @@ class ApiExpiryPoint extends Controller
                 foreach ($datas as $data){
                     if($data['point_adjust'] < 0){
                         $checkCurrentBalance = User::where('id', $data['id_user'])->first()['balance']??0;
-                        if(abs($data['point_adjust']) > $checkCurrentBalance){
+
+                        if($checkCurrentBalance == 0){
                             continue;
+                        }elseif(abs($data['point_adjust']) > $checkCurrentBalance){
+                            $data['point_adjust'] = -$checkCurrentBalance;
                         }
                     }
                     $balanceController = new BalanceController();
