@@ -45,7 +45,6 @@ class AdjustmentPointUserJob implements ShouldQueue
         $datas = $this->data['data'];
 
         foreach ($datas as $data){
-            \Log::info($data);
             if($data['point_adjust'] < 0){
                 $checkCurrentBalance = User::where('id', $data['id_user'])->first()['balance']??0;
 
