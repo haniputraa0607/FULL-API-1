@@ -40,4 +40,10 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scop
     Route::any('setting', 'ApiExpiryPoint@settingExpiryPoint');
     Route::any('report', 'ApiExpiryPoint@reportExpiryPoint');
     Route::any('report/outbox', 'ApiExpiryPoint@reportExpiryPointOutbox');
+    Route::get('notification/processing-now', 'ApiExpiryPoint@processingNowNotificationExpiryPoint');
+});
+
+Route::group(['middleware' => ['auth:api', 'log_activities', 'user_agent', 'scopes:be'], 'prefix' => 'api/adjustment-point', 'namespace' => 'Modules\Balance\Http\Controllers'], function()
+{
+    Route::get('processing-now', 'ApiExpiryPoint@processingNowAdjustmentPoint');
 });
