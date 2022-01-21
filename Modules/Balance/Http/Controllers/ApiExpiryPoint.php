@@ -7,6 +7,7 @@ use App\Http\Models\AutocrmPushLog;
 use App\Http\Models\AutocrmSmsLog;
 use App\Http\Models\AutocrmWhatsappLog;
 use App\Http\Models\UserInbox;
+use App\Jobs\AdjustmentPointUserJob;
 use App\Jobs\NotificationExpiryPointSendJob;
 use App\Lib\MyHelper;
 use Illuminate\Http\Request;
@@ -67,15 +68,21 @@ class ApiExpiryPoint extends Controller
         }
     }
 
-    public function sendNotificationExpiryPoint(){
+    public function sendNotificationExpiryPoint($processingNow = 0){
         $log = MyHelper::logCron('Notification Expiry Point');
         try {
+            $status = DB::table('notification_expiry_point_sent_jobs')->count();
+            if($processingNow == 1 && $status > 0){
+                $log->success([0]);
+                return ['status' => 'fail', 'message' => 'Sending expiry point still on progress'];
+            }
+
             $currentDate = date('d');
             $currentTime = date('H:i');
             $settingDateTime = Setting::where('key', 'date_send_notification_expiry_point')->first()['value_text']??[];
             $settingDateTime = (array)json_decode($settingDateTime);
-            if(!empty($settingDateTime['date']) && !empty($settingDateTime['time']) &&
-                $currentDate == $settingDateTime['date'] && strtotime($currentTime) > strtotime($settingDateTime['time'])){
+            if($processingNow == 1 || ($processingNow == 0 && !empty($settingDateTime['date']) && !empty($settingDateTime['time']) &&
+                $currentDate == $settingDateTime['date'] && strtotime($currentTime) > strtotime($settingDateTime['time']))){
 
                 $datas = NotificationExpiryPoint::join('users', 'users.id', 'notification_expiry_points.id_user')->get()->toArray();
                 if(!empty($datas)){
@@ -90,49 +97,50 @@ class ApiExpiryPoint extends Controller
                             NotificationExpiryPoint::whereIn('id_notification_expiry_point', array_column($data, 'id_notification_expiry_point'))->delete();
                         }
                     }
+                }else{
+                    $log->success([0]);
+                    return ['status' => 'fail', 'message' => 'Data not available'];
                 }
             }
 
             $log->success([count($datas??[])]);
-            return response()->json([count($datas??[])]);
+            return ['status' => 'success'];
         } catch (\Exception $e) {
             $log->fail($e->getMessage());
         }
     }
 
-    public function adjustmentPointUser(){
+    public function adjustmentPointUser($processingNow = 0){
         $log = MyHelper::logCron('Adjustment Point User');
         try {
+            $status = DB::table('notification_expiry_point_sent_jobs')->count();
+            if($processingNow == 1 && $status > 0){
+                $log->success([0]);
+                return ['status' => 'fail', 'message' => 'Processing adjustment point still on progress'];
+            }
+
             $currentDate = date('d');
             $currentTime = date('H:i');
             $settingDateTime = Setting::where('key', 'date_adjustment_point_user')->first()['value_text']??[];
             $settingDateTime = (array)json_decode($settingDateTime);
-            if(!empty($settingDateTime['date']) && !empty($settingDateTime['time']) &&
-                $currentDate == $settingDateTime['date'] && strtotime($currentTime) > strtotime($settingDateTime['time'])){
+            if($processingNow == 1 || ($processingNow == 0 && !empty($settingDateTime['date']) && !empty($settingDateTime['time']) &&
+                $currentDate == $settingDateTime['date'] && strtotime($currentTime) > strtotime($settingDateTime['time']))){
 
                 $datas = AdjustmentPointUser::join('users', 'users.id', 'adjustment_point_users.id_user')->get()->toArray();
-                $success = 0;
-                foreach ($datas as $data){
-                    if($data['point_adjust'] < 0){
-                        $checkCurrentBalance = User::where('id', $data['id_user'])->first()['balance']??0;
-
-                        if($checkCurrentBalance == 0){
-                            continue;
-                        }elseif(abs($data['point_adjust']) > $checkCurrentBalance){
-                            $data['point_adjust'] = -$checkCurrentBalance;
-                        }
+                if(!empty($datas)){
+                    $chunk = array_chunk($datas, 200);
+                    foreach ($chunk as $data){
+                        AdjustmentPointUserJob::dispatch(['data' => $data])->allOnConnection('notification_expiry_point_sent_queue');
+                        AdjustmentPointUser::whereIn('id_adjustment_point_user', array_column($data, 'id_adjustment_point_user'))->delete();
                     }
-                    $balanceController = new BalanceController();
-                    $addLogBalance = $balanceController->addLogBalance($data['id_user'], $data['point_adjust'], $data['id_adjustment_point_user'], $data['reason']);
-                    if($addLogBalance){
-                        AdjustmentPointUser::where('id_adjustment_point_user', $data['id_adjustment_point_user'])->delete();
-                        $success++;
-                    }
+                }else{
+                    $log->success([0]);
+                    return ['status' => 'fail', 'message' => 'Data not available'];
                 }
             }
 
-            $log->success([$success]);
-            return response()->json([$success]);
+            $log->success([count($datas??[])]);
+            return ['status' => 'success'];
         } catch (\Exception $e) {
             $log->fail($e->getMessage());
         }
@@ -224,5 +232,15 @@ class ApiExpiryPoint extends Controller
         }
 
         return response()->json(MyHelper::checkGet($data));
+    }
+
+    public function processingNowNotificationExpiryPoint(){
+        $processing = $this->sendNotificationExpiryPoint(1);
+        return $processing;
+    }
+
+    public function processingNowAdjustmentPoint(){
+        $processing = $this->adjustmentPointUser(1);
+        return $processing;
     }
 }
