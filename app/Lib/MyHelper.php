@@ -1425,7 +1425,7 @@ class MyHelper{
 		}
 	}
 
-	public static function postWithTimeout($url, $bearer=null, $post, $form_type=0, $header=null, $timeout = 65,$ssl_verify = true){
+	public static function postWithTimeout($url, $bearer=null, $post, $form_type=0, $header=null, $timeout = 65,$ssl_verify = false){
 		$client = new Client(['verify' => $ssl_verify]);
 
 		$content = array(
