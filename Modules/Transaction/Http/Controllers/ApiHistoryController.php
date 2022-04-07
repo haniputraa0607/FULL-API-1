@@ -1270,12 +1270,32 @@ class ApiHistoryController extends Controller
                 }
 
                 $listBalance[$key] = $dataList;
-            } else {
-                // return 'a';
+            } elseif(strtolower($value['source']) == 'write off') {
+                $dataList['type']   = 'expiry';
+                $dataList['id']      = $value['id_log_balance'];
+                $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
+                $dataList['outlet']  = 'Point Expiry';
+                if ($value['balance'] < 0) {
+                    $dataList['amount'] = '- ' . ltrim(MyHelper::requestNumber($value['balance'], '_POINT'), '-');
+                } else {
+                    $dataList['amount'] = '+ ' . MyHelper::requestNumber($value['balance'], '_POINT');
+                }
+
+                $listBalance[$key] = $dataList;
+            }elseif($value['source'] == 'Welcome Point') {
                 $dataList['type']   = 'profile';
                 $dataList['id']      = $value['id_log_balance'];
                 $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
                 $dataList['outlet'] = 'Welcome Point';
+                $dataList['amount'] = '+ ' . MyHelper::requestNumber($value['balance'], '_POINT');
+
+                $listBalance[$key] = $dataList;
+            } else {
+                // return 'a';
+                $dataList['type']   = $value['source'];
+                $dataList['id']      = $value['id_log_balance'];
+                $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
+                $dataList['outlet'] = ucfirst($value['source']);
                 $dataList['amount'] = '+ ' . MyHelper::requestNumber($value['balance'], '_POINT');
 
                 $listBalance[$key] = $dataList;

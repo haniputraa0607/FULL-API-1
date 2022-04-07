@@ -21,6 +21,9 @@ Route::group(['prefix' => 'api/v1/pos/', 'namespace' => 'Modules\POS\Http\Contro
         Route::post('add-on/sync/deactive', 'ApiPOS@syncAddOnDeactive');
         Route::any('transaction/refund', 'ApiPOS@transactionRefund');
         Route::any('transaction/detail', 'ApiPOS@transactionDetail');
+
+        Route::post('expiry-point/notification', 'ApiPOSExpiryPoint@saveDataExpiryPoint');
+        Route::post('expiry-point/adjustment', 'ApiPOSExpiryPoint@saveDataAdjustmentPoint');
     });
     Route::group(['middleware' => 'auth_client', 'scopes:pos'], function() {
         Route::post('transaction/last', 'ApiPOS@getLastTransaction');
