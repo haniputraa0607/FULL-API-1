@@ -1271,7 +1271,7 @@ class ApiHistoryController extends Controller
 
                 $listBalance[$key] = $dataList;
             } elseif(strtolower($value['source']) == 'write off') {
-                $dataList['type']   = 'expiry';
+                $dataList['type']   = 'profile';
                 $dataList['id']      = $value['id_log_balance'];
                 $dataList['date']    = date('d M Y H:i', strtotime($value['created_at']));
                 $dataList['outlet']  = 'Point Expiry';
