@@ -468,6 +468,8 @@ class ApiUser extends Controller
             if(isset($condition['subject'])){
                 if($condition['operator'] != '='){
                     $conditionParameter = $condition['operator'];
+                } else {
+                    unset($conditionParameter);
                 }
 
                 if($condition['operator']=='WHERE IN'){
@@ -500,7 +502,7 @@ class ApiUser extends Controller
                         else $query = $query->where($var,'=',$condition['parameter']);
                     }
 
-                    if(($conditionParameter = $condition['subject']) == 'device'){
+                    if($condition['subject'] == 'device'){
 
                         if($conditionParameter == 'None'){
                             $query = $query->whereNull('users.android_device')->whereNull('users.ios_device');
