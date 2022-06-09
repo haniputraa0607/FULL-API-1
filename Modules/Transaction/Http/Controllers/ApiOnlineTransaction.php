@@ -113,8 +113,23 @@ class ApiOnlineTransaction extends Controller
             DB::rollBack();
             return response()->json([
                 'status'    => 'fail',
+                'error_type' => 'email_not_verified',
+                'error_title' => 'Unverified Email',
                 'message_verfiy_email'=> 'Sorry your email has not yet been verified. Please verify your email.',
-                'messages'  => ['Sorry your email has not yet been verified. Please verify your email.']
+                'messages'  => ['Sorry your email has not yet been verified. Please verify your email.'],
+                'button_text' => 'Verify Email',
+            ]);
+        }
+
+        //check verify email
+        if(!($user['birthday'] ?? false) || !($user['gender'] ?? false) || !($user['id_province'] ?? false)){
+            return response()->json([
+                'status'    => 'fail',
+                'error_type' => 'incomplete_profile',
+                'error_title' => 'Incomplete Profile',
+                'message_incomplete_profile'=> 'Please complete your personal data first to continue the transaction.',
+                'messages'  => ['Please complete your personal data first to continue the transaction.'],
+                'button_text' => 'Complete Profile',
             ]);
         }
 

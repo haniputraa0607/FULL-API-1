@@ -520,6 +520,9 @@ class ApiPOS extends Controller
 
             $result['uid'] = $id_user;
             $result['name'] = $user->name;
+            $result['age'] = $user->birthday ? date_diff(date_create($user->birthday), date_create('today'))->y : null;
+            $result['birthdate'] = $user->birthday ? date('Y-m-d', strtotime($user->birthday)) : null;
+            $result['gender'] = $user->gender ?: null;
 
             $voucher = DealsUser::with('dealVoucher', 'dealVoucher.deal')->where('id_user', $user->id)
                 ->where(function ($query) use ($outlet) {
