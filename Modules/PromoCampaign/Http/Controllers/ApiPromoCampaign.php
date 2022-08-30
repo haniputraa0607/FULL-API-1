@@ -40,6 +40,7 @@ use Modules\Promotion\Entities\DealsPromotionDiscountDeliveryRule;
 use Modules\Promotion\Entities\DealsPromotionShipmentMethod;
 
 use Modules\ProductVariant\Entities\ProductGroup;
+use App\Http\Models\ProductCategory;
 
 use App\Http\Models\User;
 use App\Http\Models\Campaign;
@@ -1916,6 +1917,11 @@ class ApiPromoCampaign extends Controller
 		            		->toArray();
 		        }
         		break;
+            
+            case 'Category':
+                
+                $data = ProductCategory::select('id_product_category','product_category_name')->get()->toArray();
+                break;
 
         	case 'ProductGroup':
         		$data = ProductGroup::select('id_product_group', DB::raw('CONCAT(product_group_code, " - ", product_group_name) AS product_group'))->whereNotNull('id_product_category')->get()->toArray();
