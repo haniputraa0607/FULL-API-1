@@ -82,7 +82,8 @@ class PromoCampaign extends Eloquent
 		'product_type',
 		'promo_campaign_warning_image',
 		'min_basket_size',
-		'is_all_shipment'
+		'is_all_shipment',
+		'is_all_days'
 	];
 
 	protected $appends  = ['url_promo_campaign_warning_image'];
@@ -123,6 +124,12 @@ class PromoCampaign extends Eloquent
 	{
 		return $this->hasMany(\Modules\PromoCampaign\Entities\PromoCampaignHaveTag::class, 'id_promo_campaign');
 	}
+
+	public function promo_campaign_days()
+	{
+		return $this->hasMany(\Modules\PromoCampaign\Entities\PromoCampaignDay::class, 'id_promo_campaign');
+	}
+
 
 	public function outlets()
 	{
@@ -209,9 +216,6 @@ class PromoCampaign extends Eloquent
 			'promo_campaign_buyxgety_rules',
 			'promo_campaign_productcategory_rules',
 			'promo_campaign_product_discount.product' => function($q) {
-				$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
-			},
-			'promo_campaign_buyxgety_product_requirement.product' => function($q) {
 				$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
 			},
 			'promo_campaign_productcategory_category_requirements.product_category' => function($q) {

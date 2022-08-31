@@ -15,7 +15,8 @@ class PromoCampaignProductCategoryRule extends Eloquent
 		'id_promo_campaign' => 'int',
 		'min_qty_requirement' => 'int',
 		'benefit_qty' => 'int',
-		'max_percent_discount' => 'int'
+		'max_percent_discount' => 'int',
+		'id_product_category' => 'int',
 	];
 
 	protected $fillable = [
@@ -24,11 +25,17 @@ class PromoCampaignProductCategoryRule extends Eloquent
 		'benefit_qty',
 		'discount_type',
 		'discount_value',
-		'max_percent_discount'
+		'max_percent_discount',
+		'id_product_category'
 	];
 
 	public function promo_campaign()
 	{
 		return $this->belongsTo(\Modules\PromoCampaign\Entities\PromoCampaign::class, 'id_promo_campaign');
+	}
+
+	public function product_category()
+	{
+		return $this->belongsTo(\App\Http\Models\ProductCategory::class, 'id_product_category');
 	}
 }

@@ -11,6 +11,10 @@ class PromoCampaignProductCategoryProductRequirement extends Eloquent
 	protected $table = 'promo_campaign_productcategory_category_requirements';
 	protected $primaryKey = 'id_promo_campaign_productcategory_category_requirement';
 
+	protected $appends  = [
+		'get_product_category'
+	];
+
 	protected $casts = [
 		'id_promo_campaign' => 'int',
 		'id_product_category' => 'int'
@@ -19,7 +23,8 @@ class PromoCampaignProductCategoryProductRequirement extends Eloquent
 	protected $fillable = [
 		'id_promo_campaign',
 		'id_product_category',
-		'product_type'
+		'product_type',
+		'auto_apply'
 	];
 
 	public function product_category()
@@ -32,4 +37,8 @@ class PromoCampaignProductCategoryProductRequirement extends Eloquent
 		return $this->belongsTo(\Modules\PromoCampaign\Entities\PromoCampaign::class, 'id_promo_campaign');
 	}
 
+	public function getGetProductCategoryAttribute() {
+		
+		$this->load(['product_category']);
+    }
 }
