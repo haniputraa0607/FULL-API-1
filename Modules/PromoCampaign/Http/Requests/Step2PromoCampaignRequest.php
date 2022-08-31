@@ -45,6 +45,15 @@ class Step2PromoCampaignRequest extends FormRequest
                 'promo_rule.*.discount_percent'           => 'nullable|numeric|min:1|max:100',
                 'promo_rule.*.discount_nominal'           => 'nullable|numeric'
             ];
+        }elseif ($this->json('promo_type')=='Promo Product Category') {
+            $rules=[
+                'category_product'                        => 'required',
+                'promo_rule'                              => 'required',
+                'promo_rule.*.min_qty_requirement'        => 'required|numeric|min:1',
+                'promo_rule.*.benefit_qty'                => 'nullable|numeric',
+                'promo_rule.*.discount_percent'           => 'nullable|numeric|min:1|max:100',
+                'promo_rule.*.discount_nominal'           => 'nullable|numeric'
+            ];
         }
 
         $rules['product_type'] = 'required';
