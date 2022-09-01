@@ -2791,12 +2791,15 @@ class ApiPromoCampaign extends Controller
 		    $code = $code->with([
 					'promo_campaign.promo_campaign_product_discount',
 					'promo_campaign.promo_campaign_buyxgety_product_requirement',
+					'promo_campaign.promo_campaign_productcategory_category_requirements',
 					'promo_campaign.promo_campaign_tier_discount_product',
 					'promo_campaign.promo_campaign_product_discount_rules',
 					'promo_campaign.promo_campaign_tier_discount_rules',
                     'promo_campaign.promo_campaign_buyxgety_rules',
+                    'promo_campaign.promo_campaign_productcategory_rules',
                     'promo_campaign.promo_campaign_referral',
-                    'promo_campaign.promo_campaign_discount_delivery_rules'
+                    'promo_campaign.promo_campaign_discount_delivery_rules',
+                    'promo_campaign.promo_campaign_days'
 				]);
 	    }
 

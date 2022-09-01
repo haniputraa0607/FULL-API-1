@@ -9,6 +9,7 @@ use Modules\PromoCampaign\Entities\UserReferralCode;
 use Modules\PromoCampaign\Entities\PromoCampaignReferralTransaction;
 use Modules\PromoCampaign\Entities\PromoCampaignReferral;
 use App\Http\Models\Product;
+use Modules\ProductVariant\Entities\ProductGroup;
 use App\Http\Models\ProductModifier;
 use App\Http\Models\UserDevice;
 use App\Http\Models\User;
@@ -573,14 +574,13 @@ class PromoCampaignTools{
 						$max_qty=$max_qty;
 					}
 				}
-
+				
 				if ($promo['product_type'] == 'group') {
 					$product_name = $this->getProductName($promo_product->product_group);
 				}else{
 					$promo_product->product->load('product_group', 'product_variants')->toArray();
 					$product_name = $this->getProductName($promo_product->product->product_group, $promo_product->product->product_variants);
 				}
-
 				// promo product not available in cart?
 				if(!in_array($promo_product->id_product, array_column($trxs, $id))){
 					$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
@@ -713,7 +713,188 @@ class PromoCampaignTools{
 	        	}
 
 				break;
+				
+			case 'Promo Product Category':
+				// load requirement relationship
+				$promo->load($source.'_productcategory_rules',$source.'_productcategory_category_requirements');
+				$promo_product=$promo[$source.'_productcategory_category_requirements'];
+				$product_group = ProductGroup::where('id_product_category',$promo_product['id_product_category'])->get()->toArray();
+				$product_group = array_pluck($product_group,'id_product_group');
+				$id = 'id_product_category';
+				// $promo_product->load('product');
 
+				if(!$promo_product){
+					$errors[]='Benefit product is not set correctly';
+					return false;
+				}
+				// sum total quantity of same product
+				$trx_category = [];
+				foreach ($trxs as $key => $value)
+				{
+					if(in_array($value['id_product_group'],$product_group)){
+						$value[$id] = $promo_product['id_product_category'];
+						$trx_category[] = $value;
+					}else{
+						$value[$id] = null;
+					}
+					$trxs[$key][$id] = $value[$id];
+					
+					if (isset($item_get_promo[$value[$id]]))
+					{
+						$item_get_promo[$value[$id]] += $value['qty'];
+					}
+					else
+					{
+						$item_get_promo[$value[$id]] = $value['qty'];
+					}
+				
+				}
+				
+				$promo_rules=$promo[$source.'_productcategory_rules'];
+				$min_qty=$promo_rules[0]['min_qty_requirement'];
+				// get min max for error message
+				// foreach ($promo_rules as $rule) {
+
+				// 	if($min_qty===null||$rule->min_qty_requirement<$min_qty){
+				// 		$min_qty=$min_qty;
+				// 	}
+				// }
+
+				$category_name = $promo_product->product_category->product_category_name;
+
+				// promo product not available in cart?
+				if(!in_array($promo_product->id_product_category, array_column($trxs, $id))){
+					$message = $this->getMessage('error_productcategory_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.';
+					return $message = MyHelper::simpleReplace($message,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
+
+					$errors[]= $message;
+					$errorProduct = 1;
+					return false;
+				}
+				
+				//get cart's product to get benefit
+				$category=null;
+				foreach ($trxs as &$trx) {
+					//is this the cart product we looking for?
+					if($trx[$id]==$promo_product->id_product_category){
+						//set reference to this cart product
+						$ref_item = &$trx;
+						$category=&$trx;
+						// break from loop
+						break;
+					}
+				}
+				// product not found? buat jaga-jaga kalau sesuatu yang tidak diinginkan terjadi
+				if(!$category){
+					$message = $this->getMessage('error_productcategory_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.';
+					$message = MyHelper::simpleReplace($message,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
+
+					$errors[]= $message;
+					$errorProduct = 1;
+					return false;
+				}
+				//find promo
+				$promo_rules=$promo[$source.'_productcategory_rules'];
+				$promo_rule=false;
+				$min_qty=null;
+				$max_qty=null;
+				
+				foreach ($promo_rules as $rule) {
+					// search y product in cart
+					$benefit_qty=$rule->benefit_qty;
+					$min_req=$rule->min_qty_requirement;
+
+					if($min_qty===null||$rule->min_qty_requirement<$min_qty){
+						$min_qty=$min_req;
+					}
+					if($min_req>$item_get_promo[$promo_product->id_product_category]){
+						continue;
+					}
+					$promo_rule=$rule;
+				}
+				
+				if(!$promo_rule){
+					$message = $this->getMessage('error_productcategory_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.';
+					$message = MyHelper::simpleReplace($message,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
+
+					$errors[]= $message;
+					$errorProduct = 1;
+					return false;
+				}
+				$benefit_products = [];
+
+				foreach($trx_category ?? [] as $trx_cat){
+					$benefit_products[] = $this->getOneProduct($id_outlet, $trx_cat['id_product'],1, 1);
+				}
+
+				if(!$benefit_products){
+					$errors[]="Product benefit not found.";
+					return false;
+				}
+				$benefit_product = array_reduce($benefit_products, function($a, $b){
+					return $a['product_price'] < $b['product_price'] ? $a : $b;
+				}, array_shift($benefit_products));
+				
+				$benefit=null;
+
+				$benefit_product_price = $this->getProductPrice(
+					$id_outlet, 
+					$benefit_product->id_product, 
+					$promo->id_brand??$benefit_product->brands[0]->id_brand??'', 
+					$benefit_product->id_product_group
+				);
+				// dd($benefit_product_price->toArray());
+				$ref_item['is_promo'] = 1;
+				$benefit_qty=$promo_rule->benefit_qty;
+				$benefit_value=$promo_rule->discount_value;
+				$benefit_type = $promo_rule->discount_type;
+				$benefit_max_value = $promo_rule->max_percent_discount;
+
+
+				$rule=(object) [
+					'max_qty'=>$benefit_qty,
+					'discount_type'=>$benefit_type,
+					'discount_value'=>$benefit_value,
+					'max_percent_discount'=>$benefit_max_value
+				];
+				// add product benefit
+				$benefit_item = [
+					'id_custom' 	=> isset(end($trxs)['id_custom']) ? end($trxs)['id_custom']+1 : '',
+					'id_product'	=> $benefit_product->id_product,
+					'id_brand'		=> $promo->id_brand??$benefit_product->brands[0]->id_brand??'',
+					'qty'			=> $promo_rule->benefit_qty,
+					'is_promo'		=> 1,
+					'is_free'		=> ($promo_rule->discount_type == "percent" && $promo_rule->discount_value == 100) ? 1 : 0,
+					'variants'		=> [$benefit_product->product_variants[1]->id_product_variant??'', $benefit_product->product_variants[0]->id_product_variant??''],
+					'modifiers'		=> [],
+					'bonus'			=> 1
+				];
+
+				$discount+=$this->discount_product($benefit_product_price,$rule,$benefit_item);
+
+				array_push($trxs, $benefit_item);
+
+				// $product['product'] = $benefit_product->product_name;
+				$product['product'] = $this->getProductName($benefit_product->product_group, $benefit_product->product_variants);
+				if ($promo_rule->discount_type == 'Percent' || $promo_rule->discount_type == 'percent') {
+					if ($promo_rule->discount_value == 100) {
+						$new_description = 'You get '.$promo_rule['benefit_qty'].' '.$product['product'].' Free';
+						$promo_detail_message = 'Free '.$product['product'].' ('.$promo_rule['benefit_qty'].'x)';
+						$is_free = 1;
+					}else{
+						$discount_benefit = ($promo_rule['discount_value']??0).'%';
+						$new_description = 'You get discount of IDR '.number_format($discount,0,',','.').' for '.$product['product'];
+						$promo_detail_message = 'Discount '.$discount_benefit;
+					}
+
+				}else{
+					$discount_benefit = 'IDR '.number_format(($promo_rule['discount_value']??0),0,',','.');
+					$new_description = 'You get discount of IDR '.number_format($discount,0,',','.').' for '.$product['product'];
+					$promo_detail_message = 'Discount '.$discount_benefit;
+				}
+
+				break;
+				
 			case 'Discount global':
 				// load required relationship
 				$promo->load('promo_campaign_discount_global_rule');
