@@ -2119,7 +2119,7 @@ class ApiOnlineTransaction extends Controller
         $promo['discount']=0;
         $promo_source = null;
         $promo_delivery = null;
-
+        $data_closing = [];
         if($request->json('promo_code'))
         {
         	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1, 1);
@@ -2335,8 +2335,9 @@ class ApiOnlineTransaction extends Controller
                     continue;
                 }
 
-                $discount_promo=$pct->validatePromo($avail_promo['id_promo_campaign'], $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product);
+                $discount_promo=$pct->validatePromo($avail_promo['id_promo_campaign'], $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product, null, 0, $closing);
                 if(!$discount_promo){
+                    $data_closing[] = $closing;
                     continue;
                 }
 
@@ -2355,7 +2356,14 @@ class ApiOnlineTransaction extends Controller
                 break;
             }
         }
-        
+
+        $promo_close = null;
+        if(isset($data_closing)){
+            $promo_close = array_reduce($data_closing, function($a, $b){
+                return $a['plus'] < $b['plus'] ? $a : $b;
+            }, array_shift($data_closing));
+        }
+
         // end check promo code
         if (empty($request->json('id_deals_user')) && empty($request->json('promo_code'))) {
         	$promo = null;
@@ -2791,6 +2799,7 @@ class ApiOnlineTransaction extends Controller
         $promo_delivery = $pct->validateDelivery($request, $result, $promo_delivery_error);
         $result['promo_delivery'] = $promo_delivery;
         $result['promo_delivery_error'] = $promo_delivery_error;
+        $result['promo_offer'] = $promo_close['message']??null;
 
         if ($promo_delivery) {
 	        $result['allow_pickup'] = $promo_delivery['allow_pickup'] ?? $result['allow_pickup'];
