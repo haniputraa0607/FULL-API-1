@@ -748,6 +748,15 @@ class SettingsTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
+            97 =>
+                array(
+                    'id_setting' => 77,
+                    'key' => 'error_productcategory_discount_closing',
+                    'value' => null,
+                    'value_text' => 'Add <b>%minmax%</b> more <b>%product%</b> product to get <b>%title%</b> promo.',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
         ));
     }
 }
