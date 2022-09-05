@@ -767,12 +767,6 @@ class PromoCampaignTools{
 					$message = $this->getMessage('error_productcategory_discount')['value_text']??'This promo can be applied when you buy <b>%minmax%</b> <b>%product%</b>.';
 					$message = MyHelper::simpleReplace($message,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
 					
-					$message_closing = $this->getMessage('error_productcategory_discount_closing')['value_text']??'Add <b>%minmax%</b> more <b>%product%</b> product to get <b>%title%</b> promo.';
-					$message_closing = MyHelper::simpleReplace($message_closing,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
-					$closing = [
-						'plus' => $min_qty,
-						'message' => $message_closing
-					];
 					$errors[]= $message;
 					$errorProduct = 1;
 					return false;
@@ -795,12 +789,6 @@ class PromoCampaignTools{
 					$message = $this->getMessage('error_productcategory_discount')['value_text']??'This promo can be applied when you buy <b>%minmax%</b> <b>%product%</b>.';
 					$message = MyHelper::simpleReplace($message,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
 					
-					$message_closing = $this->getMessage('error_productcategory_discount_closing')['value_text']??'Add <b>%minmax%</b> more <b>%product%</b> product to get <b>%title%</b> promo.';
-					$message_closing = MyHelper::simpleReplace($message_closing,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
-					$closing = [
-						'plus' => $min_qty,
-						'message' => $message_closing
-					];
 					$errors[]= $message;
 					$errorProduct = 1;
 					return false;
