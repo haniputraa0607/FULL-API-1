@@ -36,7 +36,7 @@ class PromoCampaignTools{
 	 * @param  	array 		$error     	error message
 	 * @return 	array/boolean     modified array of trxs if can, otherwise false
 	 */
-	public function validatePromo($id_promo, $id_outlet, $trxs, &$errors, $source='promo_campaign', $payment_type=null, &$errorProduct=0, $request=null, $delivery_fee=0){
+	public function validatePromo($id_promo, $id_outlet, $trxs, &$errors, $source='promo_campaign', $payment_type=null, &$errorProduct=0, $request=null, $delivery_fee=0, &$closing = null){
 		/**
 		 $trxs=[
 			{
@@ -764,9 +764,15 @@ class PromoCampaignTools{
 
 				// promo product not available in cart?
 				if(!in_array($promo_product->id_product_category, array_column($trxs, $id))){
-					$message = $this->getMessage('error_productcategory_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.';
-					return $message = MyHelper::simpleReplace($message,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
-
+					$message = $this->getMessage('error_productcategory_discount')['value_text']??'This promo can be applied when you buy <b>%minmax%</b> <b>%product%</b>.';
+					$message = MyHelper::simpleReplace($message,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
+					
+					$message_closing = 'Tambah <b>%minmax%</b>. produk <b>%product%</b> untuk menikmati promo <b>%title%</b>';
+					$message_closing = MyHelper::simpleReplace($message_closing,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
+					$closing = [
+						'plus' => $min_qty,
+						'message' => $message_closing
+					];
 					$errors[]= $message;
 					$errorProduct = 1;
 					return false;
@@ -786,9 +792,15 @@ class PromoCampaignTools{
 				}
 				// product not found? buat jaga-jaga kalau sesuatu yang tidak diinginkan terjadi
 				if(!$category){
-					$message = $this->getMessage('error_productcategory_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.';
+					$message = $this->getMessage('error_productcategory_discount')['value_text']??'This promo can be applied when you buy <b>%minmax%</b> <b>%product%</b>.';
 					$message = MyHelper::simpleReplace($message,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
-
+					
+					$message_closing = 'Tambah <b>%minmax%</b>. produk <b>%product%</b> untuk menikmati promo <b>%title%</b>';
+					$message_closing = MyHelper::simpleReplace($message_closing,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
+					$closing = [
+						'plus' => $min_qty,
+						'message' => $message_closing
+					];
 					$errors[]= $message;
 					$errorProduct = 1;
 					return false;
@@ -814,9 +826,15 @@ class PromoCampaignTools{
 				}
 				
 				if(!$promo_rule){
-					$message = $this->getMessage('error_productcategory_discount')['value_text']??'Promo hanya akan berlaku jika anda membeli <b>%product%</b> sebanyak <b>%minmax%</b>.';
+					$message = $this->getMessage('error_productcategory_discount')['value_text']??'This promo can be applied when you buy <b>%minmax%</b> <b>%product%</b>.';
 					$message = MyHelper::simpleReplace($message,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
 
+					$message_closing = 'Add <b>%minmax%</b> more <b>%product%</b> product to get <b>%title%</b> promo';
+					$message_closing = MyHelper::simpleReplace($message_closing,['product'=>$category_name, 'minmax'=>($min_qty - $item_get_promo[$promo_product->id_product_category]), 'title' => $promo_title]);
+					$closing = [
+						'plus' => $min_qty - $item_get_promo[$promo_product->id_product_category],
+						'message' => $message_closing
+					];
 					$errors[]= $message;
 					$errorProduct = 1;
 					return false;
