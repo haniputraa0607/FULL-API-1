@@ -2357,16 +2357,22 @@ class ApiOnlineTransaction extends Controller
             }
         }
 
-        $promo_close = null;
-        if(isset($data_closing)){
-            $promo_close = array_reduce($data_closing, function($a, $b){
-                return $a['plus'] < $b['plus'] ? $a : $b;
-            }, array_shift($data_closing));
-        }
-
         // end check promo code
         if (empty($request->json('id_deals_user')) && empty($request->json('promo_code'))) {
         	$promo = null;
+        }
+
+        $promo_close = null;
+        if(isset($data_closing)){
+            $promo_close = array_reduce($data_closing, function($a, $b){
+                if($a['plus'] == $b['plus']){
+                    return $a;
+                }elseif($a['plus'] < $b['plus']){
+                    return $a;
+                }else{
+                    return $b;
+                }
+            }, array_shift($data_closing));
         }
 
         $tree = [];
@@ -2799,7 +2805,7 @@ class ApiOnlineTransaction extends Controller
         $promo_delivery = $pct->validateDelivery($request, $result, $promo_delivery_error);
         $result['promo_delivery'] = $promo_delivery;
         $result['promo_delivery_error'] = $promo_delivery_error;
-        $result['promo_offer'] = $promo_close['message']??null;
+        $result['promo_offer'] = isset($promo) ? null : $promo_close['message']??null;
 
         if ($promo_delivery) {
 	        $result['allow_pickup'] = $promo_delivery['allow_pickup'] ?? $result['allow_pickup'];
@@ -2828,7 +2834,7 @@ class ApiOnlineTransaction extends Controller
 
         // payment detail
         $result['payment_detail'] = $this->getTransactionPaymentDetail($request, $result);
-
+        
         return MyHelper::checkGet($result)+['messages'=> $error_msg ? [$error_msg[0]] : [], 'promo_error'=>$promo_error, 'promo'=>$promo, 'clear_cart'=>$clear_cart];
     }
 

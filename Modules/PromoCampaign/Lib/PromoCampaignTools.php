@@ -830,7 +830,7 @@ class PromoCampaignTools{
 					$message = MyHelper::simpleReplace($message,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
 
 					$message_closing = 'Add <b>%minmax%</b> more <b>%product%</b> product to get <b>%title%</b> promo';
-					$message_closing = MyHelper::simpleReplace($message_closing,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
+					$message_closing = MyHelper::simpleReplace($message_closing,['product'=>$category_name, 'minmax'=>($min_qty - $item_get_promo[$promo_product->id_product_category]), 'title' => $promo_title]);
 					$closing = [
 						'plus' => $min_qty - $item_get_promo[$promo_product->id_product_category],
 						'message' => $message_closing
