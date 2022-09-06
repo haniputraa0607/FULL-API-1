@@ -856,7 +856,7 @@ class PromoCampaignTools{
 				$benefit_type = $promo_rule->discount_type;
 				$benefit_max_value = $promo_rule->max_percent_discount;
 
-
+				
 				$rule=(object) [
 					'max_qty'=>$benefit_qty,
 					'discount_type'=>$benefit_type,
@@ -1045,6 +1045,7 @@ class PromoCampaignTools{
 			'item'				=> $trxs,
 			'discount'			=> $discount,
 			'new_description'	=> $new_description??'',
+			'promo_title'		=> $promo->promo_title,
 			'promo_detail'		=> $promo_detail_message,
 			'is_free'			=> $is_free,
 			'discount_delivery' => $discount_delivery ?? 0
