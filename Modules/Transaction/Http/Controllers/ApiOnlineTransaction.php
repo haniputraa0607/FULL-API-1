@@ -2337,7 +2337,9 @@ class ApiOnlineTransaction extends Controller
 
                 $discount_promo=$pct->validatePromo($avail_promo['id_promo_campaign'], $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product, null, 0, $closing);
                 if(!$discount_promo){
-                    $data_closing[] = $closing;
+                    if(isset($closing)){
+                        $data_closing[] = $closing;
+                    }
                     continue;
                 }
 
