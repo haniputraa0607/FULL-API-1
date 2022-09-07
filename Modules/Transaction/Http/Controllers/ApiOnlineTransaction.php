@@ -2160,6 +2160,7 @@ class ApiOnlineTransaction extends Controller
                             // }
                             $discount_type 			= $code->promo_campaign->promo_type;
                             $promo['code'] 			= $code->promo_code;
+                            $promo['promo_title']	= $discount_promo['promo_title'];
                             $promo['description']	= $discount_promo['new_description'];
                             $promo['detail'] 		= $discount_promo['promo_detail'];
                             $promo['discount'] 		= $discount_promo['discount'];
@@ -2345,6 +2346,7 @@ class ApiOnlineTransaction extends Controller
 
                 $discount_type 			= $avail_promo['promo_type'];
                 $promo['code'] 			= $avail_promo['promo_code'];
+                $promo['promo_title']	= $discount_promo['promo_title'];
                 $promo['description']	= $discount_promo['new_description'];
                 $promo['detail'] 		= $discount_promo['promo_detail'];
                 $promo['discount'] 		= $discount_promo['discount'];
@@ -2375,6 +2377,13 @@ class ApiOnlineTransaction extends Controller
                     return $b;
                 }
             }, array_shift($data_closing));
+        }
+
+        if(isset($promo_close)){
+			$delete = UserPromo::where('id_user', '=', $request->user()->id)->where('promo_type', 'promo_campaign')->where('discount_type', 'discount')->delete();
+        }else{
+            $getCode = PromoCampaignPromoCode::where('promo_code',$promo['code'])->first();
+			$update = UserPromo::updateOrCreate(['id_user' => $request->user()->id, 'discount_type' => 'discount'], ['promo_type' => 'promo_campaign', 'id_reference' => $getCode['id_promo_campaign_promo_code']]);
         }
 
         $tree = [];
