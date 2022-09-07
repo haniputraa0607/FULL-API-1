@@ -2120,6 +2120,7 @@ class ApiOnlineTransaction extends Controller
         $promo_source = null;
         $promo_delivery = null;
         $data_closing = [];
+        $user_promo_code = UserPromo::where('id_user', '=', $request->user()->id)->where('promo_type', 'promo_campaign')->where('discount_type', 'discount')->get()->toArray();
         if($request->json('promo_code'))
         {
         	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1, 1);
@@ -2253,7 +2254,7 @@ class ApiOnlineTransaction extends Controller
 	        	$error = ['Voucher is not valid'];
 	        	$promo_error = app($this->promo_campaign)->promoError('transaction', $error);
 	        }
-        }elseif(!$request->json('promo_code')){
+        }elseif(!$request->json('promo_code') && !$request->json('no_autoapply') && !$user_promo_code){
             $availPromo = PromoCampaign::join('promo_campaign_promo_codes','promo_campaign_promo_codes.id_promo_campaign','promo_campaigns.id_promo_campaign')
             ->join('promo_campaign_productcategory_category_requirements','promo_campaign_productcategory_category_requirements.id_promo_campaign','promo_campaigns.id_promo_campaign')->with(['promo_campaign_days'])
             ->where('step_complete',1)->where('promo_type','Promo Product Category')->whereDate('date_start','<=',date('Y-m-d H:i:s'))->whereDate('date_end','>=',date('Y-m-d H:i:s'))
@@ -2365,9 +2366,9 @@ class ApiOnlineTransaction extends Controller
         if (empty($request->json('id_deals_user')) && empty($request->json('promo_code'))) {
         	$promo = null;
         }
-
+        
         $promo_close = null;
-        if(isset($data_closing)){
+        if(isset($data_closing) && !isset($promo)){
             $promo_close = array_reduce($data_closing, function($a, $b){
                 if($a['plus'] == $b['plus']){
                     return $a;
@@ -2381,6 +2382,7 @@ class ApiOnlineTransaction extends Controller
 
         if(isset($promo_close)){
 			$delete = UserPromo::where('id_user', '=', $request->user()->id)->where('promo_type', 'promo_campaign')->where('discount_type', 'discount')->delete();
+
         }else{
             $getCode = PromoCampaignPromoCode::where('promo_code',$promo['code'])->first();
 			$update = UserPromo::updateOrCreate(['id_user' => $request->user()->id, 'discount_type' => 'discount'], ['promo_type' => 'promo_campaign', 'id_reference' => $getCode['id_promo_campaign_promo_code']]);
