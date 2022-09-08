@@ -2384,8 +2384,10 @@ class ApiOnlineTransaction extends Controller
 			$delete = UserPromo::where('id_user', '=', $request->user()->id)->where('promo_type', 'promo_campaign')->where('discount_type', 'discount')->delete();
 
         }else{
-            $getCode = PromoCampaignPromoCode::where('promo_code',$promo['code'])->first();
-			$update = UserPromo::updateOrCreate(['id_user' => $request->user()->id, 'discount_type' => 'discount'], ['promo_type' => 'promo_campaign', 'id_reference' => $getCode['id_promo_campaign_promo_code']]);
+            if($promo){
+                $getCode = PromoCampaignPromoCode::where('promo_code',$promo['code'])->first();
+                $update = UserPromo::updateOrCreate(['id_user' => $request->user()->id, 'discount_type' => 'discount'], ['promo_type' => 'promo_campaign', 'id_reference' => $getCode['id_promo_campaign_promo_code']]);
+            }
         }
 
         $tree = [];
