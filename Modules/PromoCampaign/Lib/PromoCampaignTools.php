@@ -1439,12 +1439,16 @@ class PromoCampaignTools{
 						'promo_campaign_buyxgety_product_requirement.product' => function($q) {
 							$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
 						},
+						'promo_campaign_productcategory_category_requirements.product_category' => function($q) {
+							$q->select('id_product_category', 'product_category_name');
+						},
 						'promo_campaign_tier_discount_product.product' => function($q) {
 							$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
 						},
 						'promo_campaign_product_discount_rules',
 						'promo_campaign_tier_discount_rules',
-						'promo_campaign_buyxgety_rules'
+						'promo_campaign_buyxgety_rules',
+						'promo_campaign_productcategory_rules'
 					])
 	                ->first();
     	}
@@ -1472,6 +1476,10 @@ class PromoCampaignTools{
 	        elseif ( !empty($promo[$source.'_buyxgety_product_requirement']) )
 	        {
 	        	$product = $promo[$source.'_buyxgety_product_requirement']['product']['product_group']??$promo[$source.'_buyxgety_product_requirement']['product_group']??'';
+	        }
+			elseif ( !empty($promo[$source.'_productcategory_category_requirements']) )
+	        {
+	        	$product = $promo[$source.'_productcategory_category_requirements']['product_category'] ? ['id_product_category' => $promo[$source.'_productcategory_category_requirements']['product_category']['id_product_category'], 'product_category_name' => $promo[$source.'_productcategory_category_requirements']['product_category']['product_category_name']] : '';
 	        }
 	        else
 	        {
