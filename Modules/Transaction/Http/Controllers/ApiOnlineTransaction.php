@@ -2154,11 +2154,11 @@ class ApiOnlineTransaction extends Controller
                         if ($validate_user) {
                             $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product);
     
-    
                             // if (isset($discount_promo['is_free']) && $discount_promo['is_free'] == 1) {
                             // 	// unset($discount_promo['item']);
                             // 	$discount_promo['discount'] = 0;
                             // }
+                            $code;
                             $discount_type 			= $code->promo_campaign->promo_type;
                             $promo['code'] 			= $code->promo_code;
                             $promo['promo_title']	= $discount_promo['promo_title'];
@@ -2183,7 +2183,11 @@ class ApiOnlineTransaction extends Controller
                                 $promo_error = app($this->promo_campaign)->promoError('transaction', $errore, $errors, $error_product);
                                 $promo_error['product_label'] = app($this->promo_campaign)->getProduct('promo_campaign', $code['promo_campaign'])['product']??'';
                                 $promo_error['warning_image'] = env('S3_URL_API').($code['promo_campaign_warning_image']??$promo_error['warning_image']);
+                                $promo_error['is_product_category'] = 0;
                                 $promo_error['product'] = $pct->getRequiredProduct($code->id_promo_campaign)??null;
+                                if(isset($promo_error['product']['product_category_name'])){
+                                    $promo_error['is_product_category'] = 1;
+                                }
                                 $promo_source = null;
     
                             }
@@ -2361,7 +2365,7 @@ class ApiOnlineTransaction extends Controller
                 break;
             }
         }
-
+        
         // end check promo code
         if (empty($request->json('id_deals_user')) && empty($request->json('promo_code'))) {
         	$promo = null;
@@ -2379,12 +2383,12 @@ class ApiOnlineTransaction extends Controller
                 }
             }, array_shift($data_closing));
         }
-
+        
         if(isset($promo_close)){
 			$delete = UserPromo::where('id_user', '=', $request->user()->id)->where('promo_type', 'promo_campaign')->where('discount_type', 'discount')->delete();
 
         }else{
-            if($promo){
+            if(isset($promo['code'])){
                 $getCode = PromoCampaignPromoCode::where('promo_code',$promo['code'])->first();
                 $update = UserPromo::updateOrCreate(['id_user' => $request->user()->id, 'discount_type' => 'discount'], ['promo_type' => 'promo_campaign', 'id_reference' => $getCode['id_promo_campaign_promo_code']]);
             }

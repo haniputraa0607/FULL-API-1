@@ -2533,6 +2533,7 @@ class ApiPromoCampaign extends Controller
 			$query = $query->toArray();
     	}
     	$get_product_name = false;
+    	$get_category_name = false;
     	if ( ($query[$source.'_product_discount_rules']['is_all_product']??false) == 1 || ($query['promo_type']??false) == 'Referral')
         {
         	$applied_product = '*';
@@ -2586,6 +2587,17 @@ class ApiPromoCampaign extends Controller
 	    		}
         	}
         }
+        elseif ( !empty($query[$source.'_productcategory_category_requirements']) )
+        {
+        	$rule = $source.'_productcategory_category_requirements';
+        	$applied_product = $query[$source.'_productcategory_category_requirements'];
+            $product = $applied_product['product_category']['product_category_name']??'specified product';
+            if ($applied_product['product_category']['product_category_name']??false) {
+                $get_category_name = true;
+                $id_product_category = $applied_product['product_category']['id_product_category'];
+            }
+        	
+        }
         else
         {
         	$applied_product = "";
@@ -2596,6 +2608,8 @@ class ApiPromoCampaign extends Controller
         	$pct = new PromoCampaignTools;
         	$promo_product = Product::where('id_product', $id_product)->with('product_group', 'product_variants')->first();
 			$product = $pct->getProductName($promo_product->product_group, $promo_product->product_variants);
+        }elseif($get_category_name){
+        	$promo_product = ProductCategory::where('id_product_category', $id_product_category)->first()['product_category_name'] ?? '';
         }
 
         $result = [
