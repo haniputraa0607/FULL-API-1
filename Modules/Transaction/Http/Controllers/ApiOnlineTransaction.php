@@ -2208,7 +2208,11 @@ class ApiOnlineTransaction extends Controller
         }
         elseif($request->json('id_deals_user'))
         {
-	        $deals = DealsUser::whereIn('paid_status', ['Free', 'Completed'])->where('id_deals_user', $request->id_deals_user)->first();
+	        $deals = DealsUser::with([
+                    'dealVoucher.deals.deals_buyxgety_product_requirement',
+                    'dealVoucher.deals.deals_tier_discount_product',
+                    'dealVoucher.deals.deals_product_discount',
+                ])->whereIn('paid_status', ['Free', 'Completed'])->where('id_deals_user', $request->id_deals_user)->first();
 
 	        if (!$deals){
 	        	$error = ['Voucher is not found'];
