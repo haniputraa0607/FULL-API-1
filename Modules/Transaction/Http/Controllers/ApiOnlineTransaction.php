@@ -2226,7 +2226,7 @@ class ApiOnlineTransaction extends Controller
 				$validate_user = true;
 				$pct = new PromoCampaignTools();
 				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals', null, $error_product);
-
+                
 				/*if ($discount_promo['is_free'] == 1) {
 	            	// unset($discount_promo['item']);
 	            	$discount_promo['discount'] = 0;
@@ -2244,7 +2244,7 @@ class ApiOnlineTransaction extends Controller
 				if ( !empty($errors) ) {
 					$code_obj = $deals;
 					$code = $deals->toArray();
-
+                    
 	            	$promo_error = app($this->promo_campaign)->promoError('transaction', null, $errors, $error_product);
 	            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('deals', $code_obj['dealVoucher']['deals'])['product']??'';
 	            	$promo_error['warning_image'] = env('S3_URL_API').($code['deal_voucher']['deals']['deals_warning_image']??$promo_error['warning_image']);
@@ -2388,9 +2388,9 @@ class ApiOnlineTransaction extends Controller
 			$delete = UserPromo::where('id_user', '=', $request->user()->id)->where('promo_type', 'promo_campaign')->where('discount_type', 'discount')->delete();
 
         }else{
-            if(isset($promo['code'])){
+            if(isset($promo['code']) && $promo_source == 'promo_code'){
                 $getCode = PromoCampaignPromoCode::where('promo_code',$promo['code'])->first();
-                $update = UserPromo::updateOrCreate(['id_user' => $request->user()->id, 'discount_type' => 'discount'], ['promo_type' => 'promo_campaign', 'id_reference' => $getCode['id_promo_campaign_promo_code']]);
+                $update = UserPromo::updateOrCreate(['id_user' => $request->user()->id, 'discount_type' => 'discount','promo_type' => 'promo_campaign'], ['id_reference' => $getCode['id_promo_campaign_promo_code']]);
             }
         }
 
