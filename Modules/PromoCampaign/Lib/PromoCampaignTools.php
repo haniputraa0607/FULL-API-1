@@ -844,7 +844,7 @@ class PromoCampaignTools{
 				
 				$benefit=null;
 				$product_get_promo = 0;
-
+				
 				$max_benefit = $promo_rule->benefit_qty;
 				foreach ($benefit_products as $key_p => $benefit_product) {
 					$benefit_product_price = $this->getProductPrice(
@@ -873,7 +873,7 @@ class PromoCampaignTools{
 					}
 				}	
 				
-				$product['product'] = $this->getProductName($benefit_product->product_group, $benefit_product->product_variants);
+				$product['product'] = $this->getProductName($benefit_products[0]['product_group'], $benefit_products[0]['product_variants']);
 				if ($promo_rule->discount_type == 'Percent' || $promo_rule->discount_type == 'percent') {
 					if ($promo_rule->discount_value == 100) {
 						$new_description = 'You get '.$promo_rule['benefit_qty'].' '.($product_get_promo <= 1 ? $product['product'] : $category_name).' Free';
