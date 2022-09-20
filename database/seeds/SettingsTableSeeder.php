@@ -741,7 +741,7 @@ class SettingsTableSeeder extends Seeder
                 ),
             96 =>
                 array(
-                    'id_setting' => 77,
+                    'id_setting' => 97,
                     'key' => 'error_productcategory_discount',
                     'value' => null,
                     'value_text' => 'This promo can be applied when you buy <b>%minmax%</b> <b>%product%</b>.',
@@ -750,7 +750,7 @@ class SettingsTableSeeder extends Seeder
                 ),
             97 =>
                 array(
-                    'id_setting' => 77,
+                    'id_setting' => 98,
                     'key' => 'error_productcategory_discount_closing',
                     'value' => null,
                     'value_text' => 'Add <b>%minmax%</b> more <b>%product%</b> product to get <b>%title%</b> promo.',
