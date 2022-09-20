@@ -1706,13 +1706,11 @@ class ApiPromoCampaign extends Controller
             {
                 $data[$key]['discount_type'] = 'percent';
                 $data[$key]['discount_value'] = $rule['discount_percent'];
-                $data[$key]['benefit_qty'] = 1;
             }
             elseif($rule['benefit_type'] == "nominal")
             {
             	$data[$key]['discount_type'] = 'nominal';
                 $data[$key]['discount_value'] = $rule['discount_nominal'];
-                $data[$key]['benefit_qty'] = 1;
                 $data[$key]['max_percent_discount'] = null;
             }
             elseif($rule['benefit_type'] == "free")
@@ -1725,7 +1723,6 @@ class ApiPromoCampaign extends Controller
             {
                 $data[$key]['discount_type'] = 'nominal';
                 $data[$key]['discount_value'] = 0;
-                $data[$key]['benefit_qty'] = 1;
             }
 
         }

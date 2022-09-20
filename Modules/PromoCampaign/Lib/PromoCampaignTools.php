@@ -837,50 +837,40 @@ class PromoCampaignTools{
 					$errors[]="Product benefit not found.";
 					return false;
 				}
-				$benefit_product = array_reduce($benefit_products, function($a, $b){
-					return $a['product_price'] < $b['product_price'] ? $a : $b;
-				}, array_shift($benefit_products));
+				
+				usort($benefit_products,function($a,$b){
+					return $a->product_price - $b->product_price;
+				});
 				
 				$benefit=null;
-
-				$benefit_product_price = $this->getProductPrice(
-					$id_outlet, 
-					$benefit_product->id_product, 
-					$promo->id_brand??$benefit_product->brands[0]->id_brand??'', 
-					$benefit_product->id_product_group
-				);
-				// dd($benefit_product_price->toArray());
-				$ref_item['is_promo'] = 1;
-				$benefit_qty=$promo_rule->benefit_qty;
-				$benefit_value=$promo_rule->discount_value;
-				$benefit_type = $promo_rule->discount_type;
-				$benefit_max_value = $promo_rule->max_percent_discount;
-
 				
-				$rule=(object) [
-					'max_qty'=>$benefit_qty,
-					'discount_type'=>$benefit_type,
-					'discount_value'=>$benefit_value,
-					'max_percent_discount'=>$benefit_max_value
-				];
-				// add product benefit
-				$benefit_item = [
-					'id_custom' 	=> isset(end($trxs)['id_custom']) ? end($trxs)['id_custom']+1 : '',
-					'id_product'	=> $benefit_product->id_product,
-					'id_brand'		=> $promo->id_brand??$benefit_product->brands[0]->id_brand??'',
-					'qty'			=> $promo_rule->benefit_qty,
-					'is_promo'		=> 1,
-					'is_free'		=> ($promo_rule->discount_type == "percent" && $promo_rule->discount_value == 100) ? 1 : 0,
-					'variants'		=> [$benefit_product->product_variants[1]->id_product_variant??'', $benefit_product->product_variants[0]->id_product_variant??''],
-					'modifiers'		=> [],
-					'bonus'			=> 1
-				];
+				$max_benefit = $promo_rule->benefit_qty;
+				foreach ($benefit_products as $key_p => $benefit_product) {
+					$benefit_product_price = $this->getProductPrice(
+						$id_outlet, 
+						$benefit_product->id_product, 
+						$promo->id_brand??$benefit_product->brands[0]->id_brand??'', 
+						$benefit_product->id_product_group
+					);
 
-				$discount+=$this->discount_product($benefit_product_price,$rule,$benefit_item);
+					foreach ($trxs as $key => &$trx) {
+						if($benefit_product->id_product == $trx['id_product']){
+							$modifier = 0;
+							foreach ($trx['modifiers'] as $key2 => $value2)
+							{
+								$modifier += ($mod_price[$value2['id_product_modifier']??$value2]??0) * ($value2['qty']??1);
+							}
+							
+							if($trx[$id]==$promo_product->id_product_category && $max_benefit > 0){
+								$trx['promo_qty'] = $max_benefit > $trx['qty'] ? $trx['qty'] : $max_benefit;
+								$max_benefit = $max_benefit - $trx['promo_qty'];
+								$discount+=$this->discount_product($benefit_product_price,$promo_rule,$trx, $modifier);
+							}
+						}
 
-				array_push($trxs, $benefit_item);
-
-				// $product['product'] = $benefit_product->product_name;
+					}
+				}	
+				
 				$product['product'] = $this->getProductName($benefit_product->product_group, $benefit_product->product_variants);
 				if ($promo_rule->discount_type == 'Percent' || $promo_rule->discount_type == 'percent') {
 					if ($promo_rule->discount_value == 100) {
