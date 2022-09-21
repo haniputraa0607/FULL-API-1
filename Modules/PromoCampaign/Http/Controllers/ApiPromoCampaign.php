@@ -2303,9 +2303,13 @@ class ApiPromoCampaign extends Controller
 						'promo_campaign.promo_campaign_tier_discount_product.product' => function($q) {
 							$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
 						},
+                        'promo_campaign.promo_campaign_productcategory_category_requirements.product_category' => function($q) {
+                            $q->select('id_product_category', 'product_category_name');
+                        },
 						'promo_campaign.promo_campaign_product_discount_rules',
 						'promo_campaign.promo_campaign_tier_discount_rules',
                         'promo_campaign.promo_campaign_buyxgety_rules',
+                        'promo_campaign.promo_campaign_productcategory_rules',
                         'promo_campaign.promo_campaign_referral',
                         'promo_campaign.promo_campaign_discount_delivery_rules'
 					])
@@ -2419,7 +2423,7 @@ class ApiPromoCampaign extends Controller
         }
 
     	$getProduct = $this->getProduct($source,$query_obj[$source]);
-    	$desc = $this->getPromoDescription($source, $query[$source], $getProduct['product']??'');
+    	return $desc = $this->getPromoDescription($source, $query[$source], $getProduct['product']??'');
 
         $errors=[];
 
@@ -2698,6 +2702,30 @@ class ApiPromoCampaign extends Controller
 
     		$desc = MyHelper::simpleReplace($desc,['product'=>$product, 'minmax'=>$minmax]);
         }
+        elseif ($query['promo_type'] == 'Promo Product Category')
+    	{
+    		$min_qty = 1;
+    		$max_qty = 1;
+
+    		foreach ($query[$source.'_productcategory_rules'] as $key => $rule) {
+				$min_req=$rule['min_qty_requirement'];
+				$max_req=$rule['min_qty_requirement'];
+
+				if($min_qty===null||$rule['min_qty_requirement']<$min_qty){
+					$min_qty=$min_req;
+				}
+                if($max_qty===null||$rule['min_qty_requirement']>$max_qty){
+					$max_qty=$max_req;
+				}
+    		}
+            
+    		$key = 'description_productcategory_discount';
+    		$key_null = 'You get a discount after purchasing  %minmax% %product%';
+    		$minmax=$min_qty!=$max_qty?"$min_qty - $max_qty":$min_qty;
+    		$desc = Setting::where('key', '=', 'description_productcategory_discount')->first()['value']??$key_null;
+
+    		$desc = MyHelper::simpleReplace($desc,['product'=>$product, 'minmax'=>$minmax]);
+    	}
         elseif ($query['promo_type'] == 'Referral')
     	{
             $desc = 'no description';
