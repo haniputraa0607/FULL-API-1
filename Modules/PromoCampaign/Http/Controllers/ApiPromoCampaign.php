@@ -2423,7 +2423,7 @@ class ApiPromoCampaign extends Controller
         }
 
     	$getProduct = $this->getProduct($source,$query_obj[$source]);
-    	return $desc = $this->getPromoDescription($source, $query[$source], $getProduct['product']??'');
+    	$desc = $this->getPromoDescription($source, $query[$source], $getProduct['product']??'');
 
         $errors=[];
 
