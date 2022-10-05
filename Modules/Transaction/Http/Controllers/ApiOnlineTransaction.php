@@ -2152,8 +2152,7 @@ class ApiOnlineTransaction extends Controller
                         $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
                         
                         if ($validate_user) {
-                            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product);
-    
+                            return $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product);
                             // if (isset($discount_promo['is_free']) && $discount_promo['is_free'] == 1) {
                             // 	// unset($discount_promo['item']);
                             // 	$discount_promo['discount'] = 0;

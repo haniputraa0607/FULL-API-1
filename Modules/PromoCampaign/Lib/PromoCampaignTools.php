@@ -717,9 +717,23 @@ class PromoCampaignTools{
 			case 'Promo Product Category':
 				// load requirement relationship
 				$promo->load($source.'_productcategory_rules',$source.'_productcategory_category_requirements');
-				$promo_product=$promo[$source.'_productcategory_category_requirements'];
-				$product_group = ProductGroup::where('id_product_category',$promo_product['id_product_category'])->get()->toArray();
+				$promo_product=$promo[$source.'_productcategory_category_requirements']['product_category'];
+				$product_group = [];
+				$new_promo_product = [];
+				foreach($promo_product ?? [] as $promo_pro){
+					$product_group[] = ProductGroup::where('id_product_category',$promo_pro['id_product_category'])->get()->toArray();
+					$new_promo_product[$promo_pro['id_product_category']] = $promo_pro;
+					$category_names[] = $promo_pro['product_category']['product_category_name']??null;
+				}
+				
+				$new_product_group = [];
+				foreach($product_group ?? [] as $prod_group){
+					$new_product_group = array_merge($new_product_group,$prod_group);
+				}
+				$product_group =  $new_product_group;
+				$promo_product = $new_promo_product;
 				$product_group = array_pluck($product_group,'id_product_group');
+				$product_category = array_pluck($promo_product,'id_product_category');
 				$id = 'id_product_category';
 				// $promo_product->load('product');
 
@@ -728,11 +742,12 @@ class PromoCampaignTools{
 					return false;
 				}
 				// sum total quantity of same product
+				$new_product_group = array_combine(array_column($new_product_group, 'id_product_group'), $new_product_group);
 				$trx_category = [];
 				foreach ($trxs as $key => $value)
 				{
 					if(in_array($value['id_product_group'],$product_group)){
-						$value[$id] = $promo_product['id_product_category'];
+						$value[$id] = $new_product_group[$value['id_product_group']]['id_product_category'];
 						$trx_category[] = $value;
 					}else{
 						$value[$id] = null;
@@ -745,7 +760,9 @@ class PromoCampaignTools{
 					}
 					else
 					{
-						$item_get_promo[$value[$id]] = $value['qty'];
+						if (isset($value[$id])){
+							$item_get_promo[$value[$id]] = $value['qty'];
+						}
 					}
 				
 				}
@@ -760,10 +777,36 @@ class PromoCampaignTools{
 				// 	}
 				// }
 
-				$category_name = $promo_product->product_category->product_category_name;
+				if(count($category_names)>0){
+					if(count($category_names)==1){
+						$category_name = $category_names[0];
+					}elseif(count($category_names)==2){
+						$category_name = $category_names[0].' or '.$category_names[1];
+					}else{
+						$category_name = '';
+						foreach($category_names as $index => $categ){
+							if($index==0){
+								$category_name = $categ;
+							}elseif($index+1==count($category_names)){
+								$category_name = $category_name.' or '.$categ;
+							}else{
+								$category_name = $category_name.', '.$categ;
+							}
+						}
+					}
+				}else{
+					$category_name = 'specified product';
+				}
 
 				// promo product not available in cart?
-				if(!in_array($promo_product->id_product_category, array_column($trxs, $id))){
+				$check_1 = false;
+				foreach($promo_product ?? [] as $promo_pro){
+					if(in_array($promo_pro->id_product_category, array_column($trxs, $id))){
+							$check_1 = true;
+					}
+
+				}
+				if(!$check_1){
 					$message = $this->getMessage('error_productcategory_discount')['value_text']??'This promo can be applied when you buy <b>%minmax%</b> <b>%product%</b>.';
 					$message = MyHelper::simpleReplace($message,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
 					
@@ -774,14 +817,16 @@ class PromoCampaignTools{
 				
 				//get cart's product to get benefit
 				$category=null;
-				foreach ($trxs as &$trx) {
-					//is this the cart product we looking for?
-					if($trx[$id]==$promo_product->id_product_category){
-						//set reference to this cart product
-						$ref_item = &$trx;
-						$category=&$trx;
-						// break from loop
-						break;
+				foreach($promo_product ?? [] as $promo_pro){
+					foreach ($trxs as &$trx) {
+						//is this the cart product we looking for?
+						if($trx[$id]==$promo_pro->id_product_category){
+							//set reference to this cart product
+							$ref_item = &$trx;
+							$category=&$trx;
+							// break from loop
+							break;
+						}
 					}
 				}
 				// product not found? buat jaga-jaga kalau sesuatu yang tidak diinginkan terjadi
@@ -794,11 +839,16 @@ class PromoCampaignTools{
 					return false;
 				}
 				//find promo
+				
 				$promo_rules=$promo[$source.'_productcategory_rules'];
 				$promo_rule=false;
-				$min_qty=null;
-				$max_qty=null;
-				
+				// foreach($promo_product ?? [] as $promo_pro){
+				// 	if(in_array($promo_pro->id_product_category, array_column($trxs, $id))){
+				// 		$min_qty=null;
+				// 		$max_qty=null;
+						
+				// 	}
+				// }
 				foreach ($promo_rules as $rule) {
 					// search y product in cart
 					$benefit_qty=$rule->benefit_qty;
@@ -807,20 +857,20 @@ class PromoCampaignTools{
 					if($min_qty===null||$rule->min_qty_requirement<$min_qty){
 						$min_qty=$min_req;
 					}
-					if($min_req>$item_get_promo[$promo_product->id_product_category]){
+					if($min_req>array_sum($item_get_promo)){
 						continue;
 					}
 					$promo_rule=$rule;
 				}
-				
+
 				if(!$promo_rule){
 					$message = $this->getMessage('error_productcategory_discount')['value_text']??'This promo can be applied when you buy <b>%minmax%</b> <b>%product%</b>.';
 					$message = MyHelper::simpleReplace($message,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
 
 					$message_closing = $this->getMessage('error_productcategory_discount_closing')['value_text']??'Add <b>%minmax%</b> more <b>%product%</b> product to get <b>%title%</b> promo.';
-					$message_closing = MyHelper::simpleReplace($message_closing,['product'=>$category_name, 'minmax'=>($min_qty - $item_get_promo[$promo_product->id_product_category]), 'title' => $promo_title]);
+					$message_closing = MyHelper::simpleReplace($message_closing,['product'=>$category_name, 'minmax'=>($min_qty - array_sum($item_get_promo)), 'title' => $promo_title]);
 					$closing = [
-						'plus' => $min_qty - $item_get_promo[$promo_product->id_product_category],
+						'plus' => $min_qty - array_sum($item_get_promo),
 						'message' => $message_closing
 					];
 					$errors[]= $message;
@@ -844,7 +894,6 @@ class PromoCampaignTools{
 				
 				$benefit=null;
 				$product_get_promo = 0;
-				
 				$max_benefit = $promo_rule->benefit_qty;
 				foreach ($benefit_products as $key_p => $benefit_product) {
 					$benefit_product_price = $this->getProductPrice(
@@ -857,12 +906,12 @@ class PromoCampaignTools{
 					foreach ($trxs as $key => &$trx) {
 						if($benefit_product->id_product == $trx['id_product']){
 							$modifier = 0;
-							foreach ($trx['modifiers'] as $key2 => $value2)
+							foreach ($trx['modifiers'] ?? [] as $key2 => $value2)
 							{
 								$modifier += ($mod_price[$value2['id_product_modifier']??$value2]??0) * ($value2['qty']??1);
 							}
 							
-							if($trx[$id]==$promo_product->id_product_category && $max_benefit > 0){
+							if(in_array($trx[$id],$product_category) && $max_benefit > 0){
 								$trx['promo_qty'] = $max_benefit > $trx['qty'] ? $trx['qty'] : $max_benefit;
 								$max_benefit = $max_benefit - $trx['promo_qty'];
 								$discount+=$this->discount_product($benefit_product_price,$promo_rule,$trx, $modifier);
@@ -872,7 +921,7 @@ class PromoCampaignTools{
 
 					}
 				}	
-				
+				// return $product_get_promo;
 				$product['product'] = $this->getProductName($benefit_products[0]['product_group'], $benefit_products[0]['product_variants']);
 				if ($promo_rule->discount_type == 'Percent' || $promo_rule->discount_type == 'percent') {
 					if ($promo_rule->discount_value == 100) {
