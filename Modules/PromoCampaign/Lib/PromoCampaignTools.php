@@ -11,6 +11,7 @@ use Modules\PromoCampaign\Entities\PromoCampaignReferral;
 use App\Http\Models\Product;
 use Modules\ProductVariant\Entities\ProductGroup;
 use App\Http\Models\ProductModifier;
+use Modules\ProductVariant\Entities\ProductVariant;
 use App\Http\Models\UserDevice;
 use App\Http\Models\User;
 use App\Http\Models\Transaction;
@@ -718,6 +719,7 @@ class PromoCampaignTools{
 				// load requirement relationship
 				$promo->load($source.'_productcategory_rules',$source.'_productcategory_category_requirements');
 				$promo_product=$promo[$source.'_productcategory_category_requirements']['product_category'];
+				$variant_requirement=$promo[$source.'_productcategory_category_requirements']['id_product_variant'];
 				$product_group = [];
 				$new_promo_product = [];
 				foreach($promo_product ?? [] as $promo_pro){
@@ -744,10 +746,14 @@ class PromoCampaignTools{
 				// sum total quantity of same product
 				$new_product_group = array_combine(array_column($new_product_group, 'id_product_group'), $new_product_group);
 				$trx_category = [];
+				$check_varian = false;
 				foreach ($trxs as $key => $value)
 				{
 					if(in_array($value['id_product_group'],$product_group)){
 						$value[$id] = $new_product_group[$value['id_product_group']]['id_product_category'];
+						if(in_array($variant_requirement,$value['variants'])){
+							$check_varian = true;
+						}
 						$trx_category[] = $value;
 					}else{
 						$value[$id] = null;
@@ -796,6 +802,13 @@ class PromoCampaignTools{
 					}
 				}else{
 					$category_name = 'specified product';
+				}
+
+				if($promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name']??false){
+					$parent = ProductVariant::where('id_product_variant',$promo[$source.'_productcategory_category_requirements']['product_variant']['parent'])->first();
+					if($parent){
+						$category_name = $category_name.' with '.$promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
+					}
 				}
 
 				// promo product not available in cart?
@@ -878,6 +891,20 @@ class PromoCampaignTools{
 					return false;
 				}
 				$benefit_products = [];
+
+				if(!$check_varian){
+					$message = $this->getMessage('error_productcategory_discount')['value_text']??'This promo can be applied when you buy <b>%minmax%</b> <b>%product%</b>.';
+					$message = MyHelper::simpleReplace($message,['product'=>$category_name, 'minmax'=>$min_qty, 'title' => $promo_title]);
+					
+					$message_closing = 'Add at least one <b>%product%</b> product to get <b>%title%</b> promo.';
+					$message_closing = MyHelper::simpleReplace($message_closing,['product'=>$category_name, 'title' => $promo_title]);
+					$closing = [
+						'message' => $message_closing
+					];
+					$errors[]= $message;
+					$errorProduct = 1;
+					return false;
+				}
 
 				foreach($trx_category ?? [] as $trx_cat){
 					$benefit_products[] = $this->getOneProduct($id_outlet, $trx_cat['id_product'],1, 1);
@@ -1480,7 +1507,7 @@ class PromoCampaignTools{
 						'promo_campaign_buyxgety_product_requirement.product' => function($q) {
 							$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
 						},
-						'promo_campaign_productcategory_category_requirements.product_category' => function($q) {
+						'promo_campaign_productcategory_category_requirements.product_category.product_category' => function($q) {
 							$q->select('id_product_category', 'product_category_name');
 						},
 						'promo_campaign_tier_discount_product.product' => function($q) {
@@ -1520,7 +1547,7 @@ class PromoCampaignTools{
 	        }
 			elseif ( !empty($promo[$source.'_productcategory_category_requirements']) )
 	        {
-	        	$product = $promo[$source.'_productcategory_category_requirements']['product_category'] ? ['id_product_category' => $promo[$source.'_productcategory_category_requirements']['product_category']['id_product_category'], 'product_category_name' => $promo[$source.'_productcategory_category_requirements']['product_category']['product_category_name']] : '';
+	        	$product = $promo[$source.'_productcategory_category_requirements']['product_category'] ? ['id_product_category' => $promo[$source.'_productcategory_category_requirements']['product_category'][0]['product_category']['id_product_category'], 'product_category_name' => $promo[$source.'_productcategory_category_requirements']['product_category'][0]['product_category']['product_category_name']] : '';
 	        }
 	        else
 	        {
