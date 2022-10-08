@@ -2153,7 +2153,7 @@ class ApiOnlineTransaction extends Controller
                         
                         if ($validate_user) {
                             $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product);
-    
+                            // return [$discount_promo];
                             // if (isset($discount_promo['is_free']) && $discount_promo['is_free'] == 1) {
                             // 	// unset($discount_promo['item']);
                             // 	$discount_promo['discount'] = 0;
@@ -2344,7 +2344,7 @@ class ApiOnlineTransaction extends Controller
                 if(!$validate_user){
                     continue;
                 }
-
+                
                 $discount_promo=$pct->validatePromo($avail_promo['id_promo_campaign'], $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product, null, 0, $closing);
                 if(!$discount_promo){
                     if(isset($closing)){
@@ -2378,12 +2378,16 @@ class ApiOnlineTransaction extends Controller
         $promo_close = null;
         if(isset($data_closing) && !isset($promo)){
             $promo_close = array_reduce($data_closing, function($a, $b){
-                if($a['plus'] == $b['plus']){
-                    return $a;
-                }elseif($a['plus'] < $b['plus']){
-                    return $a;
+                if(isset($a['plus']) && isset($b['plus'])){
+                    if($a['plus'] == $b['plus']){
+                        return $a;
+                    }elseif($a['plus'] < $b['plus']){
+                        return $a;
+                    }else{
+                        return $b;
+                    }
                 }else{
-                    return $b;
+                    return $a;
                 }
             }, array_shift($data_closing));
         }
