@@ -28,4 +28,14 @@ class ProductVariant extends Model
     {
         return $this->belongsTo(ProductVariant::class,'parent','id_product_variant');
     }
+
+    public function children()
+    {
+        return $this->hasMany(ProductVariant::class, 'parent','id_product_variant');
+    }
+
+    public function allChildren()
+    {
+        return $this->children()->with('allChildren');
+    }
 }
