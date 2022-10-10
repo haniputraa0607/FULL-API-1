@@ -751,7 +751,7 @@ class PromoCampaignTools{
 				{
 					if(in_array($value['id_product_group'],$product_group)){
 						$value[$id] = $new_product_group[$value['id_product_group']]['id_product_category'];
-						if(in_array($variant_requirement,$value['variants'])){
+						if(in_array($variant_requirement,$value['variants']) || (!isset($variant_requirement) && empty($variant_requirement))){
 							$check_varian = true;
 						}
 						$trx_category[] = $value;
@@ -786,31 +786,47 @@ class PromoCampaignTools{
 				if(count($category_names)>0){
 					if(count($category_names)==1){
 						$category_name = $category_names[0];
+						$category_name_get = $category_names[0];
 					}elseif(count($category_names)==2){
-						$category_name = $category_names[0].' or '.$category_names[1];
+						$category_name = $category_names[0].'</b> or <b>'.$category_names[1];
+						$category_name_get = $category_names[0].' or '.$category_names[1];
 					}else{
 						$category_name = '';
 						foreach($category_names as $index => $categ){
 							if($index==0){
 								$category_name = $categ;
+								$category_name_get = $categ;
 							}elseif($index+1==count($category_names)){
-								$category_name = $category_name.' or '.$categ;
+								$category_name = $category_name.'</b> or <b>'.$categ;
+								$category_name_get = $category_name_get.' or '.$categ;
 							}else{
 								$category_name = $category_name.', '.$categ;
+								$category_name_get = $category_name_get.', '.$categ;
 							}
 						}
 					}
 				}else{
 					$category_name = 'specified product';
+					$category_name_get = 'specified product';
 				}
-
+				$dec_category_name = $category_name_get;
 				if($promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name']??false){
 					$parent = ProductVariant::where('id_product_variant',$promo[$source.'_productcategory_category_requirements']['product_variant']['parent'])->first();
 					if($parent){
-						$category_name = $category_name.' with '.$promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
+						if($promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name']=='general_size'){
+							$category_name = $category_name.'</b> without <b>Variant Size';
+							$category_name_get = $category_name_get.' without Variant Size';
+						}elseif($promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name']=='general_type'){
+							$category_name = $category_name.'</b> without <b>Variant Type';
+							$category_name_get = $category_name_get.' without Variant Type';
+						}else{
+							$category_name = $category_name.'</b> with <b>'.$promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
+							$category_name_get = $category_name_get.' with '.$promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
+						}
+	
 					}
 				}
-
+				
 				// promo product not available in cart?
 				$check_1 = false;
 				foreach($promo_product ?? [] as $promo_pro){
@@ -952,18 +968,18 @@ class PromoCampaignTools{
 				$product['product'] = $this->getProductName($benefit_products[0]['product_group'], $benefit_products[0]['product_variants']);
 				if ($promo_rule->discount_type == 'Percent' || $promo_rule->discount_type == 'percent') {
 					if ($promo_rule->discount_value == 100) {
-						$new_description = 'You get '.$promo_rule['benefit_qty'].' '.($product_get_promo <= 1 ? $product['product'] : $category_name).' Free';
-						$promo_detail_message = 'Free '.($product_get_promo <= 1 ? $product['product'] : $category_name).' ('.$promo_rule['benefit_qty'].'x)';
+						$new_description = 'You get '.$promo_rule['benefit_qty'].' '.($product_get_promo <= 1 ? $product['product'] : $dec_category_name).' Free';
+						$promo_detail_message = 'Free '.($product_get_promo <= 1 ? $product['product'] : $dec_category_name).' ('.$promo_rule['benefit_qty'].'x)';
 						$is_free = 1;
 					}else{
 						$discount_benefit = ($promo_rule['discount_value']??0).'%';
-						$new_description = 'You get discount of IDR '.number_format($discount,0,',','.').' for '.($product_get_promo <= 1 ? $product['product'] : $category_name);
+						$new_description = 'You get discount of IDR '.number_format($discount,0,',','.').' for '.($product_get_promo <= 1 ? $product['product'] : $dec_category_name);
 						$promo_detail_message = 'Discount '.$discount_benefit;
 					}
 
 				}else{
 					$discount_benefit = 'IDR '.number_format(($promo_rule['discount_value']??0),0,',','.');
-					$new_description = 'You get discount of IDR '.number_format($discount,0,',','.').' for '.($product_get_promo <= 1 ? $product['product'] : $category_name);
+					$new_description = 'You get discount of IDR '.number_format($discount,0,',','.').' for '.($product_get_promo <= 1 ? $product['product'] : $dec_category_name);
 					$promo_detail_message = 'Discount '.$discount_benefit;
 				}
 
