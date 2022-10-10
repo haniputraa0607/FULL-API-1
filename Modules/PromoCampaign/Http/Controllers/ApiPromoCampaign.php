@@ -1135,7 +1135,7 @@ class ApiPromoCampaign extends Controller
             }
         } elseif ($post['promo_type'] == 'Promo Product Category') {
             try {
-                $createFilterProduct = $this->createProductCategoryDiscount($id_post, $post['category_product'], $post['id_product_variant'], $post['promo_rule'], $post['product_type'], $post['auto_apply']??0, $source, $table, $id_table);
+                $createFilterProduct = $this->createProductCategoryDiscount($id_post, $post['category_product'], $post['id_product_variant']??null, $post['promo_rule'], $post['product_type'], $post['auto_apply']??0, $source, $table, $id_table);
 
             } catch (Exception $e) {
                 $createFilterProduct = [
@@ -1668,7 +1668,7 @@ class ApiPromoCampaign extends Controller
         return $result;
     }
 
-    public function createProductCategoryDiscount($id_post, $category_product, $id_product_variant, $rules, $product_type, $auto_apply, $source, $table, $id_table)
+    public function createProductCategoryDiscount($id_post, $category_product, $id_product_variant = null, $rules, $product_type, $auto_apply, $source, $table, $id_table)
     {
         if (!$rules) {
             return [
@@ -2635,7 +2635,15 @@ class ApiPromoCampaign extends Controller
             if($applied_product['product_variant']['product_variant_name']??false){
                 $parent = ProductVariant::where('id_product_variant',$applied_product['product_variant']['parent'])->first();
                 if($parent){
-                    $product = $product.' with '.$applied_product['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
+                    if($applied_product['product_variant']['product_variant_name']=='general_size'){
+                        $product = $product.' without Variant Size';
+                        $product = $product.' without Variant Size';
+                    }elseif($applied_product['product_variant']['product_variant_name']=='general_type'){
+                        $product = $product.' without Variant Type';
+                    }else{
+                        $product = $product.' with '.$applied_product['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
+                    }
+
                 }
             }
         	
