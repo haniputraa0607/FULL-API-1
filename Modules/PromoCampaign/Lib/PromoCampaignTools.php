@@ -964,7 +964,8 @@ class PromoCampaignTools{
 
 					}
 				}	
-				// return $product_get_promo;
+				
+				$min_price = $benefit_products[0]['product_price'];
 				$product['product'] = $this->getProductName($benefit_products[0]['product_group'], $benefit_products[0]['product_variants']);
 				if ($promo_rule->discount_type == 'Percent' || $promo_rule->discount_type == 'percent') {
 					if ($promo_rule->discount_value == 100) {
@@ -978,7 +979,11 @@ class PromoCampaignTools{
 					}
 
 				}else{
-					$discount_benefit = 'IDR '.number_format(($promo_rule['discount_value']??0),0,',','.');
+					$discount_val = $promo_rule['discount_value']??0;
+					if($discount_val>$min_price){
+						$discount_val = $min_price;
+					}
+					$discount_benefit = 'IDR '.number_format(($discount_val),0,',','.');
 					$new_description = 'You get discount of IDR '.number_format($discount,0,',','.').' for '.($product_get_promo <= 1 ? $product['product'] : $dec_category_name);
 					$promo_detail_message = 'Discount '.$discount_benefit;
 				}
@@ -1296,7 +1301,11 @@ class PromoCampaignTools{
 			$product_price=$trx['new_price']/$trx['qty'];
 		}
 		if($promo_rules->discount_type=='Nominal' || $promo_rules->discount_type=='nominal'){
-			$discount=$promo_rules->discount_value*$discount_qty;
+			$discount_val = $promo_rules->discount_value;
+			if($discount_val>$product_price){
+				$discount_val = $product_price;
+			}
+			$discount=$discount_val*$discount_qty;
 			$trx['discount']=($trx['discount']??0)+$discount;
 			$trx['new_price']=($product_price*$trx['qty'])-$trx['discount'];
 			$trx['is_promo']=1;
