@@ -55,7 +55,7 @@ return [
         ],
 
 		'mysql2' => [
-            'driver' => 'mysql',
+            'driver' => 'pgsql',
             'host' => env('DB2_HOST', '127.0.0.1'),
             'port' => env('DB2_PORT', '5432'),
             'database' => env('DB2_DATABASE', 'forge'),
