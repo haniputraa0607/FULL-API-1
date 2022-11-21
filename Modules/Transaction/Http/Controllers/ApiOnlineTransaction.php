@@ -2119,9 +2119,14 @@ class ApiOnlineTransaction extends Controller
         $promo['discount']=0;
         $promo_source = null;
         $promo_delivery = null;
-
-        if($request->json('promo_code'))
+        $data_closing = [];
+        $user_promo_code = UserPromo::where('id_user', '=', $request->user()->id)->where('promo_type', 'promo_campaign')->where('discount_type', 'discount')->get()->toArray();
+        if($request->json('promo_code') || $user_promo_code)
         {
+            if(!$request->json('promo_code') && $user_promo_code){
+                $get_promo_code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $user_promo_code[0]['id_reference'])->first()['promo_code'] ?? null;
+                $request->merge(['promo_code' => $get_promo_code]);
+            }
         	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1, 1);
             if ($code)
             {
@@ -2131,55 +2136,72 @@ class ApiOnlineTransaction extends Controller
 	        	}
 	        	else
 	        	{
-                    $post['id_promo_campaign_promo_code'] = $code->id_promo_campaign_promo_code;
-                    if($code->promo_type == "Referral"){
-                        $promo_code_ref = $request->json('promo_code');
-                        $use_referral = true;
+                    $days = true;
+                    if($code['is_all_days']==0 && !empty($code['promo_campaign']['promo_campaign_days'])){
+                        $selected_days = [];
+                        $selected_days = in_array(date('l'),array_pluck($code['promo_campaign']['promo_campaign_days'], 'day'));
+                        if(!$selected_days){
+                            $days = false;
+                            $error = ['Promo campaign is not available today'];
+            		        $promo_error = app($this->promo_campaign)->promoError('transaction', $error);
+                        }
                     }
-		            $pct=new PromoCampaignTools();
-		            $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
-
-		            if ($validate_user) {
-			            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product);
-
-
-			            // if (isset($discount_promo['is_free']) && $discount_promo['is_free'] == 1) {
-			            // 	// unset($discount_promo['item']);
-			            // 	$discount_promo['discount'] = 0;
-			            // }
-			            $discount_type 			= $code->promo_campaign->promo_type;
-			            $promo['code'] 			= $code->promo_code;
-			            $promo['description']	= $discount_promo['new_description'];
-			            $promo['detail'] 		= $discount_promo['promo_detail'];
-			            $promo['discount'] 		= $discount_promo['discount'];
-			            $promo['value'] 		= $discount_promo['discount'];
-			            $promo['is_free'] 		= $discount_promo['is_free'];
-			            $promo['type'] 			= 'discount';
-			            $promo_source 			= 'promo_code';
-
-			            if ($code['promo_type'] == 'Referral') 
-			            {
-			            	$code->load('promo_campaign_referral');
-				            if ($code->promo_campaign_referral->referred_promo_type == 'Cashback') 
-				            {
-				            	$promo['type'] = 'cashback';
-				            	$promo['detail'] = 'Referral (Cashback)';
-				            }
-			            }
-			            if ( !empty($errore) || !empty($errors)) {
-			            	$promo_error = app($this->promo_campaign)->promoError('transaction', $errore, $errors, $error_product);
-			            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('promo_campaign', $code['promo_campaign'])['product']??'';
-			            	$promo_error['warning_image'] = env('S3_URL_API').($code['promo_campaign_warning_image']??$promo_error['warning_image']);
-					        $promo_error['product'] = $pct->getRequiredProduct($code->id_promo_campaign)??null;
-			            	$promo_source = null;
-
-			            }
-		            	$promo_discount=$discount_promo['discount'];
-		            }else{
-		            	if(!empty($errore)){
-		            		$promo_error = app($this->promo_campaign)->promoError('transaction', $errore);
-		            	}
-		            }
+                    if($days){
+                        $post['id_promo_campaign_promo_code'] = $code->id_promo_campaign_promo_code;
+                        if($code->promo_type == "Referral"){
+                            $promo_code_ref = $request->json('promo_code');
+                            $use_referral = true;
+                        }
+                        $pct=new PromoCampaignTools();
+                        $validate_user=$pct->validateUser($code->id_promo_campaign, $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$code->id_promo_campaign_promo_code);
+                        
+                        if ($validate_user) {
+                            $discount_promo=$pct->validatePromo($code->id_promo_campaign, $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product);
+                            // return [$discount_promo];
+                            // if (isset($discount_promo['is_free']) && $discount_promo['is_free'] == 1) {
+                            // 	// unset($discount_promo['item']);
+                            // 	$discount_promo['discount'] = 0;
+                            // }
+                            $code;
+                            $discount_type 			= $code->promo_campaign->promo_type;
+                            $promo['code'] 			= $code->promo_code;
+                            $promo['promo_title']	= $discount_promo['promo_title'];
+                            $promo['description']	= $discount_promo['new_description'];
+                            $promo['detail'] 		= $discount_promo['promo_detail'];
+                            $promo['discount'] 		= $discount_promo['discount'];
+                            $promo['value'] 		= $discount_promo['discount'];
+                            $promo['is_free'] 		= $discount_promo['is_free'];
+                            $promo['type'] 			= 'discount';
+                            $promo_source 			= 'promo_code';
+    
+                            if ($code['promo_type'] == 'Referral') 
+                            {
+                                $code->load('promo_campaign_referral');
+                                if ($code->promo_campaign_referral->referred_promo_type == 'Cashback') 
+                                {
+                                    $promo['type'] = 'cashback';
+                                    $promo['detail'] = 'Referral (Cashback)';
+                                }
+                            }
+                            if ( !empty($errore) || !empty($errors)) {
+                                $promo_error = app($this->promo_campaign)->promoError('transaction', $errore, $errors, $error_product);
+                                $promo_error['product_label'] = app($this->promo_campaign)->getProduct('promo_campaign', $code['promo_campaign'])['product']??'';
+                                $promo_error['warning_image'] = env('S3_URL_API').($code['promo_campaign_warning_image']??$promo_error['warning_image']);
+                                $promo_error['is_product_category'] = 0;
+                                $promo_error['product'] = $pct->getRequiredProduct($code->id_promo_campaign)??null;
+                                if(isset($promo_error['product']['product_category_name'])){
+                                    $promo_error['is_product_category'] = 1;
+                                }
+                                $promo_source = null;
+    
+                            }
+                            $promo_discount=$discount_promo['discount'];
+                        }else{
+                            if(!empty($errore)){
+                                $promo_error = app($this->promo_campaign)->promoError('transaction', $errore);
+                            }
+                        }
+                    }
 	        	}
             }
             else
@@ -2190,7 +2212,11 @@ class ApiOnlineTransaction extends Controller
         }
         elseif($request->json('id_deals_user'))
         {
-	        $deals = DealsUser::whereIn('paid_status', ['Free', 'Completed'])->where('id_deals_user', $request->id_deals_user)->first();
+	        $deals = DealsUser::with([
+                    'dealVoucher.deals.deals_buyxgety_product_requirement',
+                    'dealVoucher.deals.deals_tier_discount_product',
+                    'dealVoucher.deals.deals_product_discount',
+                ])->whereIn('paid_status', ['Free', 'Completed'])->where('id_deals_user', $request->id_deals_user)->first();
 
 	        if (!$deals){
 	        	$error = ['Voucher is not found'];
@@ -2208,7 +2234,7 @@ class ApiOnlineTransaction extends Controller
 				$validate_user = true;
 				$pct = new PromoCampaignTools();
 				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals', null, $error_product);
-
+                
 				/*if ($discount_promo['is_free'] == 1) {
 	            	// unset($discount_promo['item']);
 	            	$discount_promo['discount'] = 0;
@@ -2226,7 +2252,7 @@ class ApiOnlineTransaction extends Controller
 				if ( !empty($errors) ) {
 					$code_obj = $deals;
 					$code = $deals->toArray();
-
+                    
 	            	$promo_error = app($this->promo_campaign)->promoError('transaction', null, $errors, $error_product);
 	            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('deals', $code_obj['dealVoucher']['deals'])['product']??'';
 	            	$promo_error['warning_image'] = env('S3_URL_API').($code['deal_voucher']['deals']['deals_warning_image']??$promo_error['warning_image']);
@@ -2240,11 +2266,144 @@ class ApiOnlineTransaction extends Controller
 	        	$error = ['Voucher is not valid'];
 	        	$promo_error = app($this->promo_campaign)->promoError('transaction', $error);
 	        }
-        }
-        // end check promo code
+        }elseif(!$request->json('promo_code') && !$request->json('no_autoapply') && !$user_promo_code){
+            $availPromo = PromoCampaign::join('promo_campaign_promo_codes','promo_campaign_promo_codes.id_promo_campaign','promo_campaigns.id_promo_campaign')
+            ->join('promo_campaign_productcategory_category_requirements','promo_campaign_productcategory_category_requirements.id_promo_campaign','promo_campaigns.id_promo_campaign')->with(['promo_campaign_days'])
+            ->where('step_complete',1)->where('promo_type','Promo Product Category')->whereDate('date_start','<=',date('Y-m-d H:i:s'))->whereDate('date_end','>=',date('Y-m-d H:i:s'))
+            ->where('promo_campaign_productcategory_category_requirements.auto_apply',1)
+            ->addSelect('promo_campaigns.*')->distinct()->orderBy('date_start','desc')->get()->toArray();
 
+            $new_promo = [];
+            foreach($availPromo ?? [] as $avail_promo){
+                if($avail_promo['total_coupon']!=0 && $avail_promo['total_coupon']<=$avail_promo['used_code']){
+                    continue;
+                }
+
+                if($avail_promo['code_type']=='Single'){
+
+                    $usedCode = PromoCampaignReport::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->where('id_user', $user->id)->count();
+                    
+                    if($avail_promo['limitation_usage']!=0 && $avail_promo['limitation_usage']<=$usedCode){
+                        continue;
+                    }
+    
+                    $promo_code = PromoCampaignPromoCode::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->first();
+                    if($promo_code){
+                        $avail_promo['promo_code'] = $promo_code['promo_code'];
+                        $avail_promo['id_promo_campaign_promo_code'] = $promo_code['id_promo_campaign_promo_code'];
+                    }
+    
+                }else{
+                    $usedCode = PromoCampaignReport::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->where('id_user', $user->id)->select('promo_campaign_reports.*',
+                    DB::raw('
+                        COUNT(id_promo_campaign_promo_code) AS count
+                    '))->groupBy('id_promo_campaign_promo_code')->get()->keyBy('id_promo_campaign_promo_code');
+                    if(count($usedCode)>0){
+                        foreach($usedCode ?? [] as $key => $usecode){
+                            $end = false;
+                            if($avail_promo['user_limit']!=0 && $avail_promo['user_limit']<=count($usedCode)){
+                                if($avail_promo['code_limit']!=0 && $avail_promo['code_limit']<=$usecode['count']){
+                                    $end = true;
+                                    continue;
+                                }else{
+                                    $promo_code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code',$usecode['id_promo_campaign_promo_code'])->first();
+                                    break;
+                                }
+                            }else{
+                                if($avail_promo['code_limit']!=0 && $avail_promo['code_limit']<=$usecode['count']){
+                                    $promo_code = PromoCampaignPromoCode::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->where('usage',0)->first();
+                                }else{
+                                    $promo_code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code',$usecode['id_promo_campaign_promo_code'])->first();
+                                }
+                                break;
+                            }
+                        }
+                        if($end){
+                            continue;
+                        }
+                    }else{
+                        $promo_code = PromoCampaignPromoCode::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->where('usage',0)->first();
+                    }
+                    
+                    $used_by_other_user = PromoCampaignReport::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->where('id_user', '!=', $user->id)->where('id_promo_campaign_promo_code',$promo_code['id_promo_campaign_promo_code'])->first();
+                    if($used_by_other_user){
+                        continue;
+                    }
+
+                    $avail_promo['promo_code'] = $promo_code['promo_code'];
+                    $avail_promo['id_promo_campaign_promo_code'] = $promo_code['id_promo_campaign_promo_code'];
+                }
+
+                if($avail_promo['is_all_days']==0 && !empty($avail_promo['promo_campaign_days'])){
+                    $selected_days = [];
+                    $selected_days = in_array(date('l'),array_pluck($avail_promo['promo_campaign_days'], 'day'));
+                    if(!$selected_days){
+                       continue;
+                    }
+                }
+                
+                $post['id_promo_campaign_promo_code'] = $avail_promo['id_promo_campaign_promo_code'];
+                $pct = new PromoCampaignTools();
+                $validate_user = $pct->validateUser($avail_promo['id_promo_campaign'], $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$avail_promo['id_promo_campaign_promo_code']);
+                if(!$validate_user){
+                    continue;
+                }
+                
+                $discount_promo=$pct->validatePromo($avail_promo['id_promo_campaign'], $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product, null, 0, $closing);
+                if(!$discount_promo){
+                    if(isset($closing)){
+                        $data_closing[] = $closing;
+                    }
+                    continue;
+                }
+
+                $discount_type 			= $avail_promo['promo_type'];
+                $promo['code'] 			= $avail_promo['promo_code'];
+                $promo['promo_title']	= $discount_promo['promo_title'];
+                $promo['description']	= $discount_promo['new_description'];
+                $promo['detail'] 		= $discount_promo['promo_detail'];
+                $promo['discount'] 		= $discount_promo['discount'];
+                $promo['value'] 		= $discount_promo['discount'];
+                $promo['is_free'] 		= $discount_promo['is_free'];
+                $promo['type'] 			= 'discount';
+                $promo_source 			= 'promo_code';
+
+                $promo_discount=$discount_promo['discount'];
+                $request['promo_code'] = $avail_promo['promo_code'];
+                break;
+            }
+        }
+        
+        // end check promo code
         if (empty($request->json('id_deals_user')) && empty($request->json('promo_code'))) {
         	$promo = null;
+        }
+        
+        $promo_close = null;
+        if(isset($data_closing) && !isset($promo)){
+            $promo_close = array_reduce($data_closing, function($a, $b){
+                if(isset($a['plus']) && isset($b['plus'])){
+                    if($a['plus'] == $b['plus']){
+                        return $a;
+                    }elseif($a['plus'] < $b['plus']){
+                        return $a;
+                    }else{
+                        return $b;
+                    }
+                }else{
+                    return $a;
+                }
+            }, array_shift($data_closing));
+        }
+        
+        if(isset($promo_close)){
+			$delete = UserPromo::where('id_user', '=', $request->user()->id)->where('promo_type', 'promo_campaign')->where('discount_type', 'discount')->delete();
+
+        }else{
+            if(isset($promo['code']) && $promo_source == 'promo_code'){
+                $getCode = PromoCampaignPromoCode::where('promo_code',$promo['code'])->first();
+                $update = UserPromo::updateOrCreate(['id_user' => $request->user()->id, 'discount_type' => 'discount','promo_type' => 'promo_campaign'], ['id_reference' => $getCode['id_promo_campaign_promo_code']]);
+            }
         }
 
         $tree = [];
@@ -2677,6 +2836,7 @@ class ApiOnlineTransaction extends Controller
         $promo_delivery = $pct->validateDelivery($request, $result, $promo_delivery_error);
         $result['promo_delivery'] = $promo_delivery;
         $result['promo_delivery_error'] = $promo_delivery_error;
+        $result['promo_offer'] = isset($promo) ? null : $promo_close['message']??null;
 
         if ($promo_delivery) {
 	        $result['allow_pickup'] = $promo_delivery['allow_pickup'] ?? $result['allow_pickup'];
@@ -2705,7 +2865,7 @@ class ApiOnlineTransaction extends Controller
 
         // payment detail
         $result['payment_detail'] = $this->getTransactionPaymentDetail($request, $result);
-
+        
         return MyHelper::checkGet($result)+['messages'=> $error_msg ? [$error_msg[0]] : [], 'promo_error'=>$promo_error, 'promo'=>$promo, 'clear_cart'=>$clear_cart];
     }
 
