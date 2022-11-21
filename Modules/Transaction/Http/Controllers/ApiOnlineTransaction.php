@@ -2121,8 +2121,12 @@ class ApiOnlineTransaction extends Controller
         $promo_delivery = null;
         $data_closing = [];
         $user_promo_code = UserPromo::where('id_user', '=', $request->user()->id)->where('promo_type', 'promo_campaign')->where('discount_type', 'discount')->get()->toArray();
-        if($request->json('promo_code'))
+        if($request->json('promo_code') || $user_promo_code)
         {
+            if(!$request->json('promo_code') && $user_promo_code){
+                $get_promo_code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $user_promo_code[0]['id_reference'])->first()['promo_code'] ?? null;
+                $request->merge(['promo_code' => $get_promo_code]);
+            }
         	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1, 1);
             if ($code)
             {
