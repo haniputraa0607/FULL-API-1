@@ -92,7 +92,10 @@ class ApiOnlineTransaction extends Controller
     }
 
     public function newTransaction(NewTransaction $request) {
-        $post = $request->json()->all();
+        if ($request->id_deals_user) {
+            $request->merge(['promo_code' => null]);
+        }
+        $post = $request->all();
         if (!isset($post['id_user'])) {
             $id = $request->user()->id;
         } else {
@@ -1851,7 +1854,10 @@ class ApiOnlineTransaction extends Controller
      * @return View                    [description]
      */
     public function checkTransaction(CheckTransaction $request) {
-        $post = $request->json()->all();
+        if ($request->id_deals_user) {
+            $request->merge(['promo_code' => null]);
+        }
+        $post = $request->all();
         $missing_product = 0;
         $clear_cart = 0;
         $error_msg	= [];
