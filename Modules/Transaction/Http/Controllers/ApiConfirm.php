@@ -89,7 +89,7 @@ class ApiConfirm extends Controller
                     'id'       => $value['id_product'],
                     'price'    => abs($value['transaction_product_price'] + $value['transaction_modifier_subtotal']),
                     // 'name'     => $value['product']['product_name'].($more_name_text?'('.trim($more_name_text,',').')':''), // name + modifier too long
-                    'name'     => $value['product']['product_name'],
+                    'name'     => substr($value['product']['product_name'], 0, 40), // max 50 char
                     'quantity' => $value['transaction_product_qty'],
                 ];
 
