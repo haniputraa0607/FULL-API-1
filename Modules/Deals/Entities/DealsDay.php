@@ -3,8 +3,11 @@
 namespace Modules\Deals\Entities;
 
 use Illuminate\Database\Eloquent\Model;
+use Wildside\Userstamps\Userstamps;
+use Reliese\Database\Eloquent\Model as Eloquent;
 
-class DealsDay extends Model
+
+class DealsDay extends Eloquent
 {
     use Userstamps;
 	protected $table = 'deals_days';

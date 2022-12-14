@@ -114,7 +114,9 @@ class Deal extends Model
         'is_all_outlet',
         'min_basket_size',
 		'is_all_shipment',
-		'is_all_days'
+		'is_all_days',
+		'prefix',
+		'digit_random'
 	];
 
 	protected $appends  = ['url_deals_image', 'deals_status', 'deals_voucher_price_type', 'deals_voucher_price_pretty', 'url_webview', 'url_deals_warning_image'];

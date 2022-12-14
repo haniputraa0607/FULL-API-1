@@ -53,6 +53,7 @@ use Image;
 use Storage;
 
 use App\Jobs\SendDealsJob;
+use Modules\Deals\Entities\DealsDay;
 
 class ApiDeals extends Controller
 {
@@ -273,6 +274,22 @@ class ApiDeals extends Controller
         	$data['custom_outlet_text'] = $post['custom_outlet_text'];
         }
 
+        if (isset($post['prefix_code'])) {
+        	$data['prefix'] = $post['prefix_code'];
+        }
+
+        if (isset($post['number_last_code'])) {
+        	$data['digit_random'] = $post['number_last_code'];
+        }
+
+        if (isset($post['is_all_days'])) {
+        	$data['is_all_days'] = $post['is_all_days'];
+        }
+
+        if (isset($post['selected_day'])) {
+        	$data['selected_day'] = $post['selected_day'];
+        }
+
         return $data;
     }
 
@@ -280,6 +297,9 @@ class ApiDeals extends Controller
     function create($data)
     {
         $data = $this->checkInputan($data);
+        $days = $data['selected_day'];
+        unset($data['selected_day']);
+
         $data['created_by'] = auth()->user()->id;
         // error
         if (isset($data['error'])) {
@@ -312,8 +332,45 @@ class ApiDeals extends Controller
                     return false;
                 }
             }
+
+            if($data['is_all_days'] == 0 && isset($days)){
+                $saveDays = $this->selectedDays($save, $days);
+                if (!$saveDays) {
+                    DB::rollBack();
+                    $result = [
+                        'status'  => 'fail',
+                        'message'  => ['Failed to create deals days']
+                    ];
+                }
+            }
         }
         return $save;
+    }
+
+    public function selectedDays($deals, $selected_days){
+    		
+        $table = new DealsDay;
+    	$id_deals = $deals->id_deals;
+
+    	$delete = $table::where('id_deals', $id_deals)->delete();
+
+        $data_days = [];
+
+        foreach ($selected_days as $value) {
+            array_push($data_days, [
+                'id_deals'  => $id_deals,
+                'day' 	=> $value
+            ]);
+        }
+
+        if (!empty($data_days)) {
+            $save = $table::insert($data_days);
+            return $save;
+        } else {
+            return false;
+        }
+
+        return true;
     }
 
     /* CREATE REQUEST */
@@ -334,6 +391,9 @@ class ApiDeals extends Controller
                     break;
                 case 'WelcomeVoucher':
                     $dt = 'Welcome Voucher';
+                    break;
+                case 'SecondDeals':
+                    $dt = 'Second Deals';
                     break;
             }
             $deals = $save->toArray();
@@ -2528,5 +2588,28 @@ class ApiDeals extends Controller
         $save = Deal::where('id_deals', $post['id_deals'])->updateWithUserstamps($data);
 
     	return MyHelper::checkUpdate($save);
+    }
+
+    public function checkCode(Request $request)
+    {
+        $post = $request->json()->all();
+
+        $query = Deal::where('prefix', '=', $post['search_code']);
+
+        if (is_numeric($request->deals_id)) {
+        	$query = $query->where('id_deals', '!=', $request->deals_id);
+        }
+        $checkCode = $query->first();
+
+        if ($checkCode) {
+            $result = [
+                'status'  => 'not available'
+            ];
+        } else {
+            $result = [
+                'status'  => 'available'
+            ];
+        }
+        return response()->json($result);
     }
 }
