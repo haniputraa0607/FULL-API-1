@@ -87,6 +87,12 @@ Route::group(['middleware' => ['auth:api', 'log_activities','user_agent', 'scope
     Route::post('welcome-voucher/setting/update', ['middleware' => 'feature_control:190', 'uses' => 'ApiDeals@welcomeVoucherSettingUpdate']);
     Route::post('welcome-voucher/setting/update/status', ['middleware' => 'feature_control:190', 'uses' => 'ApiDeals@welcomeVoucherSettingUpdateStatus']);
     Route::any('welcome-voucher/list/deals', ['middleware' => 'feature_control:187', 'uses' => 'ApiDeals@listDealsWelcomeVoucher']);
+
+    /* Second Deals */
+    Route::any('second-deals/setting', ['middleware' => 'feature_control:188', 'uses' => 'ApiDeals@secondDealsSetting']);
+    Route::post('second-deals/setting/update', ['middleware' => 'feature_control:190', 'uses' => 'ApiDeals@secondDealsSettingUpdate']);
+    Route::post('second-deals/setting/update/status', ['middleware' => 'feature_control:190', 'uses' => 'ApiDeals@secondDealsSettingUpdateStatus']);
+    Route::any('second-deals/list/deals', ['middleware' => 'feature_control:187', 'uses' => 'ApiDeals@listDealsSecondDeals']);
 });
 
 

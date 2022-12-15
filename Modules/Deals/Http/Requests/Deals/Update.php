@@ -17,7 +17,7 @@ class Update extends FormRequest
     {
         return [
             'id_deals'                  => 'required_without:id_deals_promotion_template|integer',
-            'deals_type'                => 'required|in:Deals,Hidden,Point,Spin,Subscription,WelcomeVoucher,Promotion',
+            'deals_type'                => 'required|in:Deals,Hidden,Point,Spin,Subscription,WelcomeVoucher,Promotion,SecondDeals',
             'deals_voucher_type'        => 'sometimes|required|in:Auto generated,List Vouchers,Unlimited',
             'deals_promo_id'            => 'nullable',
             'deals_title'               => 'required',

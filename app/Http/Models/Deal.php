@@ -116,7 +116,9 @@ class Deal extends Model
 		'is_all_shipment',
 		'is_all_days',
 		'prefix',
-		'digit_random'
+		'digit_random',
+		'autoresponse_notification',
+		'autoresponse_inbox',
 	];
 
 	protected $appends  = ['url_deals_image', 'deals_status', 'deals_voucher_price_type', 'deals_voucher_price_pretty', 'url_webview', 'url_deals_warning_image'];
@@ -285,4 +287,14 @@ class Deal extends Model
 	{
 		return $this->hasOne(\Modules\Deals\Entities\DealsDiscountDeliveryRule::class, 'id_deals');
 	}
+
+	public function deals_productcategory_rules()
+	{
+		return $this->hasMany(\Modules\Deals\Entities\DealsProductCategoryRule::class, 'id_deals');
+	}
+
+	public function deals_productcategory_category_requirements()
+    {
+        return $this->hasOne(\Modules\Deals\Entities\DealsProductCategoryProductRequirement::class, 'id_deals', 'id_deals');
+    }
 }

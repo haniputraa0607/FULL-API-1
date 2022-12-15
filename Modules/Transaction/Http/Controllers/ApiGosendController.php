@@ -28,6 +28,7 @@ class ApiGosendController extends Controller
         $this->trx        = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
         $this->outlet_app = "Modules\OutletApp\Http\Controllers\ApiOutletApp";
         $this->notif      = "Modules\Transaction\Http\Controllers\ApiNotification";
+        $this->dealClaim  = "Modules\Deals\Http\Controllers\ApiDealsClaim";
     }
     /**
      * Update latest status from gosend
@@ -191,6 +192,17 @@ class ApiGosendController extends Controller
                                 $savePoint = app($this->getNotif)->savePoint($newTrx);
                                 // return $savePoint;
                                 if (!$savePoint) {
+                                    DB::rollback();
+                                    return response()->json([
+                                        'status'   => 'fail',
+                                        'messages' => ['Transaction failed'],
+                                    ]);
+                                }
+                            }
+
+                            if(!$newTrx->id_promo_campaign_promo_code && !$newTrx->transaction_vouchers){
+                                $getSecondVoucher = app($this->dealClaim)->getSecondVoucher($newTrx);
+                                if (!$getSecondVoucher) {
                                     DB::rollback();
                                     return response()->json([
                                         'status'   => 'fail',
