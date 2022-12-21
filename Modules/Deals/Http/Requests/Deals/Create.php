@@ -18,7 +18,7 @@ class Create extends FormRequest
         return [
             'is_online'        			=> 'nullable',
             'is_offline'       			=> 'nullable',
-            'deals_type'                => 'required|in:Deals,Hidden,Point,Spin,Subscription,WelcomeVoucher,Promotion',
+            'deals_type'                => 'required|in:Deals,Hidden,Point,Spin,Subscription,WelcomeVoucher,Promotion,SecondDeals',
             'deals_voucher_type'        => 'nullable|in:Auto generated,List Vouchers,Unlimited',
             'deals_promo_id'            => 'nullable',
             'deals_title'               => 'required',
@@ -41,7 +41,10 @@ class Create extends FormRequest
             'deals_total_claimed'       => '',
             'deals_total_redeemed'      => '',
             'deals_total_used'          => '',
-            'id_outlet'                 => 'sometimes|array'
+            'id_outlet'                 => 'sometimes|array',
+            'selected_day'              => 'sometimes|array',
+            'prefix_code'               => 'nullable',
+            'number_last_code'          => 'nullable',
         ];
     }
 
