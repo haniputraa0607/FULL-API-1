@@ -1908,7 +1908,6 @@ class ApiOnlineTransaction extends Controller
             $clear_cart = 1;
             $outlet_status = 0;
         }
-
         //cek outlet holiday
         if($issetDate == false){
             $holiday = Holiday::join('outlet_holidays', 'holidays.id_holiday', 'outlet_holidays.id_holiday')->join('date_holidays', 'holidays.id_holiday', 'date_holidays.id_holiday')
@@ -2120,11 +2119,12 @@ class ApiOnlineTransaction extends Controller
         $promo_source = null;
         $promo_delivery = null;
         $data_closing = [];
-        $user_promo_code = UserPromo::where('id_user', '=', $request->user()->id)->where('promo_type', 'promo_campaign')->where('discount_type', 'discount')->get()->toArray();
-        if($request->json('promo_code') || $user_promo_code)
+        $user_promo_code = UserPromo::where('id_user', '=', $request->user()->id)->where('discount_type', 'discount')->first();
+        $priority = Setting::where('key','discount_priority')->first()['value_text'] ?? 'voucher';
+        if($request->json('promo_code') || ($user_promo_code && $user_promo_code['promo_type'] == 'promo_campaign'))
         {
-            if(!$request->json('promo_code') && $user_promo_code){
-                $get_promo_code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $user_promo_code[0]['id_reference'])->first()['promo_code'] ?? null;
+            if(!$request->json('promo_code') && ($user_promo_code && $user_promo_code['promo_type'] == 'promo_campaign')){
+                $get_promo_code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code', $user_promo_code['id_reference'])->first()['promo_code'] ?? null;
                 $request->merge(['promo_code' => $get_promo_code]);
             }
         	$code = app($this->promo_campaign)->checkPromoCode($request->promo_code, 1, 1);
@@ -2210,12 +2210,18 @@ class ApiOnlineTransaction extends Controller
             	$promo_error = app($this->promo_campaign)->promoError('transaction', $error);
             }
         }
-        elseif($request->json('id_deals_user'))
+        elseif($request->json('id_deals_user') || ($user_promo_code && $user_promo_code['promo_type'] == 'deals'))
         {
+            if(!$request->json('id_deals_user') && $user_promo_code && $user_promo_code['promo_type'] == 'deals'){
+                $request->merge(['id_deals_user' => $user_promo_code['id_reference']]);
+            }
+
 	        $deals = DealsUser::with([
                     'dealVoucher.deals.deals_buyxgety_product_requirement',
+                    'dealVoucher.deals.deals_productcategory_category_requirements',
                     'dealVoucher.deals.deals_tier_discount_product',
                     'dealVoucher.deals.deals_product_discount',
+                    'dealVoucher.deals.deals_days',
                 ])->whereIn('paid_status', ['Free', 'Completed'])->where('id_deals_user', $request->id_deals_user)->first();
 
 	        if (!$deals){
@@ -2231,154 +2237,226 @@ class ApiOnlineTransaction extends Controller
 	        	$error = ['Voucher periode hasn\'t started'];
 	        	$promo_error = app($this->promo_campaign)->promoError('transaction', $error);
 	        }elseif($deals){
-				$validate_user = true;
-				$pct = new PromoCampaignTools();
-				$discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals', null, $error_product);
-                
-				/*if ($discount_promo['is_free'] == 1) {
-	            	// unset($discount_promo['item']);
-	            	$discount_promo['discount'] = 0;
-	            }*/
-	            $discount_type = $deals->dealVoucher->deals->promo_type;
-				$promo['description'] = $discount_promo['new_description'];
-	            $promo['detail'] = $discount_promo['promo_detail'];
-	            $promo['discount'] = $discount_promo['discount'];
-	            $promo['value'] = $discount_promo['discount'];
-	            $promo['is_free'] = $discount_promo['is_free'];
-	            $promo['type'] = 'discount';
-	            $promo['code'] = $deals->dealVoucher->voucher_code;
-		        $promo_source = 'voucher_online';
+                $days = true;
+                if($deals->dealVoucher->deals->is_all_days==0 && !empty($deals->dealVoucher->deals->deals_days)){
+                    $selected_days = [];
+                    $selected_days = in_array(date('l'),array_pluck($deals->dealVoucher->deals->deals_days, 'day'));
+                    if(!$selected_days){
+                        $days = false;
+                        $error = ['Voucher is not available today'];
+                        $promo_error = app($this->promo_campaign)->promoError('transaction', $error);
+                    }
+                }
+                if($days){
+                    $validate_user = true;
+                    $pct = new PromoCampaignTools();
+                    $discount_promo=$pct->validatePromo($deals->dealVoucher->id_deals, $request->id_outlet, $post['item'], $errors, 'deals', null, $error_product);    
+                    // return [$discount_promo];
+                    /*if ($discount_promo['is_free'] == 1) {
+                        // unset($discount_promo['item']);
+                        $discount_promo['discount'] = 0;
+                    }*/
+                    $discount_type = $deals->dealVoucher->deals->promo_type;
+                    $promo['description'] = $discount_promo['new_description'];
+                    $promo['detail'] = $discount_promo['promo_detail'];
+                    $promo['discount'] = $discount_promo['discount'];
+                    $promo['value'] = $discount_promo['discount'];
+                    $promo['is_free'] = $discount_promo['is_free'];
+                    $promo['type'] = 'discount';
+                    $promo['code'] = $deals->dealVoucher->voucher_code;
+                    $promo_source = 'voucher_online';
+    
+                    if ( !empty($errors) ) {
+                        $code_obj = $deals;
+                        $code = $deals->toArray();
+                        
+                        $promo_error = app($this->promo_campaign)->promoError('transaction', null, $errors, $error_product);
+                        $promo_error['product_label'] = app($this->promo_campaign)->getProduct('deals', $code_obj['dealVoucher']['deals'])['product']??'';
+                        $promo_error['warning_image'] = env('S3_URL_API').($code['deal_voucher']['deals']['deals_warning_image']??$promo_error['warning_image']);
+                        $promo_error['product'] = $pct->getRequiredProduct($deals->dealVoucher->id_deals, 'deals')??null;
+                        $promo_error['is_product_category'] = 0;
+                        if(isset($promo_error['product']['product_category_name'])){
+                            $promo_error['is_product_category'] = 1;
+                        }
+                        $promo_source = null;
+                    }
+                    $promo_discount=$discount_promo['discount'];
+                }
 
-				if ( !empty($errors) ) {
-					$code_obj = $deals;
-					$code = $deals->toArray();
-                    
-	            	$promo_error = app($this->promo_campaign)->promoError('transaction', null, $errors, $error_product);
-	            	$promo_error['product_label'] = app($this->promo_campaign)->getProduct('deals', $code_obj['dealVoucher']['deals'])['product']??'';
-	            	$promo_error['warning_image'] = env('S3_URL_API').($code['deal_voucher']['deals']['deals_warning_image']??$promo_error['warning_image']);
-		        	$promo_error['product'] = $pct->getRequiredProduct($deals->dealVoucher->id_deals, 'deals')??null;
-		        	$promo_source = null;
-	            }
-	            $promo_discount=$discount_promo['discount'];
 	        }
 	        else
 	        {
 	        	$error = ['Voucher is not valid'];
 	        	$promo_error = app($this->promo_campaign)->promoError('transaction', $error);
 	        }
-        }elseif(!$request->json('promo_code') && !$request->json('no_autoapply') && !$user_promo_code){
-            $availPromo = PromoCampaign::join('promo_campaign_promo_codes','promo_campaign_promo_codes.id_promo_campaign','promo_campaigns.id_promo_campaign')
-            ->join('promo_campaign_productcategory_category_requirements','promo_campaign_productcategory_category_requirements.id_promo_campaign','promo_campaigns.id_promo_campaign')->with(['promo_campaign_days'])
-            ->where('step_complete',1)->where('promo_type','Promo Product Category')->whereDate('date_start','<=',date('Y-m-d H:i:s'))->whereDate('date_end','>=',date('Y-m-d H:i:s'))
-            ->where('promo_campaign_productcategory_category_requirements.auto_apply',1)
-            ->addSelect('promo_campaigns.*')->distinct()->orderBy('date_start','desc')->get()->toArray();
+        }elseif(!$request->json('promo_code') && !$request->json('id_deals_user') && !$request->json('no_autoapply') && !$user_promo_code){
 
-            $new_promo = [];
-            foreach($availPromo ?? [] as $avail_promo){
-                if($avail_promo['total_coupon']!=0 && $avail_promo['total_coupon']<=$avail_promo['used_code']){
-                    continue;
+            if($priority == 'voucher'){
+                $availDeals = DealsUser::whereHas('dealVoucher.deals.deals_productcategory_category_requirements',function($w1){
+                    $w1->where('auto_apply',1);
+                    $w1->where('step_complete',1)->where('promo_type','Voucher Product Category')->whereDate('deals_start','<=',date('Y-m-d H:i:s'))->whereDate('deals_end','>=',date('Y-m-d H:i:s'));
+                })->with(['dealVoucher.deals.deals_days'])
+                ->whereIn('paid_status', ['Free', 'Completed'])->where('id_user', $request->user()->id)
+                ->orderBy('claimed_at','asc')->get()->toArray();
+
+                foreach($availDeals ?? [] as $avail_deal){
+                    if($avail_deal['deal_voucher']['deals']['is_all_days']==0 && !empty($avail_deal['deal_voucher']['deals']['deals_days'])){
+                        $selected_days = [];
+                        $selected_days = in_array(date('l'),array_pluck($avail_deal['deal_voucher']['deals']['deals_days'], 'day'));
+                        if(!$selected_days){
+                           continue;
+                        }
+                    }
+                    if( !empty($avail_deal['used_at']) ){
+                        $error = ['Voucher already used'];
+                        $promo_error = app($this->promo_campaign)->promoError('transaction', $error);
+                    }elseif( date('Y-m-d H:i:s', strtotime($avail_deal['voucher_expired_at'])) < date('Y-m-d H:i:s') ){
+                        $error = ['Voucher is expired'];
+                        $promo_error = app($this->promo_campaign)->promoError('transaction', $error);
+                    }elseif( !empty($deals['voucher_active_at']) && date('Y-m-d H:i:s', strtotime($avail_deal['voucher_active_at'])) > date('Y-m-d H:i:s') ){
+                        $error = ['Voucher periode hasn\'t started'];
+                        $promo_error = app($this->promo_campaign)->promoError('transaction', $error);
+                    }else{
+                        $validate_user = true;
+                        $pct = new PromoCampaignTools();
+                        $discount_promo=$pct->validatePromo($avail_deal['deal_voucher']['id_deals'], $request->id_outlet, $post['item'], $errors, 'deals', null, $error_product, null, 0, $closing);
+                        if(!$discount_promo){
+                            if(isset($closing)){
+                                $data_closing[] = $closing;
+                            }
+                            continue;
+                        }
+
+                        $discount_type = $avail_deal['deal_voucher']['deals']['promo_type'];
+                        $promo['description'] = $discount_promo['new_description'];
+                        $promo['detail'] = $discount_promo['promo_detail'];
+                        $promo['discount'] = $discount_promo['discount'];
+                        $promo['value'] = $discount_promo['discount'];
+                        $promo['is_free'] = $discount_promo['is_free'];
+                        $promo['type'] = 'discount';
+                        $promo['code'] = $avail_deal['deal_voucher']['voucher_code'];
+                        $promo_source = 'voucher_online';
+                        $promo_discount=$discount_promo['discount'];
+                        $request['id_deals_user'] = $avail_deal['id_deals_user'];
+                        break;
+                    }
                 }
+            }else{
 
-                if($avail_promo['code_type']=='Single'){
-
-                    $usedCode = PromoCampaignReport::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->where('id_user', $user->id)->count();
-                    
-                    if($avail_promo['limitation_usage']!=0 && $avail_promo['limitation_usage']<=$usedCode){
+                $availPromo = PromoCampaign::join('promo_campaign_promo_codes','promo_campaign_promo_codes.id_promo_campaign','promo_campaigns.id_promo_campaign')
+                ->join('promo_campaign_productcategory_category_requirements','promo_campaign_productcategory_category_requirements.id_promo_campaign','promo_campaigns.id_promo_campaign')->with(['promo_campaign_days'])
+                ->where('step_complete',1)->where('promo_type','Promo Product Category')->whereDate('date_start','<=',date('Y-m-d H:i:s'))->whereDate('date_end','>=',date('Y-m-d H:i:s'))
+                ->where('promo_campaign_productcategory_category_requirements.auto_apply',1)
+                ->addSelect('promo_campaigns.*')->distinct()->orderBy('date_start','desc')->get()->toArray();
+    
+                $new_promo = [];
+                foreach($availPromo ?? [] as $avail_promo){
+                    if($avail_promo['total_coupon']!=0 && $avail_promo['total_coupon']<=$avail_promo['used_code']){
                         continue;
                     }
     
-                    $promo_code = PromoCampaignPromoCode::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->first();
-                    if($promo_code){
+                    if($avail_promo['code_type']=='Single'){
+    
+                        $usedCode = PromoCampaignReport::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->where('id_user', $user->id)->count();
+                        
+                        if($avail_promo['limitation_usage']!=0 && $avail_promo['limitation_usage']<=$usedCode){
+                            continue;
+                        }
+        
+                        $promo_code = PromoCampaignPromoCode::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->first();
+                        if($promo_code){
+                            $avail_promo['promo_code'] = $promo_code['promo_code'];
+                            $avail_promo['id_promo_campaign_promo_code'] = $promo_code['id_promo_campaign_promo_code'];
+                        }
+        
+                    }else{
+                        $usedCode = PromoCampaignReport::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->where('id_user', $user->id)->select('promo_campaign_reports.*',
+                        DB::raw('
+                            COUNT(id_promo_campaign_promo_code) AS count
+                        '))->groupBy('id_promo_campaign_promo_code')->get()->keyBy('id_promo_campaign_promo_code');
+                        if(count($usedCode)>0){
+                            foreach($usedCode ?? [] as $key => $usecode){
+                                $end = false;
+                                if($avail_promo['user_limit']!=0 && $avail_promo['user_limit']<=count($usedCode)){
+                                    if($avail_promo['code_limit']!=0 && $avail_promo['code_limit']<=$usecode['count']){
+                                        $end = true;
+                                        continue;
+                                    }else{
+                                        $promo_code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code',$usecode['id_promo_campaign_promo_code'])->first();
+                                        break;
+                                    }
+                                }else{
+                                    if($avail_promo['code_limit']!=0 && $avail_promo['code_limit']<=$usecode['count']){
+                                        $promo_code = PromoCampaignPromoCode::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->where('usage',0)->first();
+                                    }else{
+                                        $promo_code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code',$usecode['id_promo_campaign_promo_code'])->first();
+                                    }
+                                    break;
+                                }
+                            }
+                            if($end){
+                                continue;
+                            }
+                        }else{
+                            $promo_code = PromoCampaignPromoCode::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->where('usage',0)->first();
+                        }
+                        
+                        $used_by_other_user = PromoCampaignReport::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->where('id_user', '!=', $user->id)->where('id_promo_campaign_promo_code',$promo_code['id_promo_campaign_promo_code'])->first();
+                        if($used_by_other_user){
+                            continue;
+                        }
+    
                         $avail_promo['promo_code'] = $promo_code['promo_code'];
                         $avail_promo['id_promo_campaign_promo_code'] = $promo_code['id_promo_campaign_promo_code'];
                     }
     
-                }else{
-                    $usedCode = PromoCampaignReport::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->where('id_user', $user->id)->select('promo_campaign_reports.*',
-                    DB::raw('
-                        COUNT(id_promo_campaign_promo_code) AS count
-                    '))->groupBy('id_promo_campaign_promo_code')->get()->keyBy('id_promo_campaign_promo_code');
-                    if(count($usedCode)>0){
-                        foreach($usedCode ?? [] as $key => $usecode){
-                            $end = false;
-                            if($avail_promo['user_limit']!=0 && $avail_promo['user_limit']<=count($usedCode)){
-                                if($avail_promo['code_limit']!=0 && $avail_promo['code_limit']<=$usecode['count']){
-                                    $end = true;
-                                    continue;
-                                }else{
-                                    $promo_code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code',$usecode['id_promo_campaign_promo_code'])->first();
-                                    break;
-                                }
-                            }else{
-                                if($avail_promo['code_limit']!=0 && $avail_promo['code_limit']<=$usecode['count']){
-                                    $promo_code = PromoCampaignPromoCode::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->where('usage',0)->first();
-                                }else{
-                                    $promo_code = PromoCampaignPromoCode::where('id_promo_campaign_promo_code',$usecode['id_promo_campaign_promo_code'])->first();
-                                }
-                                break;
-                            }
+                    if($avail_promo['is_all_days']==0 && !empty($avail_promo['promo_campaign_days'])){
+                        $selected_days = [];
+                        $selected_days = in_array(date('l'),array_pluck($avail_promo['promo_campaign_days'], 'day'));
+                        if(!$selected_days){
+                           continue;
                         }
-                        if($end){
-                            continue;
-                        }
-                    }else{
-                        $promo_code = PromoCampaignPromoCode::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->where('usage',0)->first();
                     }
                     
-                    $used_by_other_user = PromoCampaignReport::where('id_promo_campaign',$avail_promo['id_promo_campaign'])->where('id_user', '!=', $user->id)->where('id_promo_campaign_promo_code',$promo_code['id_promo_campaign_promo_code'])->first();
-                    if($used_by_other_user){
+                    $post['id_promo_campaign_promo_code'] = $avail_promo['id_promo_campaign_promo_code'];
+                    $pct = new PromoCampaignTools();
+                    $validate_user = $pct->validateUser($avail_promo['id_promo_campaign'], $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$avail_promo['id_promo_campaign_promo_code']);
+                    if(!$validate_user){
                         continue;
                     }
-
-                    $avail_promo['promo_code'] = $promo_code['promo_code'];
-                    $avail_promo['id_promo_campaign_promo_code'] = $promo_code['id_promo_campaign_promo_code'];
-                }
-
-                if($avail_promo['is_all_days']==0 && !empty($avail_promo['promo_campaign_days'])){
-                    $selected_days = [];
-                    $selected_days = in_array(date('l'),array_pluck($avail_promo['promo_campaign_days'], 'day'));
-                    if(!$selected_days){
-                       continue;
+                    
+                    $discount_promo=$pct->validatePromo($avail_promo['id_promo_campaign'], $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product, null, 0, $closing);
+                    if(!$discount_promo){
+                        if(isset($closing)){
+                            $data_closing[] = $closing;
+                        }
+                        continue;
                     }
+    
+                    $discount_type 			= $avail_promo['promo_type'];
+                    $promo['code'] 			= $avail_promo['promo_code'];
+                    $promo['promo_title']	= $discount_promo['promo_title'];
+                    $promo['description']	= $discount_promo['new_description'];
+                    $promo['detail'] 		= $discount_promo['promo_detail'];
+                    $promo['discount'] 		= $discount_promo['discount'];
+                    $promo['value'] 		= $discount_promo['discount'];
+                    $promo['is_free'] 		= $discount_promo['is_free'];
+                    $promo['type'] 			= 'discount';
+                    $promo_source 			= 'promo_code';
+    
+                    $promo_discount=$discount_promo['discount'];
+                    $request['promo_code'] = $avail_promo['promo_code'];
+                    break;
                 }
-                
-                $post['id_promo_campaign_promo_code'] = $avail_promo['id_promo_campaign_promo_code'];
-                $pct = new PromoCampaignTools();
-                $validate_user = $pct->validateUser($avail_promo['id_promo_campaign'], $request->user()->id, $request->user()->phone, $request->device_type, $request->device_id, $errore,$avail_promo['id_promo_campaign_promo_code']);
-                if(!$validate_user){
-                    continue;
-                }
-                
-                $discount_promo=$pct->validatePromo($avail_promo['id_promo_campaign'], $request->id_outlet, $post['item'], $errors, 'promo_campaign', $post['payment_type'], $error_product, null, 0, $closing);
-                if(!$discount_promo){
-                    if(isset($closing)){
-                        $data_closing[] = $closing;
-                    }
-                    continue;
-                }
-
-                $discount_type 			= $avail_promo['promo_type'];
-                $promo['code'] 			= $avail_promo['promo_code'];
-                $promo['promo_title']	= $discount_promo['promo_title'];
-                $promo['description']	= $discount_promo['new_description'];
-                $promo['detail'] 		= $discount_promo['promo_detail'];
-                $promo['discount'] 		= $discount_promo['discount'];
-                $promo['value'] 		= $discount_promo['discount'];
-                $promo['is_free'] 		= $discount_promo['is_free'];
-                $promo['type'] 			= 'discount';
-                $promo_source 			= 'promo_code';
-
-                $promo_discount=$discount_promo['discount'];
-                $request['promo_code'] = $avail_promo['promo_code'];
-                break;
             }
+
         }
-        
+
         // end check promo code
         if (empty($request->json('id_deals_user')) && empty($request->json('promo_code'))) {
         	$promo = null;
         }
-        
+
         $promo_close = null;
         if(isset($data_closing) && !isset($promo)){
             $promo_close = array_reduce($data_closing, function($a, $b){
@@ -2403,6 +2481,12 @@ class ApiOnlineTransaction extends Controller
             if(isset($promo['code']) && $promo_source == 'promo_code'){
                 $getCode = PromoCampaignPromoCode::where('promo_code',$promo['code'])->first();
                 $update = UserPromo::updateOrCreate(['id_user' => $request->user()->id, 'discount_type' => 'discount','promo_type' => 'promo_campaign'], ['id_reference' => $getCode['id_promo_campaign_promo_code']]);
+            }elseif(isset($promo['code']) && $promo_source == 'voucher_online'){
+                $getCode = DealsUser::join('deals_vouchers','deals_vouchers.id_deals_voucher','deals_users.id_deals_voucher')->where('voucher_code',$promo['code'])->first();
+                $update = UserPromo::updateOrCreate(['id_user' => $request->user()->id, 'discount_type' => 'discount','promo_type' => 'deals'], ['id_reference' => $getCode['id_deals_user']]);
+                if($update){
+                    DealsUser::where('id_deals_user',$getCode['id_deals_user'])->update(['is_used'=>1]);
+                }
             }
         }
 
