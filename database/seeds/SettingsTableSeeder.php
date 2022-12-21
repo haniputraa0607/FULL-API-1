@@ -775,6 +775,15 @@ class SettingsTableSeeder extends Seeder
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
+            100 =>
+                array(
+                    'id_setting' => 101,
+                    'key' => 'discount_priority',
+                    'value' => null,
+                    'value_text' => 'voucher',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ),
         ));
     }
 }

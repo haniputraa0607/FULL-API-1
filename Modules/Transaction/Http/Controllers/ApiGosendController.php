@@ -170,7 +170,7 @@ class ApiGosendController extends Controller
                     if ($trx->cashback_insert_status != 1) {
                         //send notif to customer
                         $user = User::find($trx->id_user);
-                        $trx->load('user.memberships', 'outlet', 'productTransaction', 'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign');
+                        $trx->load('user.memberships', 'outlet', 'productTransaction', 'products' ,'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign');
                         $newTrx    = $trx;
                         $checkType = TransactionMultiplePayment::where('id_transaction', $trx->id_transaction)->get()->toArray();
                         $column    = array_column($checkType, 'type');
@@ -199,8 +199,8 @@ class ApiGosendController extends Controller
                                     ]);
                                 }
                             }
-
-                            if(!$newTrx->id_promo_campaign_promo_code && !$newTrx->transaction_vouchers){
+                            $checkMutlipeCategory = app($this->dealClaim)->checkMutlipleCategory($newTrx->products);
+                            if($checkMutlipeCategory && !$newTrx->promo_campaign_promo_code && !$newTrx->transaction_vouchers){
                                 $getSecondVoucher = app($this->dealClaim)->getSecondVoucher($newTrx);
                                 if (!$getSecondVoucher) {
                                     DB::rollback();

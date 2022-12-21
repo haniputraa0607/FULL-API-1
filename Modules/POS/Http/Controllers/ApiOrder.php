@@ -47,6 +47,7 @@ class ApiOrder extends Controller
         $this->trx    = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
         $this->promo_campaign   = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
         $this->voucher          = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
+        $this->dealClaim  = "Modules\Deals\Http\Controllers\ApiDealsClaim";
     }
 
     public function listOrder(listOrder $request){
@@ -497,7 +498,7 @@ class ApiOrder extends Controller
                     ]);
             }
 
-            $newTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction', 'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign')->where('id_transaction', $order->id_transaction)->first();
+            $newTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction', 'products', 'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign')->where('id_transaction', $order->id_transaction)->first();
 
             $checkType = TransactionMultiplePayment::where('id_transaction', $order->id_transaction)->get()->toArray();
             $column = array_column($checkType, 'type');
@@ -533,6 +534,18 @@ class ApiOrder extends Controller
                         }
                     }
 	            }
+
+                $checkMutlipeCategory = app($this->dealClaim)->checkMutlipleCategory($newTrx->products);
+                if($checkMutlipeCategory && !$newTrx->promo_campaign_promo_code && !$newTrx->transaction_vouchers){
+                    $getSecondVoucher = app($this->dealClaim)->getSecondVoucher($newTrx);
+                    if (!$getSecondVoucher) {
+                        DB::rollback();
+                        return response()->json([
+                            'status'   => 'fail',
+                            'messages' => ['Transaction failed'],
+                        ]);
+                    }
+                }
             }
 
             $checkMembership = app($this->membership)->calculateMembership($user['phone']);

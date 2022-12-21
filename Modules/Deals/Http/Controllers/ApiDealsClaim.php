@@ -211,18 +211,31 @@ class ApiDealsClaim extends Controller
 		                        // if(isset($voucher['deals_voucher']['id_deals'])){
 		                        //     $voucher['deals'] = Deal::find($voucher['deals_voucher']['id_deals']);
 		                        // }
-		                        if(\Module::collections()->has('Autocrm')) {
-		                            $phone=$user->phone;
-		                            $autocrm = app($this->autocrm)->SendAutoCRM('Claim Free Deals Success', $phone,
-		                                [
-		                                    'claimed_at'       => $voucher['claimed_at'],
-		                                    'deals_title'      => $dataDeals->deals_title,
-		                                    'id_deals_user'    => $voucher['id_deals_user'],
-		                                    'id_deals'         => $dataDeals->id_deals,
-		                                    'id_brand'         => $dataDeals->id_brand
-		                                ]
-		                            );
-		                        }
+                                if(isset($request->id)){
+                                    if(\Module::collections()->has('Autocrm')) {
+                                        $phone=$user->phone;
+                                        $autocrm = app($this->autocrm)->SendAutoCRM('Claim Second Order Voucher', $phone,
+                                            [
+                                                'deals_title'      => $dataDeals->deals_title,
+                                                'deals_contect_push'    => $dataDeals->autoresponse_notification,
+                                                'deals_contect_inbox'    => $dataDeals->autoresponse_inbox,
+                                            ]
+                                        );
+                                    }
+                                }else{
+                                    if(\Module::collections()->has('Autocrm')) {
+                                        $phone=$user->phone;
+                                        $autocrm = app($this->autocrm)->SendAutoCRM('Claim Free Deals Success', $phone,
+                                            [
+                                                'claimed_at'       => $voucher['claimed_at'],
+                                                'deals_title'      => $dataDeals->deals_title,
+                                                'id_deals_user'    => $voucher['id_deals_user'],
+                                                'id_deals'         => $dataDeals->id_deals,
+                                                'id_brand'         => $dataDeals->id_brand
+                                            ]
+                                        );
+                                    }
+                                }
 		                        $return=[
 		                            'id_deals_user'=>$voucher['id_deals_user'],
 		                            'id_deals_voucher'=>$voucher['id_deals_voucher'],
@@ -601,12 +614,31 @@ class ApiDealsClaim extends Controller
             ->get()->toArray();
 
             foreach($getDeals ?? [] as $deal){
-                $send = ['id_deals' => $deal['id_deals'],'id'=>$id_user];
-                $claim = $this->claim(New Request($send));
-                $claim = $claim->original;
+                for($i = 0; $i < $deal['deals_total']; $i++){
+                    $send = ['id_deals' => $deal['id_deals'],'id'=>$id_user];
+                    $claim = $this->claim(New Request($send));
+                    $claim = $claim->original;
+                }
             }
         }
         return true;
+    }
+
+    public function checkMutlipleCategory($products = []){
+
+        $check = false;
+        $id = null;
+        foreach($products ?? [] as $product){
+            if($id = null){
+                $id = $product['id_product_category'];
+            }else{
+                if($id != $product['id_product_category']){
+                    $check = true;
+                }
+                $id = $product['id_product_category'];
+            }
+        }
+        return $check;
     }
 
 }
