@@ -716,10 +716,20 @@ class PromoCampaignTools{
 				break;
 				
 			case 'Promo Product Category':
+			case 'Voucher Product Category':
 				// load requirement relationship
 				$promo->load($source.'_productcategory_rules',$source.'_productcategory_category_requirements');
 				$promo_product=$promo[$source.'_productcategory_category_requirements']['product_category'];
-				$variant_requirement=$promo[$source.'_productcategory_category_requirements']['id_product_variant'];
+				if($promo->promo_type=='Promo Product Category'){
+					$variant_requirement=$promo[$source.'_productcategory_category_requirements']['id_product_variant'];
+				}elseif($promo->promo_type=='Voucher Product Category'){
+					if(count($promo[$source.'_productcategory_category_requirements']['product_variant'])>0 ){
+						$variant_requirement=$promo[$source.'_productcategory_category_requirements']['product_variant'];
+						$variant_requirement = array_pluck($variant_requirement,'id_product_variant');
+					}else{
+						$variant_requirement = null;
+					}
+				}
 				$product_group = [];
 				$new_promo_product = [];
 				foreach($promo_product ?? [] as $promo_pro){
@@ -751,8 +761,14 @@ class PromoCampaignTools{
 				{
 					if(in_array($value['id_product_group'],$product_group)){
 						$value[$id] = $new_product_group[$value['id_product_group']]['id_product_category'];
-						if(in_array($variant_requirement,$value['variants']) || (!isset($variant_requirement) && empty($variant_requirement))){
-							$check_varian = true;
+						if($promo->promo_type=='Promo Product Category'){
+							if(in_array($variant_requirement,$value['variants']) || (!isset($variant_requirement) && empty($variant_requirement))){
+								$check_varian = true;
+							}
+						}elseif($promo->promo_type=='Voucher Product Category'){
+							if(array_intersect($variant_requirement??[],$value['variants']) || (!isset($variant_requirement) && empty($variant_requirement))){
+								$check_varian = true;
+							}
 						}
 						$trx_category[] = $value;
 					}else{
@@ -810,21 +826,113 @@ class PromoCampaignTools{
 					$category_name_get = 'specified product';
 				}
 				$dec_category_name = $category_name_get;
-				if($promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name']??false){
-					$parent = ProductVariant::where('id_product_variant',$promo[$source.'_productcategory_category_requirements']['product_variant']['parent'])->first();
-					if($parent){
-						if($promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name']=='general_size'){
-							$category_name = $category_name.'</b> without <b>Variant Size';
-							$category_name_get = $category_name_get.' without Variant Size';
-						}elseif($promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name']=='general_type'){
-							$category_name = $category_name.'</b> without <b>Variant Type';
-							$category_name_get = $category_name_get.' without Variant Type';
-						}else{
-							$category_name = $category_name.'</b> with <b>'.$promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
-							$category_name_get = $category_name_get.' with '.$promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
+				if($promo->promo_type=='Promo Product Category'){
+					if($promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name']??false){
+						$parent = ProductVariant::where('id_product_variant',$promo[$source.'_productcategory_category_requirements']['product_variant']['parent'])->first();
+						if($parent){
+							if($promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name']=='general_size'){
+								$category_name = $category_name.'</b> without <b>Variant Size';
+								$category_name_get = $category_name_get.' without Variant Size';
+							}elseif($promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name']=='general_type'){
+								$category_name = $category_name.'</b> without <b>Variant Type';
+								$category_name_get = $category_name_get.' without Variant Type';
+							}else{
+								$category_name = $category_name.'</b> with <b>'.$promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
+								$category_name_get = $category_name_get.' with '.$promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
+							}
+		
 						}
-	
 					}
+				}elseif($promo->promo_type=='Voucher Product Category'){
+					if(count($promo[$source.'_productcategory_category_requirements']['product_variant'])>0){
+						if(count($promo[$source.'_productcategory_category_requirements']['product_variant'])==1){
+							$parent = ProductVariant::where('id_product_variant',$promo[$source.'_productcategory_category_requirements']['product_variant'][0]['product_variant']['parent'])->first();
+							if($parent){
+								if($promo[$source.'_productcategory_category_requirements']['product_variant'][0]['product_variant']['product_variant_name']=='general_size'){
+									$category_name = $category_name.'</b> without <b>Variant Size';
+									$category_name_get = $category_name_get.' without Variant Size';
+								}elseif($promo[$source.'_productcategory_category_requirements']['product_variant'][0]['product_variant']['product_variant_name']=='general_type'){
+									$category_name = $category_name.'</b> without <b>Variant Type';
+									$category_name_get = $category_name_get.' without Variant Type';
+								}else{
+									$category_name = $category_name.'</b> with <b>'.$promo[$source.'_productcategory_category_requirements']['product_variant'][0]['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
+									$category_name_get = $category_name_get.' with '.$promo[$source.'_productcategory_category_requirements']['product_variant'][0]['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
+								}
+							}
+						}elseif(count($promo[$source.'_productcategory_category_requirements']['product_variant'])==2){
+							$parent_0 = ProductVariant::where('id_product_variant',$promo[$source.'_productcategory_category_requirements']['product_variant'][0]['product_variant']['parent'])->first();
+							$parent_1 = ProductVariant::where('id_product_variant',$promo[$source.'_productcategory_category_requirements']['product_variant'][1]['product_variant']['parent'])->first();
+							if($parent_0){
+								if($promo[$source.'_productcategory_category_requirements']['product_variant'][0]['product_variant']['product_variant_name']=='general_size'){
+									$category_name = $category_name.'</b> without <b>Variant Size';
+									$category_name_get = $category_name_get.' without Variant Size';
+								}elseif($promo[$source.'_productcategory_category_requirements']['product_variant'][0]['product_variant']['product_variant_name']=='general_type'){
+									$category_name = $category_name.'</b> without <b>Variant Type';
+									$category_name_get = $category_name_get.' without Variant Type';
+								}else{
+									$category_name = $category_name.'</b> with <b>'.$promo[$source.'_productcategory_category_requirements']['product_variant'][0]['product_variant']['product_variant_name'].' '.$parent_0['product_variant_name'];
+									$category_name_get = $category_name_get.' with '.$promo[$source.'_productcategory_category_requirements']['product_variant'][0]['product_variant']['product_variant_name'].' '.$parent_0['product_variant_name'];
+								}
+							}
+							if($parent_1){
+								if($promo[$source.'_productcategory_category_requirements']['product_variant'][1]['product_variant']['product_variant_name']=='general_size'){
+									$category_name = $category_name.'</b> or without <b>Variant Size';
+									$category_name_get = $category_name_get.' or without Variant Size';
+								}elseif($promo[$source.'_productcategory_category_requirements']['product_variant'][1]['product_variant']['product_variant_name']=='general_type'){
+									$category_name = $category_name.'</b> or without <b>Variant Type';
+									$category_name_get = $category_name_get.' or without Variant Type';
+								}else{
+									$category_name = $category_name.'</b> or with <b>'.$promo[$source.'_productcategory_category_requirements']['product_variant'][1]['product_variant']['product_variant_name'].' '.$parent_1['product_variant_name'];
+									$category_name_get = $category_name_get.' or with '.$promo[$source.'_productcategory_category_requirements']['product_variant'][1]['product_variant']['product_variant_name'].' '.$parent_1['product_variant_name'];
+								}
+							}
+						}else{
+							foreach($promo[$source.'_productcategory_category_requirements']['product_variant']??[] as $key_var => $product_variant){
+								$parent = ProductVariant::where('id_product_variant',$product_variant['product_variant']['parent'])->first();
+								if($parent){
+									if($product_variant['product_variant']['product_variant_name']=='general_size'){
+										if($key_var==0){
+											$category_name = $category_name.'</b> without <b>Variant Size';
+											$category_name_get = $category_name_get.' without Variant Size';
+										}else{
+											$category_name = $category_name.'</b> or without <b>Variant Size';
+											$category_name_get = $category_name_get.' or without Variant Size';
+										}
+										$category_name = $category_name.'</b> without <b>Variant Size';
+										$category_name_get = $category_name_get.' without Variant Size';
+									}elseif($product_variant['product_variant']['product_variant_name']=='general_type'){
+										if($key_var==0){
+											$category_name = $category_name.'</b> without <b>Variant Type';
+											$category_name_get = $category_name_get.' without Variant Type';
+										}else{
+											$category_name = $category_name.'</b> or without <b>Variant Type';
+											$category_name_get = $category_name_get.' or without Variant Type';
+										}
+									}else{
+										if($key_var==0){
+											$category_name = $category_name.'</b> with <b>'.$product_variant['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
+											$category_name_get = $category_name_get.' with '.$product_variant['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
+										}else{
+											$category_name = $category_name.'</b> or with <b>'.$product_variant['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
+											$category_name_get = $category_name_get.' or with '.$product_variant['product_variant']['product_variant_name'].' '.$parent['product_variant_name'];
+										}
+									}
+								}
+							}
+						}
+					}
+
+					// foreach($promo[$source.'_productcategory_category_requirements']['product_variant']??[] as $key_var => $product_variant){
+						// $parent = ProductVariant::where('id_product_variant',$product_variant['product_variant']['parent'])->first();
+						// if($parent){
+						// 	if($promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name']=='general_size'){
+						// 	}elseif($promo[$source.'_productcategory_category_requirements']['product_variant']['product_variant_name']=='general_type'){
+						// 	}else{
+						// 	}
+						// }
+
+
+					// }
 				}
 				
 				// promo product not available in cart?
@@ -843,7 +951,6 @@ class PromoCampaignTools{
 					$errorProduct = 1;
 					return false;
 				}
-				
 				//get cart's product to get benefit
 				$category=null;
 				foreach($promo_product ?? [] as $promo_pro){
@@ -1515,12 +1622,16 @@ class PromoCampaignTools{
 						'deals_buyxgety_product_requirement.product' => function($q) {
 							$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
 						},
+						'deals_productcategory_category_requirements.product_category.product_category' => function($q) {
+							$q->select('id_product_category', 'product_category_name');
+						},
 						'deals_tier_discount_product.product' => function($q) {
 							$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
 						},
 						'deals_product_discount_rules',
 						'deals_tier_discount_rules',
-						'deals_buyxgety_rules'
+						'deals_buyxgety_rules',
+						'deals_productcategory_rules'
 					])
 	                ->first();
     	}elseif($source == 'promo_campaign'){

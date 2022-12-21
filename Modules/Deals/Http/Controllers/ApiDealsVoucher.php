@@ -151,7 +151,7 @@ class ApiDealsVoucher extends Controller
         $data = [];
         // pengecekan database
         $voucherDB = $this->voucherDB($id_deals);
-
+        
         if ($total > 1) {
             for ($i=0; $i < $total; $i++) {
                 // generate code
@@ -180,7 +180,7 @@ class ApiDealsVoucher extends Controller
         else {
             // generate code
             $code = $this->generateCode($id_deals);
-
+            
             // unique code in 1 deals
             while (in_array($code, $voucherDB)) {
                 $code = $this->generateCode($id_deals);
@@ -217,8 +217,24 @@ class ApiDealsVoucher extends Controller
 
     /* GENERATE CODE */
     function generateCode($id_deals) {
-        $code = sprintf('%03d', $id_deals).MyHelper::createRandomPIN(5);
+        $deals = Deal::where('id_deals',$id_deals)->first();
+        if($deals['deals_type'] != 'SecondDeals'){
+            $code = sprintf('%03d', $id_deals).MyHelper::createRandomPIN(5);
+        }else{
+            $code = $this->generateSecondVoucherCode($deals['prefix'],$deals['digit_random']);
+        }
 
+        return $code;
+    }
+
+    /* GENERATE CODE SECOND VOUCHER*/
+    function generateSecondVoucherCode($prefix, $digit){
+        $code = substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),0,$digit);
+        $code = $prefix.$code;
+        $check = DealsVoucher::where('voucher_code', $code)->first();
+        if($check){
+            $this->generateSecondVoucherCode($prefix, $digit);
+        }
         return $code;
     }
 
