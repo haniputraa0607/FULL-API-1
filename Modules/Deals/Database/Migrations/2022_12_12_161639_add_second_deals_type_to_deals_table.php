@@ -45,7 +45,7 @@ class AddSecondDealsTypeToDealsTable extends Migration
             $table->timestamps();
         });
 
-        \DB::statement("ALTER TABLE `deals` CHANGE `deals_type` `deals_type` ENUM('Deals', 'Hidden', 'Point', 'Spin', 'Promotion', 'WelcomeVoucher', 'Second Deals') NOT NULL default('Deals');");
+        \DB::statement("ALTER TABLE `deals` CHANGE `deals_type` `deals_type` ENUM('Deals', 'Hidden', 'Point', 'Spin', 'Promotion', 'WelcomeVoucher', 'Second Deals') NOT NULL DEFAULT ('Deals');");
         \DB::statement('ALTER TABLE `deals` CHANGE `promo_type` `promo_type` ENUM("Product discount","Tier discount","Buy X Get Y","Discount delivery","Voucher Product Category") NULL;');
 
         Schema::create('deals_days', function (Blueprint $table) {
@@ -69,8 +69,9 @@ class AddSecondDealsTypeToDealsTable extends Migration
     {
         Schema::dropIfExists('deals_productcategory_category_requirements');
         Schema::dropIfExists('deals_productcategory_rules');
+        Schema::dropIfExists('category_deals_productcategory_category_requirements');
 
-        \DB::statement("ALTER TABLE `deals` CHANGE `deals_type` `deals_type` ENUM('Deals', 'Hidden', 'Point', 'Spin', 'Promotion', 'WelcomeVoucher') NOT NULL default('Deals');");
+        \DB::statement("ALTER TABLE `deals` CHANGE `deals_type` `deals_type` ENUM('Deals', 'Hidden', 'Point', 'Spin', 'Promotion', 'WelcomeVoucher') NOT NULL DEFAULT ('Deals')");
         \DB::statement('ALTER TABLE `deals` CHANGE `promo_type` `promo_type` ENUM("Product discount","Tier discount","Buy X Get Y","Discount delivery") NULL;');
 
         Schema::dropIfExists('deals_days');
