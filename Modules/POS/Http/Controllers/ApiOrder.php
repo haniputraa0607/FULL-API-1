@@ -474,7 +474,7 @@ class ApiOrder extends Controller
                 'messages' => ['Order Has Been Marked as Ready']
             ]);
         }
-
+        
         // DB::beginTransaction();
         $pickup = TransactionPickup::where('id_transaction', $order->id_transaction)->update(['ready_at' => date('Y-m-d H:i:s')]);
         // dd($pickup);
@@ -499,7 +499,7 @@ class ApiOrder extends Controller
             }
 
             $newTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction', 'products', 'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign')->where('id_transaction', $order->id_transaction)->first();
-
+            
             $checkType = TransactionMultiplePayment::where('id_transaction', $order->id_transaction)->get()->toArray();
             $column = array_column($checkType, 'type');
 
@@ -536,7 +536,7 @@ class ApiOrder extends Controller
 	            }
 
                 $checkMutlipeCategory = app($this->dealClaim)->checkMutlipleCategory($newTrx->products);
-                if($checkMutlipeCategory && !$newTrx->promo_campaign_promo_code && !$newTrx->transaction_vouchers){
+                if($checkMutlipeCategory && !$newTrx->promo_campaign_promo_code && count($newTrx->transaction_vouchers)===0){
                     $getSecondVoucher = app($this->dealClaim)->getSecondVoucher($newTrx);
                     if (!$getSecondVoucher) {
                         DB::rollback();

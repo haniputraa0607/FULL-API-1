@@ -173,8 +173,9 @@ class Transaction extends Model
 	public function products()
 	{
 		return $this->belongsToMany(\App\Http\Models\Product::class, 'transaction_products', 'id_transaction', 'id_product')
-					->select('product_categories.*','products.*')
-					->leftJoin('product_categories', 'product_categories.id_product_category', '=', 'products.id_product_category')
+					->select('products.*','product_categories.*')
+					->leftJoin('product_groups', 'product_groups.id_product_group', '=', 'products.id_product_group')
+					->leftJoin('product_categories', 'product_categories.id_product_category', '=', 'product_groups.id_product_category')
 					->withPivot('id_transaction_product', 'transaction_product_qty', 'transaction_product_price', 'transaction_product_price_base', 'transaction_product_price_tax', 'transaction_product_subtotal', 'transaction_modifier_subtotal', 'transaction_product_discount', 'transaction_product_note')
 					->withTimestamps();
 	}
