@@ -217,8 +217,8 @@ class ApiDealsClaim extends Controller
                                         $autocrm = app($this->autocrm)->SendAutoCRM('Claim Second Order Voucher', $phone,
                                             [
                                                 'deals_title'      => $dataDeals->deals_title,
-                                                'deals_contect_push'    => $dataDeals->autoresponse_notification,
-                                                'deals_contect_inbox'    => $dataDeals->autoresponse_inbox,
+                                                'deals_content_push'    => $dataDeals->autoresponse_notification,
+                                                'deals_content_inbox'    => $dataDeals->autoresponse_inbox,
                                             ]
                                         );
                                     }
@@ -616,7 +616,7 @@ class ApiDealsClaim extends Controller
             foreach($getDeals ?? [] as $deal){
                 for($i = 0; $i < $deal['deals_total']; $i++){
                     $send = ['id_deals' => $deal['id_deals'],'id'=>$id_user];
-                    $claim = $this->claim(New Request($send));
+                    return $claim = $this->claim(New Request($send));
                     $claim = $claim->original;
                 }
             }
@@ -625,11 +625,11 @@ class ApiDealsClaim extends Controller
     }
 
     public function checkMutlipleCategory($products = []){
-
+        
         $check = false;
         $id = null;
         foreach($products ?? [] as $product){
-            if($id = null){
+            if(!isset($id) && empty($id)){
                 $id = $product['id_product_category'];
             }else{
                 if($id != $product['id_product_category']){
