@@ -59,7 +59,7 @@ class AddAutoresponseInboxToDealsTable extends Migration
             $table->integer('id_product_variant')->nullable()->after('product_type');
         });
 
-        Schema::dropIfExists('second_deals_total');
+        Schema::dropIfExists('second_deals_totals');
         Schema::dropIfExists('product_variant_deals_productcategory_category_requirements');
     }
 }
