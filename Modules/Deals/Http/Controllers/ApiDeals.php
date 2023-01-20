@@ -2650,14 +2650,21 @@ class ApiDeals extends Controller
 
     function listDealsSecondDeals(Request $request){
         $configUseBrand = Configs::where('config_name', 'use brand')->first();
+        $date = date('Y-m-d H:i:s');
 
         if($configUseBrand['is_active']){
             $getDeals = Deal::join('brands', 'brands.id_brand', 'deals.id_brand')
                 ->where('deals_type','SecondDeals')
+                ->where('deals.step_complete', 1)
+                ->whereDate('deals.deals_start', '<=', $date)
+                ->whereDate('deals.deals_end', '>=', $date)
                 ->select('deals.*','brands.name_brand')
                 ->get()->toArray();
         }else{
             $getDeals = Deal::where('deals_type','SecondDeals')
+                ->where('deals.step_complete', 1)
+                ->whereDate('deals.deals_start', '<=', $date)
+                ->whereDate('deals.deals_end', '>=', $date)
                 ->select('deals.*')
                 ->get()->toArray();
         }
