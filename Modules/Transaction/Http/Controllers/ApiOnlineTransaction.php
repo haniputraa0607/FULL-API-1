@@ -2270,6 +2270,7 @@ class ApiOnlineTransaction extends Controller
                     $promo['is_free'] = $discount_promo['is_free'];
                     $promo['type'] = 'discount';
                     $promo['code'] = $deals->dealVoucher->voucher_code;
+                    $promo['id_deals_user'] = $deals->id_deals_user;
                     $promo_source = 'voucher_online';
     
                     if ( !empty($errors) ) {
@@ -2341,6 +2342,7 @@ class ApiOnlineTransaction extends Controller
                         $promo['is_free'] = $discount_promo['is_free'];
                         $promo['type'] = 'discount';
                         $promo['code'] = $avail_deal['deal_voucher']['voucher_code'];
+                        $promo['id_deals_user'] = $avail_deal['id_deals_user'];
                         $promo_source = 'voucher_online';
                         $promo_discount=$discount_promo['discount'];
                         $request['id_deals_user'] = $avail_deal['id_deals_user'];
@@ -2441,6 +2443,7 @@ class ApiOnlineTransaction extends Controller
     
                     $discount_type 			= $avail_promo['promo_type'];
                     $promo['code'] 			= $avail_promo['promo_code'];
+                    $promo['id_deals_user'] = null;
                     $promo['promo_title']	= $discount_promo['promo_title'];
                     $promo['description']	= $discount_promo['new_description'];
                     $promo['detail'] 		= $discount_promo['promo_detail'];
