@@ -2297,7 +2297,7 @@ class ApiOnlineTransaction extends Controller
 	        	$promo_error = app($this->promo_campaign)->promoError('transaction', $error);
 	        }
         }elseif(!$request->json('promo_code') && !$request->json('id_deals_user') && !$request->json('no_autoapply') && !$user_promo_code){
-
+            
             if($priority == 'voucher'){
                 $availDeals = DealsUser::whereHas('dealVoucher.deals.deals_productcategory_category_requirements',function($w1){
                     $w1->where('auto_apply',1);
@@ -2316,13 +2316,13 @@ class ApiOnlineTransaction extends Controller
                     }
                     if( !empty($avail_deal['used_at']) ){
                         $error = ['Voucher already used'];
-                        $promo_error = app($this->promo_campaign)->promoError('transaction', $error);
+                        continue;
                     }elseif( date('Y-m-d H:i:s', strtotime($avail_deal['voucher_expired_at'])) < date('Y-m-d H:i:s') ){
                         $error = ['Voucher is expired'];
-                        $promo_error = app($this->promo_campaign)->promoError('transaction', $error);
+                        continue;
                     }elseif( !empty($deals['voucher_active_at']) && date('Y-m-d H:i:s', strtotime($avail_deal['voucher_active_at'])) > date('Y-m-d H:i:s') ){
                         $error = ['Voucher periode hasn\'t started'];
-                        $promo_error = app($this->promo_campaign)->promoError('transaction', $error);
+                        continue;
                     }else{
                         $validate_user = true;
                         $pct = new PromoCampaignTools();
