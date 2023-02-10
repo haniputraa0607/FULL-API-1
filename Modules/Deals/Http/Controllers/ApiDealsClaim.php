@@ -180,7 +180,7 @@ class ApiDealsClaim extends Controller
 		                            // GENERATE VOUCHER CODE & ASSIGN
 		                            else {
 		                                $voucher = $this->getVoucherGenerate($user, $dataDeals);
-
+                                        
 		                                if (!$voucher) {
 		                                    DB::rollBack();
 		                                    return response()->json([
@@ -501,7 +501,7 @@ class ApiDealsClaim extends Controller
 	        			->where('paid_status', '!=', 'Cancelled')
 	        			->count();
     	}
-        if ($dataDeals->deals_voucher_type == "Unlimited" || $dataDeals->deals_total_voucher > $available) {
+        if ($dataDeals->deals_voucher_type == "Unlimited" || $dataDeals->deals_total_voucher > $available || ($dataDeals->deals_type =='SecondDeals' && $dataDeals->deals_total_voucher == 0)) {
             // GENERATE VOUCHER
             $voucher = $this->generateVoucher($dataDeals->id_deals);
 
@@ -612,12 +612,11 @@ class ApiDealsClaim extends Controller
             ->whereDate('deals.deals_end', '>=', $date)
             ->select('deals.*','second_deals_totals.deals_total')
             ->get()->toArray();
-
             foreach($getDeals ?? [] as $deal){
                 for($i = 0; $i < $deal['deals_total']; $i++){
                     $send = ['id_deals' => $deal['id_deals'],'id'=>$id_user];
-                    return $claim = $this->claim(New Request($send));
-                    $claim = $claim->original;
+                    $claim = $this->claim(New Request($send));
+                    $clai = $claim->original;
                 }
             }
         }
