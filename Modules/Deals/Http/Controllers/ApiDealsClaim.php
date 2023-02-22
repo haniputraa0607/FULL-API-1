@@ -637,7 +637,7 @@ class ApiDealsClaim extends Controller
                 $id = $product['id_product_category'];
             }
         }
-        return $check;
+        return true;
     }
 
 }
