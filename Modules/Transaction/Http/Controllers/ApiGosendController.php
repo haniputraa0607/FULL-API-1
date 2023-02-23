@@ -199,8 +199,8 @@ class ApiGosendController extends Controller
                                     ]);
                                 }
                             }
-                            $checkMutlipeCategory = app($this->dealClaim)->checkMutlipleCategory($newTrx->products);
-                            if($checkMutlipeCategory && !$newTrx->promo_campaign_promo_code && count($newTrx->transaction_vouchers)===0){
+                            // $checkMutlipeCategory = app($this->dealClaim)->checkMutlipleCategory($newTrx->products);
+                            if(!$newTrx->promo_campaign_promo_code && count($newTrx->transaction_vouchers)===0){
                                 $getSecondVoucher = app($this->dealClaim)->getSecondVoucher($newTrx);
                                 if (!$getSecondVoucher) {
                                     DB::rollback();
