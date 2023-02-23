@@ -199,18 +199,18 @@ class ApiGosendController extends Controller
                                     ]);
                                 }
                             }
-                            // $checkMutlipeCategory = app($this->dealClaim)->checkMutlipleCategory($newTrx->products);
-                            if(!$newTrx->promo_campaign_promo_code && count($newTrx->transaction_vouchers)===0){
-                                $getSecondVoucher = app($this->dealClaim)->getSecondVoucher($newTrx);
-                                if (!$getSecondVoucher) {
-                                    DB::rollback();
-                                    return response()->json([
-                                        'status'   => 'fail',
-                                        'messages' => ['Transaction failed'],
-                                    ]);
-                                }
+                            
+                        }
+                        // $checkMutlipeCategory = app($this->dealClaim)->checkMutlipleCategory($newTrx->products);
+                        if(!$newTrx->promo_campaign_promo_code && count($newTrx->transaction_vouchers)===0){
+                            $getSecondVoucher = app($this->dealClaim)->getSecondVoucher($newTrx);
+                            if (!$getSecondVoucher) {
+                                DB::rollback();
+                                return response()->json([
+                                    'status'   => 'fail',
+                                    'messages' => ['Transaction failed'],
+                                ]);
                             }
-
                         }
 
                         $newTrx->update(['cashback_insert_status' => 1]);

@@ -534,18 +534,6 @@ class ApiOrder extends Controller
                         }
                     }
 	            }
-
-                // $checkMutlipeCategory = app($this->dealClaim)->checkMutlipleCategory($newTrx->products);
-                if(!$newTrx->promo_campaign_promo_code && count($newTrx->transaction_vouchers)===0){
-                    $getSecondVoucher = app($this->dealClaim)->getSecondVoucher($newTrx);
-                    if (!$getSecondVoucher) {
-                        DB::rollback();
-                        return response()->json([
-                            'status'   => 'fail',
-                            'messages' => ['Transaction failed'],
-                        ]);
-                    }
-                }
             }
 
             $checkMembership = app($this->membership)->calculateMembership($user['phone']);
@@ -636,6 +624,19 @@ class ApiOrder extends Controller
             //send notif to customer
             $user = User::find($order->id_user);
             $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Taken');
+
+            // $checkMutlipeCategory = app($this->dealClaim)->checkMutlipleCategory($newTrx->products);
+            $newTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction', 'products', 'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign')->where('id_transaction', $order->id_transaction)->first();
+            if(!$newTrx->promo_campaign_promo_code && count($newTrx->transaction_vouchers)===0){
+                $getSecondVoucher = app($this->dealClaim)->getSecondVoucher($newTrx);
+                if (!$getSecondVoucher) {
+                    DB::rollback();
+                    return response()->json([
+                        'status'   => 'fail',
+                        'messages' => ['Transaction failed'],
+                    ]);
+                }
+            }
 
             if ($order->pickup_by !== 'GO-SEND') {
                 $send = app($this->autocrm)->SendAutoCRM($order->pickup_by == 'Outlet' ? 'Order Taken Internal Delivery' : 'Order Taken', $user['phone'], [
