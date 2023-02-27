@@ -291,16 +291,17 @@ class PromoCampaignTools{
 					}
 				}
 				$promo_detail = [];
+				// return $trxs;
 				foreach ($trxs as  $id_trx => &$trx) {
 					// continue if qty promo for same product is all used
 					if ($trx['promo_qty'] == 0) {
 						continue;
 					}
 					$modifier = 0;
-					foreach ($trx['modifiers'] as $key2 => $value2)
-					{
-						$modifier += ($mod_price[$value2['id_product_modifier']??$value2]??0) * ($value2['qty']??1);
-					}
+					// foreach ($trx['modifiers'] as $key2 => $value2)
+					// {
+					// 	$modifier += ($mod_price[$value2['id_product_modifier']??$value2]??0) * ($value2['qty']??1);
+					// }
 
 					// is all product get promo
 					if($promo_rules->is_all_product){
@@ -514,10 +515,10 @@ class PromoCampaignTools{
 				foreach ($trxs as $key => &$trx) {
 
 					$modifier = 0;
-					foreach ($trx['modifiers'] as $key2 => $value2)
-					{
-						$modifier += ($mod_price[$value2['id_product_modifier']??$value2]??0) * ($value2['qty']??1);
-					}
+					// foreach ($trx['modifiers'] as $key2 => $value2)
+					// {
+					// 	$modifier += ($mod_price[$value2['id_product_modifier']??$value2]??0) * ($value2['qty']??1);
+					// }
 
 					if($trx[$id]==$promo_product->id_product){
 						$trx['promo_qty'] = $max_qty < $trx['qty'] ? $max_qty : $trx['qty'];
@@ -1056,10 +1057,10 @@ class PromoCampaignTools{
 					foreach ($trxs as $key => &$trx) {
 						if($benefit_product->id_product == $trx['id_product']){
 							$modifier = 0;
-							foreach ($trx['modifiers'] ?? [] as $key2 => $value2)
-							{
-								$modifier += ($mod_price[$value2['id_product_modifier']??$value2]??0) * ($value2['qty']??1);
-							}
+							// foreach ($trx['modifiers'] ?? [] as $key2 => $value2)
+							// {
+							// 	$modifier += ($mod_price[$value2['id_product_modifier']??$value2]??0) * ($value2['qty']??1);
+							// }
 							
 							if(in_array($trx[$id],$product_category) && $max_benefit > 0){
 								$trx['promo_qty'] = $max_benefit > $trx['qty'] ? $trx['qty'] : $max_benefit;
@@ -1142,11 +1143,11 @@ class PromoCampaignTools{
 						  ->where('product_stock_status', '=', 'Available');
 					} ])->find($trx['id_product']);
 					$cur_mod_price = 0;
-					foreach ($trx['modifiers'] as $modifier) {
-		                $id_product_modifier = is_numeric($modifier)?$modifier:$modifier['id_product_modifier'];
-		                $qty_product_modifier = is_numeric($modifier)?1:$modifier['qty'];
-		                $cur_mod_price += ($mod_price[$id_product_modifier]??0)*$qty_product_modifier;
-					}
+					// foreach ($trx['modifiers'] as $modifier) {
+		            //     $id_product_modifier = is_numeric($modifier)?$modifier:$modifier['id_product_modifier'];
+		            //     $qty_product_modifier = is_numeric($modifier)?1:$modifier['qty'];
+		            //     $cur_mod_price += ($mod_price[$id_product_modifier]??0)*$qty_product_modifier;
+					// }
 					//is product available
 					if(!$product){
 						// product not available
