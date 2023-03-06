@@ -17,6 +17,7 @@ use Modules\PromoCampaign\Entities\PromoCampaignBuyxgetyRule;
 use Modules\PromoCampaign\Entities\PromoCampaignProductCategoryRule;
 use Modules\PromoCampaign\Entities\PromoCampaignProductCategoryProductRequirement;
 use Modules\PromoCampaign\Entities\CategoryPromoCampaignProductCategoryProductRequirement;
+use Modules\PromoCampaign\Entities\VariantPromoCampaignProductCategoryProductRequirement;
 use Modules\PromoCampaign\Entities\PromoCampaignHaveTag;
 use Modules\PromoCampaign\Entities\PromoCampaignTag;
 use Modules\PromoCampaign\Entities\PromoCampaignReport;
@@ -1145,7 +1146,7 @@ class ApiPromoCampaign extends Controller
             }
         } elseif ($post['promo_type'] == 'Promo Product Category' || $post['promo_type'] == 'Voucher Product Category' ) {
             try {
-                $createFilterProduct = $this->createProductCategoryDiscount($id_post, $post['category_product'], $post['id_product_variant']??null, $post['promo_rule'], $post['product_type'], $post['auto_apply']??0, $source, $table, $id_table, $post['product_variants']??null);
+                $createFilterProduct = $this->createProductCategoryDiscount($id_post, $post['category_product'], $post['promo_rule'], $post['product_type'], $post['auto_apply']??0, $source, $table, $id_table, $post['product_variants']??$post['variants']??null);
 
             } catch (Exception $e) {
                 $createFilterProduct = [
@@ -1354,6 +1355,7 @@ class ApiPromoCampaign extends Controller
 		        $product_cat = PromoCampaignProductCategoryProductRequirement::where('id_promo_campaign', '=', $id_post)->first();
                 if($product_cat){
                     CategoryPromoCampaignProductCategoryProductRequirement::where('id_promo_campaign_productcategory_category_requirement',$product_cat['id_promo_campaign_productcategory_category_requirement'])->delete();
+                    VariantPromoCampaignProductCategoryProductRequirement::where('id_promo_campaign_productcategory_category_requirement',$product_cat['id_promo_campaign_productcategory_category_requirement'])->delete();
                 }
                 PromoCampaignProductCategoryProductRequirement::where('id_promo_campaign', '=', $id_post)->delete();
 
@@ -1372,6 +1374,7 @@ class ApiPromoCampaign extends Controller
                 $product_cat = DealsProductCategoryProductRequirement::where('id_deals', '=', $id_post)->first();
                 if($product_cat){
                     CategoryDealsProductCategoryProductRequirement::where('id_deals_productcategory_category_requirement',$product_cat['id_deals_productcategory_category_requirement'])->delete();
+                    ProductVariantDealsProductCategoryProductRequirement::where('id_deals_productcategory_category_requirement',$product_cat['id_deals_productcategory_category_requirement'])->delete();
                 }
                 DealsProductCategoryProductRequirement::where('id_deals', '=', $id_post)->delete();
 
@@ -1685,7 +1688,7 @@ class ApiPromoCampaign extends Controller
         return $result;
     }
 
-    public function createProductCategoryDiscount($id_post, $category_product, $id_product_variant = null, $rules, $product_type, $auto_apply, $source, $table, $id_table, $product_variants = null)
+    public function createProductCategoryDiscount($id_post, $category_product, $rules, $product_type, $auto_apply, $source, $table, $id_table, $product_variants = null)
     {
         if (!$rules) {
             return [
@@ -1709,10 +1712,11 @@ class ApiPromoCampaign extends Controller
 	        $table_productcategory_discount_rule = new PromoCampaignProductCategoryRule;
 	        $table_productcategory_discount_product = new PromoCampaignProductCategoryProductRequirement;
             $table_product_category = new CategoryPromoCampaignProductCategoryProductRequirement;
+            $table_product_variant = new VariantPromoCampaignProductCategoryProductRequirement;
     	}elseif($source == 'deals'){
             $table_productcategory_discount_rule = new DealsProductCategoryRule;
 	        $table_productcategory_discount_product = new DealsProductCategoryProductRequirement;
-            $table_product_category = new CategoryDealsProductCategoryProductRequirement;
+            $table_product_category = new  CategoryDealsProductCategoryProductRequirement;
             $table_product_variant = new ProductVariantDealsProductCategoryProductRequirement;
         }
 
@@ -1755,11 +1759,6 @@ class ApiPromoCampaign extends Controller
 
         }
 
-        if ($source == 'promo_campaign')
-    	{
-            $dataProduct['id_product_variant']   = $id_product_variant;
-    	}
-
         $dataProduct[$id_table]    			 = $id_post;
         $dataProduct['product_type']    	 = $product_type;
         $dataProduct['auto_apply']    	     = $auto_apply;
@@ -1794,6 +1793,15 @@ class ApiPromoCampaign extends Controller
                         $dataVariants[] = [
                             'id_deals_productcategory_category_requirement' => $create_requirement['id_deals_productcategory_category_requirement'],
                             'id_product_variant' => $variant
+                        ]; 
+                    }
+                    $table_product_variant::insert($dataVariants);
+                }else{
+                    foreach($product_variants as $variant){
+                        $dataVariants[] = [
+                            'id_promo_campaign_productcategory_category_requirement' => $create_requirement['id_promo_campaign_productcategory_category_requirement'],
+                            'size' => $variant['size'],
+                            'type' => $variant['type']
                         ]; 
                     }
                     $table_product_variant::insert($dataVariants);
