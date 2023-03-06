@@ -1792,7 +1792,8 @@ class ApiPromoCampaign extends Controller
                     foreach($product_variants as $variant){
                         $dataVariants[] = [
                             'id_deals_productcategory_category_requirement' => $create_requirement['id_deals_productcategory_category_requirement'],
-                            'id_product_variant' => $variant
+                            'size' => $variant['size'],
+                            'type' => $variant['type']
                         ]; 
                     }
                     $table_product_variant::insert($dataVariants);

@@ -10,24 +10,32 @@ class ProductVariantDealsProductCategoryProductRequirement extends Model
 	protected $primaryKey = 'id_product_variant_deals_productcategory_category_requirement';
 
 	protected $appends  = [
-		'get_product_variant',
+		'get_variant_size',
+		'get_variant_type',
 	];
 
 	protected $casts = [
 		'id_deals_productcategory_category_requirement' => 'int',
-		'id_product_variant' => 'int'
+		'size' => 'int',
+		'type' => 'int'
 	];
 
 	protected $fillable = [
 		'id_deals_productcategory_category_requirement',
-		'id_product_variant',
+		'size',
+		'type',
 		'created_at',
 		'updated_at'
 	];
 
-	public function product_variant()
+	public function variant_size()
 	{
-		return $this->belongsTo(\Modules\ProductVariant\Entities\ProductVariant::class, 'id_product_variant');
+		return $this->belongsTo(\Modules\ProductVariant\Entities\ProductVariant::class, 'size');
+	}
+
+	public function variant_type()
+	{
+		return $this->belongsTo(\Modules\ProductVariant\Entities\ProductVariant::class, 'type');
 	}
 
     public function productvariant_category_requirements()
@@ -35,8 +43,13 @@ class ProductVariantDealsProductCategoryProductRequirement extends Model
 		return $this->belongsTo(\Modules\Deals\Entities\DealsProductCategoryProductRequirement::class, 'id_deals_productcategory_category_requirement');
 	}
 
-	public function getGetProductVariantAttribute() {
+	public function getGetVariantSizeAttribute() {
 		
-		$this->load(['product_variant']);
+		$this->load(['variant_size']);
+    }
+
+	public function getGetVariantTypeAttribute() {
+		
+		$this->load(['variant_type']);
     }
 }
