@@ -1,13 +1,15 @@
 <?php
 
-namespace Modules\Deals\Entities;
+namespace Modules\PromoCampaign\Entities;
 
-use Illuminate\Database\Eloquent\Model;
+use Reliese\Database\Eloquent\Model as Eloquent;
+use Wildside\Userstamps\Userstamps;
 
-class ProductVariantDealsProductCategoryProductRequirement extends Model
+class VariantPromoCampaignProductCategoryProductRequirement extends Eloquent
 {
-    protected $table = 'product_variant_deals_productcategory_category_requirements';
-	protected $primaryKey = 'id_product_variant_deals_productcategory_category_requirement';
+    use Userstamps;
+	protected $table = 'variant_promo_campaign_productcategory_category_requirements';
+	protected $primaryKey = 'id_variant_promo_campaign_productcategory_category_requirement';
 
 	protected $appends  = [
 		'get_variant_size',
@@ -15,13 +17,13 @@ class ProductVariantDealsProductCategoryProductRequirement extends Model
 	];
 
 	protected $casts = [
-		'id_deals_productcategory_category_requirement' => 'int',
+		'id_promo_campaign_productcategory_category_requirement' => 'int',
 		'size' => 'int',
 		'type' => 'int'
 	];
 
 	protected $fillable = [
-		'id_deals_productcategory_category_requirement',
+		'id_promo_campaign_productcategory_category_requirement',
 		'size',
 		'type',
 		'created_at',
@@ -40,7 +42,7 @@ class ProductVariantDealsProductCategoryProductRequirement extends Model
 
     public function productvariant_category_requirements()
 	{
-		return $this->belongsTo(\Modules\Deals\Entities\DealsProductCategoryProductRequirement::class, 'id_deals_productcategory_category_requirement');
+		return $this->belongsTo(\Modules\Deals\Entities\PromoCampaignProductCategoryProductRequirement::class, 'id_promo_campaign_productcategory_category_requirement');
 	}
 
 	public function getGetVariantSizeAttribute() {
