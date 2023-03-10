@@ -642,6 +642,7 @@ class ApiDealsClaim extends Controller
             }
         }
         return true;
+      
     }
 
     function claimSecondDeals(Request $request){
