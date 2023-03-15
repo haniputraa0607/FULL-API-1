@@ -760,7 +760,7 @@ class PromoCampaignTools{
 					if(in_array($value['id_product_group'],$product_group)){
 						$value[$id] = $new_product_group[$value['id_product_group']]['id_product_category'];
 						foreach($variant_requirement ?? [] as $var_req){
-							if(in_array($var_req['size'],$value['variants']) && in_array($var_req['type'],$value['variants'])){
+							if((in_array($var_req['size'],$value['variants']) || $var_req['size'] == 9) && (in_array($var_req['type'],$value['variants']) || $var_req['type'] == 10)){
 								$check_varian = true;
 								$value['check_variant'] = true;
 							}
