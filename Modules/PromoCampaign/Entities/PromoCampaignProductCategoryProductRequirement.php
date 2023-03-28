@@ -30,7 +30,7 @@ class PromoCampaignProductCategoryProductRequirement extends Eloquent
 
 	public function product_variant()
 	{
-		return $this->hasMany(\Modules\PromoCampaign\Entities\VariantPromoCampaignProductCategoryProductRequirement::class, 'id_promo_campaign_productcategory_category_requirement');
+		return $this->belongsTo(\Modules\ProductVariant\Entities\ProductVariant::class, 'id_product_variant');
 	}
 
 	public function product_category()

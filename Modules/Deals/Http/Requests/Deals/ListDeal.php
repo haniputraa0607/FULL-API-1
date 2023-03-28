@@ -19,9 +19,9 @@ class ListDeal extends FormRequest
             // 'deals_type'                => 'required|in:Deals,Hidden,Point,Spin,Subscription',
             
             // deals_type: custom validator from ValidatorServiceProvider
-            'deals_type'                => 'nullable|in:Deals,Hidden,Point,Spin,Subscription,WelcomeVoucher,SecondDeals',
+            'deals_type'                => 'nullable|in:Deals,Hidden,Point,Spin,Subscription,WelcomeVoucher',
             'deals_type_array'          => 'nullable|array',
-            'deals_type_array.*'        => 'nullable|in:Deals,Hidden,Point,Spin,Subscription,WelcomeVoucher,SecondDeals',
+            'deals_type_array.*'        => 'nullable|in:Deals,Hidden,Point,Spin,Subscription,WelcomeVoucher',
             'publish'                   => '',
             'voucher_type'              => 'nullable|in:point,paid,free',
             'price_range_start'         => 'nullable|integer',
