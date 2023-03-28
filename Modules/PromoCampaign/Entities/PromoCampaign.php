@@ -221,7 +221,7 @@ class PromoCampaign extends Eloquent
 			'promo_campaign_productcategory_category_requirements.product_category.product_category' => function($q) {
 				$q->select('id_product_category', 'product_category_name');
 			},
-			'promo_campaign_productcategory_category_requirements.product_variant.variant_size' => function($q) {
+			'promo_campaign_productcategory_category_requirements.product_variant' => function($q) {
 				$q->select('id_product_variant', 'product_variant_name');
 			},
 			'promo_campaign_tier_discount_product.product' => function($q) {

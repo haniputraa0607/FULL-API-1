@@ -18,7 +18,6 @@ use App\Http\Models\LogPoint;
 use App\Http\Models\User;
 use App\Http\Models\Setting;
 use Modules\Deals\Entities\DealsUserLimit;
-use Modules\Deals\Entities\SecondDealsTotal;
 
 use Modules\Deals\Http\Controllers\ApiDealsVoucher;
 
@@ -44,17 +43,13 @@ class ApiDealsClaim extends Controller
 
     /* CLAIM DEALS */
     function claim(Request $request) {
-    	try {
-            $id_deals = $request->id_deals ?? $request->json('id_deals');
-	        $dataDeals = $this->chekDealsData($id_deals);
-            if(isset($request->id)){
-                $user = User::where('id',$request->id)->first();
-            }else{
-                $user = $request->user();
-            }
-	        $id_user = $user->id;
 
-	        if(isset($user->email_verified) && $user->email_verified != '1'){
+    	try {
+
+	        $dataDeals = $this->chekDealsData($request->json('id_deals'));
+	        $id_user = $request->user()->id;
+
+	        if(isset($request->user()->email_verified) && $request->user()->email_verified != '1'){
 	            return response()->json([
 	                'status'    => 'fail',
 	                'message_verfiy_email'=> 'Sorry your email has not yet been verified. Please verify your email.',
@@ -79,14 +74,14 @@ class ApiDealsClaim extends Controller
 	                    ]);
 	                }
 	                else {
-	                    if ($this->checkDealsPoint($dataDeals, $user->id)) {
+	                    if ($this->checkDealsPoint($dataDeals, $request->user()->id)) {
 	                        // CEK USER ALREADY CLAIMED
-	                        if ($this->checkUserClaimed($user, $dataDeals->id_deals)) {
-                                
+	                        if ($this->checkUserClaimed($request->user(), $dataDeals->id_deals)) {
+
 	            				DB::beginTransaction();
 		                        if ($dataDeals->deals_type == "Subscription") {
 		                            $id_deals = $dataDeals->id_deals;
-                                    
+
 		                            // count claimed deals by id_deals_subscription (how many times deals are claimed)
 		                            $dealsVoucherSubs = DealsVoucher::where('id_deals', $id_deals)->count();
 		                            $voucherClaimed = 0;
@@ -167,7 +162,7 @@ class ApiDealsClaim extends Controller
 		                            // CHECK TYPE VOUCHER
 		                            // IF LIST VOUCHER, GET 1 FROM DEALS VOUCHER
 		                            if ($dataDeals->deals_voucher_type == "List Vouchers") {
-		                                $voucher = $this->getVoucherFromTable($user, $dataDeals);
+		                                $voucher = $this->getVoucherFromTable($request->user(), $dataDeals);
 
 		                                if (!$voucher) {
 		                                    DB::rollBack();
@@ -179,8 +174,8 @@ class ApiDealsClaim extends Controller
 		                            }
 		                            // GENERATE VOUCHER CODE & ASSIGN
 		                            else {
-		                                $voucher = $this->getVoucherGenerate($user, $dataDeals);
-                                        
+		                                $voucher = $this->getVoucherGenerate($request->user(), $dataDeals);
+
 		                                if (!$voucher) {
 		                                    DB::rollBack();
 		                                    return response()->json([
@@ -211,31 +206,18 @@ class ApiDealsClaim extends Controller
 		                        // if(isset($voucher['deals_voucher']['id_deals'])){
 		                        //     $voucher['deals'] = Deal::find($voucher['deals_voucher']['id_deals']);
 		                        // }
-                                if(isset($request->id)){
-                                    if(\Module::collections()->has('Autocrm')) {
-                                        $phone=$user->phone;
-                                        $autocrm = app($this->autocrm)->SendAutoCRM('Claim Second Order Voucher', $phone,
-                                            [
-                                                'deals_title'      => $dataDeals->deals_title,
-                                                'deals_content_push'    => $dataDeals->autoresponse_notification,
-                                                'deals_content_inbox'    => $dataDeals->autoresponse_inbox,
-                                            ]
-                                        );
-                                    }
-                                }else{
-                                    if(\Module::collections()->has('Autocrm')) {
-                                        $phone=$user->phone;
-                                        $autocrm = app($this->autocrm)->SendAutoCRM('Claim Free Deals Success', $phone,
-                                            [
-                                                'claimed_at'       => $voucher['claimed_at'],
-                                                'deals_title'      => $dataDeals->deals_title,
-                                                'id_deals_user'    => $voucher['id_deals_user'],
-                                                'id_deals'         => $dataDeals->id_deals,
-                                                'id_brand'         => $dataDeals->id_brand
-                                            ]
-                                        );
-                                    }
-                                }
+		                        if(\Module::collections()->has('Autocrm')) {
+		                            $phone=$request->user()->phone;
+		                            $autocrm = app($this->autocrm)->SendAutoCRM('Claim Free Deals Success', $phone,
+		                                [
+		                                    'claimed_at'       => $voucher['claimed_at'],
+		                                    'deals_title'      => $dataDeals->deals_title,
+		                                    'id_deals_user'    => $voucher['id_deals_user'],
+		                                    'id_deals'         => $dataDeals->id_deals,
+		                                    'id_brand'         => $dataDeals->id_brand
+		                                ]
+		                            );
+		                        }
 		                        $return=[
 		                            'id_deals_user'=>$voucher['id_deals_user'],
 		                            'id_deals_voucher'=>$voucher['id_deals_voucher'],
@@ -368,18 +350,13 @@ class ApiDealsClaim extends Controller
     }
 
     /* UPDATE DEALS */
-    function updateDeals($dataDeals, $user = []) {
-        if(isset($user)){
-            $id_user = $user['id'];
-        }else{
-            $id_user = Auth::id();
-        }
-        
+    function updateDeals($dataDeals) {
     	$total_claimed = DealsVoucher::where('deals_vouchers.id_deals', $dataDeals->id_deals)
 	        			->join('deals_users', 'deals_users.id_deals_voucher','=','deals_vouchers.id_deals_voucher')
                         ->where('paid_status', '!=', 'Cancelled')
-                        ->where('id_user', $id_user)
+                        ->where('id_user', Auth::id())
 	        			->count();
+
 	    if ($dataDeals->user_limit != 0) {
             if (!empty($total_claimed)) {
                 if ($total_claimed >= $dataDeals->user_limit) {
@@ -390,7 +367,7 @@ class ApiDealsClaim extends Controller
 
             if (($total_claimed+1) == $dataDeals->user_limit) {
                 $dataUserLimit = [
-                    'id_user' 	=> $id_user,
+                    'id_user' 	=> Auth::id(),
                     'id_deals'	=> $dataDeals->id_deals
                 ];
                 $saveDealsLimit = DealsUserLimit::create($dataUserLimit);
@@ -401,7 +378,7 @@ class ApiDealsClaim extends Controller
 	        			->join('deals_users', 'deals_users.id_deals_voucher','=','deals_vouchers.id_deals_voucher')
                         ->where('paid_status', '!=', 'Cancelled')
 	        			->count();
-                        
+
         $update = Deal::where('id_deals', $dataDeals->id_deals)->update(['deals_total_claimed' => $total_claimed_deals + 1]);
 
         return $update;
@@ -506,7 +483,7 @@ class ApiDealsClaim extends Controller
 	        			->where('paid_status', '!=', 'Cancelled')
 	        			->count();
     	}
-        if ($dataDeals->deals_voucher_type == "Unlimited" || $dataDeals->deals_total_voucher > $available || ($dataDeals->deals_type =='SecondDeals' && $dataDeals->deals_total_voucher == 0)) {
+        if ($dataDeals->deals_voucher_type == "Unlimited" || $dataDeals->deals_total_voucher > $available) {
             // GENERATE VOUCHER
             $voucher = $this->generateVoucher($dataDeals->id_deals);
 
@@ -515,7 +492,7 @@ class ApiDealsClaim extends Controller
 
             if ($updateVoucher) {
                 // UPDATE DEALS
-                $updateDeals = $this->updateDeals($dataDeals, $user);
+                $updateDeals = $this->updateDeals($dataDeals);
 
                 if ($updateDeals) {
                     // CREATE USER VOUCHER
@@ -571,7 +548,7 @@ class ApiDealsClaim extends Controller
 
     function updatePoint($voucher)
     {
-        return $user = User::with('memberships')->where('id', $voucher->id_user)->first();
+        $user = User::with('memberships')->where('id', $voucher->id_user)->first();
 
         $user_member = $user->toArray();
         $level = null;
@@ -603,89 +580,6 @@ class ApiDealsClaim extends Controller
         $user->update(['points' => $new_user_point]);
 
         return $save;
-    }
-
-    public function getSecondVoucher($data){
-        $id_user = $data['id_user'] ?? $data['id'];
-        $date = date('Y-m-d H:i:s');
-
-        $setting = Setting::where('key', 'second_deals_setting')->first();
-        if($setting['value'] == 1){
-            $getDeals = SecondDealsTotal::join('deals', 'deals.id_deals', 'second_deals_totals.id_deals')
-            ->where('deals.step_complete', 1)
-            ->whereDate('deals.deals_start', '<=', $date)
-            ->whereDate('deals.deals_end', '>=', $date)
-            ->select('deals.*','second_deals_totals.deals_total')
-            ->get()->toArray();
-            foreach($getDeals ?? [] as $deal){
-                for($i = 0; $i < $deal['deals_total']; $i++){
-                    $send = ['id_deals' => $deal['id_deals'],'id'=>$id_user];
-                    $claim = $this->claimSecondDeals(New Request($send));
-                }
-            }
-        }
-        return true;
-    }
-
-    public function checkMutlipleCategory($products = []){
-        
-        $check = false;
-        $id = null;
-        foreach($products ?? [] as $product){
-            if(!isset($id) && empty($id)){
-                $id = $product['id_product_category'];
-            }else{
-                if($id != $product['id_product_category']){
-                    $check = true;
-                }
-                $id = $product['id_product_category'];
-            }
-        }
-        return true;
-      
-    }
-
-    function claimSecondDeals(Request $request){
-        
-        $id_deals = $request->id_deals ?? $request->json('id_deals');
-        $dataDeals = $this->chekDealsData($id_deals);
-        $user = User::where('id',$request->id)->first();
-        
-        $id_user = $user->id;
-
-        if(isset($user->email_verified) && $user->email_verified == '1'){
-            if (!empty($dataDeals)) {
-                if ($this->checkValidDate($dataDeals)) {
-                    
-                    if (empty($dataDeals->deals_voucher_price_cash)) {
-
-                        if ($this->checkDealsPoint($dataDeals, $user->id)) {
-                            
-	                        if ($this->checkUserClaimed($user, $dataDeals->id_deals)) {
-                                
-		                        if ($dataDeals->deals_type != "Subscription") {
-		                            $voucher = $this->getVoucherGenerate($user, $dataDeals);
-                                    $this->updatePoint($voucher);
-
-                                    if(\Module::collections()->has('Autocrm')) {
-                                        $phone=$user->phone;
-                                        $autocrm = app($this->autocrm)->SendAutoCRM('Claim Second Order Voucher', $phone,
-                                            [
-                                                'deals_title'      => $dataDeals->deals_title,
-                                                'deals_content_push'    => $dataDeals->autoresponse_notification,
-                                                'deals_content_inbox'    => $dataDeals->autoresponse_inbox,
-                                            ]
-                                        );
-                                    }
-                                    
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-            } 
-        }
     }
 
 }

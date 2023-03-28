@@ -2019,36 +2019,6 @@ Message :
                     'created_at' => date('y-m-d H:i:s'),
                     'updated_at' => date('y-m-d H:i:s')
                 ),
-            61 =>
-                array (
-                    'id_autocrm' => 62,
-                    'autocrm_type' => 'Response',
-                    'autocrm_trigger' => 'Daily',
-                    'autocrm_cron_reference' => NULL,
-                    'autocrm_title' => 'Claim Second Order Voucher',
-                    'autocrm_email_toogle' => '0',
-                    'autocrm_sms_toogle' => '0',
-                    'autocrm_push_toogle' => '1',
-                    'autocrm_inbox_toogle' => '1',
-                    'autocrm_forward_toogle' => '0',
-                    'autocrm_email_subject' => NULL,
-                    'autocrm_email_content' => NULL,
-                    'autocrm_sms_content' => NULL,
-                    'autocrm_push_subject' => '%deals_title% successfully claimed',
-                    'autocrm_push_content' => '%deals_content_push%',
-                    'autocrm_push_image' => NULL,
-                    'autocrm_push_clickto' => 'Voucher',
-                    'autocrm_push_link' => NULL,
-                    'autocrm_push_id_reference' => NULL,
-                    'autocrm_inbox_subject' => '%deals_title% successfully claimed',
-                    'autocrm_inbox_content' => '%deals_content_inbox%',
-                    'autocrm_forward_email' => NULL,
-                    'autocrm_forward_email_subject' => NULL,
-                    'autocrm_forward_email_content' => NULL,
-                    'custom_text_replace'=>'%deals_title%;%deals_content_push%;%deals_content_inbox%;',
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ),
         ));
     }
 }

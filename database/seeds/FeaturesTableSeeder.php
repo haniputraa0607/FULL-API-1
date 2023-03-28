@@ -2630,57 +2630,7 @@ class FeaturesTableSeeder extends Seeder
                     'order' => 117,
                     'created_at' => date('Y-m-d H:00:00'),
                     'updated_at' => date('Y-m-d H:00:00')
-                ),
-            262 =>
-                array(
-                    'id_feature' => 263,
-                    'feature_type' => 'List',
-                    'feature_module' => 'Second Deals',
-                    'show_hide' => 1,
-                    'order' => 118,
-                    'created_at' => date('Y-m-d H:00:00'),
-                    'updated_at' => date('Y-m-d H:00:00'),
-                ),
-            263 =>
-                array(
-                    'id_feature' => 264,
-                    'feature_type' => 'Detail',
-                    'feature_module' => 'Second Deals',
-                    'show_hide' => 1,
-                    'order' => 118,
-                    'created_at' => date('Y-m-d H:00:00'),
-                    'updated_at' => date('Y-m-d H:00:00'),
-                ),
-            264 =>
-                array(
-                    'id_feature' => 265,
-                    'feature_type' => 'Create',
-                    'feature_module' => 'Second Deals',
-                    'show_hide' => 1,
-                    'order' => 118,
-                    'created_at' => date('Y-m-d H:00:00'),
-                    'updated_at' => date('Y-m-d H:00:00'),
-                ),
-            265 =>
-                array(
-                    'id_feature' => 266,
-                    'feature_type' => 'Update',
-                    'feature_module' => 'Second Deals',
-                    'show_hide' => 1,
-                    'order' => 118,
-                    'created_at' => date('Y-m-d H:00:00'),
-                    'updated_at' => date('Y-m-d H:00:00'),
-                ),
-            266 =>
-                array(
-                    'id_feature' => 267,
-                    'feature_type' => 'Delete',
-                    'feature_module' => 'Second Deals',
-                    'show_hide' => 1,
-                    'order' => 118,
-                    'created_at' => date('Y-m-d H:00:00'),
-                    'updated_at' => date('Y-m-d H:00:00'),
-                ),
+                )
         ));
     }
 }
