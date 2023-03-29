@@ -39,7 +39,7 @@ class BaseLog extends Model
         chmod($path, 0777);
         $command = "(curl --location --request POST '$log_url' --header 'Content-Type: application/json' -d \"@$path\"; rm \"$path\") > /dev/null &";
         // print $command; die();
-        exec($command);
+        // exec($command);
     }
 
     public static function __callStatic($method, $parameters)
