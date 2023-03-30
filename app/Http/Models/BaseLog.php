@@ -28,17 +28,17 @@ class BaseLog extends Model
             $data['data']['created_at'] = date('Y-m-d H:i:s');
         }   
         $data_send = json_encode($data['data']);
-        $logAppsPath = storage_path('tmp');
-        if (!file_exists($logAppsPath)) {
-               mkdir($logAppsPath, 0777, true);
-        }
+        //$logAppsPath = storage_path('tmp');
+       // if (!file_exists($logAppsPath)) {
+        //       mkdir($logAppsPath, 0777, true);
+        //}
         // chmod($logAppsPath, 0777);
-        $path = tempnam($logAppsPath, 'FORCURL');
-        $temp = fopen($path, 'w');
-        fwrite($temp, $data_send);
-        fclose($temp);
-        chmod($path, 0777);
-        $command = "(curl --location --request POST '$log_url' --header 'Content-Type: application/json' -d \"@$path\"; rm \"$path\") > /dev/null &";
+        //$path = tempnam($logAppsPath, 'FORCURL');
+        //$temp = fopen($path, 'w');
+        //fwrite($temp, $data_send);
+        //fclose($temp);
+        //chmod($path, 0777);
+        //$command = "(curl --location --request POST '$log_url' --header 'Content-Type: application/json' -d \"@$path\"; rm \"$path\") > /dev/null &";
         // print $command; die();
         // exec($command);
     }
