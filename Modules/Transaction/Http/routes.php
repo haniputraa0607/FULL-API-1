@@ -103,6 +103,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:apps'], 'pr
     Route::post('/check', 'ApiOnlineTransaction@checkTransaction');
     Route::post('/new', 'ApiOnlineTransaction@newTransaction');
     Route::post('/confirm', 'ApiConfirm@confirmTransaction');
+    Route::post('/send-pos', 'ApiTransaction@cronSendToPos');
     Route::post('/cancel', 'ApiOnlineTransaction@cancelTransaction');
     Route::post('/book-delivery', 'ApiOnlineTransaction@bookDelivery');
     Route::post('/prod/confirm', 'ApiTransactionProductionController@confirmTransaction2');
