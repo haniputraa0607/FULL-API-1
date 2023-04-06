@@ -32,7 +32,17 @@ class BaseLog extends Model
         if (!file_exists($logAppsPath)) {
                mkdir($logAppsPath, 0777, true);
         }
-        $path = tempnam($logAppsPath, 'FORCURL');;
+        $path = tempnam($logAppsPath, 'FORCURL');
+
+        // $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        // $randomString = '';
+     
+        // for ($i = 0; $i < 6; $i++) {
+        //     $index = rand(0, strlen($characters) - 1);
+        //     $randomString .= $characters[$index];
+        // }
+
+        // $path = $logAppsPath.'/FORCURL'.$randomString;
         $temp = fopen($path, 'w');
         fwrite($temp, $data_send);
         fclose($temp);
