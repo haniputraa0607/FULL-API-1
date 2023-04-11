@@ -47,7 +47,6 @@ class ApiOrder extends Controller
         $this->trx    = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
         $this->promo_campaign   = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
         $this->voucher          = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
-        $this->dealClaim  = "Modules\Deals\Http\Controllers\ApiDealsClaim";
     }
 
     public function listOrder(listOrder $request){
@@ -474,7 +473,7 @@ class ApiOrder extends Controller
                 'messages' => ['Order Has Been Marked as Ready']
             ]);
         }
-        
+
         // DB::beginTransaction();
         $pickup = TransactionPickup::where('id_transaction', $order->id_transaction)->update(['ready_at' => date('Y-m-d H:i:s')]);
         // dd($pickup);
@@ -498,8 +497,8 @@ class ApiOrder extends Controller
                     ]);
             }
 
-            $newTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction', 'products', 'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign')->where('id_transaction', $order->id_transaction)->first();
-            
+            $newTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction', 'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign')->where('id_transaction', $order->id_transaction)->first();
+
             $checkType = TransactionMultiplePayment::where('id_transaction', $order->id_transaction)->get()->toArray();
             $column = array_column($checkType, 'type');
 
@@ -624,19 +623,6 @@ class ApiOrder extends Controller
             //send notif to customer
             $user = User::find($order->id_user);
             $detail = app($this->getNotif)->htmlDetailOrder($order->id_transaction, 'Order Taken');
-
-            // $checkMutlipeCategory = app($this->dealClaim)->checkMutlipleCategory($newTrx->products);
-            $newTrx = Transaction::with('user.memberships', 'outlet', 'productTransaction', 'products', 'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign')->where('id_transaction', $order->id_transaction)->first();
-            if(!$newTrx->promo_campaign_promo_code && count($newTrx->transaction_vouchers)===0){
-                $getSecondVoucher = app($this->dealClaim)->getSecondVoucher($newTrx);
-                if (!$getSecondVoucher) {
-                    DB::rollback();
-                    return response()->json([
-                        'status'   => 'fail',
-                        'messages' => ['Transaction failed'],
-                    ]);
-                }
-            }
 
             if ($order->pickup_by !== 'GO-SEND') {
                 $send = app($this->autocrm)->SendAutoCRM($order->pickup_by == 'Outlet' ? 'Order Taken Internal Delivery' : 'Order Taken', $user['phone'], [
