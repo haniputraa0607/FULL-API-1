@@ -17,7 +17,7 @@ class AddPrefixToDealsTable extends Migration
             $table->string('prefix')->nullable()->after('is_all_days');
             $table->integer('digit_random')->nullable()->after('prefix');
         });
-        // DB::statement("ALTER TABLE `deals` CHANGE COLUMN `deals_type` `deals_type` ENUM('Deals', 'Hidden', 'Point', 'Spin', 'Promotion', 'WelcomeVoucher', 'SecondDeals') DEFAULT 'Deals';");
+        DB::statement("ALTER TABLE `deals` CHANGE COLUMN `deals_type` `deals_type` ENUM('Deals', 'Hidden', 'Point', 'Spin', 'Promotion', 'WelcomeVoucher', 'SecondDeals') DEFAULT 'Deals';");
     }
 
     /**
@@ -31,6 +31,6 @@ class AddPrefixToDealsTable extends Migration
             $table->dropColumn('prefix');
             $table->dropColumn('digit_random');
         });
-        // DB::statement("ALTER TABLE `deals` CHANGE COLUMN `deals_type` `deals_type` ENUM('Deals', 'Hidden', 'Point', 'Spin', 'Promotion', 'WelcomeVoucher', 'Second Deals') DEFAULT 'Deals';");
+        DB::statement("ALTER TABLE `deals` CHANGE COLUMN `deals_type` `deals_type` ENUM('Deals', 'Hidden', 'Point', 'Spin', 'Promotion', 'WelcomeVoucher', 'Second Deals') DEFAULT 'Deals';");
     }
 }
