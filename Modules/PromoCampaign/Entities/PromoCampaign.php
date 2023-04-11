@@ -82,7 +82,8 @@ class PromoCampaign extends Eloquent
 		'product_type',
 		'promo_campaign_warning_image',
 		'min_basket_size',
-		'is_all_shipment'
+		'is_all_shipment',
+		'is_all_days'
 	];
 
 	protected $appends  = ['url_promo_campaign_warning_image'];
@@ -114,10 +115,21 @@ class PromoCampaign extends Eloquent
 		return $this->hasMany(\Modules\PromoCampaign\Entities\PromoCampaignBuyxgetyRule::class, 'id_promo_campaign');
 	}
 
+	public function promo_campaign_productcategory_rules()
+	{
+		return $this->hasMany(\Modules\PromoCampaign\Entities\PromoCampaignProductCategoryRule::class, 'id_promo_campaign');
+	}
+
 	public function promo_campaign_have_tags()
 	{
 		return $this->hasMany(\Modules\PromoCampaign\Entities\PromoCampaignHaveTag::class, 'id_promo_campaign');
 	}
+
+	public function promo_campaign_days()
+	{
+		return $this->hasMany(\Modules\PromoCampaign\Entities\PromoCampaignDay::class, 'id_promo_campaign');
+	}
+
 
 	public function outlets()
 	{
@@ -161,6 +173,11 @@ class PromoCampaign extends Eloquent
         return $this->hasOne(\Modules\PromoCampaign\Entities\PromoCampaignBuyxgetyProductRequirement::class, 'id_promo_campaign', 'id_promo_campaign');
     }
 
+	public function promo_campaign_productcategory_category_requirements()
+    {
+        return $this->hasOne(\Modules\PromoCampaign\Entities\PromoCampaignProductCategoryProductRequirement::class, 'id_promo_campaign', 'id_promo_campaign');
+    }
+
     public function promo_campaign_tier_discount_product()
     {
         return $this->belongsTo(\Modules\PromoCampaign\Entities\PromoCampaignTierDiscountProduct::class, 'id_promo_campaign', 'id_promo_campaign');
@@ -197,11 +214,15 @@ class PromoCampaign extends Eloquent
 			'promo_campaign_product_discount_rules',
 			'promo_campaign_tier_discount_rules',
 			'promo_campaign_buyxgety_rules',
+			'promo_campaign_productcategory_rules',
 			'promo_campaign_product_discount.product' => function($q) {
 				$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
 			},
-			'promo_campaign_buyxgety_product_requirement.product' => function($q) {
-				$q->select('id_product', 'id_product_category', 'product_code', 'product_name');
+			'promo_campaign_productcategory_category_requirements.product_category.product_category' => function($q) {
+				$q->select('id_product_category', 'product_category_name');
+			},
+			'promo_campaign_productcategory_category_requirements.product_variant.variant_size' => function($q) {
+				$q->select('id_product_variant', 'product_variant_name');
 			},
 			'promo_campaign_tier_discount_product.product' => function($q) {
 				$q->select('id_product', 'id_product_category', 'product_code', 'product_name');

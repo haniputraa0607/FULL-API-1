@@ -35,6 +35,7 @@ use Modules\Deals\Entities\DealsContent;
 use Modules\Deals\Entities\DealsContentDetail;
 use Modules\Deals\Entities\DealsShipmentMethod;
 use Modules\Deals\Entities\DealsDiscountDeliveryRule;
+use Modules\Deals\Entities\SecondDealsTotal;
 
 use DB;
 
@@ -53,6 +54,7 @@ use Image;
 use Storage;
 
 use App\Jobs\SendDealsJob;
+use Modules\Deals\Entities\DealsDay;
 
 class ApiDeals extends Controller
 {
@@ -273,6 +275,24 @@ class ApiDeals extends Controller
         	$data['custom_outlet_text'] = $post['custom_outlet_text'];
         }
 
+        if (isset($post['prefix_code'])) {
+        	$data['prefix'] = $post['prefix_code'];
+        }
+
+        if (isset($post['number_last_code'])) {
+        	$data['digit_random'] = $post['number_last_code'];
+        }
+
+        if (isset($post['is_all_days'])) {
+        	$data['is_all_days'] = $post['is_all_days'];
+        }else{
+            $data['is_all_days'] = 1;
+        }
+
+        if (isset($post['selected_day'])) {
+        	$data['selected_day'] = $post['selected_day'];
+        }
+
         return $data;
     }
 
@@ -280,6 +300,13 @@ class ApiDeals extends Controller
     function create($data)
     {
         $data = $this->checkInputan($data);
+
+        $days = [];
+        if (isset($data['selected_day'])) {
+            $days = $data['selected_day'];
+            unset($data['selected_day']);
+        }
+
         $data['created_by'] = auth()->user()->id;
         // error
         if (isset($data['error'])) {
@@ -312,8 +339,45 @@ class ApiDeals extends Controller
                     return false;
                 }
             }
+
+            if($data['is_all_days'] == 0 && isset($days)){
+                $saveDays = $this->selectedDays($save, $days);
+                if (!$saveDays) {
+                    DB::rollBack();
+                    $result = [
+                        'status'  => 'fail',
+                        'message'  => ['Failed to create deals days']
+                    ];
+                }
+            }
         }
         return $save;
+    }
+
+    public function selectedDays($deals, $selected_days){
+        
+        $table = new DealsDay;
+    	$id_deals = $deals->id_deals;
+
+    	$delete = $table::where('id_deals', $id_deals)->delete();
+
+        $data_days = [];
+
+        foreach ($selected_days as $value) {
+            array_push($data_days, [
+                'id_deals'  => $id_deals,
+                'day' 	=> $value
+            ]);
+        }
+        
+        if (!empty($data_days)) {
+            $save = $table::insert($data_days);
+            return true;
+        } else {
+            return false;
+        }
+
+        return true;
     }
 
     /* CREATE REQUEST */
@@ -334,6 +398,9 @@ class ApiDeals extends Controller
                     break;
                 case 'WelcomeVoucher':
                     $dt = 'Welcome Voucher';
+                    break;
+                case 'SecondDeals':
+                    $dt = 'Second Deals';
                     break;
             }
             $deals = $save->toArray();
@@ -374,7 +441,7 @@ class ApiDeals extends Controller
             $deals->addSelect('id_brand');
             $deals->with('brand');
         }else{
-            if($request->json('deals_type') != 'WelcomeVoucher' && !$request->json('web')){
+            if($request->json('deals_type') != 'WelcomeVoucher' && $request->json('deals_type') != 'SecondDeals' && !$request->json('web')){
                 $deals->where('deals_end', '>', date('Y-m-d H:i:s'));
             }
         }
@@ -405,6 +472,7 @@ class ApiDeals extends Controller
                 $deals->addSelect('deals_promo_id','deals_publish_start','deals_publish_end','created_at');
             }
         }
+        
         if ($request->json('rule')){
              $this->filterList($deals,$request->json('rule'),$request->json('operator')??'and');
         }
@@ -434,7 +502,7 @@ class ApiDeals extends Controller
             }
         }
 
-		if ($request->json('deals_type_array')) {
+        if ($request->json('deals_type_array')) {
             // get > 1 deals types
             $deals->whereIn('deals_type', $request->json('deals_type_array'));
         }        
@@ -1063,11 +1131,17 @@ class ApiDeals extends Controller
     {
         $data = $this->checkInputan($data);
 
+        $days = [];
+        if (isset($data['selected_day'])) {
+            $days = $data['selected_day'];
+            unset($data['selected_day']);
+        }
+
         $deals = Deal::find($id);
         $data['step_complete'] = 0;
         $data['last_updated_by'] = auth()->user()->id;
 
-        if ($deals['product_type'] != $data['product_type'] || $data['is_online'] == 0) {
+        if ((isset($data['product_type'])) && ($deals['product_type'] != $data['product_type'] || $data['is_online'] == 0)) {
         	app($this->promo_campaign)->deleteAllProductRule('deals', $id);
         }
 
@@ -1105,7 +1179,22 @@ class ApiDeals extends Controller
             unset($data['id_outlet']);
         }
 
+        if($deals['is_all_days'] != $data['is_all_days'] || $data['is_all_days'] == 1){
+            DealsDay::where('id_deals', $deals['id_deals'])->delete();
+        }
+
         $save = Deal::where('id_deals', $id)->updateWithUserstamps($data);
+
+        if($data['is_all_days'] == 0 && isset($days)){
+            $saveDays = $this->selectedDays($deals, $days);
+            if (!$saveDays) {
+                DB::rollBack();
+                $result = [
+                    'status'  => 'fail',
+                    'message'  => ['Failed to create deals days']
+                ];
+            }
+        }
 
         return $save;
     }
@@ -1143,6 +1232,9 @@ class ApiDeals extends Controller
 	                    break;
 	                case 'welcomevoucher':
 	                    $dt = 'Welcome Voucher';
+	                    break;
+	                case 'seconddeals':
+	                    $dt = 'Second Deals';
 	                    break;
 	            }
 	            $deals = Deal::where('id_deals',$request->json('id_deals'))->first()->toArray();
@@ -1451,7 +1543,7 @@ class ApiDeals extends Controller
     	}
 
         if ( ($post['step'] == 1 || $post['step'] == 'all') && ($deals_type != 'Promotion') ){
-			$deals = $deals->with(['outlets']);
+			$deals = $deals->with(['outlets','deals_days']);
         }
 
         if ($post['step'] == 2 || $post['step'] == 'all') {
@@ -1462,8 +1554,11 @@ class ApiDeals extends Controller
                 $table.'_tier_discount_rules',
                 $table.'_buyxgety_product_requirement',
                 $table.'_buyxgety_rules.product',
+                $table.'_productcategory_category_requirements',
+                $table.'_productcategory_rules.product_category',
                 $table.'_shipment_method',
-                $table.'_discount_delivery_rules'
+                $table.'_discount_delivery_rules',
+                'deals_days'
             ]);
         }
 
@@ -1594,7 +1689,7 @@ class ApiDeals extends Controller
     	$deals = $deals->toArray();
     	if ( $deals['is_online'] == 1)
     	{
-	    	if ( empty($deals['deals_product_discount_rules']) && empty($deals['deals_tier_discount_rules']) && empty($deals['deals_buyxgety_rules']) && empty($deals['deals_discount_delivery_rules']))
+	    	if ( empty($deals['deals_product_discount_rules']) && empty($deals['deals_tier_discount_rules']) && empty($deals['deals_buyxgety_rules']) && empty($deals['deals_discount_delivery_rules']) && empty($deals['deals_productcategory_rules']))
 	    	{
 	    		$step = 2;
 	    		$errors = 'Deals not complete';
@@ -2528,5 +2623,128 @@ class ApiDeals extends Controller
         $save = Deal::where('id_deals', $post['id_deals'])->updateWithUserstamps($data);
 
     	return MyHelper::checkUpdate($save);
+    }
+
+    public function checkCode(Request $request)
+    {
+        $post = $request->json()->all();
+
+        $query = Deal::where('prefix', '=', $post['search_code']);
+
+        if (is_numeric($request->deals_id)) {
+        	$query = $query->where('id_deals', '!=', $request->deals_id);
+        }
+        $checkCode = $query->first();
+
+        if ($checkCode) {
+            $result = [
+                'status'  => 'not available'
+            ];
+        } else {
+            $result = [
+                'status'  => 'available'
+            ];
+        }
+        return response()->json($result);
+    }
+
+    function listDealsSecondDeals(Request $request){
+        $configUseBrand = Configs::where('config_name', 'use brand')->first();
+        $date = date('Y-m-d H:i:s');
+
+        if($configUseBrand['is_active']){
+            $getDeals = Deal::join('brands', 'brands.id_brand', 'deals.id_brand')
+                ->where('deals_type','SecondDeals')
+                ->where('deals.step_complete', 1)
+                ->whereDate('deals.deals_start', '<=', $date)
+                ->whereDate('deals.deals_end', '>=', $date)
+                ->select('deals.*','brands.name_brand')
+                ->get()->toArray();
+        }else{
+            $getDeals = Deal::where('deals_type','SecondDeals')
+                ->where('deals.step_complete', 1)
+                ->whereDate('deals.deals_start', '<=', $date)
+                ->whereDate('deals.deals_end', '>=', $date)
+                ->select('deals.*')
+                ->get()->toArray();
+        }
+
+
+        $result = [
+            'status' => 'success',
+            'result' => $getDeals
+        ];
+        return response()->json($result);
+    }
+
+    function secondDealsSetting(Request $request){
+        $setting = Setting::where('key', 'second_deals_setting')->first();
+        $configUseBrand = Configs::where('config_name', 'use brand')->first();
+
+        if($configUseBrand['is_active']){
+            $getDeals = SecondDealsTotal::join('deals', 'deals.id_deals', 'second_deals_totals.id_deals')
+                ->join('brands', 'brands.id_brand', 'deals.id_brand')
+                ->select('deals.*','second_deals_totals.deals_total','brands.name_brand')
+                ->get()->toArray();
+        }else{
+            $getDeals = SecondDealsTotal::join('deals', 'deals.id_deals', 'second_deals_totals.id_deals')
+                ->select('deals.*','second_deals_totals.deals_total')
+                ->get()->toArray();
+        }
+
+
+        $result = [
+            'status' => 'success',
+            'data' => [
+                'setting' => $setting,
+                'deals' => $getDeals
+            ]
+        ];
+        return response()->json($result);
+    }
+
+    function secondDealsSettingUpdate(Request $request){
+        $post = $request->json()->all();
+
+        $deleteDealsTotal = DB::table('second_deals_totals')->delete();//Delete all data from tabel deals total
+
+        //insert data
+        $arrInsert = [];
+        $list_id = $post['list_deals_id'];
+        $list_deals_total = $post['list_deals_total'];
+        $count = count($list_id);
+
+        for($i=0;$i<$count;$i++){
+            $data = [
+                'id_deals' => $list_id[$i],
+                'deals_total' => $list_deals_total[$i],
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+                'created_by' => Auth::id(),
+            	'updated_by' => Auth::id()
+            ];
+            array_push($arrInsert,$data);
+        }
+
+        $insert = SecondDealsTotal::insert($arrInsert);
+        if($insert){
+            $result = [
+                'status' => 'success'
+            ];
+        }else{
+            $result = [
+                'status' => 'fail'
+            ];
+        }
+
+        return response()->json($result);
+    }
+
+    function secondDealsSettingUpdateStatus(Request $request){
+        $post = $request->json()->all();
+        $status = $post['status'];
+        $updateStatus = Setting::where('key', 'second_deals_setting')->updateWithUserstamps(['value' => $status]);
+
+        return response()->json(MyHelper::checkUpdate($updateStatus));
     }
 }

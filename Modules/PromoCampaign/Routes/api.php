@@ -35,6 +35,7 @@ Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:be'], 'pref
 
     Route::post('show-step1', 'ApiPromoCampaign@showStep1');
     Route::post('show-step2', 'ApiPromoCampaign@showStep2');
+    Route::get('get-all-variant', 'ApiPromoCampaign@getAllVariant');
 });
 
 Route::group(['middleware' => ['auth:api', 'log_activities', 'scopes:be'], 'prefix' => 'promo-setting'], function () {

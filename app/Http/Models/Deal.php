@@ -113,7 +113,12 @@ class Deal extends Model
 		'custom_outlet_text',
         'is_all_outlet',
         'min_basket_size',
-		'is_all_shipment'
+		'is_all_shipment',
+		'is_all_days',
+		'prefix',
+		'digit_random',
+		'autoresponse_notification',
+		'autoresponse_inbox',
 	];
 
 	protected $appends  = ['url_deals_image', 'deals_status', 'deals_voucher_price_type', 'deals_voucher_price_pretty', 'url_webview', 'url_deals_warning_image'];
@@ -218,6 +223,11 @@ class Deal extends Model
 		return $this->hasMany(DealsSubscription::class, 'id_deals');
 	}
 
+	public function deals_days()
+	{
+		return $this->hasMany(\Modules\Deals\Entities\DealsDay::class, 'id_deals');
+	}
+
 	public function featured_deals()
 	{
 		return $this->hasOne(FeaturedDeal::class, 'id_deals','id_deals');
@@ -277,4 +287,14 @@ class Deal extends Model
 	{
 		return $this->hasOne(\Modules\Deals\Entities\DealsDiscountDeliveryRule::class, 'id_deals');
 	}
+
+	public function deals_productcategory_rules()
+	{
+		return $this->hasMany(\Modules\Deals\Entities\DealsProductCategoryRule::class, 'id_deals');
+	}
+
+	public function deals_productcategory_category_requirements()
+    {
+        return $this->hasOne(\Modules\Deals\Entities\DealsProductCategoryProductRequirement::class, 'id_deals', 'id_deals');
+    }
 }
