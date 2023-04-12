@@ -28,6 +28,7 @@ class ApiGosendController extends Controller
         $this->trx        = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
         $this->outlet_app = "Modules\OutletApp\Http\Controllers\ApiOutletApp";
         $this->notif      = "Modules\Transaction\Http\Controllers\ApiNotification";
+        $this->dealClaim  = "Modules\Deals\Http\Controllers\ApiDealsClaim";
     }
     /**
      * Update latest status from gosend
@@ -169,7 +170,7 @@ class ApiGosendController extends Controller
                     if ($trx->cashback_insert_status != 1) {
                         //send notif to customer
                         $user = User::find($trx->id_user);
-                        $trx->load('user.memberships', 'outlet', 'productTransaction', 'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign');
+                        $trx->load('user.memberships', 'outlet', 'productTransaction', 'products' ,'transaction_vouchers','promo_campaign_promo_code','promo_campaign_promo_code.promo_campaign');
                         $newTrx    = $trx;
                         $checkType = TransactionMultiplePayment::where('id_transaction', $trx->id_transaction)->get()->toArray();
                         $column    = array_column($checkType, 'type');
@@ -198,7 +199,18 @@ class ApiGosendController extends Controller
                                     ]);
                                 }
                             }
-
+                            
+                        }
+                        // $checkMutlipeCategory = app($this->dealClaim)->checkMutlipleCategory($newTrx->products);
+                        if(!$newTrx->promo_campaign_promo_code && count($newTrx->transaction_vouchers)===0){
+                            $getSecondVoucher = app($this->dealClaim)->getSecondVoucher($newTrx);
+                            if (!$getSecondVoucher) {
+                                DB::rollback();
+                                return response()->json([
+                                    'status'   => 'fail',
+                                    'messages' => ['Transaction failed'],
+                                ]);
+                            }
                         }
 
                         $newTrx->update(['cashback_insert_status' => 1]);
