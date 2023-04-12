@@ -80,7 +80,6 @@ use DB;
 use App\Lib\MailQueue as Mail;
 use Image;
 use Modules\UserRating\Entities\UserRating;
-use App\Lib\ConnectPOS;
 
 class ApiTransaction extends Controller
 {
@@ -3439,29 +3438,5 @@ class ApiTransaction extends Controller
             $result = $result->get();
         }
         return MyHelper::checkGet($result);
-    }
-
-    public function cronSendToPos(){
-        $log = MyHelper::logCron('Create Transaction Send to POS');
-        try {
-            
-            $date = date('Y-m-d', strtotime('2023-03-25'));
-            $transactions = Transaction::where('transactions.transaction_payment_status', 'Completed')
-            ->where('transactions.sent_to_pos', '0')
-            ->whereDate('transaction_date','>=',$date)
-            ->limit(5)
-            ->get()->toArray();
-
-            DB::beginTransaction();
-            foreach($transactions ?? [] as $key => $transaction){
-                $connectPOS = new ConnectPOS();
-                $doSendTransacition = $connectPOS->doSendTransaction($transaction['id_transaction']);
-            }
-
-            DB::commit();
-            $log->success();
-        } catch(\Exception $e) {
-            $log->fail($e->getMessage());
-        }
     }
 }

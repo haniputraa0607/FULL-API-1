@@ -227,12 +227,6 @@ class Kernel extends ConsoleKernel
          * run every hour
          */
         $schedule->call('Modules\Balance\Http\Controllers\ApiExpiryPoint@adjustmentPointUser')->hourly();
-
-         /**
-         * To run send pos transaction online
-         * run every hour
-         */
-        // $schedule->call('Modules\Transaction\Http\Controllers\ApiTransaction@cronSendToPos')->everyTenMinutes();
     }
 
     /**
