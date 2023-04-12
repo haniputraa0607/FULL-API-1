@@ -1,16 +1,14 @@
 <?php
 
 use Illuminate\Database\Seeder;
+use App\Http\Models\Setting;
 
 class SettingsTableSeeder extends Seeder
 {
     public function run()
     {
 
-
-        \DB::table('settings')->delete();
-
-        \DB::table('settings')->insert(array(
+        $settings = array(
             0 =>
             array(
                 'id_setting' => 1,
@@ -343,23 +341,24 @@ class SettingsTableSeeder extends Seeder
                 'value_text' => 'Part Time, Supervisor',
                 'created_at' => '2019-10-03 12:00:00',
                 'updated_at' => '2019-10-03 12:00:00',
-            ),37 =>
-                array (
-                    'id_setting' => 38,
-                    'key' => 'text_menu_main',
-                    'value' => NULL,
-                    'value_text' => '{"menu1":{"text_menu":"Home","text_header":"Home","icon1":"","icon2":""},"menu2":{"text_menu":"Promo","text_header":"Promo","icon1":"","icon2":""},"menu3":{"text_menu":"Order","text_header":"Order","icon1":"","icon2":""},"menu4":{"text_menu":"Riwayat","text_header":"Riwayat","icon1":"","icon2":""},"menu5":{"text_menu":"Other","text_header":"Other","icon1":"","icon2":""}}',
-                    'created_at' => '2019-10-08 09:03:16',
-                    'updated_at' => '2019-10-08 09:03:19',
+            ),
+            37 =>
+            array (
+                'id_setting' => 38,
+                'key' => 'text_menu_main',
+                'value' => NULL,
+                'value_text' => '{"menu1":{"text_menu":"Home","text_header":"Home","icon1":"","icon2":""},"menu2":{"text_menu":"Promo","text_header":"Promo","icon1":"","icon2":""},"menu3":{"text_menu":"Order","text_header":"Order","icon1":"","icon2":""},"menu4":{"text_menu":"Riwayat","text_header":"Riwayat","icon1":"","icon2":""},"menu5":{"text_menu":"Other","text_header":"Other","icon1":"","icon2":""}}',
+                'created_at' => '2019-10-08 09:03:16',
+                'updated_at' => '2019-10-08 09:03:19',
             ),
             38 =>
-                array (
-                    'id_setting' => 39,
-                    'key' => 'text_menu_other',
-                    'value' => NULL,
-                    'value_text' => '{"menu1":{"text_menu":"Profile","text_header":"Profile","icon":""},"menu2":{"text_menu":"Membership","text_header":"Membership","icon":""},"menu3":{"text_menu":"News","text_header":"News","icon":""},"menu4":{"text_menu":"Outlet","text_header":"Outlet","icon":""},"menu5":{"text_menu":"Referral","text_header":"Referral","icon":""},"menu6":{"text_menu":"About","text_header":"About","icon":""},"menu7":{"text_menu":"FAQ","text_header":"FAQ","icon":""},"menu8":{"text_menu":"TOS","text_header":"TOS","icon":""},"menu9":{"text_menu":"Contact Us","text_header":"Contact Us","icon":""}}',
-                    'created_at' => '2019-10-08 09:04:01',
-                    'updated_at' => '2019-10-08 09:04:02',
+            array (
+                'id_setting' => 39,
+                'key' => 'text_menu_other',
+                'value' => NULL,
+                'value_text' => '{"menu1":{"text_menu":"Profile","text_header":"Profile","icon":""},"menu2":{"text_menu":"Membership","text_header":"Membership","icon":""},"menu3":{"text_menu":"News","text_header":"News","icon":""},"menu4":{"text_menu":"Outlet","text_header":"Outlet","icon":""},"menu5":{"text_menu":"Referral","text_header":"Referral","icon":""},"menu6":{"text_menu":"About","text_header":"About","icon":""},"menu7":{"text_menu":"FAQ","text_header":"FAQ","icon":""},"menu8":{"text_menu":"TOS","text_header":"TOS","icon":""},"menu9":{"text_menu":"Contact Us","text_header":"Contact Us","icon":""}}',
+                'created_at' => '2019-10-08 09:04:01',
+                'updated_at' => '2019-10-08 09:04:02',
             ),
             39 =>
             array(
@@ -398,59 +397,59 @@ class SettingsTableSeeder extends Seeder
                 'updated_at' => date('Y-m-d H:i:s'),
             ),
             45 =>
-                array(
-                    'id_setting' => 46,
-                    'key' => 'order_now_title',
-                    'value' => 'Pesan Sekarang',
-                    'value_text' => NULL,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ),
+            array(
+                'id_setting' => 46,
+                'key' => 'order_now_title',
+                'value' => 'Pesan Sekarang',
+                'value_text' => NULL,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ),
             47 =>
-                array(
-                    'id_setting' => 48,
-                    'key' => 'order_now_sub_title_success',
-                    'value' => 'Cek outlet terdekatmu',
-                    'value_text' => NULL,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ),
+            array(
+                'id_setting' => 48,
+                'key' => 'order_now_sub_title_success',
+                'value' => 'Cek outlet terdekatmu',
+                'value_text' => NULL,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ),
             48 =>
-                array(
-                    'id_setting' => 49,
-                    'key' => 'order_now_sub_title_fail',
-                    'value' => 'Tidak ada outlet yang tersedia',
-                    'value_text' => NULL,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ),
+            array(
+                'id_setting' => 49,
+                'key' => 'order_now_sub_title_fail',
+                'value' => 'Tidak ada outlet yang tersedia',
+                'value_text' => NULL,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ),
             49 =>
-                array(
-                    'id_setting' => 50,
-                    'key' => 'payment_messages_cash',
-                    'value' => 'Anda akan membeli Voucher %deals_title% dengan harga %cash% ?',
-                    'value_text' => NULL,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ),
+            array(
+                'id_setting' => 50,
+                'key' => 'd_messages_cash',
+                'value' => 'Anda akan membeli Voucher %deals_title% dengan harga %cash% ?',
+                'value_text' => NULL,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ),
             50 =>
-                array(
-                    'id_setting' => 51,
-                    'key' => 'welcome_voucher_setting',
-                    'value' => '1',
-                    'value_text' => NULL,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ),
+            array(
+                'id_setting' => 51,
+                'key' => 'welcome_voucher_setting',
+                'value' => '1',
+                'value_text' => NULL,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ),
             51 =>
-                array(
-                    'id_setting' => 52,
-                    'key' => 'processing_time_text',
-                    'value' => null,
-                    'value_text' => 'Set pickup time minimum %processing_time% minutes from now',
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ),
+            array(
+                'id_setting' => 52,
+                'key' => 'processing_time_text',
+                'value' => null,
+                'value_text' => 'Set pickup time minimum %processing_time% minutes from now',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ),
             63 =>
                 array(
                     'id_setting' => 64,
@@ -767,23 +766,34 @@ class SettingsTableSeeder extends Seeder
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
             99 =>
-                array(
-                    'id_setting' => 100,
-                    'key' => 'second_deals_setting',
-                    'value' => '1',
-                    'value_text' => NULL,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ),
+            array(
+                'id_setting' => 100,
+                'key' => 'second_deals_setting',
+                'value' => '1',
+                'value_text' => NULL,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ),
             100 =>
-                array(
-                    'id_setting' => 101,
-                    'key' => 'discount_priority',
-                    'value' => null,
-                    'value_text' => 'voucher',
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ),
-        ));
+            array(
+                'id_setting' => 101,
+                'key' => 'discount_priority',
+                'value' => null,
+                'value_text' => 'voucher',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ),
+        );
+
+        foreach ($settings as $setting) {
+            if (Setting::where('key', $setting['key'])->exists()) continue;
+            Setting::create([
+                'key' => $setting['key'],
+                'value' => $setting['value'] ?? null,
+                'value_text' => $setting['value_text'] ?? null,
+                'created_at' => $setting['created_at'] ?? null,
+                'updated_at' => $setting['updated_at'] ?? null,
+            ]);
+        }
     }
 }
