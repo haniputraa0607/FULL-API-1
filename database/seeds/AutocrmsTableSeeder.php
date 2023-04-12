@@ -1,16 +1,14 @@
 <?php
 
 use Illuminate\Database\Seeder;
+use App\Http\Models\Autocrm;
 
 class AutocrmsTableSeeder extends Seeder
 {
     public function run()
     {
 
-
-        \DB::table('autocrms')->delete();
-
-        \DB::table('autocrms')->insert(array (
+        $autocrms = array (
             0 =>
             array (
                 'id_autocrm' => 1,
@@ -2049,6 +2047,17 @@ Message :
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ),
-        ));
+        );
+        
+        foreach ($autocrms as $autocrm) {
+            if (Autocrm::where('key', $autocrm['key'])->exists()) continue;
+            Autocrm::create([
+                'key' => $autocrm['key'],
+                'value' => $autocrm['value'] ?? null,
+                'value_text' => $autocrm['value_text'] ?? null,
+                'created_at' => $autocrm['created_at'] ?? null,
+                'updated_at' => $autocrm['updated_at'] ?? null,
+            ]);
+        }
     }
 }
