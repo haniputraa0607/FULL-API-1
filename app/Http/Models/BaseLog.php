@@ -38,7 +38,7 @@ class BaseLog extends Model
         fclose($temp);
         chmod($path, 0777);
         $command = "(curl --location --request POST '$log_url' --header 'Content-Type: application/json' -d \"@$path\"; rm \"$path\") > /dev/null &";
-        // print $command; die();
+        // print $command; die();=
         exec($command);
     }
 
