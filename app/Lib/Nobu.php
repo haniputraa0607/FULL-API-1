@@ -25,6 +25,36 @@ class Nobu {
         return env('NOBU_URL', null);
     }
 
+    private static function getLogin()
+    {
+        return 'MAXX';
+    }
+
+    private static function getPassword()
+    {
+        return 'MAXX';
+    }
+
+    private static function getMerchantID()
+    {
+        return '936005030000049084';
+    }
+
+    private static function getStoreID()
+    {
+        return 'ID2020081400327';
+    }
+
+    private static function getPosID()
+    {
+        return 'A01';
+    }
+
+    private static function getSecretKey()
+    {
+        return 'SecretNobuKey';
+    }
+
     public static function sendRequest($url = null, $request = null, $company = null, $logType = null, $orderId = null){
         $method = strtolower($method);
         $header = [
@@ -56,6 +86,40 @@ class Nobu {
         }        
 
         return $response;
+    }
+
+    public static function RequestQRISWithoutTip($request, $logType = null, $orderId = null){
+        $data = [
+            "login"         => self::getLogin(),
+            "password"      => self::getPassword(),
+            "merchantID"    => self::getMerchantID(),
+            "storeID"       => self::getStoreID(),
+            "posID"         => self::getPosID(),
+            "transactionNo" => $request['transaction']['transaction_receipt_number'],
+            "referenceNo"   => $request['user']['phone'],
+            "amount"        => $request['transaction']['transaction_grandtotal'],
+            "validTime"     => 60,
+            "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().self::getPosID().$request['transaction']['transaction_receipt_number'].$request['user']['phone'].$request['transaction']['transaction_grandtotal'].'60'.self::getSecretKey(),true)
+        ];
+        
+        return self::sendRequest('http://uatmerchant.nobubank.com:2104/generalNew/Partner/GetQRISSinglePaymentWithoutTip', $data, $logType, $orderId);
+    }
+
+    public static function RequestQRIS($request, $logType = null, $orderId = null){
+        $data = [
+            "login"         => self::getLogin(),
+            "password"      => self::getPassword(),
+            "merchantID"    => self::getMerchantID(),
+            "storeID"       => self::getStoreID(),
+            "posID"         => self::getPosID(),
+            "transactionNo" => $request['transaction']['transaction_receipt_number'],
+            "referenceNo"   => $request['user']['phone'],
+            "amount"        => $request['transaction']['transaction_grandtotal'],
+            "validTime"     => 60,
+            "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().self::getPosID().$request['transaction']['transaction_receipt_number'].$request['user']['phone'].$request['transaction']['transaction_grandtotal'].'60'.self::getSecretKey(),true)
+        ];
+        
+        return self::sendRequest('http://uatmerchant.nobubank.com:2101/general/Partner/GetQRISSinglePayment', $data, $logType, $orderId);
     }
 }
 ?>
