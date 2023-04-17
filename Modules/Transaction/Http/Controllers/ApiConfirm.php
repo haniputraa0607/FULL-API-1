@@ -570,10 +570,13 @@ class ApiConfirm extends Controller
             ];
 
             $withoutTip = Nobu::RequestQRISWithoutTip($dataTransactionNobu,'request_qris',$check['id_transaction']);
-            $wihtTip = Nobu::RequestQRIS($dataTransactionNobu,'request_qris',$check['id_transaction']);
+            // $wihtTip = Nobu::RequestQRIS($dataTransactionNobu,'request_qris',$check['id_transaction']);
 
-            if($withoutTip || $wihtTip){
-                $createPaymentNobu = TransactionPaymentNobu::create([]);
+            if($withoutTip && $withoutTip['status_code'] == 200){
+                $responeNobu = json_decode(base64_decode($withoutTip['response']['data']),true) ?? [];
+                $createPaymentNobu = TransactionPaymentNobu::create([
+
+                ]);
                 if(!$createPaymentNobu){
                     DB::rollBack();
                     return response()->json([

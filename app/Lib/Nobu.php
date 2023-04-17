@@ -10,6 +10,7 @@ use App\Http\Models\Setting;
 use App\Lib\MyHelper;
 use App\Http\Models\LogNobu;
 use App\Http\Requests;
+use App\LogNobu as AppLogNobu;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 
@@ -22,7 +23,7 @@ class Nobu {
 
     private static function getBaseUrl()
     {
-        return env('NOBU_URL', null);
+        return env('NOBU_URL', 'http://uatmerchant.nobubank.com:');
     }
 
     private static function getLogin()
@@ -56,16 +57,14 @@ class Nobu {
     }
 
     public static function sendRequest($url = null, $request = null, $company = null, $logType = null, $orderId = null){
-        $method = strtolower($method);
         $header = [
             "Content-Type" => "application/json"
         ];
-        if($url == '/sales/create_order_poo'){
-            $time_out = 2;
-        }else{
-            $time_out = 1;
-        }  
-        $response = MyHelper::postWithTimeout(self::getBaseUrl() . $url, null, $request, 0, $header, 65, $fullResponse);
+   
+        $data_send = [
+            "data" => base64_encode(json_encode($request))
+        ];
+        $response = MyHelper::postWithTimeout(self::getBaseUrl() . $url, null, $data_send, 0, $header, 65);
 
         try {
             $log_response = $response;
@@ -77,10 +76,10 @@ class Nobu {
                 'request'               => json_encode($request),
                 'request_header'        => json_encode($header),
                 'response'              => json_encode($log_response),
-                'response_status_code'  => $fullResponse->getStatusCode()??'',
+                'response_status_code'  => $response['status_code']??'',
 
             ];
-            LogNobu::create($log_api_array);
+            AppLogNobu::create($log_api_array);
         } catch (\Exception $e) {                    
             \Illuminate\Support\Facades\Log::error('Failed write log to LogNobu: ' . $e->getMessage());
         }        
@@ -99,10 +98,10 @@ class Nobu {
             "referenceNo"   => $request['user']['phone'],
             "amount"        => $request['transaction']['transaction_grandtotal'],
             "validTime"     => 60,
-            "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().self::getPosID().$request['transaction']['transaction_receipt_number'].$request['user']['phone'].$request['transaction']['transaction_grandtotal'].'60'.self::getSecretKey(),true)
+            "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().self::getPosID().$request['transaction']['transaction_receipt_number'].$request['user']['phone'].$request['transaction']['transaction_grandtotal'].'60'.self::getSecretKey())
         ];
-        
-        return self::sendRequest('http://uatmerchant.nobubank.com:2104/generalNew/Partner/GetQRISSinglePaymentWithoutTip', $data, $logType, $orderId);
+
+        return self::sendRequest('2104/generalNew/Partner/GetQRISSinglePaymentWithoutTip', $data, $logType, $orderId);
     }
 
     public static function RequestQRIS($request, $logType = null, $orderId = null){
@@ -119,7 +118,7 @@ class Nobu {
             "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().self::getPosID().$request['transaction']['transaction_receipt_number'].$request['user']['phone'].$request['transaction']['transaction_grandtotal'].'60'.self::getSecretKey(),true)
         ];
         
-        return self::sendRequest('http://uatmerchant.nobubank.com:2101/general/Partner/GetQRISSinglePayment', $data, $logType, $orderId);
+        return self::sendRequest('2101/general/Partner/GetQRISSinglePayment', $data, $logType, $orderId);
     }
 }
 ?>
