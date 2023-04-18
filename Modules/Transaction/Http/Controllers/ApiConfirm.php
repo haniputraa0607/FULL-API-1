@@ -575,7 +575,16 @@ class ApiConfirm extends Controller
             if($withoutTip && $withoutTip['status_code'] == 200){
                 $responeNobu = json_decode(base64_decode($withoutTip['response']['data']),true) ?? [];
                 $createPaymentNobu = TransactionPaymentNobu::create([
-
+                    'id_transaction'     => $check['id_transaction'],
+                    'transaction_time'   => $check['transaction_date'],
+                    'gross_amount'       => $check['transaction_grandtotal'],
+                    'order_id'           => $check['transaction_receipt_number'],
+                    'payment_type'       => 'Without Tip',
+                    'no_transaction'     => $responeNobu['data']['transactionNo'],   
+                    'qris_data'          => $responeNobu['data']['qrisData'],   
+                    'status_code'        => $responeNobu['responseCode'],
+                    'transaction_status' => $responeNobu['responseDescription'],
+                    'status_message'     => $responeNobu['messageDetail']
                 ]);
                 if(!$createPaymentNobu){
                     DB::rollBack();
@@ -585,7 +594,22 @@ class ApiConfirm extends Controller
                     ]);
                 }
                 DB::commit();
-                return ['success'];
+                $dataEncode = [
+                    'transaction_receipt_number' => $check['transaction_receipt_number'],
+                    'type'                       => 'trx',
+                    'trx_success'                => 1,
+                ];
+                $encode = json_encode($dataEncode);
+                $base   = base64_encode($encode);
+                $response = [
+                    'status'                => 'success',
+                    'response_description'  => $responeNobu['responseDescription'],
+                    'transaction_no'        => $responeNobu['data']['transactionNo'],
+                    'qris'                  => $responeNobu['data']['qrisData'],
+                    'url'                   => env('VIEW_URL') . '/transaction/web/view/detail?data=' . $base,
+    
+                ];
+                return response()->json($response);
             }else{
                 DB::rollBack();
                 return response()->json([

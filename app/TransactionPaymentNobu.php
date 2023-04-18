@@ -16,16 +16,14 @@ class TransactionPaymentNobu extends Model
 
 	protected $fillable = [
 		'id_transaction',
-		'bank',
+		'no_transaction',
+		'qris_data',
 		'transaction_time',
 		'gross_amount',
 		'order_id',
 		'payment_type',
-		'signature_key',
 		'status_code',
-		'vt_transaction_id',
 		'transaction_status',
-		'fraud_status',
 		'status_message'
 	];
 
