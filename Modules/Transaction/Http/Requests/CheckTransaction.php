@@ -12,7 +12,7 @@ class CheckTransaction extends FormRequest
     {
         return [
             'type'                                    => 'sometimes|in:Pickup Order,GO-SEND,Grab,Internal Delivery',
-            'payment_type'                            => 'nullable|in:Midtrans,Manual,Balance,Ovo,Ipay88,Shopeepay,Xendit',
+            'payment_type'                            => 'nullable|in:Midtrans,Manual,Balance,Ovo,Ipay88,Shopeepay,Xendit, Nobu',
             'destination'                             => 'nullable|sometimes|array',
             'destination.id_user_address'             => 'nullable|sometimes',
             'destination.short_address'               => 'nullable|sometimes',
