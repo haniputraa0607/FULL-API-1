@@ -55,16 +55,18 @@ return [
         ],
 
 		'mysql2' => [
-            'driver' => 'pgsql',
+            'driver' => 'mysql',
             'host' => env('DB2_HOST', '127.0.0.1'),
-            'port' => env('DB2_PORT', '5432'),
+            'port' => env('DB2_PORT', '3306'),
             'database' => env('DB2_DATABASE', 'forge'),
             'username' => env('DB2_USERNAME', 'forge'),
             'password' => env('DB2_PASSWORD', ''),
-            'charset' => 'utf8',
+            'unix_socket' => env('DB2_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',
-            'schema' => 'public',
-            'sslmode' => 'prefer',
+            'strict' => false,
+            'engine' => 'InnoDB',
         ],
 
 		'mysql3' => [

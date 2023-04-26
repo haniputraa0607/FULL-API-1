@@ -23,6 +23,8 @@ use Illuminate\Routing\Controller;
 use Modules\IPay88\Lib\IPay88;
 use Modules\ShopeePay\Entities\TransactionPaymentShopeePay;
 use Modules\Transaction\Http\Requests\Transaction\ConfirmPayment;
+use App\Lib\Nobu;
+use App\Http\Models\TransactionPaymentNobu;
 
 class ApiConfirm extends Controller
 {
@@ -89,7 +91,7 @@ class ApiConfirm extends Controller
                     'id'       => $value['id_product'],
                     'price'    => abs($value['transaction_product_price'] + $value['transaction_modifier_subtotal']),
                     // 'name'     => $value['product']['product_name'].($more_name_text?'('.trim($more_name_text,',').')':''), // name + modifier too long
-                    'name'     => substr($value['product']['product_name'], 0, 40), // max 50 char
+                    'name'     => substr($value['product']['product_name'], 0, 50), // max 50 char
                     'quantity' => $value['transaction_product_qty'],
                 ];
 
@@ -561,7 +563,61 @@ class ApiConfirm extends Controller
                     'redirect_url_http'         => $paymentShopeepay->redirect_url_http,
                 ],
             ];
-        } else {
+        } elseif ($post['payment_type'] == 'Nobu') {
+            $dataTransactionNobu = [
+                'user' => $user,
+                'transaction' => $check
+            ];
+
+            $withoutTip = Nobu::RequestQRISWithoutTip($dataTransactionNobu,'request_qris',$check['id_transaction']);
+            // $wihtTip = Nobu::RequestQRIS($dataTransactionNobu,'request_qris',$check['id_transaction']);
+
+            if($withoutTip && $withoutTip['status_code'] == 200){
+                $responeNobu = json_decode(base64_decode($withoutTip['response']['data']),true) ?? [];
+                $createPaymentNobu = TransactionPaymentNobu::create([
+                    'id_transaction'     => $check['id_transaction'],
+                    'transaction_time'   => $check['transaction_date'],
+                    'gross_amount'       => $check['transaction_grandtotal'],
+                    'order_id'           => $check['transaction_receipt_number'],
+                    'payment_type'       => 'Without Tip',
+                    'no_transaction'     => $responeNobu['data']['transactionNo'],   
+                    'qris_data'          => $responeNobu['data']['qrisData'],   
+                    'status_code'        => $responeNobu['responseCode'],
+                    'transaction_status' => $responeNobu['responseDescription'],
+                    'status_message'     => $responeNobu['messageDetail']
+                ]);
+                if(!$createPaymentNobu){
+                    DB::rollBack();
+                    return response()->json([
+                        'status'   => 'fail',
+                        'messages' => ['fail to confirm transaction'],
+                    ]);
+                }
+                DB::commit();
+                $dataEncode = [
+                    'transaction_receipt_number' => $check['transaction_receipt_number'],
+                    'type'                       => 'trx',
+                    'trx_success'                => 1,
+                ];
+                $encode = json_encode($dataEncode);
+                $base   = base64_encode($encode);
+                $response = [
+                    'status'                => 'success',
+                    'response_description'  => $responeNobu['responseDescription'],
+                    'transaction_no'        => $responeNobu['data']['transactionNo'],
+                    'qris'                  => $responeNobu['data']['qrisData'],
+                    'url'                   => env('VIEW_URL') . '/transaction/web/view/detail?data=' . $base,
+    
+                ];
+                return response()->json($response);
+            }else{
+                DB::rollBack();
+                return response()->json([
+                    'status'   => 'fail',
+                    'messages' => ['fail to confirm transaction'],
+                ]);
+            }
+        }else {
             if (isset($post['id_manual_payment_method'])) {
                 $checkPaymentMethod = ManualPaymentMethod::where('id_manual_payment_method', $post['id_manual_payment_method'])->first();
                 if (empty($checkPaymentMethod)) {
