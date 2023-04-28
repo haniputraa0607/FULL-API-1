@@ -759,11 +759,16 @@ class PromoCampaignTools{
 					$value['check_variant'] = false;
 					if(in_array($value['id_product_group'],$product_group)){
 						$value[$id] = $new_product_group[$value['id_product_group']]['id_product_category'];
-						foreach($variant_requirement ?? [] as $var_req){
-							if((in_array($var_req['size'],$value['variants']) || $var_req['size'] == 9) && (in_array($var_req['type'],$value['variants']) || $var_req['type'] == 10)){
-								$check_varian = true;
-								$value['check_variant'] = true;
+						if($variant_requirement){
+							foreach($variant_requirement ?? [] as $var_req){
+								if((in_array($var_req['size'],$value['variants']) || $var_req['size'] == 9) && (in_array($var_req['type'],$value['variants']) || $var_req['type'] == 10)){
+									$check_varian = true;
+									$value['check_variant'] = true;
+								}
 							}
+						}elseif(!$variant_requirement){
+							$check_varian = true;
+							$value['check_variant'] = true;
 						}
 						$trx_category[] = $value;
 					}else{
@@ -783,7 +788,7 @@ class PromoCampaignTools{
 					}
 				
 				}
-
+				
 				$promo_rules=$promo[$source.'_productcategory_rules'];
 				$min_qty=$promo_rules[0]['min_qty_requirement'];
 				// get min max for error message
