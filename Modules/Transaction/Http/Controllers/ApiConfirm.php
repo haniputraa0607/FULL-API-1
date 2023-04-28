@@ -10,6 +10,7 @@ use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\TransactionPaymentMidtran;
 use App\Http\Models\TransactionPaymentOvo;
+use App\Http\Models\TransactionPaymentNobu;
 use App\Http\Models\TransactionPickup;
 use App\Http\Models\TransactionProductModifier;
 use App\Http\Models\User;
@@ -24,7 +25,6 @@ use Modules\IPay88\Lib\IPay88;
 use Modules\ShopeePay\Entities\TransactionPaymentShopeePay;
 use Modules\Transaction\Http\Requests\Transaction\ConfirmPayment;
 use App\Lib\Nobu;
-use App\Http\Models\TransactionPaymentNobu;
 
 class ApiConfirm extends Controller
 {

@@ -13,7 +13,7 @@ class AddPaymentTypeNobuToTransactionsTable extends Migration
      */
     public function up()
     {
-        DB::statement("ALTER TABLE `transactions` CHANGE COLUMN `trasaction_payment_type` `trasaction_payment_type` ENUM('Manual', 'Midtrans', 'Offline', 'Balance', 'Ovo', 'Cimb', 'Ipay88', 'Shopeepay', 'Nobu') NOT NULL;");
+        // DB::statement("ALTER TABLE `transactions` CHANGE COLUMN `trasaction_payment_type` `trasaction_payment_type` ENUM('Manual', 'Midtrans', 'Offline', 'Balance', 'Ovo', 'Cimb', 'Ipay88', 'Shopeepay', 'Nobu') NOT NULL;");
     }
 
     /**
@@ -23,6 +23,6 @@ class AddPaymentTypeNobuToTransactionsTable extends Migration
      */
     public function down()
     {
-        DB::statement("ALTER TABLE `transactions` CHANGE COLUMN `trasaction_payment_type` `trasaction_payment_type` ENUM('Manual', 'Midtrans', 'Offline', 'Balance', 'Ovo', 'Cimb', 'Ipay88', 'Shopeepay') NOT NULL;");
+        // DB::statement("ALTER TABLE `transactions` CHANGE COLUMN `trasaction_payment_type` `trasaction_payment_type` ENUM('Manual', 'Midtrans', 'Offline', 'Balance', 'Ovo', 'Cimb', 'Ipay88', 'Shopeepay') NOT NULL;");
     }
 }
