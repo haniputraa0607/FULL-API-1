@@ -8,9 +8,8 @@ use App\Http\Models\Transaction;
 use App\Http\Models\DealsUser;
 use App\Http\Models\Setting;
 use App\Lib\MyHelper;
-use App\Http\Models\LogNobu;
+use App\Http\Models\LogNobu as AppLogNobu;
 use App\Http\Requests;
-use App\LogNobu as AppLogNobu;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 
