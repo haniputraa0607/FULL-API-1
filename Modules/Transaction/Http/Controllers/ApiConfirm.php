@@ -574,8 +574,9 @@ class ApiConfirm extends Controller
 
             if($withoutTip && $withoutTip['status_code'] == 200){
                 $responeNobu = json_decode(base64_decode($withoutTip['response']['data']),true) ?? [];
-                $createPaymentNobu = TransactionPaymentNobu::create([
+                $createPaymentNobu = TransactionPaymentNobu::updateOrCreate([
                     'id_transaction'     => $check['id_transaction'],
+                ],[
                     'transaction_time'   => $check['transaction_date'],
                     'gross_amount'       => $check['transaction_grandtotal'],
                     'order_id'           => $check['transaction_receipt_number'],
