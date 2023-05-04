@@ -764,7 +764,7 @@ class ShopeePayController extends Controller
      */
     public function checkStatus($reference, $type = 'trx', &$errors = null)
     {
-        $url      = $this->base_url . 'v3/merchant-host/transaction/payment/check';
+        $url      = $this->base_url . 'v3/merchant-host/transaction/check';
         $postData = $this->generateDataCheckStatus($reference, $type, $errors);
         if (!$postData) {
             return $postData;
@@ -883,7 +883,7 @@ class ShopeePayController extends Controller
      */
     public function refund($reference, $type = 'trx', &$errors = null, &$refund_reference_id = null)
     {
-        $url      = $this->base_url . 'v3/merchant-host/transaction/refund/create';
+        $url      = $this->base_url . 'v3/merchant-host/transaction/refund/create-new';
         $postData = $this->generateDataRefund($reference, $type, $errors, $refund_reference_id, $payment_builder);
         if (!is_array($postData)) {
             return $postData;
