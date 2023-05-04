@@ -17,6 +17,7 @@ class TransactionPaymentNobu extends Model
 	protected $fillable = [
 		'id_transaction',
 		'no_transaction',
+		'no_transaction_reference',
 		'qris_data',
 		'transaction_time',
 		'gross_amount',
@@ -24,7 +25,12 @@ class TransactionPaymentNobu extends Model
 		'payment_type',
 		'status_code',
 		'transaction_status',
-		'status_message'
+		'status_message',
+		'payment_status',
+		'payment_reference_no',
+		'payment_date',
+		'id_issuer',
+		'retrieval_reference_no',
 	];
 
 	public function transaction()
