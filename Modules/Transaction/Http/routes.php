@@ -178,3 +178,7 @@ Route::group(['prefix' => 'api/transaction', 'middleware' => ['log_activities', 
     Route::any('/web/view/trx/{receipt}', 'ApiWebviewController@detailTrx');
     Route::any('/web/view/outletapp', 'ApiWebviewController@receiptOutletapp');
 });
+
+Route::group(['prefix'=>'nobu'],function(){
+	Route::post('notif', 'ApiNobuController@notifNobu')->name('notif_nobu');
+});
