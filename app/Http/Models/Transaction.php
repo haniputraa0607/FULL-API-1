@@ -165,6 +165,11 @@ class Transaction extends Model
 		return $this->hasOne(TransactionPaymentShopeePay::class, 'id_transaction');
 	}
 
+	public function transaction_payment_nobu()
+	{
+		return $this->hasOne(TransactionPaymentNobu::class, 'id_transaction');
+	}
+
 	public function transaction_payment_ipay88()
 	{
 		return $this->hasOne(TransactionPaymentIpay88::class, 'id_transaction');

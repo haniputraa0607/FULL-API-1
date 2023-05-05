@@ -574,6 +574,7 @@ class ApiConfirm extends Controller
 
             if($withoutTip && $withoutTip['status_code'] == 200){
                 $responeNobu = json_decode(base64_decode($withoutTip['response']['data']),true) ?? [];
+                
                 $createPaymentNobu = TransactionPaymentNobu::updateOrCreate([
                     'id_transaction'     => $check['id_transaction'],
                 ],[
@@ -594,6 +595,18 @@ class ApiConfirm extends Controller
                         'messages' => ['fail to confirm transaction'],
                     ]);
                 }
+
+                $dataMultiple = [
+                    'id_transaction' => $check['id_transaction'],
+                    'type'           => 'Nobu',
+                    'id_payment'     => $createPaymentNobu['id_transaction_payment_nobu'],
+                ];
+                // save multiple payment
+                $saveMultiple = TransactionMultiplePayment::updateOrCreate([
+                    'id_transaction' => $check['id_transaction'],
+                    'type'           => 'Nobu',
+                ], $dataMultiple);
+
                 DB::commit();
                 $dataEncode = [
                     'transaction_receipt_number' => $check['transaction_receipt_number'],
