@@ -60,13 +60,13 @@ class ApiConfirm extends Controller
             ]);
         }
 
-        // if ($check['transaction_payment_status'] != 'Pending') {
-        //     DB::rollBack();
-        //     return response()->json([
-        //         'status'   => 'fail',
-        //         'messages' => ['Transaction Invalid'],
-        //     ]);
-        // }
+        if ($check['transaction_payment_status'] != 'Pending') {
+            DB::rollBack();
+            return response()->json([
+                'status'   => 'fail',
+                'messages' => ['Transaction Invalid'],
+            ]);
+        }
 
         $payment_id = strtoupper(str_replace(' ', '_', $post['payment_id']??$post['payment_detail']??null));
         $post['payment_id'] = $payment_id;
