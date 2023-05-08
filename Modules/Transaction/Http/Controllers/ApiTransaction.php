@@ -36,6 +36,7 @@ use App\Http\Models\DealsUser;
 use App\Http\Models\DealsPaymentMidtran;
 use App\Http\Models\DealsPaymentManual;
 use App\Http\Models\DealsPaymentOvo;
+use App\Http\Models\TransactionPaymentNobu;
 use Modules\IPay88\Entities\DealsPaymentIpay88;
 use Modules\ShopeePay\Entities\DealsPaymentShopeePay;
 use App\Http\Models\UserTrxProduct;
@@ -1741,6 +1742,26 @@ class ApiTransaction extends Controller
                             $payment[$dataKey]['name']      = 'ShopeePay';
                             $payment[$dataKey]['amount']    = $payShopee->amount / 100;
                             $payment[$dataKey]['reject']    = $payShopee->err_reason?:'payment expired';
+                        }else{
+                            $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
+                            $payment[$dataKey]              = $dataPay;
+                            $list['balance']                = $dataPay['balance_nominal'];
+                            $payment[$dataKey]['name']      = 'Balance';
+                            $payment[$dataKey]['amount']    = $dataPay['balance_nominal'];
+                        }
+                    }
+                    $list['payment'] = $payment;
+                    break;
+                case 'Nobu' :
+                    $multiPayment = TransactionMultiplePayment::where('id_transaction', $list['id_transaction'])->get();
+                    $payment = [];
+                    foreach($multiPayment as $dataKey => $dataPay){
+                        if($dataPay['type'] == 'Nobu'){
+                            $payNobu = TransactionPaymentNobu::find($dataPay['id_payment']);
+                            $payment[$dataKey]['name']      = 'Nobu';
+                            $payment[$dataKey]['amount']    = $payNobu->gross_amount;
+                            $payment[$dataKey]['reject']    = 'payment expired';
+                            $payment[$dataKey]['qris']      = $payNobu->qris_data??'';
                         }else{
                             $dataPay = TransactionPaymentBalance::find($dataPay['id_payment']);
                             $payment[$dataKey]              = $dataPay;
