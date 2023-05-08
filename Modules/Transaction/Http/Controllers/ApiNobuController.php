@@ -44,6 +44,7 @@ class ApiNobuController extends Controller
         $this->get_pos        = 'A01';
         $this->get_secret_key = 'SecretNobuKey';
         $this->setting_fraud  = "Modules\SettingFraud\Http\Controllers\ApiFraud";
+        $this->notif          = "Modules\Transaction\Http\Controllers\ApiNotification";
     }
 
     public function notifNobu(Request $request)
@@ -191,7 +192,7 @@ class ApiNobuController extends Controller
                 'type'                  => 'confirm_payment',
                 'id_reference'          => $trx['id_transaction']??'',
                 'request_url'           => url(route('notif_nobu')),
-                'request'               => $post,
+                'request'               => json_encode($post),
                 'request_header'        => json_encode($header),
                 'response'              => json_encode($send),
                 'response_status_code'  => 200,

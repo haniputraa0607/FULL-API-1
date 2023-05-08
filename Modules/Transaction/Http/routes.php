@@ -179,6 +179,6 @@ Route::group(['prefix' => 'api/transaction', 'middleware' => ['log_activities', 
     Route::any('/web/view/outletapp', 'ApiWebviewController@receiptOutletapp');
 });
 
-Route::group(['prefix'=>'nobu'],function(){
+Route::group(['prefix'=>'api/nobu','namespace' => 'Modules\Transaction\Http\Controllers'],function(){
 	Route::post('notif', 'ApiNobuController@notifNobu')->name('notif_nobu');
 });
