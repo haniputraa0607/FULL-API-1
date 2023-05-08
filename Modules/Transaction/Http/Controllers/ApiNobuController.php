@@ -146,7 +146,6 @@ class ApiNobuController extends Controller
         }
 
         end:
-
         if($success){
             $send = [
                 "responseStatus"      => "Success",

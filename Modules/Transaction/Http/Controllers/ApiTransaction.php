@@ -2404,6 +2404,9 @@ class ApiTransaction extends Controller
                             'name'      => $value['name'],
                             'amount'    => MyHelper::requestNumber($value['amount'],'_CURRENCY')
                         ];
+                        if($value['name'] == 'Nobu'){
+                            $result['transaction_payment'][$key]['qris'] = $value['qris'];
+                        }
                     }
                 }
             }
