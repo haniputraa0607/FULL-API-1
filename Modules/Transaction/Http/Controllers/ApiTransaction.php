@@ -1624,6 +1624,14 @@ class ApiTransaction extends Controller
                                     $payment['reject']  = $payOvo->response_description;
                                     $list['payment'][]  = $payment;
                                     break;
+                                case 'Nobu':
+                                    $payNobu = TransactionPaymentNobu::find($mp['id_payment']);
+                                    $list['payment'][] = [
+                                        'name'      => 'QRIS Nobu',
+                                        'amount'    => $payNobu->gross_amount,
+                                        'qris'      => $payNobu->qris_data??'',
+                                    ];
+                                    break;
                                 case 'IPay88':
                                     $PayIpay = TransactionPaymentIpay88::find($mp['id_payment']);
                                     // $payment['name']    = $PayIpay->payment_method;
@@ -1758,7 +1766,7 @@ class ApiTransaction extends Controller
                     foreach($multiPayment as $dataKey => $dataPay){
                         if($dataPay['type'] == 'Nobu'){
                             $payNobu = TransactionPaymentNobu::find($dataPay['id_payment']);
-                            $payment[$dataKey]['name']      = 'QRIS Nobu';
+                            $payment[$dataKey]['name']      = 'Nobu';
                             $payment[$dataKey]['amount']    = $payNobu->gross_amount;
                             $payment[$dataKey]['reject']    = 'payment expired';
                             $payment[$dataKey]['qris']      = $payNobu->qris_data??'';
@@ -2404,7 +2412,7 @@ class ApiTransaction extends Controller
                             'name'      => $value['name'],
                             'amount'    => MyHelper::requestNumber($value['amount'],'_CURRENCY')
                         ];
-                        if($value['name'] == 'Nobu'){
+                        if($value['name'] == 'QRIS Nobu'){
                             $result['transaction_payment'][$key]['qris'] = $value['qris'];
                         }
                     }
