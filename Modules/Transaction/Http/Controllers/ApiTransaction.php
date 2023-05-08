@@ -1766,7 +1766,7 @@ class ApiTransaction extends Controller
                     foreach($multiPayment as $dataKey => $dataPay){
                         if($dataPay['type'] == 'Nobu'){
                             $payNobu = TransactionPaymentNobu::find($dataPay['id_payment']);
-                            $payment[$dataKey]['name']      = 'Nobu';
+                            $payment[$dataKey]['name']      = 'QRIS Nobu';
                             $payment[$dataKey]['amount']    = $payNobu->gross_amount;
                             $payment[$dataKey]['reject']    = 'payment expired';
                             $payment[$dataKey]['qris']      = $payNobu->qris_data??'';
