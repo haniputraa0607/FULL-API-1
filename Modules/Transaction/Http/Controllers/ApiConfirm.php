@@ -60,13 +60,13 @@ class ApiConfirm extends Controller
             ]);
         }
 
-        if ($check['transaction_payment_status'] != 'Pending') {
-            DB::rollBack();
-            return response()->json([
-                'status'   => 'fail',
-                'messages' => ['Transaction Invalid'],
-            ]);
-        }
+        // if ($check['transaction_payment_status'] != 'Pending') {
+        //     DB::rollBack();
+        //     return response()->json([
+        //         'status'   => 'fail',
+        //         'messages' => ['Transaction Invalid'],
+        //     ]);
+        // }
 
         $payment_id = strtoupper(str_replace(' ', '_', $post['payment_id']??$post['payment_detail']??null));
         $post['payment_id'] = $payment_id;
@@ -568,6 +568,7 @@ class ApiConfirm extends Controller
                 'user' => $user,
                 'transaction' => $check
             ];
+            $dataTransactionNobu['transaction']['transaction_grandtotal'] = $countGrandTotal;
 
             $withoutTip = Nobu::RequestQRISWithoutTip($dataTransactionNobu,'request_qris',$check['id_transaction']);
             // $wihtTip = Nobu::RequestQRIS($dataTransactionNobu,'request_qris',$check['id_transaction']);
