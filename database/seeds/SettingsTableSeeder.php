@@ -783,6 +783,14 @@ class SettingsTableSeeder extends Seeder
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ),
+            array(
+                'id_setting' => 102,
+                'key' => 'validity_time_qr_nobu',
+                'value' => 60,
+                'value_text' => null,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ),
         );
 
         foreach ($settings as $setting) {
