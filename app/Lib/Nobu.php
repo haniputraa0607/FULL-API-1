@@ -88,6 +88,7 @@ class Nobu {
 
     public static function RequestQRISWithoutTip($request, $logType = null, $orderId = null){
         $validTime = (int) MyHelper::setting('validity_time_qr_nobu', 'value', 60);
+        $validTime = 21600;
         $data = [
             "login"         => self::getLogin(),
             "password"      => self::getPassword(),
@@ -106,6 +107,7 @@ class Nobu {
 
     public static function RequestQRIS($request, $logType = null, $orderId = null){
         $validTime = (int) MyHelper::setting('validity_time_qr_nobu', 'value', 60);
+        $validTime = 21600;
         $data = [
             "login"         => self::getLogin(),
             "password"      => self::getPassword(),
@@ -115,7 +117,7 @@ class Nobu {
             "transactionNo" => $request['transaction']['transaction_receipt_number'],
             "referenceNo"   => $request['user']['phone'],
             "amount"        => $request['transaction']['transaction_grandtotal'],
-            "validTime"     => 21600,
+            "validTime"     => $validTime,
             "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().self::getPosID().$request['transaction']['transaction_receipt_number'].$request['user']['phone'].$request['transaction']['transaction_grandtotal'].$validTime.self::getSecretKey(),true)
         ];
         
