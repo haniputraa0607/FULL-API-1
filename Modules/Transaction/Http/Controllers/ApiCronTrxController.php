@@ -47,6 +47,7 @@ class ApiCronTrxController extends Controller
         $this->promo_campaign	= "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
         $this->getNotif = "Modules\Transaction\Http\Controllers\ApiNotification";
         $this->trx    = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
+        $this->nobu_controller    = "Modules\Transaction\Http\Controllers\ApiNobuController";
     }
 
     public function cron(Request $request)
@@ -108,6 +109,19 @@ class ApiCronTrxController extends Controller
                         'requery_response' => 'Cancelled by cron'
                     ],false,false);
                     continue;                
+                }elseif($singleTrx->trasaction_payment_type == 'Nobu') {
+                    $checktNobu = app($this->nobu_controller)->checkTransactionPayment($singleTrx->id_transaction);
+                    if($checktNobu['status'] = false && $checktNobu['message'] == 'Transaction has been paid'){
+                        $singleTrx->clearLatestReversalProcess();
+                        continue;
+                    }elseif($checktNobu['status'] = true && $checktNobu['message'] == 'Transaction unpaid'){
+                       $cancelNobu = app($this->nobu_controller)->cancelTransactionPayment($singleTrx->id_transaction);
+                       if(!$cancelNobu){
+                            $singleTrx->clearLatestReversalProcess();
+                            continue;
+                       }
+
+                    }
                 }
                 // $detail = $this->getHtml($singleTrx, $productTrx, $user->name, $user->phone, $singleTrx->created_at, $singleTrx->transaction_receipt_number);
 

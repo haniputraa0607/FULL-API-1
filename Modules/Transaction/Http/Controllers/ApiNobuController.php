@@ -23,6 +23,7 @@ use App\Http\Models\TransactionPaymentBalance;
 
 use App\Jobs\FraudJob;
 use GuzzleHttp\Client;
+use App\Lib\Nobu;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -223,6 +224,135 @@ class ApiNobuController extends Controller
         return $no;
     }
 
+    public function checkTransactionPayment($id_transaction){
+        $trx = Transaction::with(['transaction_payment_nobu'])->where('id_transaction',$id_transaction)->first();
+
+        if(!$trx){
+            return [
+                'status' => false,
+                'message' => 'Transaction not found'
+            ];
+        }
+
+        if(!$trx['transaction_payment_nobu']){
+            return [
+                'status' => false,
+                'message' => 'Transaction not found'
+            ];
+        }
+
+        $check = Nobu::InquiryPaymentStatus($trx,'inquiry_payment_status',$trx['id_transaction']);
+        if($check && $check['status_code'] == 200){
+            $responeNobu = json_decode(base64_decode($check['response']['data']),true) ?? [];
+            if($responeNobu['responseStatus']=='Failed' && $responeNobu['data']['paymentStatus']=='UNPAID'){
+                return [
+                    'status' => true,
+                    'message' => 'Transaction unpaid'
+                ];
+            }elseif($responeNobu['responseStatus']=='Success' && $responeNobu['data']['paymentStatus']=='PAID'){
+                DB::beginTransaction();
+                
+                $update = $trx->update(['transaction_payment_status' => 'Completed', 'completed_at' => date('Y-m-d H:i:s')]);
+                if ($update) {
+                    $userData               = User::where('id', $trx['id_user'])->first();
+                    $config_fraud_use_queue = Configs::where('config_name', 'fraud use queue')->first()->is_active;
+
+                    if ($config_fraud_use_queue == 1) {
+                        FraudJob::dispatch($userData, $trx, 'transaction')->onConnection('fraudqueue');
+                    } else {
+                        $checkFraud = app($this->setting_fraud)->checkFraudTrxOnline($userData, $trx);
+                    }
+                }
+                if ($trx['trasaction_type'] == 'Pickup Order') {
+                    $detailTrx = TransactionPickup::where('id_transaction', $trx['id_transaction'])->first();
+                    if ($detailTrx['pickup_type'] == 'right now') {
+                        $settingTime = MyHelper::setting('processing_time');
+                        if ($settingTime) {
+                            $updatePickup = $detailTrx->update(['pickup_at' => date('Y-m-d H:i:s', strtotime('+ ' . $settingTime . 'minutes'))]);
+                        } else {
+                            $updatePickup = $detailTrx->update(['pickup_at' => date('Y-m-d H:i:s')]);
+                        }
+                    }
+                }
+
+                if(!$trx['transaction_payment_nobu']['no_transaction_reference']){
+                    $no_transaction_reference = $this->getTransactionReference($responeNobu['data']);
+                }else{
+                    $no_transaction_reference = $responeNobu['data']['referenceTransactionNo'];
+                }
+
+                TransactionPaymentNobu::where('id_transaction', $trx['id_transaction'])->update([
+                    'no_transaction_reference'  => $no_transaction_reference,
+                    'payment_status'            => $responeNobu['data']['paymentStatus'] ?? null,
+                    'payment_reference_no'      => $responeNobu['data']['paymentReferenceNo'] ?? null,
+                    'payment_date'              => $responeNobu['data']['paymentDate'] ?? null,
+                    'id_issuer'                 => $responeNobu['data']['issuerID'] ?? null,
+                    'retrieval_reference_no'    => $responeNobu['data']['retrievalReferenceNo'] ?? null,
+                ]);
+                DB::commit();
+
+                $trx->load('outlet');
+                $trx->load('productTransaction');
+
+                $mid = [
+                    'order_id'     => $trx['transaction_receipt_number'],
+                    'gross_amount' => ($trx['amount'] / 100),
+                ];
+                $send = app($this->notif)->notification($mid, $trx);
+
+                if ($trx['id_transaction']??false) {
+                    $pickup = TransactionPickup::where('id_transaction', $trx['id_transaction'])->first();
+                    if ($pickup) {
+                        if ($pickup->pickup_by == 'GO-SEND') {
+                            $pickup->bookDelivery();
+                        } else {
+                            \App\Lib\ConnectPOS::create()->sendTransaction($trx['id_transaction']);
+                        }
+                    }
+                }
+
+                return [
+                    'status' => false,
+                    'message' => 'Transaction has been paid'
+                ];
+            }
+        }else{
+            return [
+                'status' => false,
+                'message' => 'Cant get data from nobu'
+            ];
+        }
+    }
+
+    public function cancelTransactionPayment($id_transaction){
+
+        $trx = Transaction::with(['transaction_payment_nobu','user'])->where('id_transaction',$id_transaction)->first();
+
+        if(!$trx){
+            return false;
+        }
+
+        if(!$trx['transaction_payment_nobu']){
+            return false;
+        }
+
+        $cancel = Nobu::CancelingDynamicQRIS($trx,'cancel_qris',$trx['id_transaction']);
+        if($cancel && $cancel['status_code'] == 200){
+            $responeNobu = json_decode(base64_decode($cancel['response']['data']),true) ?? [];
+            if($responeNobu['responseStatus']=='Failed'){
+                return false;
+            }elseif($responeNobu['responseStatus']=='Success' && $responeNobu['data']['qrisStatus']=='CANCELED'){ 
+                TransactionPaymentNobu::where('id_transaction', $trx['id_transaction'])->update([
+                    'payment_status'     => 'UNPAID',
+                    'status_message'     => $responeNobu['messageDetail'],
+                ]);
+                return true;
+            }
+        }else{
+            return false;
+        }
+
+    }
 
 
 }

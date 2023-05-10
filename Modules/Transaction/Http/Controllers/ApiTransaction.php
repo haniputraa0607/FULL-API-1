@@ -88,6 +88,8 @@ class ApiTransaction extends Controller
 
     function __construct() {
         date_default_timezone_set('Asia/Jakarta');
+        $this->nobu_store_id   = env('NOBU_STORE_ID', 'ID2020081400327');
+        $this->nobu_store_name = env('NOBU_STORE_NAME', 'MAXX COFFEE');
     }
 
     public function transactionRule() {
@@ -2413,7 +2415,9 @@ class ApiTransaction extends Controller
                             'amount'    => MyHelper::requestNumber($value['amount'],'_CURRENCY')
                         ];
                         if($value['name'] == 'QRIS Nobu'){
-                            $result['transaction_payment'][$key]['qris'] = $value['qris'];
+                            $result['transaction_payment'][$key]['qris']          = $value['qris'];
+                            $result['transaction_payment'][$key]['id_merchant']   = $this->nobu_store_id;
+                            $result['transaction_payment'][$key]['name_merchant'] = $this->nobu_store_name;
                         }
                     }
                 }

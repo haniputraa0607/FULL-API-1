@@ -33,13 +33,16 @@ class ApiConfirm extends Controller
     public function __construct()
     {
         date_default_timezone_set('Asia/Jakarta');
-        $this->notif          = "Modules\Transaction\Http\Controllers\ApiNotification";
-        $this->trx            = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
-        $this->autocrm        = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
-        $this->voucher        = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
-        $this->promo_campaign = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
-        $this->balance        = "Modules\Balance\Http\Controllers\BalanceController";
-        $this->shopeepay      = "Modules\ShopeePay\Http\Controllers\ShopeePayController";
+        $this->notif           = "Modules\Transaction\Http\Controllers\ApiNotification";
+        $this->trx             = "Modules\Transaction\Http\Controllers\ApiOnlineTransaction";
+        $this->autocrm         = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
+        $this->voucher         = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
+        $this->promo_campaign  = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+        $this->balance         = "Modules\Balance\Http\Controllers\BalanceController";
+        $this->shopeepay       = "Modules\ShopeePay\Http\Controllers\ShopeePayController";
+        $this->nobu_store_id   = env('NOBU_STORE_ID', 'ID2020081400327');
+        $this->nobu_store_name = env('NOBU_STORE_NAME', 'MAXX COFFEE');
+
     }
 
     public function confirmTransaction(ConfirmPayment $request)
@@ -620,6 +623,8 @@ class ApiConfirm extends Controller
                     'status'                => 'success',
                     'response_description'  => $responeNobu['responseDescription'],
                     'transaction_no'        => $responeNobu['data']['transactionNo'],
+                    'id_merchant'           => $this->nobu_store_id,
+                    'name_merchant'         => $this->nobu_store_name,
                     'qris'                  => $responeNobu['data']['qrisData'],
                     'url'                   => env('VIEW_URL') . '/transaction/web/view/detail?data=' . $base,
     

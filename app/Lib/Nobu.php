@@ -27,32 +27,33 @@ class Nobu {
 
     private static function getLogin()
     {
-        return 'MAXX';
+        return env('NOBU_LOGIN', 'MAXX');
     }
 
     private static function getPassword()
     {
-        return 'MAXX';
+        return env('NOBU_PASSWORD', 'MAXX');
     }
 
     private static function getMerchantID()
     {
-        return '936005030000049084';
+        return env('NOBU_MERCHANT_ID', '936005030000049084');
     }
 
     private static function getStoreID()
     {
-        return 'ID2020081400327';
+        return env('NOBU_STORE_ID', 'ID2020081400327');
     }
 
     private static function getPosID()
     {
-        return 'A01';
+        return env('NOBU_POS_ID', 'A01');
+
     }
 
     private static function getSecretKey()
     {
-        return 'SecretNobuKey';
+        return env('NOBU_SECRET_KEY', 'SecretNobuKey');
     }
 
     public static function sendRequest($url = null, $request = null, $logType = null, $orderId = null){
@@ -63,7 +64,8 @@ class Nobu {
         $data_send = [
             "data" => base64_encode(json_encode($request))
         ];
-        $response = MyHelper::postWithTimeout(self::getBaseUrl() . $url, null, $data_send, 0, $header, 65);
+        
+        $response = MyHelper::postWithTimeout($url, null, $data_send, 0, $header, 65);
 
         try {
             $log_response = $response;
@@ -102,7 +104,7 @@ class Nobu {
             "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().self::getPosID().$request['transaction']['transaction_receipt_number'].$request['user']['phone'].$request['transaction']['transaction_grandtotal'].$validTime.self::getSecretKey())
         ];
 
-        return self::sendRequest(':2104/generalNew/Partner/GetQRISSinglePaymentWithoutTip', $data, $logType, $orderId);
+        return self::sendRequest(self::getBaseUrl() . ':2104/generalNew/Partner/GetQRISSinglePaymentWithoutTip', $data, $logType, $orderId);
     }
 
     public static function RequestQRIS($request, $logType = null, $orderId = null){
@@ -118,41 +120,41 @@ class Nobu {
             "referenceNo"   => $request['user']['phone'],
             "amount"        => $request['transaction']['transaction_grandtotal'],
             "validTime"     => $validTime,
-            "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().self::getPosID().$request['transaction']['transaction_receipt_number'].$request['user']['phone'].$request['transaction']['transaction_grandtotal'].$validTime.self::getSecretKey(),true)
+            "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().self::getPosID().$request['transaction']['transaction_receipt_number'].$request['user']['phone'].$request['transaction']['transaction_grandtotal'].$validTime.self::getSecretKey())
         ];
         
-        return self::sendRequest(':2101/general/Partner/GetQRISSinglePayment', $data, $logType, $orderId);
+        return self::sendRequest(self::getBaseUrl() . ':2101/general/Partner/GetQRISSinglePayment', $data, $logType, $orderId);
     }
 
-    public function InquiryPaymentStatus($request, $logType = null, $orderId){
+    public static function InquiryPaymentStatus($request, $logType = null, $orderId){
         $data = [
             "login"         => self::getLogin(),
             "password"      => self::getPassword(),
             "merchantID"    => self::getMerchantID(),
             "storeID"       => self::getStoreID(),
             "posID"         => self::getPosID(),
-            "transactionNo" => $request['transaction']['transaction_receipt_number'],
-            "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().self::getPosID().$request['transaction'].self::getSecretKey(),true)
+            "transactionNo" => $request['transaction_receipt_number'],
+            "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().self::getPosID().$request['transaction_receipt_number'].self::getSecretKey())
         ];
 
-        return self::sendRequest('/api/Partner/InquiryPayment', $data, $logType, $orderId);
+        return self::sendRequest('http://uatmerchantnotif.nobubank.com/api/Partner/InquiryPayment', $data, $logType, $orderId);
 
     }
 
-    public function CancelingDynamicQRIS($request, $logType = null, $orderId){
+    public static function CancelingDynamicQRIS($request, $logType = null, $orderId){
         $data = [
             "login"         => self::getLogin(),
             "password"      => self::getPassword(),
             "merchantID"    => self::getMerchantID(),
             "storeID"       => self::getStoreID(),
-            "transactionNo" => $request['transaction']['transaction_receipt_number'],
+            "transactionNo" => $request['transaction_receipt_number'],
             "referenceNo"   => $request['user']['phone'],
-            "amount"        => $request['transaction']['transaction_grandtotal'],
-            "qrisData"      => $request['transaction']['transaction_payment_nobu']['qris_data'],
-            "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().$request['transaction']['transaction_receipt_number'].$request['user']['phone'].$request['transaction']['transaction_grandtotal'].$request['transaction']['transaction_payment_nobu']['qris_data'].self::getSecretKey())
+            "amount"        => $request['transaction_payment_nobu']['gross_amount'],
+            "qrisData"      => $request['transaction_payment_nobu']['qris_data'],
+            "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().$request['transaction_receipt_number'].$request['user']['phone'].$request['transaction_payment_nobu']['gross_amount'].$request['transaction_payment_nobu']['qris_data'].self::getSecretKey())
         ];
-
-        return self::sendRequest(':2101/general/Partner/CancelQRIS', $data, $logType, $orderId);
+        
+        return self::sendRequest(self::getBaseUrl() . ':2101/general/Partner/CancelQRIS', $data, $logType, $orderId);
 
     }
 }
