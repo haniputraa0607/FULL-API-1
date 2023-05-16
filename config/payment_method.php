@@ -47,7 +47,7 @@ return [
         'payment_gateway' => 'Nobu',
         'payment_method'  => 'Nobu QRIS',
         'status'          => 1,
-        'logo'            => env('STORAGE_URL_API').'default_image/payment_method/ic_qr_code.png',
+        'logo'            => env('STORAGE_URL_API').'default_image/payment_method/ic_qris.png',
         'text'            => null
     ],
 ];

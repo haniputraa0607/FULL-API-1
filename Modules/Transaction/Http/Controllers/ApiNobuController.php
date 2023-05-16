@@ -74,7 +74,7 @@ class ApiNobuController extends Controller
                 $success = false;
                 goto end;
             }
-            if ($data['paymentStatus'] == 'PAID') {
+            if (strtolower($data['paymentStatus']) == 'paid') {
                 $update = $trx->update(['transaction_payment_status' => 'Completed', 'completed_at' => date('Y-m-d H:i:s')]);
                 if ($update) {
                     $userData               = User::where('id', $trx['id_user'])->first();
@@ -244,12 +244,12 @@ class ApiNobuController extends Controller
         $check = Nobu::InquiryPaymentStatus($trx,'inquiry_payment_status',$trx['id_transaction']);
         if($check && $check['status_code'] == 200){
             $responeNobu = json_decode(base64_decode($check['response']['data']),true) ?? [];
-            if($responeNobu['responseStatus']=='Failed' && $responeNobu['data']['paymentStatus']=='UNPAID'){
+            if(strtolower($responeNobu['responseStatus'])=='failed' && strtolower($responeNobu['data']['paymentStatus'])=='unpaid'){
                 return [
                     'status' => true,
                     'message' => 'Transaction unpaid'
                 ];
-            }elseif($responeNobu['responseStatus']=='Success' && $responeNobu['data']['paymentStatus']=='PAID'){
+            }elseif(strtolower($responeNobu['responseStatus'])=='success' && strtolower($responeNobu['data']['paymentStatus'])=='paid'){
                 DB::beginTransaction();
                 
                 $update = $trx->update(['transaction_payment_status' => 'Completed', 'completed_at' => date('Y-m-d H:i:s')]);
@@ -339,9 +339,9 @@ class ApiNobuController extends Controller
         $cancel = Nobu::CancelingDynamicQRIS($trx,'cancel_qris',$trx['id_transaction']);
         if($cancel && $cancel['status_code'] == 200){
             $responeNobu = json_decode(base64_decode($cancel['response']['data']),true) ?? [];
-            if($responeNobu['responseStatus']=='Failed'){
+            if(strtolower($responeNobu['responseStatus'])=='failed'){
                 return false;
-            }elseif($responeNobu['responseStatus']=='Success' && $responeNobu['data']['qrisStatus']=='CANCELED'){ 
+            }elseif(strtolower($responeNobu['responseStatus'])=='success' && strtolower($responeNobu['data']['qrisStatus'])=='canceled'){ 
                 TransactionPaymentNobu::where('id_transaction', $trx['id_transaction'])->update([
                     'payment_status'     => 'UNPAID',
                     'status_message'     => $responeNobu['messageDetail'],
