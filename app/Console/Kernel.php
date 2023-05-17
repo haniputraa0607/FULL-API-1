@@ -227,6 +227,12 @@ class Kernel extends ConsoleKernel
          * run every hour
          */
         $schedule->call('Modules\Balance\Http\Controllers\ApiExpiryPoint@adjustmentPointUser')->hourly();
+
+        /**
+         * cancel all pending transaction nobu that have been more than 5 minutes
+         * run every 1 minutes
+         */
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiNobuController@cronCheck')->cron('*/1 * * * *');
     }
 
     /**

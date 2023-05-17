@@ -18,8 +18,10 @@ use App\Http\Models\TransactionPickupGoSend;
 use App\Http\Models\TransactionShipment;
 use App\Http\Models\LogPoint;
 use App\Http\Models\FraudSetting;
+use App\Http\Models\TransactionProduct;
 use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentBalance;
+use App\Lib\PushNotificationHelper;
 
 use App\Jobs\FraudJob;
 use GuzzleHttp\Client;
@@ -46,6 +48,11 @@ class ApiNobuController extends Controller
         $this->get_secret_key = 'SecretNobuKey';
         $this->setting_fraud  = "Modules\SettingFraud\Http\Controllers\ApiFraud";
         $this->notif          = "Modules\Transaction\Http\Controllers\ApiNotification";
+        $this->autocrm        = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
+        $this->balance        = "Modules\Balance\Http\Controllers\BalanceController";
+        $this->promo_campaign = "Modules\PromoCampaign\Http\Controllers\ApiPromoCampaign";
+        $this->voucher        = "Modules\Deals\Http\Controllers\ApiDealsVoucher";
+
     }
 
     public function notifNobu(Request $request)
@@ -352,6 +359,123 @@ class ApiNobuController extends Controller
             return false;
         }
 
+    }
+
+    public function cronCheck(){
+
+        $log = MyHelper::logCron('Cancel Transaction Nobu');
+        try {
+            $now       = date('Y-m-d H:i:s');
+            $expired   = date('Y-m-d H:i:s',strtotime('- 5minutes'));
+
+            $getTrx = Transaction::where('transaction_payment_status', 'Pending')
+                ->where('trasaction_payment_type', 'Nobu')
+                ->where('transaction_date', '<=', $expired)
+                ->where(function ($query) {
+                    $query->whereNull('latest_reversal_process')
+                        ->orWhere('latest_reversal_process', '<', date('Y-m-d H:i:s', strtotime('- 5 minutes')));
+                })
+                ->get();
+                
+            Transaction::fillLatestReversalProcess($getTrx);
+
+            if (empty($getTrx)) {
+                $log->success('empty');
+                return response()->json(['empty']);
+            }
+
+            $count = 0;
+            foreach ($getTrx as $key => $singleTrx) {
+                $singleTrx->load('outlet_name');
+
+                $productTrx = TransactionProduct::where('id_transaction', $singleTrx->id_transaction)->get();
+                if (empty($productTrx)) {
+                    $singleTrx->clearLatestReversalProcess();
+                    continue;
+                }
+
+                $user = User::where('id', $singleTrx->id_user)->first();
+                if (empty($user)) {
+                    $singleTrx->clearLatestReversalProcess();
+                    continue;
+                }
+
+                $checkMultiple = TransactionMultiplePayment::where('id_transaction', $singleTrx->id_transaction)->get()->pluck('type')->toArray();
+                if($singleTrx->trasaction_payment_type == 'Nobu' || in_array('Nobu',$checkMultiple)) {
+                    $checktNobu = $this->checkTransactionPayment($singleTrx->id_transaction);
+                    if($checktNobu['status'] = false && $checktNobu['message'] == 'Transaction has been paid'){
+                        $singleTrx->clearLatestReversalProcess();
+                        continue;
+                    }elseif($checktNobu['status'] = true && $checktNobu['message'] == 'Transaction unpaid'){
+                       $cancelNobu = $this->cancelTransactionPayment($singleTrx->id_transaction);
+                       if(!$cancelNobu){
+                            $singleTrx->clearLatestReversalProcess();
+                            continue;
+                       }
+
+                    }
+                }else{
+                    continue;
+                }
+
+                DB::begintransaction();
+
+                MyHelper::updateFlagTransactionOnline($singleTrx, 'cancel', $user);
+
+                $singleTrx->transaction_payment_status = 'Cancelled';
+                $singleTrx->void_date = $now;
+                $update = $singleTrx->save();
+
+                if (!$update) {
+                    DB::rollBack();
+                    $singleTrx->clearLatestReversalProcess();
+                    continue;
+                }
+
+                $logBalance = LogBalance::where('id_reference', $singleTrx->id_transaction)->where('source', 'Transaction')->where('balance', '<', 0)->get();
+                foreach($logBalance as $logB){
+                    $reversal = app($this->balance)->addLogBalance( $singleTrx->id_user, abs($logB['balance']), $singleTrx->id_transaction, 'Reversal', $singleTrx->transaction_grandtotal);
+    	            if (!$reversal) {
+    	            	DB::rollBack();
+                        $singleTrx->clearLatestReversalProcess();
+    	            	continue;
+    	            }
+                    $usere= User::where('id',$singleTrx->id_user)->first();
+                    $send = app($this->autocrm)->SendAutoCRM('Transaction Failed Point Refund', $usere->phone,
+                        [
+                            "outlet_name"       => $singleTrx->outlet_name->outlet_name,
+                            "transaction_date"  => $singleTrx->transaction_date,
+                            'id_transaction'    => $singleTrx->id_transaction,
+                            'receipt_number'    => $singleTrx->transaction_receipt_number,
+                            'received_point'    => (string) abs($logB['balance'])
+                        ]
+                    );
+                }
+
+                // delete promo campaign report
+                if ($singleTrx->id_promo_campaign_promo_code) {
+                	$update_promo_report = app($this->promo_campaign)->deleteReport($singleTrx->id_transaction, $singleTrx->id_promo_campaign_promo_code);
+                	if (!$update_promo_report) {
+    	            	DB::rollBack();
+    	            	continue;
+    	            }
+                }
+
+                // return voucher
+                $update_voucher = app($this->voucher)->returnVoucher($singleTrx->id_transaction);
+                if (!$update_voucher) {
+                	DB::rollBack();
+                	continue;
+                }
+                $count++;
+                DB::commit();
+            }
+
+            $log->success([$count]);
+            return response()->json([$count]);
+        } catch (\Exception $e) {
+            $log->fail($e->getMessage());
+        }
     }
 
 
