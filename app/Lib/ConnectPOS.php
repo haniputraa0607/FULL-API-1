@@ -7,6 +7,7 @@ use App\Http\Models\TransactionPickup;
 use App\Http\Models\TransactionMultiplePayment;
 use App\Http\Models\TransactionPaymentBalance;
 use App\Http\Models\TransactionPaymentMidtran;
+use App\Http\Models\TransactionPaymentNobu;
 use App\Http\Models\TransactionPaymentOvo;
 use Modules\ShopeePay\Entities\TransactionPaymentShopeePay;
 use App\Http\Models\LogActivitiesPosTransactionsOnline;
@@ -438,6 +439,20 @@ class ConnectPOS{
 								'cardNumber'       => '',
 								'cardOwner'        => '',
 								'referenceNumber'  => $shopeepay['transaction_sn']
+							];
+							$payment[] = $pay;
+						}
+					} elseif (strtolower($payMulti['type']) == 'Nobu') {
+						$nobu = TransactionPaymentNobu::find($payMulti['id_payment']);
+						if ($nobu) {
+							$pay = [
+								'number'            => $key + 1,
+								'type'              => 'NOBUMOB',
+								'amount'            => (float) $nobu['gross_amount'],
+								'changeAmount'     => 0,
+								'cardNumber'       => '',
+								'cardOwner'        => '',
+								'referenceNumber'  => $nobu['no_transaction_reference']
 							];
 							$payment[] = $pay;
 						}

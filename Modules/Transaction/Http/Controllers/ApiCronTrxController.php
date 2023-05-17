@@ -89,8 +89,6 @@ class ApiCronTrxController extends Controller
                     continue;
                 }
 
-                $checkMultiple = TransactionMultiplePayment::where('id_transaction', $singleTrx->id_transaction)->get()->pluck('type')->toArray();
- 
                 if($singleTrx->trasaction_payment_type == 'Midtrans') {
                     $midtransStatus = Midtrans::status($singleTrx->id_transaction);
                     if ((($midtransStatus['status'] ?? false) == 'fail' && ($midtransStatus['messages'][0] ?? false) == 'Midtrans payment not found') || in_array(($midtransStatus['transaction_status'] ?? false), ['deny', 'cancel', 'expire', 'failure']) || ($midtransStatus['status_code'] ?? false) == '404') {
@@ -112,19 +110,6 @@ class ApiCronTrxController extends Controller
                         'requery_response' => 'Cancelled by cron'
                     ],false,false);
                     continue;                
-                }elseif($singleTrx->trasaction_payment_type == 'Nobu' || in_array('Nobu',$checkMultiple)) {
-                    $checktNobu = app($this->nobu_controller)->checkTransactionPayment($singleTrx->id_transaction);
-                    if($checktNobu['status'] = false && $checktNobu['message'] == 'Transaction has been paid'){
-                        $singleTrx->clearLatestReversalProcess();
-                        continue;
-                    }elseif($checktNobu['status'] = true && $checktNobu['message'] == 'Transaction unpaid'){
-                       $cancelNobu = app($this->nobu_controller)->cancelTransactionPayment($singleTrx->id_transaction);
-                       if(!$cancelNobu){
-                            $singleTrx->clearLatestReversalProcess();
-                            continue;
-                       }
-
-                    }
                 }
                 // $detail = $this->getHtml($singleTrx, $productTrx, $user->name, $user->phone, $singleTrx->created_at, $singleTrx->transaction_receipt_number);
 
