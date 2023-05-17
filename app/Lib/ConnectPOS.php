@@ -442,7 +442,7 @@ class ConnectPOS{
 							];
 							$payment[] = $pay;
 						}
-					} elseif (strtolower($payMulti['type']) == 'Nobu') {
+					} elseif ($payMulti['type'] == 'Nobu') {
 						$nobu = TransactionPaymentNobu::find($payMulti['id_payment']);
 						if ($nobu) {
 							$pay = [
