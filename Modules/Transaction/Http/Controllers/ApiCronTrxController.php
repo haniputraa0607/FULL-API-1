@@ -89,6 +89,8 @@ class ApiCronTrxController extends Controller
                     continue;
                 }
 
+                $checkMultiple = TransactionMultiplePayment::where('id_transaction', $singleTrx->id_transaction)->get()->pluck('type')->toArray();
+
                 if($singleTrx->trasaction_payment_type == 'Midtrans') {
                     $midtransStatus = Midtrans::status($singleTrx->id_transaction);
                     if ((($midtransStatus['status'] ?? false) == 'fail' && ($midtransStatus['messages'][0] ?? false) == 'Midtrans payment not found') || in_array(($midtransStatus['transaction_status'] ?? false), ['deny', 'cancel', 'expire', 'failure']) || ($midtransStatus['status_code'] ?? false) == '404') {
@@ -110,7 +112,10 @@ class ApiCronTrxController extends Controller
                         'requery_response' => 'Cancelled by cron'
                     ],false,false);
                     continue;                
+                }elseif($singleTrx->trasaction_payment_type == 'Nobu' || in_array('Nobu',$checkMultiple)) {
+                    continue;
                 }
+
                 // $detail = $this->getHtml($singleTrx, $productTrx, $user->name, $user->phone, $singleTrx->created_at, $singleTrx->transaction_receipt_number);
 
                 // $autoCrm = app($this->autocrm)->SendAutoCRM('Transaction Online Cancel', $user->phone, ['date' => $singleTrx->created_at, 'status' => $singleTrx->transaction_payment_status, 'name'  => $user->name, 'id' => $singleTrx->transaction_receipt_number, 'receipt' => $detail, 'id_reference' => $singleTrx->transaction_receipt_number]);

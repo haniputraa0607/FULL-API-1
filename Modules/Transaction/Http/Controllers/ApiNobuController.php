@@ -403,17 +403,17 @@ class ApiNobuController extends Controller
                 $checkMultiple = TransactionMultiplePayment::where('id_transaction', $singleTrx->id_transaction)->get()->pluck('type')->toArray();
                 if($singleTrx->trasaction_payment_type == 'Nobu' || in_array('Nobu',$checkMultiple)) {
                     $checktNobu = $this->checkTransactionPayment($singleTrx->id_transaction);
-                    if($checktNobu['status'] = false && $checktNobu['message'] == 'Transaction has been paid'){
+                    if(!$checktNobu['status'] && $checktNobu['message'] == 'Transaction has been paid'){
                         $singleTrx->clearLatestReversalProcess();
                         continue;
-                    }elseif($checktNobu['status'] = true && $checktNobu['message'] == 'Transaction unpaid'){
+                    }elseif($checktNobu['status'] && $checktNobu['message'] == 'Transaction unpaid'){
                        $cancelNobu = $this->cancelTransactionPayment($singleTrx->id_transaction);
                        if(!$cancelNobu){
                             $singleTrx->clearLatestReversalProcess();
                             continue;
                        }
-
                     }
+
                 }else{
                     continue;
                 }
