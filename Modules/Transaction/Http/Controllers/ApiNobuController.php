@@ -368,7 +368,7 @@ class ApiNobuController extends Controller
             $now       = date('Y-m-d H:i:s');
             $expired   = date('Y-m-d H:i:s',strtotime('- 5minutes'));
 
-            $transactions = Transaction::where('transaction_payment_status', 'Pending')
+            $getTrx = Transaction::where('transaction_payment_status', 'Pending')
                 ->where('transaction_date', '<=', $expired)
                 ->where(function ($query) {
                     $query->where('trasaction_payment_type', 'Nobu')
@@ -380,11 +380,10 @@ class ApiNobuController extends Controller
                 })
                 ->get();
 
-            $getTrx = [];
-            foreach ($transactions as $i => $trans) {
+            foreach ($getTrx as $i => $trans) {
                 $checkMultiple = TransactionMultiplePayment::where('id_transaction', $trans->id_transaction)->where('type','Nobu')->first();
-                if($checkMultiple){
-                    $getTrx[] = $trans;
+                if(!$checkMultiple){
+                    unset($getTrx[$i]);
                 }
             }
             

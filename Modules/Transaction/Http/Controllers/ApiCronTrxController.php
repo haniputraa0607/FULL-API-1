@@ -68,6 +68,13 @@ class ApiCronTrxController extends Controller
                 })
                 ->get();
 
+            foreach ($getTrx as $i => $trans) {
+                $checkMultiple = TransactionMultiplePayment::where('id_transaction', $trans->id_transaction)->where('type','Nobu')->first();
+                if($checkMultiple){
+                    unset($getTrx[$i]);
+                }
+            }   
+            
             Transaction::fillLatestReversalProcess($getTrx);
 
             if (empty($getTrx)) {
