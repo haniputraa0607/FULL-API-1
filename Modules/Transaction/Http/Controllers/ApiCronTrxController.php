@@ -61,6 +61,7 @@ class ApiCronTrxController extends Controller
 
             $getTrx = Transaction::where('transaction_payment_status', 'Pending')
                 ->where('transaction_date', '<=', $expired)
+                ->where('trasaction_payment_type', '<>', 'Nobu')
                 ->where(function ($query) {
                     $query->whereNull('latest_reversal_process')
                         ->orWhere('latest_reversal_process', '<', date('Y-m-d H:i:s', strtotime('- 5 minutes')));
