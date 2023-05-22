@@ -73,7 +73,7 @@ class Nobu {
             $log_api_array = [
                 'type'                  => $logType??'',
                 'id_reference'          => $orderId??'',
-                'request_url'           => self::getBaseUrl() . $url,
+                'request_url'           => $url,
                 'request'               => json_encode($request),
                 'request_header'        => json_encode($header),
                 'response'              => json_encode($log_response),
