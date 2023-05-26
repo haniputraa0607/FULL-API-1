@@ -58,7 +58,7 @@ class Kernel extends ConsoleKernel
          * cancel all pending transaction that have been more than 5 minutes
          * run every 2 minutes
          */
-        // $schedule->call('Modules\Transaction\Http\Controllers\ApiCronTrxController@cron')->cron('*/2 * * * *');
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiCronTrxController@cron')->cron('*/2 * * * *');
 
         /**
          * cancel all pending deals that have been more than 5 minutes
@@ -232,7 +232,7 @@ class Kernel extends ConsoleKernel
          * cancel all pending transaction nobu that have been more than 5 minutes
          * run every 1 minutes
          */
-        // $schedule->call('Modules\Transaction\Http\Controllers\ApiNobuController@cronCheck')->cron('*/1 * * * *');
+        $schedule->call('Modules\Transaction\Http\Controllers\ApiNobuController@cronCheck')->cron('*/1 * * * *');
     }
 
     /**
