@@ -90,7 +90,7 @@ class Nobu {
 
     public static function RequestQRISWithoutTip($request, $logType = null, $orderId = null){
         $validTime = (int) MyHelper::setting('validity_time_qr_nobu', 'value', 60);
-        $validTime = 21600;
+        // $validTime = 21600;
         $data = [
             "login"         => self::getLogin(),
             "password"      => self::getPassword(),
@@ -109,7 +109,7 @@ class Nobu {
 
     public static function RequestQRIS($request, $logType = null, $orderId = null){
         $validTime = (int) MyHelper::setting('validity_time_qr_nobu', 'value', 60);
-        $validTime = 21600;
+        // $validTime = 21600;
         $data = [
             "login"         => self::getLogin(),
             "password"      => self::getPassword(),
