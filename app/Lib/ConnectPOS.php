@@ -124,16 +124,16 @@ class ConnectPOS{
         $timestamp = strtotime('+' . $expired . ' minutes');
 		foreach ($trxDatas as $trxData) {
 			$user = $trxData['user'];
-			$users[] = $user->phone;
+			$users[] = $user['phone'];
 	        // $memberUid = MyHelper::createQRV2($timestamp, $user->id);
-			$memberUid = $user->id;
+			$memberUid = $user['id'];
 			if(strlen((string)$memberUid) < 8){
                 $memberUid = "00000000".$memberUid;
                 $memberUid = substr($memberUid, -8);
             }
-			$transactions[$user->phone] = $trxData->toArray();
-			$transactions[$user->phone]['transaction_object'] = $trxData;
-			$transactions[$user->phone]['outlet_name'] = $trxData->outlet->outlet_name;
+			$transactions[$user['phone']] = $trxData->toArray();
+			$transactions[$user['phone']]['transaction_object'] = $trxData;
+			$transactions[$user['phone']]['outlet_name'] = $trxData->outlet->outlet_name;
 			$outlets[] = env('POS_OUTLET_OVERWRITE')?:$trxData->outlet->outlet_code;
 			$receive_at = $trxData->receive_at?:date('Y-m-d H:i:s');
 			$vouchers = TransactionVoucher::where('id_transaction',$trxData->id_transaction)->get();
@@ -237,9 +237,9 @@ class ConnectPOS{
 					'customer'=> [
 						// 'id'=> MyHelper::createQR(time(), $trxData->user->phone), // uid
 						'id'=> $memberUid, // uid
-						'name'=> $trxData->user->name, //name
-						'gender'=> $trxData->user->gender?:'', //gender / “”
-						'age'=> $trxData->user->birthday?(date_diff(date_create($trxData->user->birthday), date_create('now'))->y):'', // age / “”
+						'name'=> $trxData->user['name'], //name
+						'gender'=> $trxData->user['gender']?:'', //gender / “”
+						'age'=> $trxData->user['birthday']?(date_diff(date_create($trxData->user['birthday']), date_create('now'))->y):'', // age / “”
 						'occupation'=> '' // “’
 					],
 					'delivery' => $delivery,
