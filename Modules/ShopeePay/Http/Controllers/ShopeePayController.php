@@ -671,6 +671,7 @@ class ShopeePayController extends Controller
                     return false;
                 }
                 $data['payment_reference_id'] = $trx->transaction_receipt_number;
+                $data['return_url'] = str_replace(['%type%','%order_id%'],[$type,urlencode($trx->transaction_receipt_number)], $this->return_url);
                 $data['amount']               = $reference->amount;
                 break;
 
