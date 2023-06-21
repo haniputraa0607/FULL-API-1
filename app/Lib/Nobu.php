@@ -20,9 +20,19 @@ class Nobu {
         date_default_timezone_set('Asia/Jakarta');
     }
 
-    private static function getBaseUrl()
+    private static function getBaseUrlGenerateQR()
     {
-        return env('NOBU_URL', 'http://uatmerchant.nobubank.com');
+        return env('NOBU_URL_GENERATE_QRIS');
+    }
+
+    private static function getBaseUrlInquiry()
+    {
+        return env('NOBU_URL_INQUIRY');
+    }
+
+    private static function getBaseUrlCancel()
+    {
+        return env('NOBU_URL_CANCEL');
     }
 
     private static function getLogin()
@@ -104,7 +114,7 @@ class Nobu {
             "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().self::getPosID().$request['transaction']['transaction_receipt_number'].$request['user']['phone'].$request['transaction']['transaction_grandtotal'].$validTime.self::getSecretKey())
         ];
 
-        return self::sendRequest(self::getBaseUrl() . ':2104/generalNew/Partner/GetQRISSinglePaymentWithoutTip', $data, $logType, $orderId);
+        return self::sendRequest(self::getBaseUrlGenerateQR(), $data, $logType, $orderId);
     }
 
     public static function RequestQRIS($request, $logType = null, $orderId = null){
@@ -123,7 +133,7 @@ class Nobu {
             "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().self::getPosID().$request['transaction']['transaction_receipt_number'].$request['user']['phone'].$request['transaction']['transaction_grandtotal'].$validTime.self::getSecretKey())
         ];
         
-        return self::sendRequest(self::getBaseUrl() . ':2101/general/Partner/GetQRISSinglePayment', $data, $logType, $orderId);
+        return self::sendRequest(self::GenerateQR() . ':2101/general/Partner/GetQRISSinglePayment', $data, $logType, $orderId);
     }
 
     public static function InquiryPaymentStatus($request, $logType = null, $orderId){
@@ -137,7 +147,7 @@ class Nobu {
             "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().self::getPosID().$request['transaction_receipt_number'].self::getSecretKey())
         ];
 
-        return self::sendRequest('http://uatmerchantnotif.nobubank.com/api/Partner/InquiryPayment', $data, $logType, $orderId);
+        return self::sendRequest(self::getBaseUrlInquiry(), $data, $logType, $orderId);
 
     }
 
@@ -154,7 +164,7 @@ class Nobu {
             "signature"     => md5(self::getLogin().self::getPassword().self::getMerchantID().self::getStoreID().$request['transaction_receipt_number'].$request['user']['phone'].$request['transaction_payment_nobu']['gross_amount'].$request['transaction_payment_nobu']['qris_data'].self::getSecretKey())
         ];
         
-        return self::sendRequest(self::getBaseUrl() . ':2101/general/Partner/CancelQRIS', $data, $logType, $orderId);
+        return self::sendRequest(self::getBaseUrlCancel(), $data, $logType, $orderId);
 
     }
 }
