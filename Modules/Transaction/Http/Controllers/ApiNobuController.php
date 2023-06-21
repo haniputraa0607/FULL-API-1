@@ -40,12 +40,9 @@ class ApiNobuController extends Controller
 
     public function __construct()
     {
-        $this->get_login      = 'MAXX';
-        $this->get_password   = 'MAXX';
-        $this->get_merchant   = '936005030000049084';
-        $this->get_store      = 'ID2020081400327';
-        $this->get_pos        = 'A01';
-        $this->get_secret_key = 'SecretNobuKey';
+        $this->get_login      = env('NOBU_LOGIN', 'MAXX');
+        $this->get_password   = env('NOBU_PASSWORD', 'MAXX');
+        $this->get_secret_key = env('NOBU_SECRET_KEY', 'SecretNobuKey');
         $this->setting_fraud  = "Modules\SettingFraud\Http\Controllers\ApiFraud";
         $this->notif          = "Modules\Transaction\Http\Controllers\ApiNotification";
         $this->autocrm        = "Modules\Autocrm\Http\Controllers\ApiAutoCrm";
