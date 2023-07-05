@@ -363,7 +363,7 @@ class ApiNobuController extends Controller
         $log = MyHelper::logCron('Cancel Transaction Nobu');
         try {
             $now       = date('Y-m-d H:i:s');
-            $expired   = date('Y-m-d H:i:s',strtotime('- 5minutes'));
+            $expired   = date('Y-m-d H:i:s');
 
             $getTrx = Transaction::where('transaction_payment_status', 'Pending')
                 ->where('transaction_date', '<=', $expired)
@@ -373,7 +373,7 @@ class ApiNobuController extends Controller
                 })
                 ->where(function ($query) {
                     $query->whereNull('latest_reversal_process')
-                        ->orWhere('latest_reversal_process', '<', date('Y-m-d H:i:s', strtotime('- 5 minutes')));
+                        ->orWhere('latest_reversal_process', '<', date('Y-m-d H:i:s'));
                 })
                 ->get();
 
@@ -414,13 +414,17 @@ class ApiNobuController extends Controller
                         $singleTrx->clearLatestReversalProcess();
                         continue;
                     }elseif($checktNobu['status'] && $checktNobu['message'] == 'Transaction unpaid'){
-                       $cancelNobu = $this->cancelTransactionPayment($singleTrx->id_transaction);
-                       if(!$cancelNobu){
+                        if($singleTrx['transaction_date'] < date('Y-m-d H:i:s', strtotime('- 5 minutes'))){
+                            $cancelNobu = $this->cancelTransactionPayment($singleTrx->id_transaction);
+                            if(!$cancelNobu){
+                                    $singleTrx->clearLatestReversalProcess();
+                                    continue;
+                            }
+                        }else{
                             $singleTrx->clearLatestReversalProcess();
                             continue;
-                       }
+                        }
                     }
-
                 }else{
                     continue;
                 }
