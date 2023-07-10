@@ -51,6 +51,7 @@ class ApiOutletWebview extends Controller
         $outlet['distance']=number_format((float)$this->distance($request->latitude, $request->longitude, $outlet['outlet_latitude'], $outlet['outlet_longitude'], "K"), 2, '.', '').' km';
         
         foreach ($outlet['outlet_schedules'] as $key => $value) {
+            $value = app($this->outlet)->setTimezone($value);
             if (date('l') == $value['day']) {
                 $outlet['outlet_schedules'][$key] = [
                     'is_today'  => 1,

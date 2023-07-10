@@ -2114,10 +2114,30 @@ class ApiOutletController extends Controller
                 'id_outlet' => $post['id_outlet']
             ];
 
-            $save = OutletSchedule::updateOrCreate(['id_outlet' => $post['id_outlet'], 'day' => $value], $data);
-            if (!$save) {
-                DB::rollBack();
-                return response()->json(['status' => 'fail']);
+            $schedule_outlet = OutletSchedule::where('id_outlet', $post['id_outlet'])->where('day', $value)->first();
+            if($schedule_outlet){
+                switch ($schedule_outlet['time_zone']) {
+                    case 'Asia/Makassar':
+                    case 'Asia/Singapore':
+                        $data['open'] = date('H:i', strtotime('-1 hour',strtotime($data['open'])));
+                        $data['close'] = date('H:i', strtotime('-1 hour', strtotime($data['close'])));
+                        break;
+                    case 'Asia/Jayapura':
+                        $data['open'] = date('H:i', strtotime('-2 hours', strtotime($data['open'])));
+                        $data['close'] = date('H:i', strtotime('-2 hours', strtotime($data['close'])));
+                        break;
+                }
+                $save = OutletSchedule::updateOrCreate(['id_outlet' => $post['id_outlet'], 'day' => $value], $data);
+                if (!$save) {
+                    DB::rollBack();
+                    return response()->json(['status' => 'fail']);
+                }
+            }else{
+                $create = OutletSchedule::create($data);
+                if (!$create) {
+                    DB::rollBack();
+                    return response()->json(['status' => 'fail']);
+                }
             }
         }
 
