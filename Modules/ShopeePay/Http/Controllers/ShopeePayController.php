@@ -295,16 +295,16 @@ class ShopeePayController extends Controller
                 }
 
                 TransactionPaymentShopeePay::where('id_transaction', $singleTrx->id_transaction)->update([
-                    'transaction_sn' => $status['response']['transaction_list'][0]['transaction_sn'] ?? null,
-                    'payment_status' => $status['response']['payment_status'] ?? null,
-                    'user_id_hash'   => $status['response']['transaction_list'][0]['user_id_hash'] ?? null,
-                    'terminal_id'    => $status['response']['transaction_list'][0]['terminal_id'] ?? null,
+                    'transaction_sn' => $status['response']['transaction']['transaction_sn'] ?? null,
+                    'payment_status' => isset($status['response']['transaction']['status']) ? 1 : null,
+                    'user_id_hash'   => $status['response']['transaction']['user_id_hash'] ?? null,
+                    'terminal_id'    => $status['response']['transaction']['terminal_id'] ?? null,
                 ]);
 
                 // is transaction success?
-                $payment_status = ($status['response']['payment_status'] ?? false);
-                if ($payment_status == '1') {
-                    if (($status['response']['transaction_list'][0]['amount'] ?? false) != $singleTrx->amount) {
+                $payment_status = ($status['response']['transaction'] ?? false);
+                if ($payment_status['status'] ?? false) {
+                    if (($status['response']['transaction']['amount'] ?? false) != $singleTrx->amount) {
                         // void transaction
                         $refund_reference_id = null;
                         $void              = $this->refund($singleTrx, 'trx', $errors, $refund_reference_id);
@@ -714,14 +714,16 @@ class ShopeePayController extends Controller
     {
         $data = [
             'request_id'           => $this->requestId(),
-            'payment_reference_id' => '',
+            'reference_id'         => '',
+            'transaction_type'     => 13,
             'merchant_ext_id'      => $this->merchant_ext_id,
             'store_ext_id'         => $this->store_ext_id,
+            'amount'               => 0, 
         ];
         switch ($type) {
             case 'trx':
                 if (is_numeric($reference)) {
-                    $reference = Transaction::where('id_transaction', $reference)->first();
+                    $reference = Transaction::join('transaction_payment_shopee_pays', 'transactions.id_transaction', '=', 'transaction_payment_shopee_pays.id_transaction')->where('id_transaction', $reference)->first();
                     if (!$reference) {
                         $errors = ['Transaction not found'];
                         return false;
@@ -732,7 +734,8 @@ class ShopeePayController extends Controller
                         return false;
                     }
                 }
-                $data['payment_reference_id'] = $reference['transaction_receipt_number'];
+                $data['reference_id'] = $reference['transaction_receipt_number'];
+                $data['amount'] = $reference['amount'];
                 break;
 
             case 'deals':
@@ -748,7 +751,8 @@ class ShopeePayController extends Controller
                         return false;
                     }
                 }
-                $data['payment_reference_id'] = $reference['order_id'];
+                $data['reference_id'] = $reference['order_id'];
+                $data['amount'] = $reference['amount'];
                 break;
 
             default:
@@ -821,10 +825,12 @@ class ShopeePayController extends Controller
         $refund_reference_id = $refund_reference_id ?: time() . rand(10, 99);
         $data                = [
             'request_id'           => $this->requestId(),
-            'payment_reference_id' => '',
+            'reference_id'         => '',
+            'transaction_type'     => 13, 
             'refund_reference_id'  => $refund_reference_id,
             'merchant_ext_id'      => $this->merchant_ext_id,
             'store_ext_id'         => $this->store_ext_id,
+            'amount'               => 0, 
         ];
         $minimal_refund_time = '03:00';
         switch ($type) {
@@ -846,7 +852,8 @@ class ShopeePayController extends Controller
                     TransactionPaymentShopeePay::where('id_transaction', $reference['id_transaction'])->update(['manual_refund' => '1']);
                     return true;
                 }
-                $data['payment_reference_id'] = $reference['transaction_receipt_number'];
+                $data['reference_id'] = $reference['transaction_receipt_number'];
+                $data['amount'] = $payment_builder['amount'];
                 break;
 
             case 'deals':
@@ -867,7 +874,8 @@ class ShopeePayController extends Controller
                     DealsPaymentShopeePay::where('order_id', $reference['order_id'])->update(['manual_refund' => '1']);
                     return true;
                 }
-                $data['payment_reference_id'] = $reference['order_id'];
+                $data['reference_id'] = $reference['order_id'];
+                $data['amount'] = $reference['amount'];
                 break;
 
             default:
@@ -947,7 +955,7 @@ class ShopeePayController extends Controller
             $errors[] = $this->errcode[$response['response']['errcode']] ?? 'Something went wrong';
             $errors[] = 'Refund Failed';
         }
-        return (($response['response']['transaction_list'][0]['status']??false) == '3' && ($response['response']['transaction_list'][0]['transaction_type']??false) == '15');
+        return (($response['response']['transaction']['status']??false) == '3' && ($response['response']['transaction']['transaction_type']??false) == '15');
     }
 
     /**
