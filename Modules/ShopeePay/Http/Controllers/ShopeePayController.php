@@ -774,7 +774,7 @@ class ShopeePayController extends Controller
         if (!$postData) {
             return $postData;
         }
-        $response = $this->send($url, $postData, ['type' => 'check_status', 'id_reference' => $postData['payment_reference_id']]);
+        $response = $this->send($url, $postData, ['type' => 'check_status', 'id_reference' => $postData['reference_id']]);
         /**
          * $response
          * {
@@ -897,7 +897,7 @@ class ShopeePayController extends Controller
         if (!is_array($postData)) {
             return $postData;
         }
-        $response = $this->send($url, $postData, ['type' => 'refund', 'id_reference' => $postData['payment_reference_id']]);
+        $response = $this->send($url, $postData, ['type' => 'refund', 'id_reference' => $postData['reference_id']]);
         if (($response['response']['errcode']?? 0) == 601 && $payment_builder) {
             $payment_builder->update(['manual_refund' => '1']);
             return true;
